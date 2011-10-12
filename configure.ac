@@ -22,13 +22,15 @@ AC_PROG_CC
 AM_PROG_LIBTOOL
 
 # Checks for libraries.
+AX_BOOST_BASE([1.42.0])
 AX_BOOST_THREAD
 # AX_BOOST_PROGRAM_OPTIONS
+PKG_CHECK_MODULES([cppunit], [cppunit >= 1.12])
 
 # Checks for header files.
 AC_HEADER_STDC
-# FIXME AC_CHECK_HEADERS([string])
-# FIXME AC_CHECK_HEADERS([iostream])
+AC_CHECK_HEADERS([string])
+AC_CHECK_HEADERS([iostream])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT32_T
@@ -39,6 +41,13 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AC_CHECK_FUNCS([gettimeofday])
+
+# Checks for compiler characteristics
+AC_C_BIGENDIAN
+
+# Checks for machine characteristics
+AX_COUNT_CPUS
+AX_CACHE_SIZE
 
 # Variable substitions
 AX_SPLIT_VERSION
