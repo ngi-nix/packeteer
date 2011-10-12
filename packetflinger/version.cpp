@@ -28,12 +28,12 @@ namespace packetflinger {
 std::pair<std::string, std::string>
 version()
 {
-  return std::make_pair<std::string, std::string>(PACKETFLINGER_MAJOR, PACKETFLINGER_MINOR);
+  return std::make_pair<std::string, std::string>(PACKAGE_MAJOR, PACKAGE_MINOR);
 }
 
 
 
-char const * const copyright_string = "packetflinger " PACKETFLINGER_VERSION
+char const * const copyright_string = PACKAGE_NAME " " PACKAGE_VERSION " " PACKAGE_URL
     " - Copyright (c) 2011 Jens Finkhaeuser. Licensed under the Apache License,\n"
     "Version 2.0.\n"
     ;
