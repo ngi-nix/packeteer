@@ -40,8 +40,6 @@ AC_TYPE_SIZE_T
 # Checks for library functions.
 AC_CHECK_FUNCS([gettimeofday])
 
-# AC_CONFIG_SUBDIRS([3rdparty/openpa])
-
 # Variable substitions
 AX_SPLIT_VERSION
 AC_DEFINE_UNQUOTED([PACKAGE_MAJOR], ["$AX_MAJOR_VERSION"], [Define to the major version of this package.])
@@ -51,6 +49,8 @@ AC_SUBST([AM_CXXFLAGS])
 AC_SUBST([AM_LDFLAGS])
 
 # Output
+AC_CONFIG_SUBDIRS([3rdparty/openpa])
+
 AC_CONFIG_FILES([
   Makefile
   packetflinger/Makefile
