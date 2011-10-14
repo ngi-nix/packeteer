@@ -30,4 +30,14 @@
 #define PACKETFLINGER_STRINGIFY(n) PACKETFLINGER_STRINGIFY_HELPER(n)
 #define PACKETFLINGER_STRINGIFY_HELPER(n) #n
 
+/**
+ * Define logging symbols if -DDEBUG is specified (or -DNDEBUG isn't).
+ **/
+#if defined(DEBUG) && !defined(NDEBUG)
+#include <iostream>
+#define LOG(msg) std::cerr << "DEBUG: " << msg << std::endl;
+#else
+#define LOG(msg)
+#endif
+
 #endif // guard
