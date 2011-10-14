@@ -9,4 +9,5 @@ pkgconfig_DATA = packetflinger.pc
 
 SUBDIRS = \
 	3rdparty/openpa \
-	packetflinger
+	packetflinger \
+	test

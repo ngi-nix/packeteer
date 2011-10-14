@@ -1,7 +1,8 @@
-AM_CXXFLAGS = -I$(top_srcdir) @AM_CXXFLAGS@
+include $(top_srcdir)/common.mk
 
 lib_LTLIBRARIES = libpacketflinger.la
 
+# FIXME
 libpacketflinger_la_CPPFLAGS = $(DEPS_CFLAGS)
 libpacketflinger_la_LIBADD = $(DEPS_LIBS)
 libpacketflinger_la_LDFLAGS = -version-info 1:0:0
@@ -13,7 +14,8 @@ nodist_libpacketflinger_la_libinclude_HEADERS = \
 libpacketflinger_la_SOURCES = \
 	error.cpp \
 	version.cpp \
-	packetflinger.cpp
+	packetflinger.cpp \
+	duration.cpp
 
 libpacketflinger_la_includedir = $(includedir)/packetflinger/include
 libpacketflinger_la_include_HEADERS = \
@@ -21,4 +23,6 @@ libpacketflinger_la_include_HEADERS = \
 	macros.h \
 	version.h \
 	packetflinger.h \
-	shared_ptr.h
+	shared_ptr.h \
+	duration.h \
+	scheduler.h
