@@ -55,17 +55,25 @@ PACKETFLINGER_ERRDEF(ERR_SUCCESS,
     0,
     "No error")
 
-PACKETFLINGER_ERRDEF(ERR_OUT_OF_MEMORY,
+PACKETFLINGER_ERRDEF(ERR_UNEXPECTED,
     1,
+    "Nobody expects the Spanish Inquisition!")
+
+PACKETFLINGER_ERRDEF(ERR_OUT_OF_MEMORY,
+    2,
     "Out of memory.")
 
 PACKETFLINGER_ERRDEF(ERR_ABORTED,
-    2,
+    3,
     "An operation was aborted due to unrecoverable errors.")
 
 PACKETFLINGER_ERRDEF(ERR_FORMAT,
-    3,
+    4,
     "Invalid or unknown format specified.")
+
+PACKETFLINGER_ERRDEF(ERR_INVALID_VALUE,
+    5,
+    "An invalid parameter value was specified.")
 
 PACKETFLINGER_END_ERRORS
 
