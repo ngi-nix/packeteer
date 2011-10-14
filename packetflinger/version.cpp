@@ -34,8 +34,8 @@ version()
 
 
 char const * const copyright_string = PACKAGE_NAME " " PACKAGE_VERSION " " PACKAGE_URL
-    " - Copyright (c) 2011 Jens Finkhaeuser. Licensed under the Apache License,\n"
-    "Version 2.0.\n"
+    " - Copyright (c) 2011 Jens Finkhaeuser.\n"
+    "Licensed under the Apache License, Version 2.0."
     ;
 
 
@@ -50,7 +50,7 @@ char const * const license_string =
     "distributed under the License is distributed on an \"AS IS\" BASIS,\n"
     "WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
     "See the License for the specific language governing permissions and\n"
-    "limitations under the License.\n"
+    "limitations under the License."
     ;
 
 
