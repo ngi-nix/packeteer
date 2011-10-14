@@ -28,8 +28,6 @@
 
 #include <stdexcept>
 
-#include <boost/cstdint.hpp>
-
 #include <packetflinger/macros.h>
 
 

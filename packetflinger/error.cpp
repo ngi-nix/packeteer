@@ -24,7 +24,7 @@ namespace packetflinger {
 /**
  * (Un-)define macros to ensure error defintions are being generated.
  **/
-#define PACKETFLINGER_START_ERRORS namespace { static const struct { char const * const name; boost::uint32_t code; char const * const message; } error_table[] = {
+#define PACKETFLINGER_START_ERRORS namespace { static const struct { char const * const name; uint32_t code; char const * const message; } error_table[] = {
 #define PACKETFLINGER_ERRDEF(name, code, desc) { PACKETFLINGER_STRINGIFY(name), code, desc},
 #define PACKETFLINGER_END_ERRORS { NULL, 0, NULL } }; }
 
@@ -45,11 +45,11 @@ error_message(error_t code)
     return "unidentified error";
   }
 
-  for (boost::uint32_t i = 0
+  for (uint32_t i = 0
       ; i < static_cast<error_t>(sizeof(error_table) / sizeof(error_table[0]))
       ; ++i)
   {
-    if (static_cast<boost::uint32_t>(code) == error_table[i].code) {
+    if (static_cast<uint32_t>(code) == error_table[i].code) {
       return error_table[i].message;
     }
   }
@@ -66,11 +66,11 @@ error_name(error_t code)
     return "unidentified error";
   }
 
-  for (boost::uint32_t i = 0
+  for (uint32_t i = 0
       ; i < static_cast<error_t>(sizeof(error_table) / sizeof(error_table[0]))
       ; ++i)
   {
-    if (static_cast<boost::uint32_t>(code) == error_table[i].code) {
+    if (static_cast<uint32_t>(code) == error_table[i].code) {
       return error_table[i].name;
     }
   }
