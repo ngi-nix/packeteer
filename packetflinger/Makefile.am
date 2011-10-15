@@ -23,6 +23,6 @@ libpacketflinger_la_include_HEADERS = \
 	macros.h \
 	version.h \
 	packetflinger.h \
-	shared_ptr.h \
+	types.h \
 	duration.h \
 	scheduler.h
