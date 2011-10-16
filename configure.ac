@@ -105,8 +105,6 @@ AC_SUBST([AM_LDFLAGS])
 
 ##############################################################################
 # Output
-AC_CONFIG_SUBDIRS([3rdparty/openpa])
-
 AC_CONFIG_FILES([
   Makefile
   packetflinger/Makefile
