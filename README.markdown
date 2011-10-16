@@ -10,8 +10,9 @@ following:
 - A dumb-as-it-can-get non-blocking write function for connections. Write data
   to it, and the backend takes care of sending it over the connection as soon
   as it can.
-- A primitive thread pool that schedules event callbacks such as the fact that
-  data has been read on a connection on as many or as few threads as you want.
+- A primitive thread pool that schedules event callbacks (such as events for
+  the fact that data has been read on a connection) across as many or as few
+  threads as you want.
   There is very deliberately no logic to automagically shrink or grow the thread
   pool, but there is functionality that would allow you to implement such thread
   pool management on top of packetflinger.
