@@ -75,6 +75,14 @@ PACKETFLINGER_ERRDEF(ERR_INVALID_VALUE,
     5,
     "An invalid parameter value was specified.")
 
+PACKETFLINGER_ERRDEF(ERR_NUM_FILES,
+    6,
+    "The system or per-user limit for open file descriptors was exceeded.")
+
+PACKETFLINGER_ERRDEF(ERR_EMPTY_CALLBACK,
+    7,
+    "Tried to invoke an empty callback object.")
+
 PACKETFLINGER_END_ERRORS
 
 
@@ -88,14 +96,14 @@ namespace packetflinger {
 
 /**
  * Return the error message associated with the given error code. Never returns
- * NULL; if an unknown error code is given, an "unidentified error" string is
+ * nullptr; if an unknown error code is given, an "unidentified error" string is
  * returned. Not that this should happen, given that error_t is an enum...
  **/
 char const * const error_message(error_t code);
 
 /**
  * Return a string representation of the given error code. Also never returns
- * NULL, see error_message() above.
+ * nullptr, see error_message() above.
  **/
 char const * const error_name(error_t code);
 
