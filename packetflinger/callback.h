@@ -84,28 +84,28 @@ public:
    * Implementation
    **/
   inline callback()
-    : m_free_function(NULL)
-    , m_object_helper(NULL)
+    : m_free_function(nullptr)
+    , m_object_helper(nullptr)
   {
   }
 
   inline callback(free_function_type free_func)
     : m_free_function(free_func)
-    , m_object_helper(NULL)
+    , m_object_helper(nullptr)
   {
   }
 
   inline callback(detail::callback_helper_base * helper)
-    : m_free_function(NULL)
+    : m_free_function(nullptr)
     , m_object_helper(helper) // take ownership
   {
   }
 
   inline callback(callback const & other)
     : m_free_function(other.m_free_function)
-    , m_object_helper(NULL)
+    , m_object_helper(nullptr)
   {
-    if (NULL != other.m_object_helper) {
+    if (nullptr != other.m_object_helper) {
       // By cloning we can take ownership
       m_object_helper = other.m_object_helper->clone();
     }
@@ -115,8 +115,8 @@ public:
     : m_free_function(other.m_free_function)
     , m_object_helper(other.m_object_helper)
    {
-     other.m_free_function = NULL;
-     other.m_object_helper = NULL;
+     other.m_free_function = nullptr;
+     other.m_object_helper = nullptr;
    }
 
 
@@ -133,7 +133,7 @@ public:
    **/
   inline bool empty() const
   {
-    return (NULL == m_free_function && NULL == m_object_helper);
+    return (nullptr == m_free_function && nullptr == m_object_helper);
   }
 
   inline operator bool() const
@@ -150,7 +150,7 @@ public:
   inline callback & operator=(free_function_type free_func)
   {
     delete m_object_helper;
-    m_object_helper = NULL;
+    m_object_helper = nullptr;
 
     m_free_function = free_func;
 
@@ -163,7 +163,7 @@ public:
     delete m_object_helper;
     m_object_helper = helper; // take ownership
 
-    m_free_function = NULL;
+    m_free_function = nullptr;
 
     return *this;
   }
@@ -171,10 +171,10 @@ public:
   inline callback & operator=(callback const & other)
   {
     delete m_object_helper;
-    m_object_helper = NULL;
+    m_object_helper = nullptr;
 
     m_free_function = other.m_free_function;
-    if (NULL != other.m_object_helper) {
+    if (nullptr != other.m_object_helper) {
       m_object_helper = other.m_object_helper->clone();
     }
 
@@ -186,8 +186,8 @@ public:
     m_free_function = other.m_free_function;
     m_object_helper = other.m_object_helper;
 
-    other.m_free_function = NULL;
-    other.m_object_helper = NULL;
+    other.m_free_function = nullptr;
+    other.m_object_helper = nullptr;
 
     return *this;
   }
@@ -202,10 +202,10 @@ public:
   error_t
   operator()(uint64_t events, error_t error, int fd, void * baton)
   {
-    if (NULL != m_free_function) {
+    if (nullptr != m_free_function) {
       return (*m_free_function)(events, error, fd, baton);
     }
-    else if (NULL != m_object_helper) {
+    else if (nullptr != m_object_helper) {
       return m_object_helper->invoke(events, error, fd, baton);
     }
     else {
@@ -220,11 +220,11 @@ public:
    **/
   inline bool operator==(callback const & other) const
   {
-    if (NULL != m_free_function) {
+    if (nullptr != m_free_function) {
       return m_free_function == other.m_free_function;
     }
-    if (NULL == other.m_object_helper
-        || NULL == m_object_helper)
+    if (nullptr == other.m_object_helper
+        || nullptr == m_object_helper)
     {
       return false;
     }
