@@ -40,4 +40,24 @@
 #define LOG(msg)
 #endif
 
+/**
+ * Token concatenation
+ **/
+#define PACKETFLINGER_TOKEN_CAT_HELPER(x, y) x ## y
+#define PACKETFLINGER_TOKEN_CAT(x, y) PACKETFLINGER_TOKEN_CAT_HELPER(x, y)
+
+/**
+ * Simply macro for making an anonymous union from the given data structure/type,
+ * and a cache line size'd padding value. Ensures the data is occupying a cache
+ * line all by itself.
+ **/
+#define PACKETFLINGER_CACHE_LINE_ALIGN(data)                      \
+  union {                                                         \
+    data;                                                         \
+    char PACKETFLINGER_TOKEN_CAT(pad, __LINE__)[CACHE_LINE_SIZE]; \
+  };
+
+#define PACKETFLINGER_CACHE_LINE_PAD                              \
+  char PACKETFLINGER_TOKEN_CAT(pad, __LINE__)[CACHE_LINE_SIZE];
+
 #endif // guard
