@@ -31,6 +31,7 @@ AU_ALIAS([AC_COMPILE_STDCXX_0X], [AX_CXX_COMPILE_STDCXX_0X])
 
 ##############################################################################
 # Checks for machine characteristics
+AX_CACHE_LINE_SIZE
 # AX_COUNT_CPUS
 # AX_CACHE_SIZE
 
