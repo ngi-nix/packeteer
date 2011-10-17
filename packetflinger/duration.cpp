@@ -48,7 +48,7 @@ void sleep(usec_t const & interval)
     tv.tv_sec = to_sec(remain);
     tv.tv_usec = remain - from_sec(to_sec(remain));
 
-    int ret = ::select(0, NULL, NULL, NULL, &tv);
+    int ret = ::select(0, nullptr, nullptr, nullptr, &tv);
     if (0 == ret) {
       break;
     }
@@ -86,7 +86,7 @@ void sleep(usec_t const & interval)
 usec_t now()
 {
   ::timeval tv;
-  ::gettimeofday(&tv, NULL);
+  ::gettimeofday(&tv, nullptr);
   return from_sec(tv.tv_sec) + tv.tv_usec;
 }
 
