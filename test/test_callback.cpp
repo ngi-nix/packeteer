@@ -70,6 +70,8 @@ public:
     CPPUNIT_TEST(testFreeFunctions);
     CPPUNIT_TEST(testMemberFunctions);
     CPPUNIT_TEST(testComparison);
+    CPPUNIT_TEST(testEmpty);
+    CPPUNIT_TEST(testAssignment);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -121,6 +123,40 @@ private:
 
     CPPUNIT_ASSERT(cb1 != cb2);
     CPPUNIT_ASSERT(cb2 != cb1);
+  }
+
+
+  void testEmpty()
+  {
+    // Empty/un-assigned callbacks should behave sanely
+    pf::callback cb;
+
+    CPPUNIT_ASSERT_EQUAL(true, cb.empty());
+    CPPUNIT_ASSERT(!cb);
+
+    CPPUNIT_ASSERT_THROW(cb(0, pf::error_t(1), 2, NULL), pf::exception);
+
+    pf::callback cb2 = &free_func1;
+    CPPUNIT_ASSERT(cb != cb2);
+  }
+
+
+  void testAssignment()
+  {
+    // Ensure that empty callbacks can be assigned later on.
+    pf::callback cb;
+    CPPUNIT_ASSERT(!cb);
+
+    cb = &free_func1;
+    CPPUNIT_ASSERT(cb);
+    CPPUNIT_ASSERT_EQUAL(false, cb.empty());
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(1), cb(42, pf::error_t(0), 0, NULL));
+
+    functor f;
+    cb = pf::make_callback(&f);
+    CPPUNIT_ASSERT(cb);
+    CPPUNIT_ASSERT_EQUAL(false, cb.empty());
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(4), cb(0xdeadbeef, pf::error_t(0), 0, NULL));
   }
 };
 

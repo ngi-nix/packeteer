@@ -42,6 +42,7 @@ struct callback_helper_base
 {
   virtual error_t invoke(uint64_t events, error_t error, int fd, void * baton) = 0;
   virtual bool compare(callback_helper_base const * other) const = 0;
+  virtual callback_helper_base * clone() const = 0;
 };
 
 
@@ -82,26 +83,96 @@ public:
   /*****************************************************************************
    * Implementation
    **/
-  callback(free_function_type free_func)
+  inline callback()
+    : m_free_function(NULL)
+    , m_object_helper(NULL)
+  {
+  }
+
+  inline callback(free_function_type free_func)
     : m_free_function(free_func)
     , m_object_helper(NULL)
   {
   }
 
-
-
-  callback(detail::callback_helper_base * helper)
+  inline callback(detail::callback_helper_base * helper)
     : m_free_function(NULL)
     , m_object_helper(helper) // take ownership
   {
   }
 
+  inline callback(callback const & other)
+    : m_free_function(other.m_free_function)
+    , m_object_helper(NULL)
+  {
+    if (NULL != other.m_object_helper) {
+      // By cloning we can take ownership
+      m_object_helper = other.m_object_helper->clone();
+    }
+  }
 
 
-  ~callback()
+
+  inline ~callback()
   {
     delete m_object_helper;
   }
+
+
+
+  /**
+   * Does callback hold a function or not?
+   **/
+  inline bool empty() const
+  {
+    return (NULL == m_free_function && NULL == m_object_helper);
+  }
+
+  inline operator bool() const
+  {
+    return !empty();
+  }
+
+
+
+
+  /**
+   * Assignment
+   **/
+  inline callback & operator=(free_function_type free_func)
+  {
+    delete m_object_helper;
+    m_object_helper = NULL;
+
+    m_free_function = free_func;
+
+    return *this;
+  }
+
+
+  inline callback & operator=(detail::callback_helper_base * helper)
+  {
+    delete m_object_helper;
+    m_object_helper = helper; // take ownership
+
+    m_free_function = NULL;
+
+    return *this;
+  }
+
+  inline callback & operator=(callback const & other)
+  {
+    delete m_object_helper;
+    m_object_helper = NULL;
+
+    m_free_function = other.m_free_function;
+    if (NULL != other.m_object_helper) {
+      m_object_helper = other.m_object_helper->clone();
+    }
+
+    return *this;
+  }
+
 
 
 
@@ -115,8 +186,11 @@ public:
     if (NULL != m_free_function) {
       return (*m_free_function)(events, error, fd, baton);
     }
-    else {
+    else if (NULL != m_object_helper) {
       return m_object_helper->invoke(events, error, fd, baton);
+    }
+    else {
+      throw exception(ERR_EMPTY_CALLBACK);
     }
   }
 
@@ -125,22 +199,20 @@ public:
   /**
    * Equality-compare two callback objects.
    **/
-  inline
-  bool
-  operator==(callback const & other) const
+  inline bool operator==(callback const & other) const
   {
     if (NULL != m_free_function) {
       return m_free_function == other.m_free_function;
     }
-    if (NULL == other.m_object_helper) {
+    if (NULL == other.m_object_helper
+        || NULL == m_object_helper)
+    {
       return false;
     }
     return m_object_helper->compare(other.m_object_helper);
   }
 
-  inline
-  bool
-  operator!=(callback const & other) const
+  inline bool operator!=(callback const & other) const
   {
     return !operator==(other);
   }
@@ -187,6 +259,13 @@ struct callback_helper : public callback_helper_base
       = reinterpret_cast<callback_helper<T> const *>(other);
 
     return (m_object == o->m_object && m_function == o->m_function);
+  }
+
+
+
+  virtual callback_helper_base * clone() const
+  {
+    return new callback_helper<T>(m_object, m_function);
   }
 
 private:
