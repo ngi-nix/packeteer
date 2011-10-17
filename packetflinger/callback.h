@@ -111,6 +111,14 @@ public:
     }
   }
 
+  inline callback(callback && other)
+    : m_free_function(other.m_free_function)
+    , m_object_helper(other.m_object_helper)
+   {
+     other.m_free_function = NULL;
+     other.m_object_helper = NULL;
+   }
+
 
 
   inline ~callback()
@@ -169,6 +177,17 @@ public:
     if (NULL != other.m_object_helper) {
       m_object_helper = other.m_object_helper->clone();
     }
+
+    return *this;
+  }
+
+  inline callback & operator=(callback && other)
+  {
+    m_free_function = other.m_free_function;
+    m_object_helper = other.m_object_helper;
+
+    other.m_free_function = NULL;
+    other.m_object_helper = NULL;
 
     return *this;
   }
