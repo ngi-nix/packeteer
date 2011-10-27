@@ -20,37 +20,22 @@
 #ifndef PACKETFLINGER_PACKETFLINGER_H
 #define PACKETFLINGER_PACKETFLINGER_H
 
-#ifdef __cplusplus
+#ifndef __cplusplus
+#error You are trying to include a C++ only header file
+#endif
+
+#include <packetflinger/packetflinger-config.h>
+
+#include <stdint.h>
+
+// Not all, but the very basic headers are always included.
+#include <packetflinger/macros.h>
+
 
 namespace packetflinger {
 
-/**
- * Library context. Used to manage ownership over internal data structures.
- *
- * You can use multiple library contexts at the same time, but any IDs for
- * referencing other library objects (such as connections) are relative to
- * the context in which they were created.
- *
- * Destroying a context shuts down all activity started within the context,
- * and frees all allocated memory.
- **/
-struct context;
-
-/**
- * Creates a library context.
- * TODO parameters, configuration.
- **/
-context create_context();
-
-/**
- * TODO
- **/
-void destroy_context(context & ctx);
-
-
+// TODO
 
 } // namespace packetflinger
-
-#endif
 
 #endif // guard
