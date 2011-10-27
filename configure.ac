@@ -45,6 +45,7 @@ PKG_CHECK_MODULES([CPPUNIT], [cppunit >= 1.12])
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([sys/select.h sys/time.h])
+AC_CHECK_HEADERS([sys/epoll.h], [AM_CONDITIONAL([USE_EPOLL], [true])])
 
 AX_CXX_HEADER_STDCXX_98
 AX_CXX_HEADER_STDCXX_TR1
@@ -55,7 +56,7 @@ AX_CXX_HEADER_TR1_UNORDERED_MAP
 AX_CXX_HAVE_EXT_HASH_MAP
 AX_CXX_GNUCXX_HASHMAP
 
-AC_CHECK_HEADERS([boost/shared_ptr.hpp])
+AC_CHECK_HEADERS([boost/shared_ptr.hpp boost/multi_index_container.hpp])
 
 ##############################################################################
 # Checks for typedefs, structures, and compiler characteristics.
@@ -109,6 +110,7 @@ AC_SUBST([AM_LDFLAGS])
 AC_CONFIG_FILES([
   Makefile
   packetflinger/Makefile
+  packetflinger/detail/Makefile
   test/Makefile
   packetflinger.pc
 ])

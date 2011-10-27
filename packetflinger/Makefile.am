@@ -1,10 +1,14 @@
 include $(top_srcdir)/common.mk
 
+SUBDIRS = detail .
+
 lib_LTLIBRARIES = libpacketflinger.la
 
 # FIXME
 libpacketflinger_la_CPPFLAGS = $(DEPS_CFLAGS)
-libpacketflinger_la_LIBADD = $(DEPS_LIBS)
+libpacketflinger_la_LIBADD = \
+	$(top_builddir)/packetflinger/detail/libpacketflinger_detail.la \
+	$(DEPS_LIBS)
 libpacketflinger_la_LDFLAGS = -version-info 1:0:0
 
 libpacketflinger_la_libincludedir = $(libdir)/packetflinger/include
@@ -15,7 +19,9 @@ libpacketflinger_la_SOURCES = \
 	error.cpp \
 	version.cpp \
 	packetflinger.cpp \
-	duration.cpp
+	duration.cpp \
+	pipe.cpp \
+	scheduler.cpp
 
 libpacketflinger_la_includedir = $(includedir)/packetflinger/include
 libpacketflinger_la_include_HEADERS = \
@@ -25,4 +31,7 @@ libpacketflinger_la_include_HEADERS = \
 	packetflinger.h \
 	types.h \
 	duration.h \
+	concurrent_queue.h \
+	callback.h \
+	pipe.h \
 	scheduler.h
