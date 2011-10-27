@@ -79,10 +79,10 @@ private:
   {
     // Test that a free function is correctly invoked.
     pf::callback cb1 = &free_func1;
-    CPPUNIT_ASSERT_EQUAL(pf::error_t(1), cb1(42, pf::error_t(0), 0, NULL));
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(1), cb1(42, pf::error_t(0), 0, nullptr));
 
     pf::callback cb2 = &free_func2;
-    CPPUNIT_ASSERT_EQUAL(pf::error_t(2), cb2(666, pf::error_t(0), 0, NULL));
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(2), cb2(666, pf::error_t(0), 0, nullptr));
 
     // Test for equality.
     CPPUNIT_ASSERT(cb1 != cb2);
@@ -98,10 +98,10 @@ private:
     functor f;
 
     pf::callback cb1 = pf::make_callback(&f, &functor::member_func);
-    CPPUNIT_ASSERT_EQUAL(pf::error_t(3), cb1(1234, pf::error_t(0), 0, NULL));
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(3), cb1(1234, pf::error_t(0), 0, nullptr));
 
     pf::callback cb2 = pf::make_callback(&f);
-    CPPUNIT_ASSERT_EQUAL(pf::error_t(4), cb2(0xdeadbeef, pf::error_t(0), 0, NULL));
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(4), cb2(0xdeadbeef, pf::error_t(0), 0, nullptr));
 
     // Test for equality.
     CPPUNIT_ASSERT(cb1 != cb2);
@@ -133,7 +133,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(true, cb.empty());
     CPPUNIT_ASSERT(!cb);
 
-    CPPUNIT_ASSERT_THROW(cb(0, pf::error_t(1), 2, NULL), pf::exception);
+    CPPUNIT_ASSERT_THROW(cb(0, pf::error_t(1), 2, nullptr), pf::exception);
 
     pf::callback cb2 = &free_func1;
     CPPUNIT_ASSERT(cb != cb2);
@@ -149,13 +149,13 @@ private:
     cb = &free_func1;
     CPPUNIT_ASSERT(cb);
     CPPUNIT_ASSERT_EQUAL(false, cb.empty());
-    CPPUNIT_ASSERT_EQUAL(pf::error_t(1), cb(42, pf::error_t(0), 0, NULL));
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(1), cb(42, pf::error_t(0), 0, nullptr));
 
     functor f;
     cb = pf::make_callback(&f);
     CPPUNIT_ASSERT(cb);
     CPPUNIT_ASSERT_EQUAL(false, cb.empty());
-    CPPUNIT_ASSERT_EQUAL(pf::error_t(4), cb(0xdeadbeef, pf::error_t(0), 0, NULL));
+    CPPUNIT_ASSERT_EQUAL(pf::error_t(4), cb(0xdeadbeef, pf::error_t(0), 0, nullptr));
   }
 };
 
