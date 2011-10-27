@@ -7,5 +7,5 @@ Name: packetflinger
 Description: FIXME
 Requires: FIXME
 Version: @PACKAGE_VERSION@
-Libs: -L${libdir} -lpacketflinger
-Cflags: -I${includedir}/packetflinger -I${libdir}/packetflinger/include
+Libs: -L${libdir} -lpacketflinger @BOOST_SIGNALS_LIB@
+Cflags: -I${includedir}/packetflinger -I${libdir}/packetflinger/include @BOOST_CPPFLAGS@
