@@ -111,6 +111,16 @@ public:
 
 
 
+  template <typename iterT>
+  inline void push_range(iterT const & begin, iterT const & end)
+  {
+    for (iterT iter = begin ; iter != end ; ++iter) {
+      push(*iter);
+    }
+  }
+
+
+
   inline bool pop(valueT & result)
   {
     while (m_consumer_lock.exchange(true)) {}
@@ -188,14 +198,15 @@ private:
 
     ~node()
     {
+      m_next = nullptr;
       delete m_value;
     }
 
     PACKETFLINGER_CACHE_LINE_ALIGN(
       struct
       {
-        valueT *  m_value;
-        node *    m_next;
+        valueT *            m_value;
+        std::atomic<node *> m_next;
       };
     )
   };
