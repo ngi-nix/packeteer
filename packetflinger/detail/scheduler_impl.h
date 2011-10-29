@@ -289,23 +289,6 @@ typedef boost::multi_index_container<
 
 // TODO
 
-// All of the above containers *should* be linearly searchable for a callback's
-// entry.
-template <typename containerT>
-typename containerT::iterator
-find_callback(containerT & container, callback const & callback)
-{
-  typename containerT::iterator end = container.end();
-  for (typename containerT::iterator iter = container.begin()
-      ; iter != end ; ++iter)
-  {
-    if (iter->m_callback == callback) {
-      return iter;
-    }
-  }
-  return end;
-}
-
 
 } // namespace detail
 
