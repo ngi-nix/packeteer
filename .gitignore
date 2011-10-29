@@ -2,6 +2,7 @@
 .deps
 .libs
 *.o
+*.a
 *.lo
 *.la
 aclocal.m4

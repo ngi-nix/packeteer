@@ -9,4 +9,9 @@ testsuite_LDADD = $(top_builddir)/packetflinger/libpacketflinger.la \
 
 testsuite_SOURCES = \
 	test_duration.cpp \
+	test_callback.cpp \
+	test_concurrent_queue.cpp \
+	test_pipe.cpp \
+	test_scheduler_impl.cpp \
+	test_scheduler.cpp \
 	testsuite.cpp
