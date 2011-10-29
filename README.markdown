@@ -27,6 +27,10 @@ there is not much queueing going on.
 
 It just flings raw data packets. Fast.
 
+# License #
+
+See the COPYING file.
+
 # Requirements #
 
 - Packetflinger is implemented in C++, and requires some compiler support for
@@ -41,6 +45,6 @@ It just flings raw data packets. Fast.
 If you're running a recent-ish UNIX-derivative, it's probably best to just
 download packetflinger and try to compile it.
 
-# License #
+# Tests #
 
-See the COPYING file.
+wip
