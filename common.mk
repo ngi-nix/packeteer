@@ -11,4 +11,6 @@ else
 AM_CXXFLAGS += -DNDEBUG -O3
 endif
 
-
+# Dependencies XXX keep these in sync with packetflinger.pc.in
+AM_CXXFLAGS += $(BOOST_CPPFLAGS)
+# AM_LDFLAGS += $(BOOST_SIGNALS_LIB)
