@@ -87,9 +87,10 @@ scheduler::scheduler_impl::~scheduler_impl()
 
 
 void
-scheduler::scheduler_impl::enqueue(pdt::callback_entry * entry)
+scheduler::scheduler_impl::enqueue(action_type action,
+    pdt::callback_entry * entry)
 {
-  m_in_queue.push(entry);
+  m_in_queue.push(std::make_pair(action, entry));
 }
 
 
@@ -148,20 +149,19 @@ scheduler::scheduler_impl::stop_workers(size_t num_workers)
 void
 scheduler::scheduler_impl::process_in_queue()
 {
-  pdt::callback_entry * entry = nullptr;
-  while (m_in_queue.pop(entry)) {
-    if (nullptr == entry) {
+  in_queue_entry_t item;
+  while (m_in_queue.pop(item)) {
+    if (nullptr == item.second) {
       continue;
     }
 
-
-    switch (entry->m_type) {
+    switch (item.second->m_type) {
       case pdt::CB_ENTRY_SCHEDULED:
         {
           pdt::scheduled_callback_entry * scheduled
-            = reinterpret_cast<pdt::scheduled_callback_entry *>(entry);
+            = reinterpret_cast<pdt::scheduled_callback_entry *>(item.second);
 
-          if (scheduled->m_add) {
+          if (ACTION_ADD == item.first) {
             // When adding, we simply add scheduled entries. It's entirely
             // possible that the same (callback, timeout) combination is added
             // multiple times, but that might be the caller's intent.

@@ -103,26 +103,19 @@ enum callback_type
 
 struct callback_entry
 {
-  // Only used on the in-queue (see below). Flag for showing whether the
-  // given entry should be added to the scheduler-internal containers or
-  // removed (using a merge/unmerge logic).
-  bool            m_add;
-
   callback_type   m_type;
   callback        m_callback;
 
 
   callback_entry(callback_type type)
-    : m_add(true)
-    , m_type(type)
+    : m_type(type)
     , m_callback()
   {
   }
 
 
   callback_entry(callback_type type, callback const & cb)
-    : m_add(true)
-    , m_type(type)
+    : m_type(type)
     , m_callback(cb)
   {
   }
@@ -310,6 +303,15 @@ struct scheduler::scheduler_impl
     uint64_t  events;
   };
 
+  // Type of action to take on an item in the in-queue
+  enum action_type
+  {
+    ACTION_ADD      = 0,
+    ACTION_REMOVE   = 1,
+    ACTION_TRIGGER  = 2,
+  };
+
+
 
   /***************************************************************************
    * Generic interface
@@ -320,10 +322,9 @@ struct scheduler::scheduler_impl
 
   /**
    * Enqueue a callback_entry. The specific type must be determined by the
-   * caller, and the parameters must be set by the caller. Especially the
-   * m_add flag is of importance.
+   * caller, and the parameters must be set by the caller.
    **/
-  void enqueue(detail::callback_entry * entry);
+  void enqueue(action_type action, detail::callback_entry * entry);
 
 
   /***************************************************************************
@@ -396,7 +397,8 @@ private:
   // Any process putting an entry into either queue relinquishes ownership over
   // the entry. Any process taking an entry out of either queue takes ownership
   // over the entry.
-  concurrent_queue<detail::callback_entry *>  m_in_queue;
+  typedef std::pair<action_type, detail::callback_entry *> in_queue_entry_t;
+  concurrent_queue<in_queue_entry_t>          m_in_queue;
   concurrent_queue<detail::callback_entry *>  m_out_queue;
 
 //  io_callback_map     m_io_callbacks;

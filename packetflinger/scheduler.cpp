@@ -65,8 +65,7 @@ scheduler::schedule_once(pd::usec_t const & delay, callback const & callback)
 {
   detail::scheduled_callback_entry * entry
     = new detail::scheduled_callback_entry(callback, pd::now() + delay, 0, 0);
-  entry->m_add = true;
-  m_impl->enqueue(entry);
+  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 }
 
 
@@ -76,8 +75,7 @@ scheduler::schedule_at(pd::usec_t const & time, callback const & callback)
 {
   detail::scheduled_callback_entry * entry
     = new detail::scheduled_callback_entry(callback, time, 0, 0);
-  entry->m_add = true;
-  m_impl->enqueue(entry);
+  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 }
 
 
@@ -89,8 +87,7 @@ scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
   detail::scheduled_callback_entry * entry
     = new detail::scheduled_callback_entry(callback, pd::now() + first, -1,
         interval);
-  entry->m_add = true;
-  m_impl->enqueue(entry);
+  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 }
 
 
@@ -102,8 +99,7 @@ scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
   detail::scheduled_callback_entry * entry
     = new detail::scheduled_callback_entry(callback, pd::now() + first, count,
         interval);
-  entry->m_add = true;
-  m_impl->enqueue(entry);
+  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 }
 
 
@@ -114,8 +110,7 @@ scheduler::unschedule(callback const & callback)
 {
   detail::scheduled_callback_entry * entry
     = new detail::scheduled_callback_entry(callback, 0, 0, 0);
-  entry->m_add = false;
-  m_impl->enqueue(entry);
+  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
 }
 
 
