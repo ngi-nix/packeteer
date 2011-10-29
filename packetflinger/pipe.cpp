@@ -44,8 +44,7 @@ pipe::pipe()
     }
   }
 
-  // Make the read end non-blocking. The write end can be blocking, for now.
-  // XXX may need to change that later.
+  // Make the read end non-blocking.
   int val = ::fcntl(m_fds[0], F_GETFL, 0);
   val |= O_NONBLOCK | O_CLOEXEC;
   val = ::fcntl(m_fds[0], F_SETFL, val);
@@ -55,7 +54,7 @@ pipe::pipe()
   }
 
   val = ::fcntl(m_fds[1], F_GETFL, 0);
-  val |= O_CLOEXEC;
+  val |= O_NONBLOCK | O_CLOEXEC;
   val = ::fcntl(m_fds[1], F_SETFL, val);
   if (-1 == val) {
     throw exception(ERR_UNEXPECTED);
@@ -75,7 +74,11 @@ pipe::~pipe()
 error_t
 pipe::write(char const * buf, size_t bufsize)
 {
-  ssize_t written = ::write(m_fds[1], buf, bufsize);
+  ssize_t written = 0;
+  do {
+    written = ::write(m_fds[1], buf, bufsize);
+  } while (written == -1 && errno == EAGAIN);
+
   if (-1 == written) {
     // TODO we can do better.
     LOG("errno is: " << errno);
