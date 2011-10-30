@@ -147,7 +147,7 @@ public:
    * User-defined events must be specified as 64 bit unsigned integer values
    * >= EV_USER.
    **/
-  error_t register_event(uint64_t events, callback const & callback);
+  error_t register_event(uint64_t const & events, callback const & callback);
 
 
 
@@ -158,7 +158,7 @@ public:
    * events registered via register_event() and system events registered via
    * register_fd() or any of the schedule_*() functions.
    **/
-  error_t unregister_event(uint64_t events, callback const & callback);
+  error_t unregister_event(uint64_t const & events, callback const & callback);
 
 
 
@@ -166,7 +166,7 @@ public:
    * Fire the specified events. If you specify system events here, the function
    * will return ERR_INVALID_VALUE and not fire any events.
    **/
-  error_t fire_events(uint64_t events);
+  error_t fire_events(uint64_t const & events);
 
 
 private:

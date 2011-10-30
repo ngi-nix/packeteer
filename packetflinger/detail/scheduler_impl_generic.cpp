@@ -147,7 +147,7 @@ scheduler::scheduler_impl::stop_workers(size_t num_workers)
 
 
 void
-scheduler::scheduler_impl::process_in_queue()
+scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 {
   in_queue_entry_t item;
   while (m_in_queue.pop(item)) {
@@ -156,37 +156,25 @@ scheduler::scheduler_impl::process_in_queue()
     }
 
     switch (item.second->m_type) {
-      case pdt::CB_ENTRY_SCHEDULED:
-        {
-          pdt::scheduled_callback_entry * scheduled
-            = reinterpret_cast<pdt::scheduled_callback_entry *>(item.second);
-
-          if (ACTION_ADD == item.first) {
-            // When adding, we simply add scheduled entries. It's entirely
-            // possible that the same (callback, timeout) combination is added
-            // multiple times, but that might be the caller's intent.
-            LOG("add scheduled callback at " << scheduled->m_timeout);
-            m_scheduled_callbacks.insert(scheduled);
-          }
-          else {
-            // When deleting, we need to delete *all* (callback, timeout)
-            // combinations that match. That might not be what the caller
-            // intends, but we have no way of distinguishing between them.
-            LOG("remove scheduled callback");
-            auto & index = m_scheduled_callbacks.get<pdt::callback_tag>();
-            auto range = index.equal_range(scheduled->m_callback);
-            index.erase(range.first, range.second);
-            delete scheduled;
-          }
-        }
+      case pdt::CB_ENTRY_IO:
+        process_in_queue_io(item.first,
+            reinterpret_cast<pdt::io_callback_entry *>(item.second));
         break;
 
-      case pdt::CB_ENTRY_IO:
+      case pdt::CB_ENTRY_SCHEDULED:
+        process_in_queue_scheduled(item.first,
+            reinterpret_cast<pdt::scheduled_callback_entry *>(item.second));
+        break;
+
       case pdt::CB_ENTRY_USER:
+        process_in_queue_user(item.first,
+            reinterpret_cast<pdt::user_callback_entry *>(item.second),
+            triggered);
+        break;
+
       default:
         // TODO don't know what to do here.
         break;
-
     }
   }
 }
@@ -194,8 +182,110 @@ scheduler::scheduler_impl::process_in_queue()
 
 
 void
-scheduler::scheduler_impl::process_scheduled_callbacks(pdu::usec_t const & now,
-    std::vector<detail::scheduled_callback_entry *> & to_schedule)
+scheduler::scheduler_impl::process_in_queue_io(action_type action,
+    pdt::io_callback_entry * io)
+{
+  // TODO
+}
+
+
+
+void
+scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
+    pdt::scheduled_callback_entry * scheduled)
+{
+  switch (action) {
+    case ACTION_ADD:
+      {
+        // When adding, we simply add scheduled entries. It's entirely
+        // possible that the same (callback, timeout) combination is added
+        // multiple times, but that might be the caller's intent.
+        LOG("add scheduled callback at " << scheduled->m_timeout);
+        m_scheduled_callbacks.insert(scheduled);
+      }
+      break;
+
+
+    case ACTION_REMOVE:
+      {
+        // When deleting, we need to delete *all* (callback, timeout)
+        // combinations that match. That might not be what the caller
+        // intends, but we have no way of distinguishing between them.
+        LOG("remove scheduled callback");
+        auto & index = m_scheduled_callbacks.get<pdt::callback_tag>();
+        auto range = index.equal_range(scheduled->m_callback);
+        index.erase(range.first, range.second);
+        delete scheduled;
+      }
+      break;
+
+
+    case ACTION_TRIGGER:
+    default:
+      // TODO error?
+      break;
+  }
+}
+
+
+
+void
+scheduler::scheduler_impl::process_in_queue_user(action_type action,
+    pdt::user_callback_entry * user, entry_list_t & triggered)
+{
+  // Adding or removing events means one of two things:
+  // - If the callback is already known as a callback for user events, the new
+  //   event mask will be added to/subtracted from the existing one. If due to
+  //   subtraction an event mask reaches zero, the entry is removed entirely.
+  // - In the case of addtion, if the callback is not yet known, the entry will
+  //   be added verbatim.
+  // Either way, we need to find the event mask for a callback, if we can.
+  auto & callback_index = m_user_callbacks.get<pdt::callback_tag>();
+  auto cb_iter = callback_index.find(user->m_callback);
+
+  switch (action) {
+    case ACTION_ADD:
+      {
+        if (callback_index.end() != cb_iter) {
+          (*cb_iter)->m_events |= user->m_events;
+        }
+        else {
+          m_user_callbacks.insert(user);
+        }
+      }
+      break;
+
+
+    case ACTION_REMOVE:
+      {
+        if (callback_index.end() != cb_iter) {
+          (*cb_iter)->m_events &= ~(user->m_events);
+
+          if (0 == (*cb_iter)->m_events) {
+            callback_index.erase(cb_iter);
+          }
+        }
+      }
+      break;
+
+
+    case ACTION_TRIGGER:
+      // Remember it for a later processing stage.
+      triggered.push_back(user);
+      break;
+
+
+    default:
+      // TODO error?
+      break;
+  }
+}
+
+
+
+void
+scheduler::scheduler_impl::dispatch_scheduled_callbacks(pdu::usec_t const & now,
+    entry_list_t & to_schedule)
 {
   LOG("scheduled callbacks at: " << now);
 
@@ -246,13 +336,64 @@ scheduler::scheduler_impl::process_scheduled_callbacks(pdu::usec_t const & now,
 
 
 void
+scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggered,
+    entry_list_t & to_schedule)
+{
+  LOG("triggered callbacks");
+
+  for (auto e : triggered) {
+    LOG("triggered: " << e);
+    if (pdt::CB_ENTRY_USER != e->m_type) {
+      LOG("invalid user callback!");
+      continue;
+    }
+
+    auto entry = reinterpret_cast<pdt::user_callback_entry *>(e);
+
+    // We ignore the callback from the entry, because it's not set. However, for
+    // each entry we'll have to scour the user callbacks for any callbacks that
+    // may respond to the entry's events.
+
+    // As a first step, we'll narrow things down to the range of user callbacks
+    // which have an event mask larger or equal to the triggered one.
+    auto & index = m_user_callbacks.get<pdt::events_tag>();
+    auto iter = index.lower_bound(entry->m_events);
+
+    // Now we need to linearly search the space bounded by iter and the index
+    // end.
+    auto end = index.end();
+    for ( ; iter != end ; ++iter) {
+      uint64_t masked = ((*iter)->m_events) & (entry->m_events);
+      LOG("registered for: " << (*iter)->m_events);
+      LOG("triggering: " << entry->m_events);
+      LOG("masked: " << masked);
+
+      if (masked) {
+        // The masked events were fired. Because user callbacks are never
+        // automatically unscheduled, we'll need to copy the callback and send
+        // on the masked events.
+        auto copy = new pdt::user_callback_entry(**iter);
+        copy->m_events = masked;
+        to_schedule.push_back(copy);
+      }
+    }
+  }
+}
+
+
+
+void
 scheduler::scheduler_impl::main_scheduler_loop()
 {
   boost::this_thread::disable_interruption boost_interrupt_disabled;
   LOG("CPUS: " << boost::thread::hardware_concurrency());
 
   while (m_main_loop_continue) {
-    process_in_queue();
+    // While processing the in-queue, we will find triggers for user-defined
+    // events. We can't really execute them until we've processed the whole
+    // in-queue, so we'll store them temporarily and get back to them later.
+    entry_list_t triggered;
+    process_in_queue(triggered);
 
     // get events
     pdu::sleep(pdu::from_msec(20));
@@ -265,10 +406,11 @@ scheduler::scheduler_impl::main_scheduler_loop()
     // The scheduler relinquishes ownership over entries in the to_schedule
     // vector to workers.
     pdu::usec_t now = pdu::now();
-    std::vector<pdt::scheduled_callback_entry *> to_schedule;
+    entry_list_t to_schedule;
 
-    process_scheduled_callbacks(now, to_schedule);
     // TODO
+    dispatch_scheduled_callbacks(now, to_schedule);
+    dispatch_user_callbacks(triggered, to_schedule);
 
     // After callbacks of all kinds have been added to to_schedule, we can push
     // those entries to the out queue and wake workers.

@@ -159,20 +159,26 @@ worker::execute_callback(detail::callback_entry * entry)
   switch (entry->m_type) {
     case detail::CB_ENTRY_SCHEDULED:
       err = entry->m_callback(pf::scheduler::EV_TIMEOUT, ERR_SUCCESS, -1, nullptr);
-      delete entry; // FIXME reschedule?
+      break;
+
+    case detail::CB_ENTRY_USER:
+      {
+        auto user = reinterpret_cast<detail::user_callback_entry *>(entry);
+        err = user->m_callback(user->m_events, ERR_SUCCESS, -1, nullptr);
+      }
       break;
 
     case detail::CB_ENTRY_IO:
-    case detail::CB_ENTRY_USER:
       // TODO
       // FIXME break;
 
     default:
       // Unknown type. Signal an error on the callback.
       err = entry->m_callback(pf::scheduler::EV_ERROR, ERR_UNEXPECTED, -1, nullptr);
-      delete entry; // FIXME reschedule?
       break;
   }
+
+  delete entry;
 }
 
 }} // namespace packetflinger::detail

@@ -63,9 +63,11 @@ scheduler::unregister_fd(uint64_t events, int fd, callback const & callback)
 error_t
 scheduler::schedule_once(pd::usec_t const & delay, callback const & callback)
 {
-  detail::scheduled_callback_entry * entry
-    = new detail::scheduled_callback_entry(callback, pd::now() + delay, 0, 0);
+  auto entry = new detail::scheduled_callback_entry(callback, pd::now() + delay,
+      0, 0);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
+
+  return ERR_SUCCESS;
 }
 
 
@@ -73,9 +75,10 @@ scheduler::schedule_once(pd::usec_t const & delay, callback const & callback)
 error_t
 scheduler::schedule_at(pd::usec_t const & time, callback const & callback)
 {
-  detail::scheduled_callback_entry * entry
-    = new detail::scheduled_callback_entry(callback, time, 0, 0);
+  auto entry = new detail::scheduled_callback_entry(callback, time, 0, 0);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
+
+  return ERR_SUCCESS;
 }
 
 
@@ -84,10 +87,11 @@ error_t
 scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
     callback const & callback)
 {
-  detail::scheduled_callback_entry * entry
-    = new detail::scheduled_callback_entry(callback, pd::now() + first, -1,
-        interval);
+  auto entry = new detail::scheduled_callback_entry(callback,
+      pd::now() + first, -1, interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
+
+  return ERR_SUCCESS;
 }
 
 
@@ -96,10 +100,11 @@ error_t
 scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
     ssize_t const & count, callback const & callback)
 {
-  detail::scheduled_callback_entry * entry
-    = new detail::scheduled_callback_entry(callback, pd::now() + first, count,
-        interval);
+  auto entry = new detail::scheduled_callback_entry(callback, pd::now() + first,
+      count, interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
+
+  return ERR_SUCCESS;
 }
 
 
@@ -108,33 +113,47 @@ scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
 error_t
 scheduler::unschedule(callback const & callback)
 {
-  detail::scheduled_callback_entry * entry
-    = new detail::scheduled_callback_entry(callback, 0, 0, 0);
+  auto entry = new detail::scheduled_callback_entry(callback, 0, 0, 0);
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+
+  return ERR_SUCCESS;
 }
 
 
 
 error_t
-scheduler::register_event(uint64_t events, callback const & callback)
+scheduler::register_event(uint64_t const & events, callback const & callback)
 {
-  // TODO
+  auto entry = new detail::user_callback_entry(callback, events);
+  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
+
+  return ERR_SUCCESS;
 }
 
 
 
 error_t
-scheduler::unregister_event(uint64_t events, callback const & callback)
+scheduler::unregister_event(uint64_t const & events, callback const & callback)
 {
-  // TODO
+  auto entry = new detail::user_callback_entry(callback, events);
+  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+
+  return ERR_SUCCESS;
 }
 
 
 
 error_t
-scheduler::fire_events(uint64_t events)
+scheduler::fire_events(uint64_t const & events)
 {
-  // TODO
+  if (events < EV_USER) {
+    return ERR_INVALID_VALUE;
+  }
+
+  auto entry = new detail::user_callback_entry(events);
+  m_impl->enqueue(scheduler_impl::ACTION_TRIGGER, entry);
+
+  return ERR_SUCCESS;
 }
 
 

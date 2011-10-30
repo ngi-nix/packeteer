@@ -280,8 +280,58 @@ typedef boost::multi_index_container<
 //    of the callbacks is modified, but the rest remains unaffected.
 //  - The key needs to be mutable (see above).
 
-// TODO
+// Tags
+struct events_tag {};
 
+struct user_callback_entry : public callback_entry
+{
+  uint64_t      m_events;
+
+  user_callback_entry(callback cb, uint64_t const & events)
+    : callback_entry(CB_ENTRY_USER, cb)
+    , m_events(events)
+  {
+  }
+
+  user_callback_entry(uint64_t const & events)
+    : callback_entry(CB_ENTRY_USER)
+    , m_events(events)
+  {
+  }
+
+  user_callback_entry()
+    : callback_entry(CB_ENTRY_USER)
+    , m_events()
+  {
+  }
+};
+
+typedef boost::multi_index_container<
+  user_callback_entry *,
+
+  boost::multi_index::indexed_by<
+    // Ordered, non-unique index on events. That should limit the amount of
+    // the entry space we need to search linearly.
+    boost::multi_index::ordered_non_unique<
+      boost::multi_index::tag<events_tag>,
+      boost::multi_index::member<
+        user_callback_entry,
+        uint64_t,
+        &user_callback_entry::m_events
+      >
+    >,
+
+    // Hashed, non-unique index for finding callbacks quickly.
+    boost::multi_index::hashed_non_unique<
+      boost::multi_index::tag<callback_tag>,
+      boost::multi_index::member<
+        callback_entry,
+        callback,
+        &callback_entry::m_callback
+      >
+    >
+  >
+> user_callbacks_t;
 
 } // namespace detail
 
@@ -345,6 +395,15 @@ struct scheduler::scheduler_impl
 
 private:
   /***************************************************************************
+   * Types
+   **/
+  // Entries for the in-queue
+  typedef std::pair<action_type, detail::callback_entry *> in_queue_entry_t;
+
+  // Type for temporary entry containers.
+  typedef std::vector<detail::callback_entry *>   entry_list_t;
+
+  /***************************************************************************
    * Generic private functions
    **/
   // Setup/teardown - called from ctor/dtor, so thread-safe.
@@ -355,9 +414,19 @@ private:
 
   // Main loop
   void main_scheduler_loop();
-  void process_in_queue();
-  void process_scheduled_callbacks(duration::usec_t const & now,
-      std::vector<detail::scheduled_callback_entry *> & to_schedule);
+
+  inline void process_in_queue(entry_list_t & triggered);
+  inline void process_in_queue_io(action_type action,
+      detail::io_callback_entry * entry);
+  inline void process_in_queue_scheduled(action_type action,
+      detail::scheduled_callback_entry * entry);
+  inline void process_in_queue_user(action_type action,
+      detail::user_callback_entry * entry, entry_list_t & triggered);
+
+  inline void dispatch_scheduled_callbacks(duration::usec_t const & now,
+      entry_list_t & to_schedule);
+  inline void dispatch_user_callbacks(entry_list_t const & triggered,
+      entry_list_t & to_schedule);
 
 
   /***************************************************************************
@@ -397,14 +466,12 @@ private:
   // Any process putting an entry into either queue relinquishes ownership over
   // the entry. Any process taking an entry out of either queue takes ownership
   // over the entry.
-  typedef std::pair<action_type, detail::callback_entry *> in_queue_entry_t;
   concurrent_queue<in_queue_entry_t>          m_in_queue;
   concurrent_queue<detail::callback_entry *>  m_out_queue;
 
-//  io_callback_map     m_io_callbacks;
-//  user_callback_map   m_user_callbacks;
-
+  detail::io_callbacks_t                      m_io_callbacks;
   detail::scheduled_callbacks_t               m_scheduled_callbacks;
+  detail::user_callbacks_t                    m_user_callbacks;
 
   /***************************************************************************
    * Implementation-specific data
