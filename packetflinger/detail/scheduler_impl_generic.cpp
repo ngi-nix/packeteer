@@ -250,7 +250,7 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
           (*cb_iter)->m_events |= user->m_events;
         }
         else {
-          m_user_callbacks.insert(user);
+          callback_index.insert(user);
         }
       }
       break;
@@ -342,37 +342,29 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
   LOG("triggered callbacks");
 
   for (auto e : triggered) {
-    LOG("triggered: " << e);
     if (pdt::CB_ENTRY_USER != e->m_type) {
       LOG("invalid user callback!");
       continue;
     }
 
     auto entry = reinterpret_cast<pdt::user_callback_entry *>(e);
+    LOG("triggered: " << entry->m_events);
 
     // We ignore the callback from the entry, because it's not set. However, for
     // each entry we'll have to scour the user callbacks for any callbacks that
     // may respond to the entry's events.
-
-    // As a first step, we'll narrow things down to the range of user callbacks
-    // which have an event mask larger or equal to the triggered one.
     auto & index = m_user_callbacks.get<pdt::events_tag>();
-    auto iter = index.lower_bound(entry->m_events);
 
-    // Now we need to linearly search the space bounded by iter and the index
-    // end.
-    auto end = index.end();
-    for ( ; iter != end ; ++iter) {
-      uint64_t masked = ((*iter)->m_events) & (entry->m_events);
-      LOG("registered for: " << (*iter)->m_events);
-      LOG("triggering: " << entry->m_events);
+    for (auto candidate : index) {
+      uint64_t masked = (candidate->m_events) & (entry->m_events);
+      LOG("registered for: " << candidate->m_events);
       LOG("masked: " << masked);
 
       if (masked) {
         // The masked events were fired. Because user callbacks are never
         // automatically unscheduled, we'll need to copy the callback and send
         // on the masked events.
-        auto copy = new pdt::user_callback_entry(**iter);
+        auto copy = new pdt::user_callback_entry(*candidate);
         copy->m_events = masked;
         to_schedule.push_back(copy);
       }

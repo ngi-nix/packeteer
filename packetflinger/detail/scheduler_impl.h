@@ -36,8 +36,8 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/member.hpp>
-#include <boost/multi_index/composite_key.hpp>
 
 #include <packetflinger/duration.h>
 #include <packetflinger/types.h>
@@ -131,12 +131,10 @@ struct callback_entry
 //  - We do not care about the ordering of (callback, eventmask).
 //  - (callback, eventmask) needs to be modifyable, as users can register
 //    and unregister multiple events for the same (callback, FD) tuple.
-//  - An ordered, non-unique index on (FD, eventmask) will allow us to quickly
-//    find a range of (callback, eventmask) for an FD.
 
 // Tags
 struct fd_tag {};
-struct fd_events_tag {};
+struct events_tag {};
 
 struct io_callback_entry : public callback_entry
 {
@@ -166,23 +164,12 @@ typedef boost::multi_index_container<
       >
     >,
 
-    // Sorted, non-unique index on (FD, eventmask) to quickly find relevant
-    // entries when changing registration
-    boost::multi_index::ordered_non_unique<
-      boost::multi_index::tag<fd_events_tag>,
-      boost::multi_index::composite_key<
-        io_callback_entry,
-        boost::multi_index::member<
-          io_callback_entry,
-          int,
-          &io_callback_entry::m_fd
-        >,
-        boost::multi_index::member<
-          io_callback_entry,
-          uint64_t,
-          &io_callback_entry::m_events
-        >
-      >
+    // Sequenced index for finding matches for event masks; used during
+    // registration/deregistration.
+    // XXX: a better index would be possible, but boost does not seem to support
+    // it.
+    boost::multi_index::sequenced<
+      boost::multi_index::tag<events_tag>
     >
   >
 > io_callbacks_t;
@@ -280,9 +267,6 @@ typedef boost::multi_index_container<
 //    of the callbacks is modified, but the rest remains unaffected.
 //  - The key needs to be mutable (see above).
 
-// Tags
-struct events_tag {};
-
 struct user_callback_entry : public callback_entry
 {
   uint64_t      m_events;
@@ -310,15 +294,12 @@ typedef boost::multi_index_container<
   user_callback_entry *,
 
   boost::multi_index::indexed_by<
-    // Ordered, non-unique index on events. That should limit the amount of
-    // the entry space we need to search linearly.
-    boost::multi_index::ordered_non_unique<
-      boost::multi_index::tag<events_tag>,
-      boost::multi_index::member<
-        user_callback_entry,
-        uint64_t,
-        &user_callback_entry::m_events
-      >
+    // Sequenced index for finding matches for event masks; used during
+    // registration/deregistration.
+    // XXX: a better index would be possible, but boost does not seem to support
+    // it.
+    boost::multi_index::sequenced<
+      boost::multi_index::tag<events_tag>
     >,
 
     // Hashed, non-unique index for finding callbacks quickly.

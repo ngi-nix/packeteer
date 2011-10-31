@@ -60,7 +60,9 @@ class SchedulerImplTest
 public:
   CPPUNIT_TEST_SUITE(SchedulerImplTest);
 
+    CPPUNIT_TEST(testIOCallbacksContainer);
     CPPUNIT_TEST(testScheduledCallbacksContainer);
+    CPPUNIT_TEST(testUserCallbacksContainer);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -154,6 +156,50 @@ private:
     CPPUNIT_ASSERT(cb_range.first != cb_range.second);
   }
 
+
+
+  void testUserCallbacksContainer()
+  {
+    // The user callbacks container needs to fulfil two criteria. The simpler
+    // one is that callbacks need to be found via a specific index. The trickier
+    // one is that event masks need to be matched reasonably quickly, which
+    // means finding entries with events >= a given event mask.
+    enum user_events
+    {
+      EVENT_1 = 1 * pf::scheduler::EV_USER,
+      EVENT_2 = 2 * pf::scheduler::EV_USER,
+      EVENT_3 = 4 * pf::scheduler::EV_USER,
+    };
+
+    pf::detail::user_callbacks_t container;
+
+    auto & callback_index = container.get<pf::detail::callback_tag>();
+
+    pf::detail::user_callback_entry * entry = new pf::detail::user_callback_entry();
+    entry->m_events = EVENT_1;
+    entry->m_callback = &foo;
+    callback_index.insert(entry);
+
+    entry = new pf::detail::user_callback_entry();
+    entry->m_events = EVENT_3;
+    entry->m_callback = &bar;
+    callback_index.insert(entry);
+
+    entry = new pf::detail::user_callback_entry();
+    entry->m_events = EVENT_1 | EVENT_2;
+    entry->m_callback = &foo;
+    callback_index.insert(entry);
+
+    // Finding entries for the 'foo' callback should yield 2 entries.
+    auto range = callback_index.equal_range(&foo);
+    CPPUNIT_ASSERT(range.first != callback_index.end());
+
+    int count = 0;
+    for (auto iter = range.first ; iter != range.second ; ++iter) {
+      ++count;
+    }
+    CPPUNIT_ASSERT_EQUAL(2, count);
+  }
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerImplTest);

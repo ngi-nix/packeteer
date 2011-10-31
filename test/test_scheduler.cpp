@@ -83,6 +83,19 @@ struct thread_id_callback
 };
 
 
+/**
+ * Help verify callback expectations.
+ **/
+#define ASSERT_CALLBACK(cb, expected_called, expected_mask) \
+  {                                                         \
+    int called = cb.m_called;                               \
+    CPPUNIT_ASSERT_EQUAL(expected_called, called);          \
+    uint64_t mask = cb.m_mask;                              \
+    CPPUNIT_ASSERT_EQUAL((uint64_t) expected_mask, mask);   \
+    cb.m_mask = 0; /* reset mask */                         \
+  }
+
+
 } // anonymous namespace
 
 class SchedulerTest
@@ -275,54 +288,106 @@ private:
     {
       EVENT_1 = 1 * pf::scheduler::EV_USER,
       EVENT_2 = 2 * pf::scheduler::EV_USER,
+      EVENT_3 = 4 * pf::scheduler::EV_USER,
     };
 
     pf::scheduler sched(1); // We only need one thread for this.
 
-    test_callback source;
-    pf::callback cb = pf::make_callback(&source, &test_callback::func);
+    test_callback source1;
+    pf::callback cb1 = pf::make_callback(&source1, &test_callback::func);
+    sched.register_event(EVENT_1 | EVENT_2 | EVENT_3, cb1);
 
-    sched.register_event(EVENT_1 | EVENT_2, cb);
+    test_callback source2;
+    pf::callback cb2 = pf::make_callback(&source2, &test_callback::func);
+    sched.register_event(EVENT_2 | EVENT_3, cb2);
 
+    // EVENT_1
     sched.fire_events(EVENT_1);
     pf::duration::sleep(pf::duration::from_msec(50));
 
-    int called = source.m_called;
-    CPPUNIT_ASSERT_EQUAL(1, called);
-    uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) EVENT_1, mask);
+    ASSERT_CALLBACK(source1, 1, EVENT_1);
+    ASSERT_CALLBACK(source2, 0, 0);
 
+    // EVENT_2
     sched.fire_events(EVENT_2);
     pf::duration::sleep(pf::duration::from_msec(50));
 
-    called = source.m_called;
-    CPPUNIT_ASSERT_EQUAL(2, called);
-    mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) EVENT_2, mask);
+    ASSERT_CALLBACK(source1, 2, EVENT_2);
+    ASSERT_CALLBACK(source2, 1, EVENT_2);
 
+    // EVENT_3
+    sched.fire_events(EVENT_3);
+    pf::duration::sleep(pf::duration::from_msec(50));
+
+    ASSERT_CALLBACK(source1, 3, EVENT_3);
+    ASSERT_CALLBACK(source2, 2, EVENT_3);
+
+    // EVENT_1 | EVENT_2
     sched.fire_events(EVENT_1 | EVENT_2);
     pf::duration::sleep(pf::duration::from_msec(50));
 
-    called = source.m_called;
-    CPPUNIT_ASSERT_EQUAL(3, called);
-    mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) EVENT_1 | EVENT_2, mask);
+    ASSERT_CALLBACK(source1, 4, EVENT_1 | EVENT_2);
+    ASSERT_CALLBACK(source2, 3, EVENT_2);
 
-    sched.unregister_event(EVENT_2, cb);
+    // EVENT_2 | EVENT_3
+    sched.fire_events(EVENT_2 | EVENT_3);
+    pf::duration::sleep(pf::duration::from_msec(50));
 
+    ASSERT_CALLBACK(source1, 5, EVENT_2 | EVENT_3);
+    ASSERT_CALLBACK(source2, 4, EVENT_2 | EVENT_3);
+
+    // EVENT_1 | EVENT_3
+    sched.fire_events(EVENT_1 | EVENT_3);
+    pf::duration::sleep(pf::duration::from_msec(50));
+
+    ASSERT_CALLBACK(source1, 6, EVENT_1 | EVENT_3);
+    ASSERT_CALLBACK(source2, 5, EVENT_3);
+
+    // Unregister one from EVENT_2
+    sched.unregister_event(EVENT_2, cb1);
+
+    // EVENT_1
     sched.fire_events(EVENT_1);
     pf::duration::sleep(pf::duration::from_msec(50));
 
-    called = source.m_called;
-    CPPUNIT_ASSERT_EQUAL(4, called);
-    mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) EVENT_1, mask);
+    ASSERT_CALLBACK(source1, 7, EVENT_1);
+    ASSERT_CALLBACK(source2, 5, 0); // mask reset; not called
 
+    // EVENT_3
     sched.fire_events(EVENT_2);
     pf::duration::sleep(pf::duration::from_msec(50));
 
-    called = source.m_called;
-    CPPUNIT_ASSERT_EQUAL(4, called); // not incremented.
+    ASSERT_CALLBACK(source1, 7, 0); // mask reset; not called
+    ASSERT_CALLBACK(source2, 6, EVENT_2);
+
+    // EVENT_3
+    sched.fire_events(EVENT_3);
+    pf::duration::sleep(pf::duration::from_msec(50));
+
+    ASSERT_CALLBACK(source1, 8, EVENT_3);
+    ASSERT_CALLBACK(source2, 7, EVENT_3);
+
+    // EVENT_1 | EVENT_2
+    sched.fire_events(EVENT_1 | EVENT_2);
+    pf::duration::sleep(pf::duration::from_msec(50));
+
+    ASSERT_CALLBACK(source1, 9, EVENT_1);
+    ASSERT_CALLBACK(source2, 8, EVENT_2);
+
+    // EVENT_2 | EVENT_3
+    sched.fire_events(EVENT_2 | EVENT_3);
+    pf::duration::sleep(pf::duration::from_msec(50));
+
+    ASSERT_CALLBACK(source1, 10, EVENT_3);
+    ASSERT_CALLBACK(source2, 9, EVENT_2 | EVENT_3);
+
+    // EVENT_1 | EVENT_3
+    sched.fire_events(EVENT_1 | EVENT_3);
+    pf::duration::sleep(pf::duration::from_msec(50));
+
+    ASSERT_CALLBACK(source1, 11, EVENT_1 | EVENT_3);
+    ASSERT_CALLBACK(source2, 10, EVENT_3);
+
 
     // Also ensure that fire_event() does not work with system events.
     CPPUNIT_ASSERT_EQUAL(pf::ERR_INVALID_VALUE,
