@@ -1,9 +1,10 @@
 /**
  * This file is part of packetflinger.
  *
- * Author(s): Jens Finkhaeuser <unwesen@users.sourceforge.net>
+ * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
+ * Copyright (c) 2012 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
