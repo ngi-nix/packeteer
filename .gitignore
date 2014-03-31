@@ -1,19 +1,41 @@
-.*.sw*
+# http://www.gnu.org/software/automake
+
+Makefile.in
+
+# http://www.gnu.org/software/autoconf
+/autom4te.cache
+/aclocal.m4
+/compile
+/configure
+/depcomp
+/install-sh
+/missing
+/config.*
+/packetflinger/_config.*
+Makefile
 .deps
 .libs
+.dirstamp
+_configs.sed
+test-driver
+test/*.log
+test/*.core
+test/*.trs
+
+INSTALL
+
+# libtool
+ltmain.sh
+libtool
+
+# pkg-config
+packetflinger.pc
+
+# editor
+.*.sw*
+
+# native code
 *.o
 *.a
 *.lo
 *.la
-aclocal.m4
-autom4te.cache
-configure
-config.*
-install-sh
-ltmain.sh
-depcomp
-libtool
-missing
-Makefile
-Makefile.in
-packetflinger.pc

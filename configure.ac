@@ -3,23 +3,42 @@
 AC_PREREQ([2.68])
 LT_PREREQ([2.4])
 
-AC_INIT([packetflinger], [0.1], [unwesen@users.sourceforge.net])
+AC_INIT([packetflinger], [0.1], [jens@unwesen.co.uk])
 AC_CONFIG_SRCDIR([packetflinger])
-AC_CONFIG_HEADERS([packetflinger/packetflinger-config.h])
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+AC_CANONICAL_TARGET
+AM_INIT_AUTOMAKE
+
+AC_CONFIG_HEADERS([packetflinger/_config.h])
+AX_PREFIX_CONFIG_H([packetflinger/packetflinger-config.h])
 
 LT_INIT
 AC_SUBST([LIBTOOL_DEPS])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.11.1])
-
 AC_LANG_CPLUSPLUS
+
+##############################################################################
+# Make build target available to automake
+target=
+case $target_os in
+  *linux*|*bsd*)
+    target=posix
+    ;;
+  *win32*)
+    target=win32
+    ;;
+esac
+AM_CONDITIONAL([HAVE_POSIX], [test "x$target" == xposix])
+AM_CONDITIONAL([HAVE_WIN32], [test "x$target" == xwin32])
 
 ##############################################################################
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_LIBTOOL
+PKG_PROG_PKG_CONFIG
 
 ##############################################################################
 # Checks for compiler characteristics
@@ -27,6 +46,15 @@ AC_C_BIGENDIAN
 
 # The AU_ALIAS is needed due to a bug in AX_CXX_HEADER_STDCXX_0X, etc.
 AX_CXX_COMPILE_STDCXX_0X
+if test "$ax_cv_cxx_compile_cxx0x_native" != yes ; then
+  if test "$ax_cv_cxx_compile_cxx0x_gxx" = yes ; then
+    AC_SUBST([PACKETFLINGER_CXX0X_FLAG], [-std=gnu++0x])
+  fi
+  if test "$ax_cv_cxx_compile_cxx0x_cxx" = yes ; then
+    AC_SUBST([PACKETFLINGER_CXX0X_FLAG], [-std=c++0x])
+  fi
+fi
+
 AU_ALIAS([AC_COMPILE_STDCXX_0X], [AX_CXX_COMPILE_STDCXX_0X])
 
 ##############################################################################
@@ -37,9 +65,9 @@ AX_CACHE_LINE_SIZE
 
 ##############################################################################
 # Checks for libraries.
-AX_BOOST_BASE([1.46.0])
-AX_BOOST_THREAD
 PKG_CHECK_MODULES([CPPUNIT], [cppunit >= 1.12])
+PKG_CHECK_MODULES([META], [meta >= 0.1])
+PKG_CHECK_MODULES([twine], [twine >= 0.1])
 
 ##############################################################################
 # Checks for header files.
@@ -56,8 +84,6 @@ AX_CXX_HEADER_TR1_UNORDERED_MAP
 AX_CXX_HAVE_EXT_HASH_MAP
 AX_CXX_GNUCXX_HASHMAP
 
-AC_CHECK_HEADERS([boost/shared_ptr.hpp boost/multi_index_container.hpp])
-
 ##############################################################################
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT32_T
@@ -69,6 +95,7 @@ AC_TYPE_SSIZE_T
 
 ##############################################################################
 # Checks for library functions.
+CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
 AC_CHECK_FUNCS([gettimeofday])
 
 ##############################################################################
@@ -96,11 +123,7 @@ AM_CONDITIONAL([DEBUG], [test x$debug = xtrue])
 
 ##############################################################################
 # Variable substitions
-AX_SPLIT_VERSION
-AC_DEFINE_UNQUOTED([PACKAGE_MAJOR], ["$AX_MAJOR_VERSION"], [Define to the major
-    version of this package.])
-AC_DEFINE_UNQUOTED([PACKAGE_MINOR], ["$AX_MINOR_VERSION"], [Define to the minor
-    version of this package.])
+JF_SPLIT_VERSION
 
 AC_SUBST([AM_CXXFLAGS])
 AC_SUBST([AM_LDFLAGS])

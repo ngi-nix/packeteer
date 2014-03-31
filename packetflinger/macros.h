@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012 Unwesen Ltd.
+ * Copyright (c) 2012-2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -52,13 +52,14 @@
  * and a cache line size'd padding value. Ensures the data is occupying a cache
  * line all by itself.
  **/
-#define PACKETFLINGER_CACHE_LINE_ALIGN(data)                      \
-  union {                                                         \
-    data;                                                         \
-    char PACKETFLINGER_TOKEN_CAT(pad, __LINE__)[CACHE_LINE_SIZE]; \
+// FIXME not sure this is right, see cask
+#define PACKETFLINGER_CACHE_LINE_ALIGN(data)                                    \
+  union {                                                                       \
+    data;                                                                       \
+    char PACKETFLINGER_TOKEN_CAT(pad, __LINE__)[PACKETFLINGER_CACHE_LINE_SIZE]; \
   };
 
-#define PACKETFLINGER_CACHE_LINE_PAD                              \
-  char PACKETFLINGER_TOKEN_CAT(pad, __LINE__)[CACHE_LINE_SIZE];
+#define PACKETFLINGER_CACHE_LINE_PAD                                            \
+  char PACKETFLINGER_TOKEN_CAT(pad, __LINE__)[PACKETFLINGER_CACHE_LINE_SIZE];
 
 #endif // guard

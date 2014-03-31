@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012 Unwesen Ltd.
+ * Copyright (c) 2012-2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -20,9 +20,9 @@
  **/
 #include <packetflinger/detail/worker.h>
 
-#if defined(HAVE_SYS_SELECT_H)
+#if defined(PACKETFLINGER_HAVE_SYS_SELECT_H)
 #  include <sys/select.h>
-#elif defined(HAVE_SYS_TIME_H) && defined(HAVE_SYS_TYPES_H) && defined(HAVE_UNISTD_H)
+#elif defined(PACKETFLINGER_HAVE_SYS_TIME_H) && defined(PACKETFLINGER_HAVE_SYS_TYPES_H) && defined(PACKETFLINGER_HAVE_UNISTD_H)
 #  include <sys/types.h>
 #  include <unistd.h>
 #else

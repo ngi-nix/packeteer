@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012 Unwesen Ltd.
+ * Copyright (c) 2012-2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -29,13 +29,14 @@ namespace packetflinger {
 std::pair<std::string, std::string>
 version()
 {
-  return std::make_pair<std::string, std::string>(PACKAGE_MAJOR, PACKAGE_MINOR);
+  return std::make_pair<std::string, std::string>(PACKETFLINGER_PACKAGE_MAJOR, PACKETFLINGER_PACKAGE_MINOR);
 }
 
 
 
-char const * const copyright_string = PACKAGE_NAME " " PACKAGE_VERSION " " PACKAGE_URL
-    " - Copyright (c) 2011 Jens Finkhaeuser.\n"
+char const * const copyright_string = PACKETFLINGER_PACKAGE_NAME " " PACKETFLINGER_PACKAGE_VERSION " " PACKETFLINGER_PACKAGE_URL "\n"
+    "Copyright (c) 2011 Jens Finkhaeuser.\n"
+    "Copyright (c) 2012-2014 Unwesen Ltd.\n"
     "Licensed under the the GPLv3 for personal, educational or non-profit use.\n"
     "Other licensing options available; please contact the copyright holder for\n"
     "information."

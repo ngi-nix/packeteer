@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012 Unwesen Ltd.
+ * Copyright (c) 2012-2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -37,13 +37,13 @@
 /*****************************************************************************
  * shared_ptr
  **/
-#if defined(STDCXX_0X_HEADERS)
+#if defined(PACKETFLINGER_STDCXX_0X_HEADERS)
 #  include <memory>
 #  define PACKETFLINGER_SHARED_PTR_NAMESPACE std
-#elif defined(STDCXX_TR1_HEADERS)
+#elif defined(PACKETFLINGER_STDCXX_TR1_HEADERS)
 #  include <tr1/memory>
 #  define PACKETFLINGER_SHARED_PTR_NAMESPACE std::tr1
-#elif defined(HAVE_BOOST_SHARED_PTR_HPP)
+#elif defined(PACKETFLINGER_HAVE_BOOST_SHARED_PTR_HPP)
 #  include <boost/shared_ptr.hpp>
 #  include <boost/pointer_cast.hpp>
 #  include <boost/enable_shared_from_this.hpp>
