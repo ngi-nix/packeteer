@@ -27,7 +27,7 @@
 
 #include <packetflinger/packetflinger.h>
 
-#include <boost/thread.hpp>
+#include <twine/tasklet.h>
 
 #include <packetflinger/concurrent_queue.h>
 #include <packetflinger/pipe.h>
@@ -41,6 +41,7 @@ namespace detail {
  * Implements a worker thread for the scheduler implementation.
  **/
 class worker
+  : public twine::tasklet
 {
 public:
   /*****************************************************************************
@@ -54,30 +55,13 @@ public:
   ~worker();
 
 
-  /**
-   * Shut down the worker thread. If it's currently processing a callback,
-   * shutdown will commence after the callback is finished.
-   **/
-  void shutdown();
-
-
-  /**
-   * Manually wake the worker thread.
-   **/
-  void interrupt();
-
 private:
-
-  /**
-   * Interrupted by interrupt() above.
-   **/
-  void sleep();
 
   /**
    * Sleep()s, grabs entries from the work queue, execute_callback()s them,
    * sleeps again.
    **/
-  void worker_loop();
+  void worker_loop(twine::tasklet & tasklet, void * /* unused */);
 
   /**
    * Run a callback
@@ -87,8 +71,6 @@ private:
   std::atomic<bool>                             m_alive;
   pipe &                                        m_pipe;
   concurrent_queue<detail::callback_entry *> &  m_work_queue;
-
-  boost::thread                                 m_thread;
 };
 
 }} // namespace packetflinger::detail

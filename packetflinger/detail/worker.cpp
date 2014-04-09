@@ -36,100 +36,89 @@ namespace packetflinger {
 namespace detail {
 
 worker::worker(pipe & pipe, concurrent_queue<detail::callback_entry *> & work_queue)
-  : m_alive(true)
+  : twine::tasklet(twine::tasklet::binder<worker, &worker::worker_loop>::function, this)
+  , m_alive(true)
   , m_pipe(pipe)
   , m_work_queue(work_queue)
 {
-  m_thread = boost::thread(
-      std::bind(&worker::worker_loop, this));
 }
 
 
 
 worker::~worker()
 {
-  shutdown();
-  m_thread.join();
+  stop();
 }
 
 
 
-void
-worker::shutdown()
-{
-  m_alive = false;
-  interrupt();
-}
+//void
+//worker::interrupt()
+//{
+//  char buf[1] = { '\0' };
+//  m_pipe.write(buf, sizeof(buf));
+//}
+//
+//
+//
+//void
+//worker::sleep()
+//{
+//  // Similar to duration::sleep, but sleeps indefinitely, and waits for an
+//  // interruption on the pipe's read file descriptor.
+//  ::fd_set read_fds;
+//  FD_ZERO(&read_fds);
+//
+//  ::fd_set err_fds;
+//  FD_ZERO(&err_fds);
+//
+//  int read_fd = m_pipe.get_read_fd();
+//  FD_SET(read_fd, &read_fds);
+//  FD_SET(read_fd, &err_fds);
+//
+//  do {
+//    int ret = ::select(read_fd + 1, &read_fds, nullptr, &err_fds, nullptr);
+//
+//    if (0 == ret) {
+//      // Hmm, shouldn't happen. Still, it's not an error, so continue.
+//      continue;
+//    }
+//
+//    if (-1 == ret) {
+//      if (EINTR == errno) {
+//        continue;
+//      }
+//      else {
+//        // TODO throw
+//        LOG("select errno: " << errno);
+//        break;
+//      }
+//    }
+//
+//    LOG("read from FDs: " << ret);
+//    if (FD_ISSET(read_fd, &read_fds)) {
+//      LOG("sleep interrupted");
+//      detail::clear_interrupt(m_pipe);
+//      break;
+//    }
+//    else if (FD_ISSET(read_fd, &err_fds)) {
+//      LOG("error on pipe FD");
+//      break;
+//    }
+//    else {
+//      // TODO throw ?
+//      LOG("pipe FD not in FD set, yet it was the only one added");
+//      break;
+//    }
+//  } while (true);
+//
+//  LOG("returning from sleep");
+//}
 
 
 
 void
-worker::interrupt()
-{
-  char buf[1] = { '\0' };
-  m_pipe.write(buf, sizeof(buf));
-}
-
-
-
-void
-worker::sleep()
-{
-  // Similar to duration::sleep, but sleeps indefinitely, and waits for an
-  // interruption on the pipe's read file descriptor.
-  ::fd_set read_fds;
-  FD_ZERO(&read_fds);
-
-  ::fd_set err_fds;
-  FD_ZERO(&err_fds);
-
-  int read_fd = m_pipe.get_read_fd();
-  FD_SET(read_fd, &read_fds);
-  FD_SET(read_fd, &err_fds);
-
-  do {
-    int ret = ::select(read_fd + 1, &read_fds, nullptr, &err_fds, nullptr);
-
-    if (0 == ret) {
-      // Hmm, shouldn't happen. Still, it's not an error, so continue.
-      continue;
-    }
-
-    if (-1 == ret) {
-      if (EINTR == errno) {
-        continue;
-      }
-      else {
-        // TODO throw
-        LOG("select errno: " << errno);
-        break;
-      }
-    }
-
-    LOG("read from FDs: " << ret);
-    if (FD_ISSET(read_fd, &read_fds)) {
-      LOG("sleep interrupted");
-      detail::clear_interrupt(m_pipe);
-      break;
-    }
-    else if (FD_ISSET(read_fd, &err_fds)) {
-      LOG("error on pipe FD");
-      break;
-    }
-    else {
-      // TODO throw ?
-      LOG("pipe FD not in FD set, yet it was the only one added");
-      break;
-    }
-  } while (true);
-
-  LOG("returning from sleep");
-}
-
-
-
-void
-worker::worker_loop()
+worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
 {
   LOG("worker started");
   do {
@@ -140,11 +129,12 @@ worker::worker_loop()
         execute_callback(entry);
       }
     }
-    else {
-      sleep();
-    }
+    // FIXME repeat pop; two loops
+//    else {
+//      sleep();
+//    }
 
-  } while (m_alive);
+  } while (tasklet.sleep());
   LOG("worker stopped");
 }
 

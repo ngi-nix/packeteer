@@ -28,6 +28,7 @@
 #include <boost/thread.hpp>
 
 namespace pf = packetflinger;
+namespace tc = twine::chrono;
 
 namespace {
 
@@ -76,7 +77,7 @@ struct thread_id_callback
     m_tid = boost::this_thread::get_id();
 
     LOG("callback started");
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
     LOG("callback ended");
 
     return pf::error_t(0);
@@ -127,9 +128,9 @@ private:
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
 
-    sched.schedule_once(pf::duration::from_msec(50), cb);
+    sched.schedule_once(tc::milliseconds(50), cb);
 
-    pf::duration::sleep(pf::duration::from_msec(100));
+    tc::sleep(tc::milliseconds(100));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(1, called);
@@ -147,9 +148,9 @@ private:
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
 
-    sched.schedule_at(pf::duration::now() + pf::duration::from_msec(50), cb);
+    sched.schedule_at(tc::now() + tc::milliseconds(50), cb);
 
-    pf::duration::sleep(pf::duration::from_msec(100));
+    tc::sleep(tc::milliseconds(100));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(1, called);
@@ -167,10 +168,10 @@ private:
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
 
-    sched.schedule(pf::duration::usec_t(0), pf::duration::from_msec(50),
+    sched.schedule(tc::milliseconds(0), tc::milliseconds(50),
         3, cb);
 
-    pf::duration::sleep(pf::duration::from_msec(200));
+    tc::sleep(tc::milliseconds(200));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(3, called);
@@ -191,11 +192,11 @@ private:
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
 
-    sched.schedule(pf::duration::usec_t(0), pf::duration::from_msec(50), cb);
+    sched.schedule(tc::milliseconds(0), tc::milliseconds(50), cb);
 
     // Since the first invocation happens immediately, we want to sleep <
     // 3 * 50 msec
-    pf::duration::sleep(pf::duration::from_msec(125));
+    tc::sleep(tc::milliseconds(125));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(3, called);
@@ -205,7 +206,7 @@ private:
 
     sched.unschedule(cb);
 
-    pf::duration::sleep(pf::duration::from_msec(100));
+    tc::sleep(tc::milliseconds(100));
 
     // The amount of invocations may not have changed after the unschedule()
     // call above, even though we waited longer.
@@ -226,11 +227,11 @@ private:
     // with the delay.
     // That means the repeat interval needs to be just under half of the wait
     // time.
-    pf::duration::usec_t wait = pf::duration::from_msec(200);
-    pf::duration::usec_t interval = pf::duration::from_msec(80);
+    tc::milliseconds wait = tc::milliseconds(200);
+    tc::milliseconds interval = tc::milliseconds(80);
     // Now the initial delay needs to be just higher than the difference between
     // the wait time and two intervals, i.e. delay > wait - 2 * interval
-    pf::duration::usec_t delay = pf::duration::from_msec(50);
+    tc::milliseconds delay = tc::milliseconds(50);
 
 
     pf::scheduler sched(1); // We only need one thread for this.
@@ -240,7 +241,7 @@ private:
 
     sched.schedule(delay, interval, -1, cb);
 
-    pf::duration::sleep(wait);
+    tc::sleep(wait);
 
     // If called is 3 or more, the initial delay wasn't honored.
     int called = source.m_called;
@@ -267,10 +268,10 @@ private:
     thread_id_callback source2;
     pf::callback cb2 = pf::make_callback(&source2, &thread_id_callback::func);
 
-    sched.schedule_once(pf::duration::from_msec(50), cb1);
-    sched.schedule_once(pf::duration::from_msec(50), cb2);
+    sched.schedule_once(tc::milliseconds(50), cb1);
+    sched.schedule_once(tc::milliseconds(50), cb2);
 
-    pf::duration::sleep(pf::duration::from_msec(150));
+    tc::sleep(tc::milliseconds(150));
 
     boost::thread::id id1 = source1.m_tid;
     boost::thread::id id2 = source2.m_tid;
@@ -304,42 +305,42 @@ private:
 
     // EVENT_1
     sched.fire_events(EVENT_1);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 1, EVENT_1);
     ASSERT_CALLBACK(source2, 0, 0);
 
     // EVENT_2
     sched.fire_events(EVENT_2);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 2, EVENT_2);
     ASSERT_CALLBACK(source2, 1, EVENT_2);
 
     // EVENT_3
     sched.fire_events(EVENT_3);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 3, EVENT_3);
     ASSERT_CALLBACK(source2, 2, EVENT_3);
 
     // EVENT_1 | EVENT_2
     sched.fire_events(EVENT_1 | EVENT_2);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 4, EVENT_1 | EVENT_2);
     ASSERT_CALLBACK(source2, 3, EVENT_2);
 
     // EVENT_2 | EVENT_3
     sched.fire_events(EVENT_2 | EVENT_3);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 5, EVENT_2 | EVENT_3);
     ASSERT_CALLBACK(source2, 4, EVENT_2 | EVENT_3);
 
     // EVENT_1 | EVENT_3
     sched.fire_events(EVENT_1 | EVENT_3);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 6, EVENT_1 | EVENT_3);
     ASSERT_CALLBACK(source2, 5, EVENT_3);
@@ -349,42 +350,42 @@ private:
 
     // EVENT_1
     sched.fire_events(EVENT_1);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 7, EVENT_1);
     ASSERT_CALLBACK(source2, 5, 0); // mask reset; not called
 
     // EVENT_3
     sched.fire_events(EVENT_2);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 7, 0); // mask reset; not called
     ASSERT_CALLBACK(source2, 6, EVENT_2);
 
     // EVENT_3
     sched.fire_events(EVENT_3);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 8, EVENT_3);
     ASSERT_CALLBACK(source2, 7, EVENT_3);
 
     // EVENT_1 | EVENT_2
     sched.fire_events(EVENT_1 | EVENT_2);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 9, EVENT_1);
     ASSERT_CALLBACK(source2, 8, EVENT_2);
 
     // EVENT_2 | EVENT_3
     sched.fire_events(EVENT_2 | EVENT_3);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 10, EVENT_3);
     ASSERT_CALLBACK(source2, 9, EVENT_2 | EVENT_3);
 
     // EVENT_1 | EVENT_3
     sched.fire_events(EVENT_1 | EVENT_3);
-    pf::duration::sleep(pf::duration::from_msec(50));
+    tc::sleep(tc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 11, EVENT_1 | EVENT_3);
     ASSERT_CALLBACK(source2, 10, EVENT_3);

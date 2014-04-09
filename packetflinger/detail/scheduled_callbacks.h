@@ -29,6 +29,8 @@
 
 #include <packetflinger/types.h>
 
+#include <meta/range.h>
+
 namespace packetflinger {
 namespace detail {
 
@@ -119,7 +121,7 @@ struct scheduled_callbacks_t
   // FIXME
   typedef std::vector<scheduled_callback_entry *> foo;
 
-  std::pair<foo::iterator, foo::iterator>
+  meta::range<foo::iterator>
   get_timed_out(twine::chrono::nanoseconds const & now);
 
   void erase_timed_out(twine::chrono::nanoseconds const & now);

@@ -291,34 +291,33 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanosecon
   // Scheduled callbacks are due if their timeout is older than now(). That's
   // the simplest way to deal with them.
   auto range = m_scheduled_callbacks.get_timed_out(now);
-  auto end = range.second;
 
-  for (auto iter = range.first ; iter != end ; ++iter) {
+  for (auto entry : range) {
     LOG("scheduled callback expired at " << now);
-    if (0 == (*iter)->m_count) {
+    if (0 == entry->m_count) {
       // If it's a one shot event, we want to *move* it into the to_schedule
       // vector thereby granting ownership to the worker that picks it up.
       LOG("one-shot callback, handing over to worker");
-      to_schedule.push_back(*iter);
+      to_schedule.push_back(entry);
     }
     else {
       // Depending on whether the entry gets rescheduled (more repeats) or not
       // (last invocation), we either *copy* or *move* the entry into the
       // to_schedule vector.
       LOG("interval callback, handing over to worker & rescheduling");
-      if ((*iter)->m_count > 0) {
-        --((*iter)->m_count);
+      if (entry->m_count > 0) {
+        --entry->m_count;
       }
 
-      if (0 == (*iter)->m_count) {
+      if (0 == entry->m_count) {
         // Last invocation; can *move*
         LOG("last invocation");
-        to_schedule.push_back(*iter);
+        to_schedule.push_back(entry);
       }
       else {
         // More invocations to come; must *copy*
-        (*iter)->m_timeout += (*iter)->m_interval;
-        to_schedule.push_back(new pdt::scheduled_callback_entry(**iter));
+        entry->m_timeout += entry->m_interval;
+        to_schedule.push_back(new pdt::scheduled_callback_entry(*entry));
       }
     }
   }

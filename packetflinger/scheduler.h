@@ -118,7 +118,7 @@ public:
   inline error_t schedule_once(durationT const & delay,
       callback const & callback)
   {
-    return schedule_once(delay.template as<twine::chrono::nanoseconds>(),
+    return schedule_once(delay.template convert<twine::chrono::nanoseconds>(),
         callback);
   }
 
@@ -131,7 +131,7 @@ public:
   inline error_t schedule_at(durationT const & time,
       callback const & callback)
   {
-    return schedule_at(time.template as<twine::chrono::nanoseconds>(),
+    return schedule_at(time.template convert<twine::chrono::nanoseconds>(),
         callback);
   }
 
@@ -144,8 +144,8 @@ public:
   inline error_t schedule_at(durationT0 const & first,
       durationT1 const & interval, callback const & callback)
   {
-    return schedule_at(first.template as<twine::chrono::nanoseconds>(),
-        interval.template as<twine::chrono::nanoseconds>(), callback);
+    return schedule_at(first.template convert<twine::chrono::nanoseconds>(),
+        interval.template convert<twine::chrono::nanoseconds>(), callback);
   }
 
   error_t schedule(twine::chrono::nanoseconds const & first,
@@ -158,8 +158,8 @@ public:
       durationT1 const & interval, ssize_t const & count,
       callback const & callback)
   {
-    return schedule_at(first.template as<twine::chrono::nanoseconds>(),
-        interval.template as<twine::chrono::nanoseconds>(), count, callback);
+    return schedule_at(first.template convert<twine::chrono::nanoseconds>(),
+        interval.template convert<twine::chrono::nanoseconds>(), count, callback);
   }
 
   error_t schedule(twine::chrono::nanoseconds const & first,
