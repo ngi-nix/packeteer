@@ -43,11 +43,6 @@
 #elif defined(PACKETFLINGER_STDCXX_TR1_HEADERS)
 #  include <tr1/memory>
 #  define PACKETFLINGER_SHARED_PTR_NAMESPACE std::tr1
-#elif defined(PACKETFLINGER_HAVE_BOOST_SHARED_PTR_HPP)
-#  include <boost/shared_ptr.hpp>
-#  include <boost/pointer_cast.hpp>
-#  include <boost/enable_shared_from_this.hpp>
-#  define PACKETFLINGER_SHARED_PTR_NAMESPACE boost
 #else
 #  error No shared_ptr implementation found.
 #endif
