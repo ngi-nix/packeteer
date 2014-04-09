@@ -22,7 +22,7 @@
 
 #include <packetflinger/detail/scheduler_impl.h>
 
-namespace pd = packetflinger::duration;
+namespace tc = twine::chrono;
 
 namespace packetflinger {
 
@@ -62,10 +62,10 @@ scheduler::unregister_fd(uint64_t events, int fd, callback const & callback)
 
 
 error_t
-scheduler::schedule_once(pd::usec_t const & delay, callback const & callback)
+scheduler::schedule_once(tc::nanoseconds const & delay, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, pd::now() + delay,
-      0, 0);
+  auto entry = new detail::scheduled_callback_entry(callback, tc::now() + delay,
+      0, tc::nanoseconds(0));
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -74,9 +74,10 @@ scheduler::schedule_once(pd::usec_t const & delay, callback const & callback)
 
 
 error_t
-scheduler::schedule_at(pd::usec_t const & time, callback const & callback)
+scheduler::schedule_at(tc::nanoseconds const & time, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, time, 0, 0);
+  auto entry = new detail::scheduled_callback_entry(callback, time, 0,
+      tc::nanoseconds(0));
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -85,11 +86,11 @@ scheduler::schedule_at(pd::usec_t const & time, callback const & callback)
 
 
 error_t
-scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
+scheduler::schedule(tc::nanoseconds const & first, tc::nanoseconds const & interval,
     callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback,
-      pd::now() + first, -1, interval);
+      tc::now() + first, -1, interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -98,10 +99,10 @@ scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
 
 
 error_t
-scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
+scheduler::schedule(tc::nanoseconds const & first, tc::nanoseconds const & interval,
     ssize_t const & count, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, pd::now() + first,
+  auto entry = new detail::scheduled_callback_entry(callback, tc::now() + first,
       count, interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
@@ -114,7 +115,8 @@ scheduler::schedule(pd::usec_t const & first, pd::usec_t const & interval,
 error_t
 scheduler::unschedule(callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, 0, 0, 0);
+  auto entry = new detail::scheduled_callback_entry(callback, tc::nanoseconds(0),
+      0, tc::nanoseconds(0));
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
 
   return ERR_SUCCESS;
