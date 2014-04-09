@@ -19,7 +19,6 @@ libpacketflinger_la_SOURCES = \
 	error.cpp \
 	version.cpp \
 	packetflinger.cpp \
-	duration.cpp \
 	pipe.cpp \
 	scheduler.cpp
 
@@ -30,7 +29,6 @@ libpacketflinger_la_include_HEADERS = \
 	version.h \
 	packetflinger.h \
 	types.h \
-	duration.h \
 	concurrent_queue.h \
 	callback.h \
 	pipe.h \
