@@ -2,7 +2,9 @@
 AM_CXXFLAGS = -I$(top_srcdir) @AM_CXXFLAGS@
 
 # Set default compiler flags
-AM_CXXFLAGS += -g -std=c++0x -Wc++0x-compat
+AM_CXXFLAGS += -g -std=c++0x -Wc++0x-compat \
+	-DMETA_CXX_MODE=META_CXX_MODE_CXX0X \
+	-DTWINE_CXX_MODE=TWINE_CXX_MODE_CXX0X
 
 # Dependencies XXX keep these in sync with packetflinger.pc.in
 AM_CXXFLAGS += $(META_CFLAGS) $(TWINE_CFLAGS)
