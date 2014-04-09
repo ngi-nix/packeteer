@@ -8,7 +8,6 @@ testsuite_LDADD = $(top_builddir)/packetflinger/libpacketflinger.la \
 	$(CPPUNIT_LIBS) $(TWINE_LIBS)
 
 testsuite_SOURCES = \
-	test_duration.cpp \
 	test_callback.cpp \
 	test_concurrent_queue.cpp \
 	test_pipe.cpp \
