@@ -27,9 +27,10 @@
 
 #include <packetflinger/packetflinger.h>
 
+#include <twine/chrono.h>
+
 #include <packetflinger/callback.h>
 #include <packetflinger/error.h>
-#include <packetflinger/duration.h>
 
 namespace packetflinger {
 
@@ -113,16 +114,56 @@ public:
    *    schedule() without the count parameter is called. If count is positive,
    *    it specifies the number of times the callback should be invoked.
    **/
-  error_t schedule_once(duration::usec_t const & delay,
+  template <typename durationT>
+  inline error_t schedule_once(durationT const & delay,
+      callback const & callback)
+  {
+    return schedule_once(delay.template as<twine::chrono::nanoseconds>(),
+        callback);
+  }
+
+  error_t schedule_once(twine::chrono::nanoseconds const & delay,
       callback const & callback);
 
-  error_t schedule_at(duration::usec_t const & time, callback const & callback);
 
-  error_t schedule(duration::usec_t const & first,
-      duration::usec_t const & interval, callback const & callback);
 
-  error_t schedule(duration::usec_t const & first,
-      duration::usec_t const & interval, ssize_t const & count,
+  template <typename durationT>
+  inline error_t schedule_at(durationT const & time,
+      callback const & callback)
+  {
+    return schedule_at(time.template as<twine::chrono::nanoseconds>(),
+        callback);
+  }
+
+  error_t schedule_at(twine::chrono::nanoseconds const & time,
+      callback const & callback);
+
+
+
+  template <typename durationT0, typename durationT1>
+  inline error_t schedule_at(durationT0 const & first,
+      durationT1 const & interval, callback const & callback)
+  {
+    return schedule_at(first.template as<twine::chrono::nanoseconds>(),
+        interval.template as<twine::chrono::nanoseconds>(), callback);
+  }
+
+  error_t schedule(twine::chrono::nanoseconds const & first,
+      twine::chrono::nanoseconds const & interval, callback const & callback);
+
+
+
+  template <typename durationT0, typename durationT1>
+  inline error_t schedule_at(durationT0 const & first,
+      durationT1 const & interval, ssize_t const & count,
+      callback const & callback)
+  {
+    return schedule_at(first.template as<twine::chrono::nanoseconds>(),
+        interval.template as<twine::chrono::nanoseconds>(), count, callback);
+  }
+
+  error_t schedule(twine::chrono::nanoseconds const & first,
+      twine::chrono::nanoseconds const & interval, ssize_t const & count,
       callback const & callback);
 
 
