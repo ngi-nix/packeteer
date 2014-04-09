@@ -28,6 +28,7 @@
 #include <packetflinger/packetflinger.h>
 
 #include <atomic>
+#include <cstddef>
 
 #include <packetflinger/macros.h>
 
