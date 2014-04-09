@@ -46,15 +46,6 @@ AC_C_BIGENDIAN
 
 # The AU_ALIAS is needed due to a bug in AX_CXX_HEADER_STDCXX_0X, etc.
 AX_CXX_COMPILE_STDCXX_0X
-if test "$ax_cv_cxx_compile_cxx0x_native" != yes ; then
-  if test "$ax_cv_cxx_compile_cxx0x_gxx" = yes ; then
-    AC_SUBST([PACKETFLINGER_CXX0X_FLAG], [-std=gnu++0x])
-  fi
-  if test "$ax_cv_cxx_compile_cxx0x_cxx" = yes ; then
-    AC_SUBST([PACKETFLINGER_CXX0X_FLAG], [-std=c++0x])
-  fi
-fi
-
 AU_ALIAS([AC_COMPILE_STDCXX_0X], [AX_CXX_COMPILE_STDCXX_0X])
 
 ##############################################################################
@@ -96,30 +87,9 @@ AC_TYPE_SSIZE_T
 ##############################################################################
 # Checks for library functions.
 CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
-AC_CHECK_FUNCS([gettimeofday])
 
 ##############################################################################
-# Optional features
-AC_ARG_ENABLE([debug], AC_HELP_STRING([--enable-debug],
-      [Set the DEBUG define, and disable compiler optimizations. Passing
-       --disable-debug will define NDEBUG and enable compiler optimizations.
-       The default is to enable debugging.]),
-    [
-      case "${enableval}" in
-        yes|true|1)
-          debug=true
-          ;;
-        no|false|0)
-          debug=false
-          ;;
-        *)
-          AC_MSG_ERROR([bad value ${enableval} for --enable-debug])
-          ;;
-      esac
-    ], [
-      debug=true
-    ])
-AM_CONDITIONAL([DEBUG], [test x$debug = xtrue])
+# Optional programs
 
 ##############################################################################
 # Variable substitions
