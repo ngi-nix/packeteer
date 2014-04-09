@@ -30,17 +30,9 @@
 #include <atomic>
 #include <vector>
 
-#include <boost/thread.hpp>
+#include <twine/thread.h>
+#include <twine/chrono.h>
 
-#include <boost/functional/hash.hpp>
-
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/sequenced_index.hpp>
-#include <boost/multi_index/member.hpp>
-
-#include <packetflinger/duration.h>
 #include <packetflinger/types.h>
 #include <packetflinger/concurrent_queue.h>
 #include <packetflinger/pipe.h>
@@ -122,200 +114,14 @@ struct callback_entry
   }
 };
 
-//
-// 1. I/O callbacks:
-//
-//  - While the main scheduler loop will look up metadata with a file
-//    descriptor key, the value in this case is a (callback, eventmask)
-//    tuple.
-//    The above comments on callback uniqueness hold.
-//  - We do not care about the ordering of (callback, eventmask).
-//  - (callback, eventmask) needs to be modifyable, as users can register
-//    and unregister multiple events for the same (callback, FD) tuple.
 
-// Tags
-struct fd_tag {};
-struct events_tag {};
+}} // namespace packetflinger::detail
 
-struct io_callback_entry : public callback_entry
-{
-  int           m_fd;
-  uint64_t      m_events;
+#include <packetflinger/detail/io_callbacks.h>
+#include <packetflinger/detail/scheduled_callbacks.h>
+#include <packetflinger/detail/user_defined_callbacks.h>
 
-  io_callback_entry()
-    : callback_entry(CB_ENTRY_IO)
-    , m_fd()
-    , m_events()
-  {
-  }
-};
-
-typedef boost::multi_index_container<
-  io_callback_entry *,
-
-  boost::multi_index::indexed_by<
-    // Ordered, unique index on file descriptors to make scheduler main loop's
-    // lookups fast.
-    boost::multi_index::ordered_unique<
-      boost::multi_index::tag<fd_tag>,
-      boost::multi_index::member<
-        io_callback_entry,
-        int,
-        &io_callback_entry::m_fd
-      >
-    >,
-
-    // Sequenced index for finding matches for event masks; used during
-    // registration/deregistration.
-    // XXX: a better index would be possible, but boost does not seem to support
-    // it.
-    boost::multi_index::sequenced<
-      boost::multi_index::tag<events_tag>
-    >
-  >
-> io_callbacks_t;
-
-
-// 2. Scheduled callbacks:
-//
-//  - The ideal for scheduling is to find all callbacks whose scheduled time
-//    is equal to or exceeds now().
-//    That means, the ideal is for the next scheduled time to the key to a
-//    sorted container.
-//  - The key needs to be non-unique: multiple callbacks can occur at the
-//    same time. Similarly, the value needs to be non-unique: the same
-//    callback can be scheduled at multiple times.
-//  - The value type to the above map would be (callback, metadata), where
-//    the metadata describes e.g. the scheduling interval, etc.
-//  - Since callbacks can be scheduled at intervals, it is imperative that
-//    the key can be modified, causing a re-sort of the container.
-
-// Tags
-struct timeout_tag {};
-struct callback_tag {};
-
-struct scheduled_callback_entry : public callback_entry
-{
-  // Invocation time for the callback.
-  duration::usec_t      m_timeout;
-  // Zero if callback is one-shot.
-  // Negative if callback is to be repeated until cancelled.
-  // A positive number gives the number of repeats.
-  ssize_t               m_count;
-  // If non-zero, re-schedule the callback
-  duration::usec_t      m_interval;
-
-
-  scheduled_callback_entry(callback cb, duration::usec_t const & timeout,
-      ssize_t count, duration::usec_t const & interval)
-    : callback_entry(CB_ENTRY_SCHEDULED, cb)
-    , m_timeout(timeout)
-    , m_count(count)
-    , m_interval(interval)
-  {
-  }
-
-  scheduled_callback_entry()
-    : callback_entry(CB_ENTRY_SCHEDULED)
-    , m_timeout()
-    , m_count()
-    , m_interval()
-  {
-  }
-};
-
-typedef boost::multi_index_container<
-  scheduled_callback_entry *,
-
-  boost::multi_index::indexed_by<
-    // Ordered, non-unique index on timeouts to make scheduler main loop's
-    // lookups fast.
-    boost::multi_index::ordered_non_unique<
-      boost::multi_index::tag<timeout_tag>,
-      boost::multi_index::member<
-        scheduled_callback_entry,
-        duration::usec_t,
-        &scheduled_callback_entry::m_timeout
-      >
-    >,
-
-    // Hashed, non-unique index for finding callbacks quickly.
-    boost::multi_index::hashed_non_unique<
-      boost::multi_index::tag<callback_tag>,
-      boost::multi_index::member<
-        callback_entry,
-        callback,
-        &callback_entry::m_callback
-      >
-    >
-  >
-> scheduled_callbacks_t;
-
-
-// 3. User-defined callbacks:
-//
-//  - There are no file descriptors involved. We just map from events to
-//    callbacks (and back for unregistering, etc.)
-//  - The lookup occurs via the event mask.
-//  - Lookup happens both within the scheduler (system events) and on the
-//    caller side (via fire_events()), so should be fast. Since the event
-//    mask is a bitset, it's likely that an ordered key set will yield the
-//    fastest lookup.
-//  - The value set is non-unique: the same event mask can be associated with
-//    multiple callbacks.
-//    With traditional containers (e.g. map<events, list<callback>>) that
-//    would provide for tricky merging problems when the event mask for one
-//    of the callbacks is modified, but the rest remains unaffected.
-//  - The key needs to be mutable (see above).
-
-struct user_callback_entry : public callback_entry
-{
-  uint64_t      m_events;
-
-  user_callback_entry(callback cb, uint64_t const & events)
-    : callback_entry(CB_ENTRY_USER, cb)
-    , m_events(events)
-  {
-  }
-
-  user_callback_entry(uint64_t const & events)
-    : callback_entry(CB_ENTRY_USER)
-    , m_events(events)
-  {
-  }
-
-  user_callback_entry()
-    : callback_entry(CB_ENTRY_USER)
-    , m_events()
-  {
-  }
-};
-
-typedef boost::multi_index_container<
-  user_callback_entry *,
-
-  boost::multi_index::indexed_by<
-    // Sequenced index for finding matches for event masks; used during
-    // registration/deregistration.
-    // XXX: a better index would be possible, but boost does not seem to support
-    // it.
-    boost::multi_index::sequenced<
-      boost::multi_index::tag<events_tag>
-    >,
-
-    // Hashed, non-unique index for finding callbacks quickly.
-    boost::multi_index::hashed_non_unique<
-      boost::multi_index::tag<callback_tag>,
-      boost::multi_index::member<
-        callback_entry,
-        callback,
-        &callback_entry::m_callback
-      >
-    >
-  >
-> user_callbacks_t;
-
-} // namespace detail
+namespace packetflinger {
 
 /*****************************************************************************
  * Nested class scheduler::scheduler_impl.
@@ -395,7 +201,7 @@ private:
   void stop_workers(size_t num_workers);
 
   // Main loop
-  void main_scheduler_loop();
+  void main_scheduler_loop(void * /* unused */);
 
   inline void process_in_queue(entry_list_t & triggered);
   inline void process_in_queue_io(action_type action,
@@ -405,7 +211,7 @@ private:
   inline void process_in_queue_user(action_type action,
       detail::user_callback_entry * entry, entry_list_t & triggered);
 
-  inline void dispatch_scheduled_callbacks(duration::usec_t const & now,
+  inline void dispatch_scheduled_callbacks(twine::chrono::nanoseconds const & now,
       entry_list_t & to_schedule);
   inline void dispatch_user_callbacks(entry_list_t const & triggered,
       entry_list_t & to_schedule);
@@ -428,7 +234,7 @@ private:
 
   // Main loop state.
   std::atomic<bool>               m_main_loop_continue;
-  boost::thread                   m_main_loop_thread;
+  twine::thread                   m_main_loop_thread;
   pipe                            m_main_loop_pipe;
 
   // We use a weird scheme for moving things to/from the internal containers

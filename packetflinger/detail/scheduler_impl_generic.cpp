@@ -23,7 +23,6 @@
 #include <packetflinger/detail/scheduler_impl.h>
 #include <packetflinger/detail/worker.h>
 
-namespace pdu = packetflinger::duration;
 namespace pdt = packetflinger::detail;
 
 namespace packetflinger {
@@ -104,8 +103,9 @@ scheduler::scheduler_impl::start_main_loop()
   register_fd(m_main_loop_pipe.get_read_fd(),
       EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
 
-  m_main_loop_thread = boost::thread(
-      std::bind(&scheduler_impl::main_scheduler_loop, this));
+  m_main_loop_thread.set_func(
+      twine::thread::binder<scheduler_impl, &scheduler_impl::main_scheduler_loop>::function,
+      this);
 }
 
 
@@ -213,9 +213,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
         // combinations that match. That might not be what the caller
         // intends, but we have no way of distinguishing between them.
         LOG("remove scheduled callback");
-        auto & index = m_scheduled_callbacks.get<pdt::callback_tag>();
-        auto range = index.equal_range(scheduled->m_callback);
-        index.erase(range.first, range.second);
+        m_scheduled_callbacks.erase(scheduled->m_callback);
         delete scheduled;
       }
       break;
@@ -241,17 +239,17 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
   // - In the case of addtion, if the callback is not yet known, the entry will
   //   be added verbatim.
   // Either way, we need to find the event mask for a callback, if we can.
-  auto & callback_index = m_user_callbacks.get<pdt::callback_tag>();
-  auto cb_iter = callback_index.find(user->m_callback);
+  auto cb_ptr = m_user_callbacks.find(user->m_callback);
+  // FIXME cb_ptr is badly named
 
   switch (action) {
     case ACTION_ADD:
       {
-        if (callback_index.end() != cb_iter) {
-          (*cb_iter)->m_events |= user->m_events;
+        if (cb_ptr) {
+          cb_ptr->m_events |= user->m_events;
         }
         else {
-          callback_index.insert(user);
+          m_user_callbacks.insert(user);
         }
       }
       break;
@@ -259,11 +257,11 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
     case ACTION_REMOVE:
       {
-        if (callback_index.end() != cb_iter) {
-          (*cb_iter)->m_events &= ~(user->m_events);
+        if (cb_ptr) {
+          cb_ptr->m_events &= ~(user->m_events);
 
-          if (0 == (*cb_iter)->m_events) {
-            callback_index.erase(cb_iter);
+          if (0 == cb_ptr->m_events) {
+            m_user_callbacks.erase(cb_ptr);
           }
         }
       }
@@ -285,17 +283,17 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
 
 void
-scheduler::scheduler_impl::dispatch_scheduled_callbacks(pdu::usec_t const & now,
+scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanoseconds const & now,
     entry_list_t & to_schedule)
 {
   LOG("scheduled callbacks at: " << now);
 
   // Scheduled callbacks are due if their timeout is older than now(). That's
   // the simplest way to deal with them.
-  auto & index = m_scheduled_callbacks.get<pdt::timeout_tag>();
-  auto end = index.upper_bound(now);
+  auto range = m_scheduled_callbacks.get_timed_out(now);
+  auto end = range.second;
 
-  for (auto iter = index.begin() ; iter != end ; ++iter) {
+  for (auto iter = range.first ; iter != end ; ++iter) {
     LOG("scheduled callback expired at " << now);
     if (0 == (*iter)->m_count) {
       // If it's a one shot event, we want to *move* it into the to_schedule
@@ -330,8 +328,7 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(pdu::usec_t const & now,
   // Those entries changed their timeout, though, so if we extract a new range
   // with the exact same parameters, we should arrive at the list of entries to
   // remove from m_scheduled_callbacks.
-  end = index.upper_bound(now);
-  index.erase(index.begin(), end);
+  m_scheduled_callbacks.erase_timed_out(now);
 }
 
 
@@ -354,9 +351,9 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
     // We ignore the callback from the entry, because it's not set. However, for
     // each entry we'll have to scour the user callbacks for any callbacks that
     // may respond to the entry's events.
-    auto & index = m_user_callbacks.get<pdt::events_tag>();
+    auto range = m_user_callbacks.get();
 
-    for (auto candidate : index) {
+    for (auto candidate : range) {
       uint64_t masked = (candidate->m_events) & (entry->m_events);
       LOG("registered for: " << candidate->m_events);
       LOG("masked: " << masked);
@@ -376,9 +373,8 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
 
 
 void
-scheduler::scheduler_impl::main_scheduler_loop()
+scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
 {
-  boost::this_thread::disable_interruption boost_interrupt_disabled;
   LOG("CPUS: " << boost::thread::hardware_concurrency());
 
   while (m_main_loop_continue) {
@@ -389,7 +385,7 @@ scheduler::scheduler_impl::main_scheduler_loop()
     process_in_queue(triggered);
 
     // get events
-    pdu::sleep(pdu::from_msec(20));
+    twine::chrono::sleep(twine::chrono::milliseconds(20));
     // TODO
 
     // Process all callbacks that want to be invoked now. Since we can't have
@@ -398,7 +394,7 @@ scheduler::scheduler_impl::main_scheduler_loop()
     // those entries to the out queue later.
     // The scheduler relinquishes ownership over entries in the to_schedule
     // vector to workers.
-    pdu::usec_t now = pdu::now();
+    twine::chrono::nanoseconds now = twine::chrono::now();
     entry_list_t to_schedule;
 
     // TODO
