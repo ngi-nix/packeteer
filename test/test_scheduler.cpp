@@ -25,7 +25,7 @@
 #include <utility>
 #include <atomic>
 
-#include <boost/thread.hpp>
+#include <twine/thread.h>
 
 namespace pf = packetflinger;
 namespace tc = twine::chrono;
@@ -63,7 +63,7 @@ struct test_callback
 
 struct thread_id_callback
 {
-  boost::thread::id  m_tid;
+  twine::thread::id  m_tid;
 
   thread_id_callback()
     : m_tid()
@@ -74,7 +74,7 @@ struct thread_id_callback
   pf::error_t
   func(uint64_t mask, pf::error_t error, int fd, void * baton)
   {
-    m_tid = boost::this_thread::get_id();
+    m_tid = twine::this_thread::get_id();
 
     LOG("callback started");
     tc::sleep(tc::milliseconds(50));
@@ -273,8 +273,8 @@ private:
 
     tc::sleep(tc::milliseconds(150));
 
-    boost::thread::id id1 = source1.m_tid;
-    boost::thread::id id2 = source2.m_tid;
+    twine::thread::id id1 = source1.m_tid;
+    twine::thread::id id2 = source2.m_tid;
     CPPUNIT_ASSERT(id1 != id2);
   }
 
