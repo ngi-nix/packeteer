@@ -84,10 +84,12 @@ typedef boost::multi_index_container<
 
 struct io_callbacks_t
 {
-  io_callbacks_t();
+  io_callbacks_t()
+  {
+  }
 
   // FIXME
-  packetflinger_hash_map<int, io_callback_entry> m_map;
+  // packetflinger_hash_map<int, io_callback_entry> m_map;
 };
 
 
