@@ -75,6 +75,10 @@ AX_CXX_HEADER_TR1_UNORDERED_MAP
 AX_CXX_HAVE_EXT_HASH_MAP
 AX_CXX_GNUCXX_HASHMAP
 
+AX_CXX_HEADER_UNORDERED_SET
+AX_CXX_HEADER_TR1_UNORDERED_SET
+AX_CXX_HAVE_EXT_HASH_SET
+
 ##############################################################################
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT32_T

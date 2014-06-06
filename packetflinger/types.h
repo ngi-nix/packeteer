@@ -62,8 +62,8 @@ using PACKETFLINGER_SHARED_PTR_NAMESPACE ::const_pointer_cast;
 #undef PACKETFLINGER_SHARED_PTR_NAMESPACE
 
 /*****************************************************************************
- * Find a suitable hash map type, and fall back to a tree map if none is to be
- * found.
+ * Find a suitable hash map/set type, and fall back to a tree map/set if none
+ * is to be found.
  *
  * Unfortunately, template aliases aren't widely supported yet, so we'll have
  * to fall back on a preprocessor solution.
@@ -84,5 +84,20 @@ using PACKETFLINGER_SHARED_PTR_NAMESPACE ::const_pointer_cast;
 #  include <map>
 #  define packetflinger_hash_map std::map
 #endif
+
+#if defined(HAVE_UNORDERED_SET)
+#  include <unordered_set>
+#  define packetflinger_hash_set std::unordered_set
+#elif defined(HAVE_TR1_UNORDERED_SET)
+#  include <tr1/unordered_set>
+#  define packetflinger_hash_set std::tr1::unordered_set
+#elif defined(HAVE_EXT_HASH_SET)
+#  include <ext/hash_set>
+#  define packetflinger_hash_set std::hash_set
+#else
+#  include <set>
+#  define packetflinger_hash_set std::set
+#endif
+
 
 #endif // guard
