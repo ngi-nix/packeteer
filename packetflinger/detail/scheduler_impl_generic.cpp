@@ -202,7 +202,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
         // possible that the same (callback, timeout) combination is added
         // multiple times, but that might be the caller's intent.
         LOG("add scheduled callback at " << scheduled->m_timeout);
-        m_scheduled_callbacks.insert(scheduled);
+        m_scheduled_callbacks.add(scheduled);
       }
       break;
 
@@ -213,7 +213,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
         // combinations that match. That might not be what the caller
         // intends, but we have no way of distinguishing between them.
         LOG("remove scheduled callback");
-        m_scheduled_callbacks.erase(scheduled->m_callback);
+        m_scheduled_callbacks.remove(scheduled);
         delete scheduled;
       }
       break;
@@ -268,14 +268,17 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanosecon
   // Scheduled callbacks are due if their timeout is older than now(). That's
   // the simplest way to deal with them.
   auto range = m_scheduled_callbacks.get_timed_out(now);
+  detail::scheduled_callbacks_t::list_t to_erase;
+  detail::scheduled_callbacks_t::list_t to_update;
 
   for (auto entry : range) {
     LOG("scheduled callback expired at " << now);
-    if (0 == entry->m_count) {
+    if (twine::chrono::nanoseconds(0) == entry->m_interval) {
       // If it's a one shot event, we want to *move* it into the to_schedule
       // vector thereby granting ownership to the worker that picks it up.
       LOG("one-shot callback, handing over to worker");
       to_schedule.push_back(entry);
+      to_erase.push_back(entry);
     }
     else {
       // Depending on whether the entry gets rescheduled (more repeats) or not
@@ -290,11 +293,12 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanosecon
         // Last invocation; can *move*
         LOG("last invocation");
         to_schedule.push_back(entry);
+        to_erase.push_back(entry);
       }
       else {
         // More invocations to come; must *copy*
-        entry->m_timeout += entry->m_interval;
         to_schedule.push_back(new pdt::scheduled_callback_entry(*entry));
+        to_update.push_back(entry);
       }
     }
   }
@@ -304,7 +308,7 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanosecon
   // Those entries changed their timeout, though, so if we extract a new range
   // with the exact same parameters, we should arrive at the list of entries to
   // remove from m_scheduled_callbacks.
-  m_scheduled_callbacks.erase_timed_out(now);
+  m_scheduled_callbacks.update(to_erase, to_update);
 }
 
 

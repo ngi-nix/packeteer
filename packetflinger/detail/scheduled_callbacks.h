@@ -110,21 +110,85 @@ typedef boost::multi_index_container<
 
 struct scheduled_callbacks_t
 {
-  scheduled_callbacks_t();
+public:
+  typedef std::vector<scheduled_callback_entry *> list_t;
 
-  // FIXME packetflinger_hash_map  m_map;
-  //
-  void insert(scheduled_callback_entry *);
+  scheduled_callbacks_t()
+  {
+  }
 
-  void erase(callback const & cb);
 
-  // FIXME
-  typedef std::vector<scheduled_callback_entry *> foo;
 
-  meta::range<foo::iterator>
-  get_timed_out(twine::chrono::nanoseconds const & now);
+  inline void add(scheduled_callback_entry * entry)
+  {
+    // No magic. If the same callback gets added for the same timeout, it
+    // deliberately gets called multiple times.
+    m_timeout_map.insert(timeout_map_t::value_type(entry->m_timeout, entry));
+  }
 
-  void erase_timed_out(twine::chrono::nanoseconds const & now);
+
+
+  inline void remove(scheduled_callback_entry * entry)
+  {
+    remove_internal(entry, true);
+  }
+
+
+
+  list_t
+  get_timed_out(twine::chrono::nanoseconds const & now) const
+  {
+    auto end = m_timeout_map.upper_bound(now);
+    list_t ret;
+    for (auto iter = m_timeout_map.begin() ; iter != end ; ++iter) {
+      ret.push_back(iter->second);
+    }
+    return ret;
+  }
+
+
+
+  void update(list_t const & erase, list_t const & reschedule)
+  {
+    // Erase the erase list
+    for (auto entry : erase) {
+      remove_internal(entry, true);
+    }
+
+    // Erase, but don't destroy the reschedule list. Re-add it again, as the
+    // timeout has changed.
+    for (auto entry : reschedule) {
+      remove_internal(entry, false);
+      entry->m_timeout += entry->m_interval;
+      add(entry);
+    }
+  }
+
+private:
+  inline void remove_internal(scheduled_callback_entry * entry, bool destroy)
+  {
+    // This is trickier. There are likely multiple entries that match the timeout,
+    // and some that also match the callback. We need to remove the latter, those
+    // that match both.
+    auto range = m_timeout_map.equal_range(entry->m_timeout);
+
+    for (auto iter = range.first ; iter != range.second ; ++iter) {
+      if (entry->m_callback == iter->second->m_callback) {
+        if (destroy) {
+          delete iter->second;
+        }
+        m_timeout_map.erase(iter);
+      }
+    }
+  }
+
+
+  typedef std::multimap<
+    twine::chrono::nanoseconds,
+    scheduled_callback_entry *
+  > timeout_map_t;
+
+  timeout_map_t   m_timeout_map;
 };
 
 
