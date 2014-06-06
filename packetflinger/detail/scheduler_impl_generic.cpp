@@ -230,47 +230,24 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
 
 void
 scheduler::scheduler_impl::process_in_queue_user(action_type action,
-    pdt::user_callback_entry * user, entry_list_t & triggered)
+    pdt::user_callback_entry * entry, entry_list_t & triggered)
 {
-  // Adding or removing events means one of two things:
-  // - If the callback is already known as a callback for user events, the new
-  //   event mask will be added to/subtracted from the existing one. If due to
-  //   subtraction an event mask reaches zero, the entry is removed entirely.
-  // - In the case of addtion, if the callback is not yet known, the entry will
-  //   be added verbatim.
-  // Either way, we need to find the event mask for a callback, if we can.
-  auto cb_ptr = m_user_callbacks.find(user->m_callback);
-  // FIXME cb_ptr is badly named
-
   switch (action) {
     case ACTION_ADD:
-      {
-        if (cb_ptr) {
-          cb_ptr->m_events |= user->m_events;
-        }
-        else {
-          m_user_callbacks.insert(user);
-        }
-      }
+      // Add the callback/entry mask
+      m_user_callbacks.add(entry);
       break;
 
 
     case ACTION_REMOVE:
-      {
-        if (cb_ptr) {
-          cb_ptr->m_events &= ~(user->m_events);
-
-          if (0 == cb_ptr->m_events) {
-            m_user_callbacks.erase(cb_ptr);
-          }
-        }
-      }
+      // Remove the callback/entry mask
+      m_user_callbacks.remove(entry);
       break;
 
 
     case ACTION_TRIGGER:
       // Remember it for a later processing stage.
-      triggered.push_back(user);
+      triggered.push_back(entry);
       break;
 
 
@@ -350,21 +327,9 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
     // We ignore the callback from the entry, because it's not set. However, for
     // each entry we'll have to scour the user callbacks for any callbacks that
     // may respond to the entry's events.
-    auto range = m_user_callbacks.get();
-
-    for (auto candidate : range) {
-      uint64_t masked = (candidate->m_events) & (entry->m_events);
-      LOG("registered for: " << candidate->m_events);
-      LOG("masked: " << masked);
-
-      if (masked) {
-        // The masked events were fired. Because user callbacks are never
-        // automatically unscheduled, we'll need to copy the callback and send
-        // on the masked events.
-        auto copy = new pdt::user_callback_entry(*candidate);
-        copy->m_events = masked;
-        to_schedule.push_back(copy);
-      }
+    auto range = m_user_callbacks.copy_matching(entry->m_events);
+    for (auto copy : range) {
+      to_schedule.push_back(copy);
     }
   }
 }
