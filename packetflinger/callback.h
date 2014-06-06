@@ -30,6 +30,7 @@
 #include <typeinfo>
 
 #include <packetflinger/error.h>
+#include <packetflinger/events.h>
 
 namespace packetflinger {
 
@@ -41,7 +42,7 @@ namespace detail {
  **/
 struct callback_helper_base
 {
-  virtual error_t invoke(uint64_t events, error_t error, int fd, void * baton) = 0;
+  virtual error_t invoke(events_t const & events, error_t error, int fd, void * baton) = 0;
   virtual bool compare(callback_helper_base const * other) const = 0;
   virtual callback_helper_base * clone() const = 0;
 };
@@ -262,7 +263,7 @@ struct callback_helper : public callback_helper_base
 
 
 
-  virtual error_t invoke(uint64_t events, error_t error, int fd, void * baton)
+  virtual error_t invoke(events_t const & events, error_t error, int fd, void * baton)
   {
     return (m_object->*m_function)(events, error, fd, baton);
   }

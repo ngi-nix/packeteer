@@ -138,7 +138,7 @@ struct scheduler::scheduler_impl
   struct event_data
   {
     int       fd;
-    uint64_t  events;
+    events_t  events;
   };
 
   // Type of action to take on an item in the in-queue

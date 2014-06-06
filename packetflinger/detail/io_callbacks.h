@@ -45,7 +45,7 @@ namespace detail {
 struct io_callback_entry : public callback_entry
 {
   int           m_fd;
-  uint64_t      m_events;
+  events_t      m_events;
 
   io_callback_entry()
     : callback_entry(CB_ENTRY_IO)

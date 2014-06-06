@@ -25,25 +25,26 @@
 
 #include <packetflinger/error.h>
 #include <packetflinger/types.h>
+#include <packetflinger/events.h>
 
 namespace packetflinger {
 
 namespace {
 
-inline int translate_events_to_os(uint64_t events)
+inline int translate_events_to_os(events_t const & events)
 {
   int ret = 0;
 
-  if (events & scheduler::EV_IO_READ) {
+  if (events & EV_IO_READ) {
     ret |= EPOLLIN | EPOLLPRI;
   }
-  if (events & scheduler::EV_IO_WRITE) {
+  if (events & EV_IO_WRITE) {
     ret |= EPOLLOUT;
   }
-  if (events & scheduler::EV_IO_CLOSE) {
+  if (events & EV_IO_CLOSE) {
     ret |= EPOLLRDHUP | EPOLLHUP;
   }
-  if (events & scheduler::EV_IO_ERROR) {
+  if (events & EV_IO_ERROR) {
     ret |= EPOLLERR;
   }
 
@@ -51,21 +52,21 @@ inline int translate_events_to_os(uint64_t events)
 }
 
 
-inline uint64_t translate_os_to_events(int os)
+inline events_t translate_os_to_events(int os)
 {
-  uint64_t ret = 0;
+  events_t ret = 0;
 
   if ((os & EPOLLIN) || (os & EPOLLPRI)) {
-    ret |= scheduler::EV_IO_READ;
+    ret |= EV_IO_READ;
   }
   if (os & EPOLLOUT) {
-    ret |= scheduler::EV_IO_WRITE;
+    ret |= EV_IO_WRITE;
   }
   if ((os & EPOLLRDHUP) || (os & EPOLLHUP)) {
-    ret |= scheduler::EV_IO_CLOSE;
+    ret |= EV_IO_CLOSE;
   }
   if (os & EPOLLERR) {
-    ret |= scheduler::EV_IO_ERROR;
+    ret |= EV_IO_ERROR;
   }
 
   return ret;
@@ -113,7 +114,7 @@ scheduler::scheduler_impl::deinit_impl()
 
 
 void
-scheduler::scheduler_impl::register_fd(int fd, uint64_t const & events)
+scheduler::scheduler_impl::register_fd(int fd, events_t const & events)
 {
   int fds[1] = { fd };
   register_fds(fds, 1, events);
@@ -123,7 +124,7 @@ scheduler::scheduler_impl::register_fd(int fd, uint64_t const & events)
 
 void
 scheduler::scheduler_impl::register_fds(int const * fds, size_t size,
-    uint64_t const & events)
+    events_t const & events)
 {
   int translated = translate_events_to_os(events);
 
@@ -143,7 +144,7 @@ scheduler::scheduler_impl::register_fds(int const * fds, size_t size,
 
 
 void
-scheduler::scheduler_impl::unregister_fd(int fd, uint64_t const & events)
+scheduler::scheduler_impl::unregister_fd(int fd, events_t const & events)
 {
   int fds[1] = { fd };
   unregister_fds(fds, 1, events);
@@ -153,7 +154,7 @@ scheduler::scheduler_impl::unregister_fd(int fd, uint64_t const & events)
 
 void
 scheduler::scheduler_impl::unregister_fds(int const * fds, size_t size,
-    uint64_t const & events)
+    events_t const & events)
 {
   // TODO
 }

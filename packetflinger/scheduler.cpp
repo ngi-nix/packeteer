@@ -46,7 +46,7 @@ scheduler::~scheduler()
 
 
 error_t
-scheduler::register_fd(uint64_t events, int fd, callback const & callback)
+scheduler::register_fd(events_t const & events, int fd, callback const & callback)
 {
   // TODO
 }
@@ -54,7 +54,7 @@ scheduler::register_fd(uint64_t events, int fd, callback const & callback)
 
 
 error_t
-scheduler::unregister_fd(uint64_t events, int fd, callback const & callback)
+scheduler::unregister_fd(events_t const & events, int fd, callback const & callback)
 {
   // TODO
 }
@@ -125,7 +125,7 @@ scheduler::unschedule(callback const & callback)
 
 
 error_t
-scheduler::register_event(uint64_t const & events, callback const & callback)
+scheduler::register_event(events_t const & events, callback const & callback)
 {
   auto entry = new detail::user_callback_entry(callback, events);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
@@ -136,7 +136,7 @@ scheduler::register_event(uint64_t const & events, callback const & callback)
 
 
 error_t
-scheduler::unregister_event(uint64_t const & events, callback const & callback)
+scheduler::unregister_event(events_t const & events, callback const & callback)
 {
   auto entry = new detail::user_callback_entry(callback, events);
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
@@ -147,7 +147,7 @@ scheduler::unregister_event(uint64_t const & events, callback const & callback)
 
 
 error_t
-scheduler::fire_events(uint64_t const & events)
+scheduler::fire_events(events_t const & events)
 {
   if (events < EV_USER) {
     return ERR_INVALID_VALUE;

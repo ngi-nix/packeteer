@@ -31,6 +31,7 @@
 
 #include <packetflinger/callback.h>
 #include <packetflinger/error.h>
+#include <packetflinger/events.h>
 
 namespace packetflinger {
 
@@ -56,19 +57,7 @@ public:
   /***************************************************************************
    * Types
    **/
-  // Event types for which callback functions can be registered. The callback
-  // will be notified for which event(s) it was invoked.
-  enum event_type
-  {
-    EV_IO_READ    = 1,      // A file descriptor is ready for reading
-    EV_IO_WRITE   = 2,      // A file descriptor is ready for writing
-    EV_IO_ERROR   = 4,      // A file descriptor has produced errors
-    EV_IO_CLOSE   = 8,      // A file descriptor has been closed.
-    EV_TIMEOUT    = 128,    // A timout has been reached that the callback was
-                            // registered for.
-    EV_ERROR      = 256,    // Internal scheduler error.
-    EV_USER       = 32768,  // A user-defined event was fired (see below).
-  };
+
 
 
   /***************************************************************************
@@ -89,7 +78,7 @@ public:
    * You can pass non-I/O events here, but EV_TIMEOUT will be ignored as there
    * is no timeout value specified.
    **/
-  error_t register_fd(uint64_t events, int fd, callback const & callback);
+  error_t register_fd(events_t const & events, int fd, callback const & callback);
 
 
 
@@ -98,7 +87,7 @@ public:
    * more events are listened to, the file descriptor and callback will be
    * forgotten.
    **/
-  error_t unregister_fd(uint64_t events, int fd, callback const & callback);
+  error_t unregister_fd(events_t const & events, int fd, callback const & callback);
 
 
 
@@ -189,7 +178,7 @@ public:
    * User-defined events must be specified as 64 bit unsigned integer values
    * >= EV_USER.
    **/
-  error_t register_event(uint64_t const & events, callback const & callback);
+  error_t register_event(events_t const & events, callback const & callback);
 
 
 
@@ -200,7 +189,7 @@ public:
    * events registered via register_event() and system events registered via
    * register_fd() or any of the schedule_*() functions.
    **/
-  error_t unregister_event(uint64_t const & events, callback const & callback);
+  error_t unregister_event(events_t const & events, callback const & callback);
 
 
 
@@ -208,7 +197,7 @@ public:
    * Fire the specified events. If you specify system events here, the function
    * will return ERR_INVALID_VALUE and not fire any events.
    **/
-  error_t fire_events(uint64_t const & events);
+  error_t fire_events(events_t const & events);
 
 
 private:

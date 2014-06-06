@@ -136,7 +136,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(1, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::scheduler::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::EV_TIMEOUT, mask);
   }
 
 
@@ -156,7 +156,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(1, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::scheduler::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::EV_TIMEOUT, mask);
   }
 
 
@@ -177,7 +177,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::scheduler::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::EV_TIMEOUT, mask);
   }
 
 
@@ -202,7 +202,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::scheduler::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::EV_TIMEOUT, mask);
 
     sched.unschedule(cb);
 
@@ -214,7 +214,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::scheduler::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::EV_TIMEOUT, mask);
   }
 
 
@@ -248,7 +248,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(2, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::scheduler::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL((uint64_t) pf::EV_TIMEOUT, mask);
 
     sched.unschedule(cb);
   }
@@ -288,9 +288,9 @@ private:
     // to only be invoked for the other.
     enum user_events
     {
-      EVENT_1 = 1 * pf::scheduler::EV_USER,
-      EVENT_2 = 2 * pf::scheduler::EV_USER,
-      EVENT_3 = 4 * pf::scheduler::EV_USER,
+      EVENT_1 = 1 * pf::EV_USER,
+      EVENT_2 = 2 * pf::EV_USER,
+      EVENT_3 = 4 * pf::EV_USER,
     };
 
     pf::scheduler sched(1); // We only need one thread for this.
@@ -393,7 +393,7 @@ private:
 
     // Also ensure that fire_event() does not work with system events.
     CPPUNIT_ASSERT_EQUAL(pf::ERR_INVALID_VALUE,
-        sched.fire_events(pf::scheduler::EV_IO_READ));
+        sched.fire_events(pf::EV_IO_READ));
   }
 
 
