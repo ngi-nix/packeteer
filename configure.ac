@@ -58,7 +58,7 @@ AX_CACHE_LINE_SIZE
 # Checks for libraries.
 PKG_CHECK_MODULES([CPPUNIT], [cppunit >= 1.12])
 PKG_CHECK_MODULES([META], [meta >= 0.1])
-PKG_CHECK_MODULES([twine], [twine >= 0.1])
+PKG_CHECK_MODULES([TWINE], [twine >= 0.1])
 
 ##############################################################################
 # Checks for header files.
