@@ -32,4 +32,5 @@ libpacketflinger_la_include_HEADERS = \
 	concurrent_queue.h \
 	callback.h \
 	pipe.h \
+	events.h \
 	scheduler.h
