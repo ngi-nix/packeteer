@@ -89,7 +89,14 @@ public:
   }
 
 
-
+  /**
+   * Takes ownership of the passed entry.
+   *
+   * If an entry with the same callback exists, their event masks are merged.
+   * Otherwise, the entry is added. The upshot is that there is only one item
+   * in the container per unique callback (see callback.h for what makes a
+   * callback unique).
+   **/
   inline void add(user_callback_entry * cb)
   {
     // Try to find the callback first.
@@ -101,11 +108,19 @@ public:
     else {
       // Existing entry, merge mask
       c_iter->second->m_events |= cb->m_events;
+      delete cb;
     }
   }
 
 
 
+  /**
+   * Removes as much of the passed entry as possible.
+   *
+   * Primarily, this removes the passed entry's flags from any item in the
+   * container matching the callback. If there are no flags left afterwards,
+   * the item is removed entirely.
+   **/
   inline void remove(user_callback_entry * cb)
   {
     // Try to find the callback first.
@@ -126,6 +141,12 @@ public:
   }
 
 
+
+  /**
+   * As the name implies, this function creates a copy (ownership goes to the
+   * caller) of all entries matching one or more of the events in the passed
+   * event mask.
+   **/
   std::vector<user_callback_entry *>
   copy_matching(events_t const & events) const
   {

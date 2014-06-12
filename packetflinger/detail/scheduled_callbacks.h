@@ -93,7 +93,12 @@ public:
   }
 
 
-
+  /**
+   * Takes ownership of the passed entry.
+   *
+   * Adds the entry to the container. Note that multiple timeouts for the same
+   * callback are supported, as are multiple callbacks for the same timeout.
+   **/
   inline void add(scheduled_callback_entry * entry)
   {
     // No magic. If the same callback gets added for the same timeout, it
@@ -103,6 +108,10 @@ public:
 
 
 
+  /**
+   * Removes and deletes any entry from the container that matches the passed
+   * entry's callback *ONLY*.
+   **/
   inline void remove(scheduled_callback_entry * entry)
   {
     remove_internal(entry, true);
@@ -123,6 +132,15 @@ public:
 
 
 
+  /**
+   * Updates the container:
+   * - The first parameter contains entries that have been taken out of the
+   *   container; that is, their ownership has passed elsewhere. We remove them,
+   *   but don't destroy them.
+   * - The second parameter contains entries who need to be run again later;
+   *   for these, we need to update the timeout (via the interval). Ownership
+   *   remains with the container here!
+   **/
   void update(list_t const & erase, list_t const & reschedule)
   {
     // Erase the erase list
@@ -144,7 +162,10 @@ private:
   {
     auto end = m_timeout_map.end();
 
+    // LOG("trying to remove entry with timeout: " << entry->m_timeout);
+
     for (auto iter = m_timeout_map.begin() ; iter != end ; ) {
+      // LOG("got " << iter->second->m_timeout);
       if (entry->m_callback == iter->second->m_callback) {
         if (destroy) {
           delete iter->second;
