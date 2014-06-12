@@ -74,31 +74,6 @@ struct user_callback_entry : public callback_entry
   }
 };
 
-/* FIXME
-typedef boost::multi_index_container<
-  user_callback_entry *,
-
-  boost::multi_index::indexed_by<
-    // Sequenced index for finding matches for event masks; used during
-    // registration/deregistration.
-    // XXX: a better index would be possible, but boost does not seem to support
-    // it.
-    boost::multi_index::sequenced<
-      boost::multi_index::tag<events_tag>
-    >,
-
-    // Hashed, non-unique index for finding callbacks quickly.
-    boost::multi_index::hashed_non_unique<
-      boost::multi_index::tag<callback_tag>,
-      boost::multi_index::member<
-        callback_entry,
-        callback,
-        &callback_entry::m_callback
-      >
-    >
-  >
-> user_callbacks_t;
-*/
 
 // Adding or removing events means one of two things:
 // - If the callback is already known as a callback for user events, the new
