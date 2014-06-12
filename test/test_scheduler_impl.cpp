@@ -153,48 +153,63 @@ private:
 
   void testUserCallbacksContainer()
   {
-    CPPUNIT_FAIL("not yet implemented");
-/*
     // The user callbacks container needs to fulfil two criteria. The simpler
     // one is that callbacks need to be found via a specific index. The trickier
     // one is that event masks need to be matched reasonably quickly, which
     // means finding entries with events >= a given event mask.
     enum user_events
     {
-      EVENT_1 = 1 * pf::scheduler::EV_USER,
-      EVENT_2 = 2 * pf::scheduler::EV_USER,
-      EVENT_3 = 4 * pf::scheduler::EV_USER,
+      EVENT_1 = 1 * pf::EV_USER,
+      EVENT_2 = 2 * pf::EV_USER,
+      EVENT_3 = 4 * pf::EV_USER,
+      EVENT_4 = 8 * pf::EV_USER,
     };
 
     pf::detail::user_callbacks_t container;
 
-    auto & callback_index = container.get<pf::detail::callback_tag>();
-
     pf::detail::user_callback_entry * entry = new pf::detail::user_callback_entry();
     entry->m_events = EVENT_1;
     entry->m_callback = &foo;
-    callback_index.insert(entry);
+    container.add(entry);
 
     entry = new pf::detail::user_callback_entry();
     entry->m_events = EVENT_3;
     entry->m_callback = &bar;
-    callback_index.insert(entry);
+    container.add(entry);
+
+    entry = new pf::detail::user_callback_entry();
+    entry->m_events = EVENT_1 | EVENT_3;
+    entry->m_callback = &baz;
+    container.add(entry);
 
     entry = new pf::detail::user_callback_entry();
     entry->m_events = EVENT_1 | EVENT_2;
-    entry->m_callback = &foo;
-    callback_index.insert(entry);
+    entry->m_callback = &bar;
+    container.add(entry);
 
-    // Finding entries for the 'foo' callback should yield 2 entries.
-    auto range = callback_index.equal_range(&foo);
-    CPPUNIT_ASSERT(range.first != callback_index.end());
+    // Finding entries for the EVENT_1 mask should yield 3 entries, as adding
+    // 'bar' the second time merges the entry with the first.
+    auto range = container.copy_matching(EVENT_1);
+    CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
 
-    int count = 0;
-    for (auto iter = range.first ; iter != range.second ; ++iter) {
-      ++count;
-    }
-    CPPUNIT_ASSERT_EQUAL(2, count);
-  */
+    // Similarly, there should be one match for EVENT_2...
+    range = container.copy_matching(EVENT_2);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), range.size());
+
+    // ... two matches again for EVENT_3...
+    range = container.copy_matching(EVENT_3);
+    CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
+
+    // ... and no matches again for EVENT_4.
+    range = container.copy_matching(EVENT_4);
+    CPPUNIT_ASSERT_EQUAL(size_t(0), range.size());
+
+    // Now try to find entries with more complex masks.
+    range = container.copy_matching(EVENT_1 | EVENT_2);
+    CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
+
+    range = container.copy_matching(EVENT_2 | EVENT_3);
+    CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
   }
 };
 

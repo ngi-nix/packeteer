@@ -92,27 +92,15 @@ public:
 
   inline void add(user_callback_entry * cb)
   {
-    LOG("Trying to add callback for events " << cb->m_events);
-    // Try to find the pointer first. If it's in the pointer set, it's also in
-    // the events map.
-    LOG("callback hashes to: " << cb->m_callback.hash());
-    LOG("map type: " << typeid(m_callback_map).name());
+    // Try to find the callback first.
     auto c_iter = m_callback_map.find(cb->m_callback);
     if (m_callback_map.end() == c_iter) {
-      LOG("New entry!");
       // New entry!
       m_callback_map[cb->m_callback] = cb;
-      m_events_map[cb->m_events] = cb;
     }
     else {
-      // Existing entry. We don't modify the pointer set, but we do need to
-      // remove and re-add the cb into the events map, to keep the mapping
-      // up-to-date.
-      LOG("Existing entry had " << c_iter->second->m_events);
-      remove_from_events(c_iter->second);
+      // Existing entry, merge mask
       c_iter->second->m_events |= cb->m_events;
-      LOG("Now has " << c_iter->second->m_events);
-      m_events_map[c_iter->second->m_events] = c_iter->second;
     }
   }
 
@@ -120,28 +108,20 @@ public:
 
   inline void remove(user_callback_entry * cb)
   {
-    // Try to find the pointer first. If it's in the pointer set, it's also in
-    // the events map.
-    LOG("trying to remove entry with mask " << cb->m_events);
+    // Try to find the callback first.
     auto c_iter = m_callback_map.find(cb->m_callback);
     if (m_callback_map.end() == c_iter) {
       // Not found, just stop doing stuff.
-      LOG("did not find the callback, skipping.");
       return;
     }
 
-    // We know we need to remove the entry from the events set again, because
-    // the event mask will change.
-    remove_from_events(c_iter->second);
+    // Remove the masked bits
     c_iter->second->m_events &= ~(cb->m_events);
 
-    // Only re-add the entry if there's an event left.
-    if (c_iter->second->m_events) {
-      m_events_map[c_iter->second->m_events] = c_iter->second;
-    }
-    else {
-      m_callback_map.erase(c_iter);
+    // Erase/delete the entry if there's no mask left.
+    if (!c_iter->second->m_events) {
       delete c_iter->second;
+      m_callback_map.erase(c_iter);
     }
   }
 
@@ -151,17 +131,15 @@ public:
   {
     std::vector<user_callback_entry *> result;
 
-    // Ignore events that don't match at all.
-    LOG("looking for events: " << events);
-// FIXME there must be an optimization here
-//    auto begin = m_events_map.lower_bound(events);
-//    auto end = m_events_map.end();
-    auto begin = m_events_map.begin();
-    auto end = m_events_map.end();
+    // LOG("Looking for events matching: " << events);
 
-    for (auto iter = begin ; iter != end ; ++iter) {
-      LOG("got candiate with: " << iter->first);
-      events_t masked = iter->first & events;
+    // Iterate over all entries. There's no (easy) optimization for matching
+    // bitmasks here.
+    auto end = m_callback_map.end();
+
+    for (auto iter = m_callback_map.begin() ; iter != end ; ++iter) {
+      events_t masked = iter->second->m_events & events;
+      // LOG("mask of " << iter->second->m_events << " is " << masked);
       if (masked) {
         auto copy = new user_callback_entry(*(iter)->second);
         copy->m_events = masked;
@@ -173,24 +151,8 @@ public:
   }
 
 private:
-  // The fastest way to find a callback is by a hash over the pointer.
+  // The fastest way to find a callback is by a hash.
   packetflinger_hash_map<callback, user_callback_entry *> m_callback_map;
-
-  // The fastest way to find a callback by event is to have the callbacks sorted
-  // by the event integer; that way, we'll quickly filter out events that don't
-  // match the mask at all.
-  std::map<events_t, user_callback_entry *> m_events_map;
-
-  inline void remove_from_events(user_callback_entry * cb)
-  {
-    auto range = m_events_map.equal_range(cb->m_events);
-    for (auto iter = range.first ; iter != range.second ; ++iter) {
-      if (cb == iter->second) {
-        m_events_map.erase(iter);
-        break;
-      }
-    }
-  }
 };
 
 
