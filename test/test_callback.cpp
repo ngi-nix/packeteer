@@ -22,6 +22,8 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 
+#include <functional>
+
 namespace pf = packetflinger;
 
 namespace {
@@ -72,6 +74,7 @@ public:
     CPPUNIT_TEST(testComparison);
     CPPUNIT_TEST(testEmpty);
     CPPUNIT_TEST(testAssignment);
+    CPPUNIT_TEST(testHash);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -172,6 +175,35 @@ private:
     CPPUNIT_ASSERT(cb);
     CPPUNIT_ASSERT_EQUAL(false, cb.empty());
     CPPUNIT_ASSERT_EQUAL(pf::error_t(4), cb(0xdeadbeef, pf::error_t(0), 0, nullptr));
+  }
+
+
+  void testHash()
+  {
+    std::hash<pf::callback> hasher;
+
+    // Callbacks made from the same free function should have the same hash.
+    pf::callback cb1 = &free_func1;
+    pf::callback cb2 = &free_func1;
+    CPPUNIT_ASSERT_EQUAL(hasher(cb1), hasher(cb2));
+
+    // But they can't have the same hash as a callback made from a different
+    // free function.
+    pf::callback cb3 = &free_func2;
+    CPPUNIT_ASSERT(hasher(cb1) != hasher(cb3));
+    CPPUNIT_ASSERT(hasher(cb2) != hasher(cb3));
+
+    // The equality constraint also applies to functors.
+    functor f1;
+    pf::callback cb4 = pf::make_callback(&f1, &functor::member_func);
+    pf::callback cb5 = pf::make_callback(&f1, &functor::member_func);
+    CPPUNIT_ASSERT_EQUAL(hasher(cb4), hasher(cb5));
+
+    // And the same applies to the non-equality
+    functor f2;
+    pf::callback cb6 = pf::make_callback(&f2, &functor::member_func);
+    CPPUNIT_ASSERT(hasher(cb4) != hasher(cb6));
+    CPPUNIT_ASSERT(hasher(cb5) != hasher(cb6));
   }
 };
 

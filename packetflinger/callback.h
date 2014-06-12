@@ -28,6 +28,9 @@
 #include <packetflinger/packetflinger.h>
 
 #include <typeinfo>
+#include <functional>
+
+#include <meta/hash.h>
 
 #include <packetflinger/error.h>
 #include <packetflinger/events.h>
@@ -44,6 +47,7 @@ struct callback_helper_base
 {
   virtual error_t invoke(events_t const & events, error_t error, int fd, void * baton) = 0;
   virtual bool compare(callback_helper_base const * other) const = 0;
+  virtual size_t hash() const = 0;
   virtual callback_helper_base * clone() const = 0;
 };
 
@@ -238,6 +242,22 @@ public:
     return !operator==(other);
   }
 
+
+
+  /**
+   * Hash values
+   **/
+  inline size_t hash() const
+  {
+    if (nullptr != m_free_function) {
+      return std::hash<size_t>()(reinterpret_cast<size_t>(m_free_function));
+    }
+    if (nullptr != m_object_helper) {
+      return m_object_helper->hash();
+    }
+    return -1;
+  }
+
 private:
   free_function_type              m_free_function;
   detail::callback_helper_base *  m_object_helper;
@@ -284,6 +304,16 @@ struct callback_helper : public callback_helper_base
 
 
 
+  virtual size_t hash() const
+  {
+    return meta::hash::multi_hash(
+        reinterpret_cast<size_t>(m_object),
+        reinterpret_cast<size_t>(
+          reinterpret_cast<void *>(m_function)));
+  }
+
+
+
   virtual callback_helper_base * clone() const
   {
     return new callback_helper<T>(m_object, m_function);
@@ -322,5 +352,29 @@ make_callback(T * object)
 
 
 } // namespace packetflinger
+
+
+/*******************************************************************************
+ * std namespace specializations
+ **/
+namespace std {
+
+template <> struct hash<packetflinger::callback>
+{
+  size_t operator()(packetflinger::callback const & x) const
+  {
+    return x.hash();
+  }
+};
+
+template <> struct equal_to<packetflinger::callback>
+{
+  bool operator()(packetflinger::callback const & x, packetflinger::callback const & y) const
+  {
+    return x.operator==(y);
+  }
+};
+
+} // namespace std
 
 #endif // guard
