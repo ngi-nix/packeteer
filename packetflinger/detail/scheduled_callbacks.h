@@ -29,6 +29,8 @@
 
 #include <packetflinger/types.h>
 
+#include <map>
+
 #include <meta/range.h>
 
 namespace packetflinger {
