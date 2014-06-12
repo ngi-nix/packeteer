@@ -92,21 +92,27 @@ public:
 
   inline void add(user_callback_entry * cb)
   {
+    LOG("Trying to add callback for events " << cb->m_events);
     // Try to find the pointer first. If it's in the pointer set, it's also in
     // the events map.
-    auto p_iter = m_pointer_set.find(cb);
-    if (m_pointer_set.end() == p_iter) {
+    LOG("callback hashes to: " << cb->m_callback.hash());
+    LOG("map type: " << typeid(m_callback_map).name());
+    auto c_iter = m_callback_map.find(cb->m_callback);
+    if (m_callback_map.end() == c_iter) {
+      LOG("New entry!");
       // New entry!
-      m_pointer_set.insert(cb);
+      m_callback_map[cb->m_callback] = cb;
       m_events_map[cb->m_events] = cb;
     }
     else {
       // Existing entry. We don't modify the pointer set, but we do need to
       // remove and re-add the cb into the events map, to keep the mapping
       // up-to-date.
-      remove_from_events(*p_iter);
-      (*p_iter)->m_events |= cb->m_events;
-      m_events_map[(*p_iter)->m_events] = *p_iter;
+      LOG("Existing entry had " << c_iter->second->m_events);
+      remove_from_events(c_iter->second);
+      c_iter->second->m_events |= cb->m_events;
+      LOG("Now has " << c_iter->second->m_events);
+      m_events_map[c_iter->second->m_events] = c_iter->second;
     }
   }
 
@@ -116,24 +122,26 @@ public:
   {
     // Try to find the pointer first. If it's in the pointer set, it's also in
     // the events map.
-    auto p_iter = m_pointer_set.find(cb);
-    if (m_pointer_set.end() == p_iter) {
+    LOG("trying to remove entry with mask " << cb->m_events);
+    auto c_iter = m_callback_map.find(cb->m_callback);
+    if (m_callback_map.end() == c_iter) {
       // Not found, just stop doing stuff.
+      LOG("did not find the callback, skipping.");
       return;
     }
 
     // We know we need to remove the entry from the events set again, because
     // the event mask will change.
-    remove_from_events(*p_iter);
-    (*p_iter)->m_events &= ~(cb->m_events);
+    remove_from_events(c_iter->second);
+    c_iter->second->m_events &= ~(cb->m_events);
 
     // Only re-add the entry if there's an event left.
-    if ((*p_iter)->m_events) {
-      m_events_map[(*p_iter)->m_events] = *p_iter;
+    if (c_iter->second->m_events) {
+      m_events_map[c_iter->second->m_events] = c_iter->second;
     }
     else {
-      m_pointer_set.erase(p_iter);
-      delete *p_iter;
+      m_callback_map.erase(c_iter);
+      delete c_iter->second;
     }
   }
 
@@ -144,10 +152,15 @@ public:
     std::vector<user_callback_entry *> result;
 
     // Ignore events that don't match at all.
-    auto begin = m_events_map.lower_bound(events);
+    LOG("looking for events: " << events);
+// FIXME there must be an optimization here
+//    auto begin = m_events_map.lower_bound(events);
+//    auto end = m_events_map.end();
+    auto begin = m_events_map.begin();
     auto end = m_events_map.end();
 
     for (auto iter = begin ; iter != end ; ++iter) {
+      LOG("got candiate with: " << iter->first);
       events_t masked = iter->first & events;
       if (masked) {
         auto copy = new user_callback_entry(*(iter)->second);
@@ -160,8 +173,8 @@ public:
   }
 
 private:
-  // The fastest way to find a callback by pointer is by a hash over the pointer.
-  packetflinger_hash_set<user_callback_entry *> m_pointer_set;
+  // The fastest way to find a callback is by a hash over the pointer.
+  packetflinger_hash_map<callback, user_callback_entry *> m_callback_map;
 
   // The fastest way to find a callback by event is to have the callbacks sorted
   // by the event integer; that way, we'll quickly filter out events that don't

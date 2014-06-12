@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012 Unwesen Ltd.
+ * Copyright (c) 2012-2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -302,6 +302,9 @@ private:
     test_callback source2;
     pf::callback cb2 = pf::make_callback(&source2, &test_callback::func);
     sched.register_event(EVENT_2 | EVENT_3, cb2);
+
+    CPPUNIT_ASSERT(cb1 != cb2);
+    CPPUNIT_ASSERT(cb1.hash() != cb2.hash());
 
     // EVENT_1
     sched.fire_events(EVENT_1);
