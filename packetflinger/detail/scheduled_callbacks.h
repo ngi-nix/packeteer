@@ -142,20 +142,18 @@ public:
 private:
   inline void remove_internal(scheduled_callback_entry * entry, bool destroy)
   {
-    auto end = m_timeout_map.end();
+    auto range = m_timeout_map.equal_range(entry->m_timeout);
 
-    std::vector<timeout_map_t::const_iterator> to_erase;
-    for (auto iter = m_timeout_map.begin() ; iter != end ; ++iter) {
+    for (auto iter = range.first ; iter != range.second ; ) {
       if (entry->m_callback == iter->second->m_callback) {
         if (destroy) {
           delete iter->second;
         }
-        to_erase.push_back(iter);
+        m_timeout_map.erase(iter++);
       }
-    }
-
-    for (auto iter : to_erase) {
-      m_timeout_map.erase(iter);
+      else {
+        ++iter;
+      }
     }
   }
 
