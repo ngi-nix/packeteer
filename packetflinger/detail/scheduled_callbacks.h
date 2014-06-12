@@ -34,7 +34,7 @@
 namespace packetflinger {
 namespace detail {
 
-// 2. Scheduled callbacks:
+// Scheduled callbacks:
 //
 //  - The ideal for scheduling is to find all callbacks whose scheduled time
 //    is equal to or exceeds now().
@@ -79,34 +79,7 @@ struct scheduled_callback_entry : public callback_entry
   }
 };
 
-/* FIXME
-typedef boost::multi_index_container<
-  scheduled_callback_entry *,
 
-  boost::multi_index::indexed_by<
-    // Ordered, non-unique index on timeouts to make scheduler main loop's
-    // lookups fast.
-    boost::multi_index::ordered_non_unique<
-      boost::multi_index::tag<timeout_tag>,
-      boost::multi_index::member<
-        scheduled_callback_entry,
-        duration::usec_t,
-        &scheduled_callback_entry::m_timeout
-      >
-    >,
-
-    // Hashed, non-unique index for finding callbacks quickly.
-    boost::multi_index::hashed_non_unique<
-      boost::multi_index::tag<callback_tag>,
-      boost::multi_index::member<
-        callback_entry,
-        callback,
-        &callback_entry::m_callback
-      >
-    >
-  >
-> scheduled_callbacks_t;
-*/
 
 struct scheduled_callbacks_t
 {
@@ -172,13 +145,19 @@ private:
     // that match both.
     auto range = m_timeout_map.equal_range(entry->m_timeout);
 
+    std::vector<timeout_map_t::const_iterator> to_erase;
     for (auto iter = range.first ; iter != range.second ; ++iter) {
       if (entry->m_callback == iter->second->m_callback) {
         if (destroy) {
           delete iter->second;
         }
-        m_timeout_map.erase(iter);
+        to_erase.push_back(iter);
       }
+    }
+
+
+    for (auto iter : to_erase) {
+      m_timeout_map.erase(iter);
     }
   }
 
