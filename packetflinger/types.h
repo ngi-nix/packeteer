@@ -68,16 +68,16 @@ using PACKETFLINGER_SHARED_PTR_NAMESPACE ::const_pointer_cast;
  * Unfortunately, template aliases aren't widely supported yet, so we'll have
  * to fall back on a preprocessor solution.
  **/
-#if defined(HAVE_UNORDERED_MAP)
+#if defined(PACKETFLINGER_HAVE_UNORDERED_MAP)
 #  include <unordered_map>
 #  define packetflinger_hash_map std::unordered_map
-#elif defined(HAVE_TR1_UNORDERED_MAP)
+#elif defined(PACKETFLINGER_HAVE_TR1_UNORDERED_MAP)
 #  include <tr1/unordered_map>
 #  define packetflinger_hash_map std::tr1::unordered_map
-#elif defined(HAVE_EXT_HASH_MAP)
+#elif defined(PACKETFLINGER_HAVE_EXT_HASH_MAP)
 #  include <ext/hash_map>
 #  define packetflinger_hash_map std::hash_map
-#elif defined(HAVE_GNUCXX_HASHMAP)
+#elif defined(PACKETFLINGER_HAVE_GNUCXX_HASHMAP)
 #  include <ext/hash_map>
 #  define packetflinger_hash_map __gnu_cxx::hash_map
 #else
@@ -85,13 +85,13 @@ using PACKETFLINGER_SHARED_PTR_NAMESPACE ::const_pointer_cast;
 #  define packetflinger_hash_map std::map
 #endif
 
-#if defined(HAVE_UNORDERED_SET)
+#if defined(PACKETFLINGER_HAVE_UNORDERED_SET)
 #  include <unordered_set>
 #  define packetflinger_hash_set std::unordered_set
-#elif defined(HAVE_TR1_UNORDERED_SET)
+#elif defined(PACKETFLINGER_HAVE_TR1_UNORDERED_SET)
 #  include <tr1/unordered_set>
 #  define packetflinger_hash_set std::tr1::unordered_set
-#elif defined(HAVE_EXT_HASH_SET)
+#elif defined(PACKETFLINGER_HAVE_EXT_HASH_SET)
 #  include <ext/hash_set>
 #  define packetflinger_hash_set std::hash_set
 #else
