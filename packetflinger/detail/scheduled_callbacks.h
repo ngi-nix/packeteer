@@ -142,9 +142,9 @@ public:
 private:
   inline void remove_internal(scheduled_callback_entry * entry, bool destroy)
   {
-    auto range = m_timeout_map.equal_range(entry->m_timeout);
+    auto end = m_timeout_map.end();
 
-    for (auto iter = range.first ; iter != range.second ; ) {
+    for (auto iter = m_timeout_map.begin() ; iter != end ; ) {
       if (entry->m_callback == iter->second->m_callback) {
         if (destroy) {
           delete iter->second;

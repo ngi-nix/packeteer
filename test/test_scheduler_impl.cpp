@@ -140,7 +140,7 @@ private:
     timeout_index = container.get_timed_out(twine::chrono::microseconds(0));
     CPPUNIT_ASSERT_EQUAL(size_t(0), timeout_index.size());
     timeout_index = container.get_timed_out(twine::chrono::microseconds(3));
-    CPPUNIT_ASSERT_EQUAL(size_t(3), timeout_index.size());
+    CPPUNIT_ASSERT_EQUAL(size_t(2), timeout_index.size());
 
     prev = tc::microseconds(0);
     for (auto value : timeout_index) {
