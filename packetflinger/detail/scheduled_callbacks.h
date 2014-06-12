@@ -140,13 +140,10 @@ public:
 private:
   inline void remove_internal(scheduled_callback_entry * entry, bool destroy)
   {
-    // This is trickier. There are likely multiple entries that match the timeout,
-    // and some that also match the callback. We need to remove the latter, those
-    // that match both.
-    auto range = m_timeout_map.equal_range(entry->m_timeout);
+    auto end = m_timeout_map.end();
 
     std::vector<timeout_map_t::const_iterator> to_erase;
-    for (auto iter = range.first ; iter != range.second ; ++iter) {
+    for (auto iter = m_timeout_map.begin() ; iter != end ; ++iter) {
       if (entry->m_callback == iter->second->m_callback) {
         if (destroy) {
           delete iter->second;
@@ -154,7 +151,6 @@ private:
         to_erase.push_back(iter);
       }
     }
-
 
     for (auto iter : to_erase) {
       m_timeout_map.erase(iter);
