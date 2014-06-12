@@ -125,7 +125,7 @@ public:
   {
     // Erase the erase list
     for (auto entry : erase) {
-      remove_internal(entry, true);
+      remove_internal(entry, false);
     }
 
     // Erase, but don't destroy the reschedule list. Re-add it again, as the
