@@ -124,18 +124,13 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
 {
   LOG("worker started");
   do {
+    LOG("worker woke up");
     detail::callback_entry * entry = nullptr;
-    if (m_work_queue.pop(entry)) {
+    while (m_work_queue.pop(entry)) {
       LOG("worker picked up entry of type: " << entry->m_type);
-      if (nullptr != entry) {
-        execute_callback(entry);
-      }
+      execute_callback(entry);
     }
-    // FIXME repeat pop; two loops
-//    else {
-//      sleep();
-//    }
-
+    LOG("worker going to sleep");
   } while (tasklet.sleep());
   LOG("worker stopped");
 }
