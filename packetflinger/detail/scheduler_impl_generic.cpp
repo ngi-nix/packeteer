@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012 Unwesen Ltd.
+ * Copyright (c) 2012-2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -60,7 +60,8 @@ void clear_interrupt(pipe & pipe)
 scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads)
   : m_num_worker_threads(num_worker_threads)
   , m_workers()
-  , m_worker_pipe()
+  , m_worker_condition()
+  , m_worker_mutex()
   , m_main_loop_continue(true)
   , m_main_loop_thread()
   , m_main_loop_pipe()
@@ -106,6 +107,7 @@ scheduler::scheduler_impl::start_main_loop()
   m_main_loop_thread.set_func(
       twine::thread::binder<scheduler_impl, &scheduler_impl::main_scheduler_loop>::function,
       this);
+  m_main_loop_thread.start();
 }
 
 
@@ -128,7 +130,9 @@ void
 scheduler::scheduler_impl::start_workers(size_t num_workers)
 {
   for (size_t i = m_workers.size() ; i < num_workers ; ++i) {
-    m_workers.push_back(new pdt::worker(m_worker_pipe, m_out_queue));
+    auto worker = new pdt::worker(m_worker_condition, m_worker_mutex, m_out_queue);
+    worker->start();
+    m_workers.push_back(worker);
   }
 }
 
@@ -137,11 +141,12 @@ scheduler::scheduler_impl::start_workers(size_t num_workers)
 void
 scheduler::scheduler_impl::stop_workers(size_t num_workers)
 {
-  size_t current = m_workers.size();
-  for (size_t i = current - 1; i >= num_workers ; --i) {
-    pdt::worker * worker = m_workers[i];
-    m_workers.pop_back();
-    delete worker; // joins
+  for (auto worker : m_workers) {
+    worker->stop();
+  }
+  for (auto worker : m_workers) {
+    worker->wait();
+    delete worker;
   }
 }
 
@@ -343,7 +348,7 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
 void
 scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
 {
-  LOG("CPUS: " << boost::thread::hardware_concurrency());
+  LOG("CPUS: " << twine::thread::hardware_concurrency());
 
   while (m_main_loop_continue) {
     // While processing the in-queue, we will find triggers for user-defined
@@ -376,11 +381,12 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
 
       // We need to interrupt the worker pipe more than once, in order to wake
       // up multiple workers. But we don't want to interrupt the pipe more than
-      // there are workers or jobs, either.
+      // there are workers or jobs, either, to avoid needless lock contention.
+      twine::scoped_lock<twine::recursive_mutex> lock(m_worker_mutex);
       size_t interrupts = std::min(to_schedule.size(), m_workers.size());
       while (interrupts--) {
         LOG("interrupting worker pipe");
-        detail::interrupt(m_worker_pipe);
+        m_worker_condition.notify_one();
       }
     }
   }

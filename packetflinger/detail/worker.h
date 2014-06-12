@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012 Unwesen Ltd.
+ * Copyright (c) 2012-2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -51,7 +51,8 @@ public:
    * The worker thread sleeps waiting for an event on the pipe, and wakes up to
    * check the work queue for work to execute.
    **/
-  worker(pipe & pipe, concurrent_queue<detail::callback_entry *> & work_queue);
+  worker(twine::condition & condition, twine::recursive_mutex & mutex,
+      concurrent_queue<detail::callback_entry *> & work_queue);
   ~worker();
 
 
@@ -69,7 +70,6 @@ private:
   void execute_callback(detail::callback_entry * entry);
 
   std::atomic<bool>                             m_alive;
-  pipe &                                        m_pipe;
   concurrent_queue<detail::callback_entry *> &  m_work_queue;
 };
 

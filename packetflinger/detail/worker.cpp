@@ -37,10 +37,10 @@
 namespace packetflinger {
 namespace detail {
 
-worker::worker(pipe & pipe, concurrent_queue<detail::callback_entry *> & work_queue)
-  : twine::tasklet(twine::tasklet::binder<worker, &worker::worker_loop>::function, this)
+worker::worker(twine::condition & condition, twine::recursive_mutex & mutex,
+    concurrent_queue<detail::callback_entry *> & work_queue)
+  : twine::tasklet(&condition, &mutex, twine::tasklet::binder<worker, &worker::worker_loop>::function, this)
   , m_alive(true)
-  , m_pipe(pipe)
   , m_work_queue(work_queue)
 {
 }
@@ -126,7 +126,7 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
   do {
     detail::callback_entry * entry = nullptr;
     if (m_work_queue.pop(entry)) {
-      LOG("worker picked up entry");
+      LOG("worker picked up entry of type: " << entry->m_type);
       if (nullptr != entry) {
         execute_callback(entry);
       }
@@ -145,13 +145,11 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
 void
 worker::execute_callback(detail::callback_entry * entry)
 {
-  namespace pf = ::packetflinger; // FIXME
-
   error_t err = ERR_SUCCESS;
 
   switch (entry->m_type) {
     case detail::CB_ENTRY_SCHEDULED:
-      err = entry->m_callback(pf::EV_TIMEOUT, ERR_SUCCESS, -1, nullptr);
+      err = entry->m_callback(EV_TIMEOUT, ERR_SUCCESS, -1, nullptr);
       break;
 
     case detail::CB_ENTRY_USER:
@@ -167,7 +165,7 @@ worker::execute_callback(detail::callback_entry * entry)
 
     default:
       // Unknown type. Signal an error on the callback.
-      err = entry->m_callback(pf::EV_ERROR, ERR_UNEXPECTED, -1, nullptr);
+      err = entry->m_callback(EV_ERROR, ERR_UNEXPECTED, -1, nullptr);
       break;
   }
 

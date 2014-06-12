@@ -32,6 +32,7 @@
 
 #include <twine/thread.h>
 #include <twine/chrono.h>
+#include <twine/condition.h>
 
 #include <packetflinger/types.h>
 #include <packetflinger/concurrent_queue.h>
@@ -230,7 +231,8 @@ private:
   // Workers
   std::atomic<size_t>             m_num_worker_threads;
   std::vector<detail::worker *>   m_workers;
-  pipe                            m_worker_pipe;
+  twine::condition                m_worker_condition;
+  twine::recursive_mutex          m_worker_mutex;
 
   // Main loop state.
   std::atomic<bool>               m_main_loop_continue;
