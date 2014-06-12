@@ -123,6 +123,21 @@ private:
 
     CPPUNIT_ASSERT(cb1 != cb2);
     CPPUNIT_ASSERT(cb2 != cb1);
+
+    // Also check whether two callbacks encapsulating the same function/
+    // functor compare equal.
+    pf::callback cb3 = pf::make_callback(&f, &functor::member_func);
+    CPPUNIT_ASSERT_EQUAL(cb1, cb3);
+
+    pf::callback cb4 = &free_func1;
+    CPPUNIT_ASSERT_EQUAL(cb2, cb4);
+
+    // It's equally important that a callback constructed from a different
+    // instance of the same functor class compares not equal.
+    functor f2;
+    pf::callback cb5 = pf::make_callback(&f2, &functor::member_func);
+    CPPUNIT_ASSERT(cb1 != cb5);
+    CPPUNIT_ASSERT(cb3 != cb5);
   }
 
 
