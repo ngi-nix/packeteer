@@ -10,7 +10,7 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 
-AC_CONFIG_HEADERS([packetflinger/_config.h])
+AC_CONFIG_HEADER([packetflinger/_config.h])
 AX_PREFIX_CONFIG_H([packetflinger/packetflinger-config.h])
 
 LT_INIT
