@@ -195,7 +195,8 @@ public:
 
   /**
    * Fire the specified events. If you specify system events here, the function
-   * will return ERR_INVALID_VALUE and not fire any events.
+   * will return ERR_INVALID_VALUE and not fire any events. Any callback
+   * registered for any of the specified events will be invoked as a result.
    **/
   error_t fire_events(events_t const & events);
 
