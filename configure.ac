@@ -92,7 +92,7 @@ AC_TYPE_SSIZE_T
 CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
 JF_CHECK_FUNC_IN([sys/epoll.h], [epoll_create1],
     [int foo = epoll_create1(EPOLL_CLOEXEC);])
-JF_CHECK_FUNC_IN([sys/select.h], [select],
+JF_CHECK_FUNC_IN([sys/select.h cstring], [select],
     [int ret = select(0, NULL, NULL, NULL, NULL);])
 
 ##############################################################################
