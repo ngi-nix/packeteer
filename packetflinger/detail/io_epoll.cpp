@@ -18,7 +18,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packetflinger/detail/scheduler_impl.h>
+#include <packetflinger/detail/io_epoll.h>
 
 #include <sys/epoll.h>
 #include <errno.h>
@@ -28,6 +28,7 @@
 #include <packetflinger/events.h>
 
 namespace packetflinger {
+namespace detail {
 
 namespace {
 
@@ -78,7 +79,7 @@ inline events_t translate_os_to_events(int os)
 
 
 void
-scheduler::scheduler_impl::init_impl()
+io_epoll::init()
 {
   m_epoll_fd = -1;
 
@@ -104,7 +105,7 @@ scheduler::scheduler_impl::init_impl()
 
 
 void
-scheduler::scheduler_impl::deinit_impl()
+io_epoll::deinit()
 {
   if (-1 != m_epoll_fd) {
     ::close(m_epoll_fd);
@@ -114,7 +115,7 @@ scheduler::scheduler_impl::deinit_impl()
 
 
 void
-scheduler::scheduler_impl::register_fd(int fd, events_t const & events)
+io_epoll::register_fd(int fd, events_t const & events)
 {
   int fds[1] = { fd };
   register_fds(fds, 1, events);
@@ -123,7 +124,7 @@ scheduler::scheduler_impl::register_fd(int fd, events_t const & events)
 
 
 void
-scheduler::scheduler_impl::register_fds(int const * fds, size_t size,
+io_epoll::register_fds(int const * fds, size_t size,
     events_t const & events)
 {
   int translated = translate_events_to_os(events);
@@ -144,7 +145,7 @@ scheduler::scheduler_impl::register_fds(int const * fds, size_t size,
 
 
 void
-scheduler::scheduler_impl::unregister_fd(int fd, events_t const & events)
+io_epoll::unregister_fd(int fd, events_t const & events)
 {
   int fds[1] = { fd };
   unregister_fds(fds, 1, events);
@@ -153,7 +154,7 @@ scheduler::scheduler_impl::unregister_fd(int fd, events_t const & events)
 
 
 void
-scheduler::scheduler_impl::unregister_fds(int const * fds, size_t size,
+io_epoll::unregister_fds(int const * fds, size_t size,
     events_t const & events)
 {
   // TODO
@@ -161,4 +162,4 @@ scheduler::scheduler_impl::unregister_fds(int const * fds, size_t size,
 
 
 
-} // namespace packetflinger
+}} // namespace packetflinger::detail
