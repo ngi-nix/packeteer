@@ -36,7 +36,8 @@ namespace packetflinger {
     EV_IO_READ    = 1,      // A file descriptor is ready for reading
     EV_IO_WRITE   = 2,      // A file descriptor is ready for writing
     EV_IO_ERROR   = 4,      // A file descriptor has produced errors
-    EV_IO_CLOSE   = 8,      // A file descriptor has been closed.
+    EV_IO_CLOSE   = 8,      // A file descriptor has been closed. This event
+                            // cannot be reliably reported.
     EV_TIMEOUT    = 128,    // A timout has been reached that the callback was
                             // registered for.
     EV_ERROR      = 256,    // Internal scheduler error.
