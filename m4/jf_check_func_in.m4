@@ -50,6 +50,8 @@ $3
 unset jf_check_func_in_header
 unset jf_check_func_in_headers
 
+AM_CONDITIONAL(translit([HAVE_$2], [a-z], [A-Z]), [eval "test \"`echo '$ac_cv_func_'$2`\" = yes"])
+
 if eval "test \"`echo '$ac_cv_func_'$2`\" = yes"; then
   AC_DEFINE_UNQUOTED(translit([HAVE_$2], [a-z], [A-Z]), [1], [Found the $2 function in $1.])
   AC_MSG_RESULT(yes)
