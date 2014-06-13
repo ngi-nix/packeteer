@@ -38,6 +38,8 @@
 #include <packetflinger/concurrent_queue.h>
 #include <packetflinger/pipe.h>
 
+#include <packetflinger/detail/io.h>
+
 namespace packetflinger {
 
 /*****************************************************************************
@@ -144,7 +146,7 @@ struct scheduler::scheduler_impl
   /***************************************************************************
    * Generic interface
    **/
-  scheduler_impl(size_t num_worker_threads);
+  scheduler_impl(size_t num_worker_threads, scheduler_type type);
   ~scheduler_impl();
 
 
@@ -153,23 +155,6 @@ struct scheduler::scheduler_impl
    * caller, and the parameters must be set by the caller.
    **/
   void enqueue(action_type action, detail::callback_entry * entry);
-
-
-  /***************************************************************************
-   * Implementation-specific interface
-   **/
-  // TODO may need to move register/unregister things to private functions,
-  // because we'll need to keep track of what's registered in the generic
-  // implementation.
-  // OTOH consider that this'll likely be happening anyway, because we're
-  // using queues for pushing stuff into the main loop and out of it.
-  void register_fd(int fd, uint64_t const & events);
-  void register_fds(int const * fds, size_t size, uint64_t const & events);
-
-  void unregister_fd(int fd, uint64_t const & events);
-  void unregister_fds(int const * fds, size_t size, uint64_t const & events);
-
-  void get_events(std::vector<event_data> & events);
 
 private:
   /***************************************************************************
@@ -252,13 +237,8 @@ private:
   detail::scheduled_callbacks_t               m_scheduled_callbacks;
   detail::user_callbacks_t                    m_user_callbacks;
 
-  /***************************************************************************
-   * Implementation-specific data
-   **/
-#if defined(PACKETFLINGER_HAVE_SYS_EPOLL_H)
-  int       m_epoll_fd;
-#endif
-
+  // IO subsystem
+  detail::io *                                m_io;
 };
 
 } // namespace packetflinger

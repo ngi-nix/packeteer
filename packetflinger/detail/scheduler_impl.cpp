@@ -23,6 +23,10 @@
 #include <packetflinger/detail/scheduler_impl.h>
 #include <packetflinger/detail/worker.h>
 
+#if defined(PACKETFLINGER_HAVE_EPOLL_CREATE1)
+#include <packetflinger/detail/io_epoll.h>
+#endif
+
 namespace pdt = packetflinger::detail;
 
 namespace packetflinger {
@@ -57,7 +61,8 @@ void clear_interrupt(pipe & pipe)
 /*****************************************************************************
  * class scheduler::scheduler_impl
  **/
-scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads)
+scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
+    scheduler_type type)
   : m_num_worker_threads(num_worker_threads)
   , m_workers()
   , m_worker_condition()
@@ -68,8 +73,41 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads)
   , m_in_queue()
   , m_out_queue()
   , m_scheduled_callbacks()
+  , m_io(nullptr)
 {
-  init_impl();
+  switch (type) {
+    case TYPE_AUTOMATIC:
+#if defined(PACKETFLINGER_HAVE_EPOLL_CREATE1)
+      m_io = new detail::io_epoll();
+#elif defined(PACKETFLINGER_HAVE_SELECT)
+      // TODO use select
+#else
+      throw std::runtime_error("unsupported platform");
+#endif
+      break;
+
+
+    case TYPE_SELECT:
+#if !defined(PACKETFLINGER_HAVE_SELECT)
+      throw std::runtime_error("select is not supported on this platform.");
+#endif
+      // TODO use select
+      break;
+
+
+    case TYPE_EPOLL:
+#if !defined(PACKETFLINGER_HAVE_EPOLL_CREATE1)
+      throw std::runtime_error("epoll is not supported on this platform.");
+#endif
+      m_io = new detail::io_epoll();
+      break;
+
+
+    default:
+      throw std::runtime_error("unsupported scheduler type");
+  }
+
+  m_io->init();
 
   start_main_loop();
   start_workers(m_num_worker_threads);
@@ -82,7 +120,8 @@ scheduler::scheduler_impl::~scheduler_impl()
   stop_workers(m_num_worker_threads);
   stop_main_loop();
 
-  deinit_impl();
+  m_io->deinit();
+  delete m_io;
 }
 
 
@@ -101,7 +140,7 @@ scheduler::scheduler_impl::start_main_loop()
 {
   m_main_loop_continue = true;
 
-  register_fd(m_main_loop_pipe.get_read_fd(),
+  m_io->register_fd(m_main_loop_pipe.get_read_fd(),
       EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
 
   m_main_loop_thread.set_func(
@@ -120,7 +159,7 @@ scheduler::scheduler_impl::stop_main_loop()
   detail::interrupt(m_main_loop_pipe);
   m_main_loop_thread.join();
 
-  unregister_fd(m_main_loop_pipe.get_read_fd(),
+  m_io->unregister_fd(m_main_loop_pipe.get_read_fd(),
       EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
 }
 
