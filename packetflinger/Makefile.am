@@ -46,6 +46,8 @@ noinst_HEADERS += \
 endif
 
 if HAVE_SELECT
-# FIXME add implementation for handling FDs with select
+libpacketflinger_la_SOURCES += \
+	detail/io_select.cpp
+noinst_HEADERS += \
+	detail/io_select.h
 endif
-
