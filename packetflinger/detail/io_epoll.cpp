@@ -150,6 +150,7 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
 io_epoll::io_epoll()
   : m_epoll_fd(-1)
 {
+  LOG("Epoll based I/O subsystem created.");
 }
 
 
