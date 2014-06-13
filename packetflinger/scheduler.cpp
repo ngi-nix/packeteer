@@ -20,6 +20,8 @@
  **/
 #include <packetflinger/scheduler.h>
 
+#include <stdexcept>
+
 #include <packetflinger/detail/scheduler_impl.h>
 
 namespace tc = twine::chrono;
@@ -31,8 +33,9 @@ namespace packetflinger {
  * class scheduler
  **/
 
-scheduler::scheduler(size_t num_worker_threads)
-  : m_impl(new scheduler_impl(num_worker_threads))
+scheduler::scheduler(size_t num_worker_threads,
+    scheduler_type type /* = TYPE_AUTOMATIC */)
+  : m_impl(new scheduler_impl(num_worker_threads, type))
 {
 }
 

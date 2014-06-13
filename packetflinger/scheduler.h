@@ -57,7 +57,15 @@ public:
   /***************************************************************************
    * Types
    **/
-
+  // Implementation types. Don't use this; the automatic selection is best.
+  // This is provided mainly for debugging purposes, and will be ignored on some
+  // platforms.
+  enum scheduler_type
+  {
+    TYPE_AUTOMATIC = 0,
+    TYPE_SELECT,
+    TYPE_EPOLL,
+  };
 
 
   /***************************************************************************
@@ -66,8 +74,11 @@ public:
   /**
    * Constructor. Specify the number of worker threads to start. Note that the
    * scheduler starts an additional thread internally which dispatches events.
+   *
+   * May throw if the specified type is not supported. Best leave it at
+   * TYPE_AUTOMATIC.
    **/
-  scheduler(size_t num_worker_threads);
+  scheduler(size_t num_worker_threads, scheduler_type type = TYPE_AUTOMATIC);
   ~scheduler();
 
 
