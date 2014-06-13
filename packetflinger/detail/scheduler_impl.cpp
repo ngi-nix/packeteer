@@ -131,6 +131,7 @@ scheduler::scheduler_impl::enqueue(action_type action,
     pdt::callback_entry * entry)
 {
   m_in_queue.push(std::make_pair(action, entry));
+  detail::interrupt(m_main_loop_pipe);
 }
 
 
@@ -307,7 +308,18 @@ void
 scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data> const & events,
       entry_list_t & to_schedule)
 {
-  // TODO
+  int own_pipe = m_main_loop_pipe.get_read_fd();
+
+  // Process events, and try to find a callback for each of them.
+  for (auto event : events) {
+    if (own_pipe == event.fd) {
+      // We just got interrupted; clear the interrupt
+      detail::clear_interrupt(m_main_loop_pipe);
+      continue;
+    }
+
+    // TODO find callback; this event we should care about
+  }
 }
 
 
@@ -407,8 +419,13 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
 
     // Get I/O events from the subsystem
     std::vector<detail::event_data> events;
-    // FIXME timeout can be platform dependent
+    // FIXME timeout can be platform dependent; in a further iteration, we
+    // should make it dependent on whether there are items in the in-queue and/
+    // (see above) or items in the callbacks to schedule (see below)
     m_io->wait_for_events(events, twine::chrono::milliseconds(20));
+    for (auto event : events) {
+      LOG("got events " << event.events << " for " << event.fd);
+    }
 
     // Process all callbacks that want to be invoked now. Since we can't have
     // workers access the same entries we may still have in our multi-index

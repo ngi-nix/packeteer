@@ -20,6 +20,8 @@
  **/
 #include <packetflinger/error.h>
 
+#include <string.h>
+
 namespace packetflinger {
 
 /**
@@ -89,6 +91,16 @@ exception::exception(error_t code, std::string const & details /* = "" */) throw
   , m_details(details)
 {
 }
+
+
+
+exception::exception(error_t code, int errnum)
+  : std::runtime_error("")
+  , m_code(code)
+  , m_details(::strerror(errnum))
+{
+}
+
 
 
 

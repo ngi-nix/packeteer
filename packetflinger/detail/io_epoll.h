@@ -42,6 +42,8 @@ namespace detail {
 struct io_epoll : public io
 {
 public:
+  io_epoll();
+
   void init();
   void deinit();
 

@@ -28,12 +28,15 @@
 #include <packetflinger/types.h>
 #include <packetflinger/events.h>
 
+#define MAXEVENTS 64 // FIXME good number?
+
 namespace packetflinger {
 namespace detail {
 
 namespace {
 
-inline int translate_events_to_os(events_t const & events)
+inline int
+translate_events_to_os(events_t const & events)
 {
   int ret = 0;
 
@@ -54,7 +57,9 @@ inline int translate_events_to_os(events_t const & events)
 }
 
 
-inline events_t translate_os_to_events(int os)
+
+inline events_t
+translate_os_to_events(int os)
 {
   events_t ret = 0;
 
@@ -75,29 +80,97 @@ inline events_t translate_os_to_events(int os)
 }
 
 
+
+inline void
+modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
+    events_t const & events)
+{
+  int translated = translate_events_to_os(events);
+
+  for (size_t i = 0 ; i < size ; ++i) {
+    ::epoll_event event;
+    event.events = translated;
+    event.data.fd = fds[i];
+    int ret = ::epoll_ctl(epoll_fd, action, fds[i], &event);
+
+    if (-1 == ret) {
+      switch (errno) {
+        case EEXIST:
+          if (EPOLL_CTL_ADD == action) {
+            int again_fds[] = { fds[i] };
+            modify_fd_set(epoll_fd, EPOLL_CTL_MOD, again_fds,
+                sizeof(again_fds) / sizeof(int), events);
+          }
+          else {
+            throw exception(ERR_UNEXPECTED, errno);
+          }
+          break;
+
+        case ENOENT:
+          if (EPOLL_CTL_DEL == action) {
+            // silently ignore
+          }
+          else if (EPOLL_CTL_MOD == action) {
+            // Can only be reached via the modify_fd_set call above, so we are
+            // safe to just bail out.
+            throw exception(ERR_INVALID_VALUE, "Cannot modify event mask for unknown file descriptor.");
+          }
+          else {
+            throw exception(ERR_UNEXPECTED, errno);
+          }
+          break;
+
+        case ENOMEM:
+          throw exception(ERR_OUT_OF_MEMORY, "No more memory for epoll.");
+          break;
+
+        case ENOSPC:
+          throw exception(ERR_NUM_FILES, "Could not register new file descriptor.");
+          break;
+
+        case EBADF:
+        case EINVAL:
+        case EPERM:
+          throw exception(ERR_INVALID_VALUE, "Invalid file descriptor provided.");
+          break;
+
+        default:
+          throw exception(ERR_UNEXPECTED, errno);
+          break;
+      }
+    }
+  }
+}
+
+
 } // anonymous namespace
+
+
+
+io_epoll::io_epoll()
+  : m_epoll_fd(-1)
+{
+}
 
 
 
 void
 io_epoll::init()
 {
-  m_epoll_fd = -1;
-
   m_epoll_fd = ::epoll_create1(EPOLL_CLOEXEC);
   if (-1 == m_epoll_fd) {
     switch (errno) {
       case EMFILE:
       case ENFILE:
-        throw exception(ERR_NUM_FILES);
+        throw exception(ERR_NUM_FILES, "Could not create epoll file descriptor.");
         break;
 
       case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY);
+        throw exception(ERR_OUT_OF_MEMORY, "Could not create epoll file descriptor.");
         break;
 
       default:
-        throw exception(ERR_UNEXPECTED);
+        throw exception(ERR_UNEXPECTED, errno);
         break;
     }
   }
@@ -110,6 +183,7 @@ io_epoll::deinit()
 {
   if (-1 != m_epoll_fd) {
     ::close(m_epoll_fd);
+    m_epoll_fd = -1;
   }
 }
 
@@ -118,8 +192,9 @@ io_epoll::deinit()
 void
 io_epoll::register_fd(int fd, events_t const & events)
 {
-  int fds[1] = { fd };
-  register_fds(fds, 1, events);
+  int fds[] = { fd };
+  modify_fd_set(m_epoll_fd, EPOLL_CTL_ADD, fds, sizeof(fds) / sizeof(int),
+      events);
 }
 
 
@@ -128,28 +203,18 @@ void
 io_epoll::register_fds(int const * fds, size_t size,
     events_t const & events)
 {
-  int translated = translate_events_to_os(events);
-
-  for (size_t i = 0 ; i < size ; ++i) {
-    ::epoll_event event;
-    event.events = translated;
-    event.data.fd = fds[i];
-    int ret = ::epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, fds[i], &event);
-
-    if (-1 == ret) {
-      // TODO do better than this
-      LOG("errno: " << errno);
-    }
-  }
+  modify_fd_set(m_epoll_fd, EPOLL_CTL_ADD, fds, size, events);
 }
+
 
 
 
 void
 io_epoll::unregister_fd(int fd, events_t const & events)
 {
-  int fds[1] = { fd };
-  unregister_fds(fds, 1, events);
+  int fds[] = { fd };
+  modify_fd_set(m_epoll_fd, EPOLL_CTL_DEL, fds, sizeof(fds) / sizeof(int),
+      events);
 }
 
 
@@ -158,7 +223,7 @@ void
 io_epoll::unregister_fds(int const * fds, size_t size,
     events_t const & events)
 {
-  // TODO
+  modify_fd_set(m_epoll_fd, EPOLL_CTL_DEL, fds, size, events);
 }
 
 
@@ -167,8 +232,38 @@ void
 io_epoll::wait_for_events(std::vector<event_data> & events,
       twine::chrono::nanoseconds const & timeout)
 {
-  // TODO
-  twine::chrono::sleep(twine::chrono::milliseconds(20));
+  // FIXME also set signal mask & handle it accordingly
+
+  // Wait for events
+  ::epoll_event epoll_events[MAXEVENTS] = { 0 };
+  int ready = ::epoll_pwait(m_epoll_fd, epoll_events, MAXEVENTS,
+      timeout.as<twine::chrono::milliseconds>(), nullptr);
+
+  // Error handling
+  if (-1 == ready) {
+    switch (errno) {
+      case EBADF:
+      case EINVAL:
+        throw exception(ERR_INVALID_VALUE, "File descriptor for epoll was invalid.");
+        break;
+
+      case EINTR:
+        // FIXME add signal handling
+
+      default:
+        throw exception(ERR_UNEXPECTED, errno);
+        break;
+    }
+  }
+
+  // Translate events
+  for (int i = 0 ; i < ready ; ++i) {
+    event_data data = {
+      epoll_events[i].data.fd,
+      translate_os_to_events(epoll_events[i].events)
+    };
+    events.push_back(data);
+  }
 }
 
 

@@ -125,6 +125,7 @@ public:
    * Constructor/destructor
    **/
   exception(error_t code, std::string const & details = std::string()) throw();
+  exception(error_t code, int errnum);
   virtual ~exception() throw();
 
   /**
