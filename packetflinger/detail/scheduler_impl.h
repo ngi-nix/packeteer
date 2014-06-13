@@ -74,19 +74,8 @@ namespace detail {
 // - File descriptors are unique (an OS-level restriction). We don't care
 //   about ordering file descriptors.
 //
-// Unfortunately, function pointers - and by extension boost::function objects
-// - are only EqualityComparable, so we'll not be able to sort by callback.
-// That means if we want to avoid copies of callbacks, we'd have to perform
-// O(N) searches through the sets of known callbacks. The implication is that
-// multi_index_container's automatic uniqueness constraints cannot be made use.
-// of for keeping callbacks unique.
-//
-// Unfortunately, it's a cost we have to take in order to effectively handle
-// changing the event mask for which a callback is registered. On the other
-// hand, these situations should be much, much rarer than the lookups in the
-// main scheduler loop.
-//
-// But the different types of callbacks impose individual restrictions, too:
+// We handle different callback types individually, because different
+// optimizations apply for the containers that hold them.
 enum callback_type
 {
   CB_ENTRY_UNKNOWN    = -1,
@@ -118,9 +107,9 @@ struct callback_entry
 
 }} // namespace packetflinger::detail
 
-#include <packetflinger/detail/io_callbacks.h>
-#include <packetflinger/detail/scheduled_callbacks.h>
-#include <packetflinger/detail/user_defined_callbacks.h>
+#include <packetflinger/detail/callbacks_io.h>
+#include <packetflinger/detail/callbacks_scheduled.h>
+#include <packetflinger/detail/callbacks_user_defined.h>
 
 namespace packetflinger {
 
@@ -243,14 +232,14 @@ private:
   // defined above.
   // - There's an in-queue that scheduler's public functions write to. The
   //   inner scheduler loop will pick the queue up, and push it into the
-  //   multi-index container.
-  // - The scheduler then does lookups on the multi-index container because
-  //   those are going to be faster than on a queue that's potentially shared
-  //   with other threads. The multi-index container belongs to the main loop
-  //   only.
+  //   containers holding callbacks.
+  // - The scheduler then does lookups on the containers because those are
+  //   going to be faster than on a queue that's potentially shared with other
+  //   threads. The containers belong to the main loop only.
   // - When something needs to be executed on a worker thread, there's an out-
   //   queue for such tasks that the workers query as soon as they can.
-  // The scheme avoids most uses for locks (ignoring the concurrent_queue's
+  // The scheme avoids most uses for locks on data; the only lock involved is
+  // for the condition that wakes workers up (ignoring the concurrent_queue's
   // internal, relatively efficient locking).
   //
   // Any process putting an entry into either queue relinquishes ownership over

@@ -18,8 +18,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETFLINGER_DETAIL_SCHEDULED_CALLBACKS_H
-#define PACKETFLINGER_DETAIL_SCHEDULED_CALLBACKS_H
+#ifndef PACKETFLINGER_DETAIL_CALLBACKS_SCHEDULED_H
+#define PACKETFLINGER_DETAIL_CALLBACKS_SCHEDULED_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
