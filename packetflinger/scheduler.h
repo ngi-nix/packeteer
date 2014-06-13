@@ -63,8 +63,10 @@ public:
   enum scheduler_type
   {
     TYPE_AUTOMATIC = 0,
-    TYPE_SELECT,
     TYPE_EPOLL,
+    TYPE_POLL,
+    TYPE_SELECT,
+    // TODO add KQUEUE, I/O completion ports, etc.
   };
 
 

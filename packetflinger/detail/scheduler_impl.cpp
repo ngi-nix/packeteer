@@ -31,6 +31,11 @@
 #include <packetflinger/detail/io_select.h>
 #endif
 
+#if defined(PACKETFLINGER_HAVE_POLL)
+#include <packetflinger/detail/io_poll.h>
+#endif
+
+
 namespace pdt = packetflinger::detail;
 
 namespace packetflinger {
@@ -83,6 +88,8 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
     case TYPE_AUTOMATIC:
 #if defined(PACKETFLINGER_HAVE_EPOLL_CREATE1)
       m_io = new detail::io_epoll();
+#elif defined(PACKETFLINGER_HAVE_POLL)
+      m_io = new detail::io_poll();
 #elif defined(PACKETFLINGER_HAVE_SELECT)
       m_io = new detail::io_select();
 #else
@@ -104,6 +111,14 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
       throw std::runtime_error("epoll is not supported on this platform.");
 #endif
       m_io = new detail::io_epoll();
+      break;
+
+
+    case TYPE_POLL:
+#if !defined(PACKETFLINGER_HAVE_POLL)
+      throw std::runtime_error("poll is not supported on this platform.");
+#endif
+      m_io = new detail::io_poll();
       break;
 
 
