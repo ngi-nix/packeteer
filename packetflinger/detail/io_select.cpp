@@ -136,14 +136,16 @@ io_select::wait_for_events(std::vector<event_data> & events,
       FD_SET(entry.first, &err_fds);
     }
 
-    // Convert timeout value
+    // Wait for events
+#if defined(PACKETFLINGER_HAVE_PSELECT)
+    ::timespec ts;
+    timeout.as(ts);
+
+    int ret = ::pselect(max_fd + 1, &read_fds, &write_fds, &err_fds, &ts, nullptr);
+#else
     ::timeval tv;
     timeout.as(tv);
 
-    // Wait for events
-#if defined(PACKETFLINGER_HAVE_PSELECT)
-    int ret = ::pselect(max_fd + 1, &read_fds, &write_fds, &err_fds, &tv, nullptr);
-#else
     int ret = ::select(max_fd + 1, &read_fds, &write_fds, &err_fds, &tv);
 #endif
 
