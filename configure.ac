@@ -63,7 +63,7 @@ PKG_CHECK_MODULES([TWINE], [twine >= 0.1])
 ##############################################################################
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([sys/select.h sys/time.h, sys/epoll.h])
+AC_CHECK_HEADERS([sys/select.h sys/time.h, sys/epoll.h poll.h])
 
 AX_CXX_HEADER_STDCXX_98
 AX_CXX_HEADER_STDCXX_TR1
@@ -96,6 +96,8 @@ JF_CHECK_FUNC_IN([sys/select.h cstring], [select],
     [int ret = select(0, NULL, NULL, NULL, NULL);])
 JF_CHECK_FUNC_IN([sys/select.h cstring], [pselect],
     [int ret = pselect(0, NULL, NULL, NULL, NULL, NULL);])
+JF_CHECK_FUNC_IN([poll.h cstring], [poll],
+    [int ret = poll(NULL, 0, 0);])
 
 ##############################################################################
 # Optional programs

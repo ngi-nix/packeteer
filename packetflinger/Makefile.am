@@ -51,3 +51,10 @@ libpacketflinger_la_SOURCES += \
 noinst_HEADERS += \
 	detail/io_select.h
 endif
+
+if HAVE_POLL
+libpacketflinger_la_SOURCES += \
+	detail/io_poll.cpp
+noinst_HEADERS += \
+	detail/io_poll.h
+endif
