@@ -27,6 +27,10 @@
 #include <packetflinger/detail/io_epoll.h>
 #endif
 
+#if defined(PACKETFLINGER_HAVE_SELECT)
+#include <packetflinger/detail/io_select.h>
+#endif
+
 namespace pdt = packetflinger::detail;
 
 namespace packetflinger {
@@ -80,7 +84,7 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
 #if defined(PACKETFLINGER_HAVE_EPOLL_CREATE1)
       m_io = new detail::io_epoll();
 #elif defined(PACKETFLINGER_HAVE_SELECT)
-      // TODO use select
+      m_io = new detail::io_select();
 #else
       throw std::runtime_error("unsupported platform");
 #endif
@@ -91,7 +95,7 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
 #if !defined(PACKETFLINGER_HAVE_SELECT)
       throw std::runtime_error("select is not supported on this platform.");
 #endif
-      // TODO use select
+      m_io = new detail::io_select();
       break;
 
 
