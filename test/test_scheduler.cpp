@@ -423,6 +423,28 @@ public:
 
 
 
+class SchedulerTestPoll
+    : public SchedulerTestImpl<pf::scheduler::TYPE_POLL>
+{
+public:
+  CPPUNIT_TEST_SUITE(SchedulerTestPoll);
+
+    // Scheduled callbacks
+    CPPUNIT_TEST(testDelayedCallback);
+    CPPUNIT_TEST(testTimedCallback);
+    CPPUNIT_TEST(testRepeatCallback);
+    CPPUNIT_TEST(testInfiniteCallback);
+    CPPUNIT_TEST(testDelayedRepeatCallback);
+    CPPUNIT_TEST(testParallelCallbacks);
+
+    // User callbacks
+    CPPUNIT_TEST(testUserCallback);
+
+  CPPUNIT_TEST_SUITE_END();
+};
+
+
+
 class SchedulerTestSelect
     : public SchedulerTestImpl<pf::scheduler::TYPE_SELECT>
 {
@@ -445,4 +467,5 @@ public:
 
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestEpoll);
+CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestPoll);
 CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestSelect);
