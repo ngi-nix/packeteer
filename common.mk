@@ -1,8 +1,8 @@
 # Always include top-level source directory
-AM_CXXFLAGS = -I$(top_srcdir) @AM_CXXFLAGS@
+AM_CXXFLAGS = -I$(top_srcdir) -I$(top_builddir) @AM_CXXFLAGS@
 
 # Set default compiler flags
-AM_CXXFLAGS += -g -std=c++0x -Wc++0x-compat \
+AM_CXXFLAGS += -g -std=c++0x -Wc++0x-compat -Wno-pmf-conversions \
 	-DMETA_CXX_MODE=META_CXX_MODE_CXX0X \
 	-DTWINE_CXX_MODE=TWINE_CXX_MODE_CXX0X
 

@@ -7,6 +7,8 @@ libtool: $(LIBTOOL_DEPS)
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = packetflinger.pc
 
+DISTCLEANFILES = _configs.sed packetflinger/packetflinger-config.h
+
 SUBDIRS = \
 	packetflinger \
 	test

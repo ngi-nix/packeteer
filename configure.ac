@@ -63,8 +63,7 @@ PKG_CHECK_MODULES([TWINE], [twine >= 0.1])
 ##############################################################################
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([sys/select.h sys/time.h])
-AC_CHECK_HEADERS([sys/epoll.h], [AM_CONDITIONAL([USE_EPOLL], [true])])
+AC_CHECK_HEADERS([sys/select.h sys/time.h, sys/epoll.h])
 
 AX_CXX_HEADER_STDCXX_98
 AX_CXX_HEADER_STDCXX_TR1
@@ -91,6 +90,10 @@ AC_TYPE_SSIZE_T
 ##############################################################################
 # Checks for library functions.
 CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+JF_CHECK_FUNC_IN([sys/epoll.h], [epoll_create1],
+    [int foo = epoll_create1(EPOLL_CLOEXEC);])
+JF_CHECK_FUNC_IN([sys/select.h], [select],
+    [int ret = select(0, NULL, NULL, NULL, NULL);])
 
 ##############################################################################
 # Optional programs
@@ -107,7 +110,6 @@ AC_SUBST([AM_LDFLAGS])
 AC_CONFIG_FILES([
   Makefile
   packetflinger/Makefile
-  packetflinger/detail/Makefile
   test/Makefile
   packetflinger.pc
 ])
