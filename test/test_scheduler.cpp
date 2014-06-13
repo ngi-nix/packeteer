@@ -107,23 +107,34 @@ public:
   CPPUNIT_TEST_SUITE(SchedulerTest);
 
     // Scheduled callbacks
-    CPPUNIT_TEST(testDelayedCallback);
-    CPPUNIT_TEST(testTimedCallback);
-    CPPUNIT_TEST(testRepeatCallback);
-    CPPUNIT_TEST(testInfiniteCallback);
-    CPPUNIT_TEST(testDelayedRepeatCallback);
-    CPPUNIT_TEST(testParallelCallbacks);
+    CPPUNIT_TEST(testDelayedCallback<pf::scheduler::TYPE_SELECT>);
+    CPPUNIT_TEST(testDelayedCallback<pf::scheduler::TYPE_EPOLL>);
+    CPPUNIT_TEST(testTimedCallback<pf::scheduler::TYPE_SELECT>);
+    CPPUNIT_TEST(testTimedCallback<pf::scheduler::TYPE_EPOLL>);
+    CPPUNIT_TEST(testRepeatCallback<pf::scheduler::TYPE_SELECT>);
+    CPPUNIT_TEST(testRepeatCallback<pf::scheduler::TYPE_EPOLL>);
+    CPPUNIT_TEST(testInfiniteCallback<pf::scheduler::TYPE_SELECT>);
+    CPPUNIT_TEST(testInfiniteCallback<pf::scheduler::TYPE_EPOLL>);
+    CPPUNIT_TEST(testDelayedRepeatCallback<pf::scheduler::TYPE_SELECT>);
+    CPPUNIT_TEST(testDelayedRepeatCallback<pf::scheduler::TYPE_EPOLL>);
+    CPPUNIT_TEST(testParallelCallbacks<pf::scheduler::TYPE_SELECT>);
+    CPPUNIT_TEST(testParallelCallbacks<pf::scheduler::TYPE_EPOLL>);
 
     // User callbacks
-    CPPUNIT_TEST(testUserCallback);
+    CPPUNIT_TEST(testUserCallback<pf::scheduler::TYPE_SELECT>);
+    CPPUNIT_TEST(testUserCallback<pf::scheduler::TYPE_EPOLL>);
 
   CPPUNIT_TEST_SUITE_END();
 
 private:
 
+  template <
+    int SCHED_TYPE
+  >
   void testDelayedCallback()
   {
-    pf::scheduler sched(1); // We only need one thread for this.
+    // We only need one thread for this.
+    pf::scheduler sched(1, (pf::scheduler::scheduler_type) SCHED_TYPE);
 
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
@@ -141,9 +152,13 @@ private:
 
 
 
+  template <
+    int SCHED_TYPE
+  >
   void testTimedCallback()
   {
-    pf::scheduler sched(1); // We only need one thread for this.
+    // We only need one thread for this.
+    pf::scheduler sched(1, (pf::scheduler::scheduler_type) SCHED_TYPE);
 
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
@@ -161,9 +176,13 @@ private:
 
 
 
+  template <
+    int SCHED_TYPE
+  >
   void testRepeatCallback()
   {
-    pf::scheduler sched(1); // We only need one thread for this.
+    // We only need one thread for this.
+    pf::scheduler sched(1, (pf::scheduler::scheduler_type) SCHED_TYPE);
 
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
@@ -182,12 +201,17 @@ private:
 
 
 
+  template <
+    int SCHED_TYPE
+  >
   void testInfiniteCallback()
   {
     // Infinite callbacks are easy enough to test for in that the callback
     // must have been invoked more than once just as above. However, once
     // explicitly unscheduled, the callback cannot be invoked any longer.
-    pf::scheduler sched(1); // We only need one thread for this.
+
+    // We only need one thread for this.
+    pf::scheduler sched(1, (pf::scheduler::scheduler_type) SCHED_TYPE);
 
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
@@ -219,6 +243,9 @@ private:
 
 
 
+  template <
+    int SCHED_TYPE
+  >
   void testDelayedRepeatCallback()
   {
     // Kind of tricky; in order to register the delay, we need to choose the
@@ -233,8 +260,8 @@ private:
     // the wait time and two intervals, i.e. delay > wait - 2 * interval
     tc::milliseconds delay = tc::milliseconds(50);
 
-
-    pf::scheduler sched(1); // We only need one thread for this.
+    // We only need one thread for this.
+    pf::scheduler sched(1, (pf::scheduler::scheduler_type) SCHED_TYPE);
 
     test_callback source;
     pf::callback cb = pf::make_callback(&source, &test_callback::func);
@@ -255,13 +282,18 @@ private:
 
 
 
+  template <
+    int SCHED_TYPE
+  >
   void testParallelCallbacks()
   {
     // Test that callbacks are executed in parallel by scheduling two at the
     // same time, and using two worker threads. Each callback sleeps for a while
     // and remembers its thread id; the two callbacks need to have different
     // thread ids afterwards for this to succeed.
-    pf::scheduler sched(2);
+
+    // We need >1 thread to enable parallell processing.
+    pf::scheduler sched(2, (pf::scheduler::scheduler_type) SCHED_TYPE);
 
     thread_id_callback source1;
     pf::callback cb1 = pf::make_callback(&source1, &thread_id_callback::func);
@@ -280,6 +312,9 @@ private:
 
 
 
+  template <
+    int SCHED_TYPE
+  >
   void testUserCallback()
   {
     // We register the same callback for two user-defined events; firing either
@@ -293,7 +328,8 @@ private:
       EVENT_3 = 4 * pf::EV_USER,
     };
 
-    pf::scheduler sched(1); // We only need one thread for this.
+    // We only need one thread for this.
+    pf::scheduler sched(1, (pf::scheduler::scheduler_type) SCHED_TYPE);
 
     test_callback source1;
     pf::callback cb1 = pf::make_callback(&source1, &test_callback::func);
