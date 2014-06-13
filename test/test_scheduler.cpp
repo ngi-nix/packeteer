@@ -429,17 +429,16 @@ class SchedulerTestSelect
 public:
   CPPUNIT_TEST_SUITE(SchedulerTestSelect);
 
-  // FIXME
-//    // Scheduled callbacks
-//    CPPUNIT_TEST(testDelayedCallback);
-//    CPPUNIT_TEST(testTimedCallback);
-//    CPPUNIT_TEST(testRepeatCallback);
-//    CPPUNIT_TEST(testInfiniteCallback);
-//    CPPUNIT_TEST(testDelayedRepeatCallback);
-//    CPPUNIT_TEST(testParallelCallbacks);
-//
-//    // User callbacks
-//    CPPUNIT_TEST(testUserCallback);
+    // Scheduled callbacks
+    CPPUNIT_TEST(testDelayedCallback);
+    CPPUNIT_TEST(testTimedCallback);
+    CPPUNIT_TEST(testRepeatCallback);
+    CPPUNIT_TEST(testInfiniteCallback);
+    CPPUNIT_TEST(testDelayedRepeatCallback);
+    CPPUNIT_TEST(testParallelCallbacks);
+
+    // User callbacks
+    CPPUNIT_TEST(testUserCallback);
 
   CPPUNIT_TEST_SUITE_END();
 };
