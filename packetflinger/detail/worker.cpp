@@ -129,6 +129,8 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
     while (m_work_queue.pop(entry)) {
       LOG("worker picked up entry of type: " << entry->m_type);
       execute_callback(entry);
+      // FIXME should be a delete here, but memory management is still shot.
+      // delete entry;
     }
     LOG("worker going to sleep");
   } while (tasklet.sleep());

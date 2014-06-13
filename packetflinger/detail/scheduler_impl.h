@@ -106,6 +106,12 @@ struct callback_entry
   }
 };
 
+// Events are reported with this structure.
+struct event_data
+{
+  int       fd;
+  events_t  events;
+};
 
 }} // namespace packetflinger::detail
 
@@ -123,16 +129,6 @@ namespace packetflinger {
  **/
 struct scheduler::scheduler_impl
 {
-  /***************************************************************************
-   * Types
-   **/
-  // Events are reported with this structure.
-  struct event_data
-  {
-    int       fd;
-    events_t  events;
-  };
-
   // Type of action to take on an item in the in-queue
   enum action_type
   {
@@ -186,6 +182,8 @@ private:
   inline void process_in_queue_user(action_type action,
       detail::user_callback_entry * entry, entry_list_t & triggered);
 
+  inline void dispatch_io_callbacks(std::vector<detail::event_data> const & events,
+      entry_list_t & to_schedule);
   inline void dispatch_scheduled_callbacks(twine::chrono::nanoseconds const & now,
       entry_list_t & to_schedule);
   inline void dispatch_user_callbacks(entry_list_t const & triggered,

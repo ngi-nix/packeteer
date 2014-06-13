@@ -19,6 +19,7 @@
  * PARTICULAR PURPOSE.
  **/
 #include <packetflinger/detail/io_epoll.h>
+#include <packetflinger/detail/scheduler_impl.h>
 
 #include <sys/epoll.h>
 #include <errno.h>
@@ -158,6 +159,16 @@ io_epoll::unregister_fds(int const * fds, size_t size,
     events_t const & events)
 {
   // TODO
+}
+
+
+
+void
+io_epoll::wait_for_events(std::vector<event_data> & events,
+      twine::chrono::nanoseconds const & timeout)
+{
+  // TODO
+  twine::chrono::sleep(twine::chrono::milliseconds(20));
 }
 
 

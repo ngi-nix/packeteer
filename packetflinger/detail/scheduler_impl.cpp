@@ -304,6 +304,15 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
 
 void
+scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data> const & events,
+      entry_list_t & to_schedule)
+{
+  // TODO
+}
+
+
+
+void
 scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanoseconds const & now,
     entry_list_t & to_schedule)
 {
@@ -396,9 +405,10 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
     entry_list_t triggered;
     process_in_queue(triggered);
 
-    // get events
-    twine::chrono::sleep(twine::chrono::milliseconds(20));
-    // TODO
+    // Get I/O events from the subsystem
+    std::vector<detail::event_data> events;
+    // FIXME timeout can be platform dependent
+    m_io->wait_for_events(events, twine::chrono::milliseconds(20));
 
     // Process all callbacks that want to be invoked now. Since we can't have
     // workers access the same entries we may still have in our multi-index
@@ -409,7 +419,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
     twine::chrono::nanoseconds now = twine::chrono::now();
     entry_list_t to_schedule;
 
-    // TODO
+    dispatch_io_callbacks(events, to_schedule);
     dispatch_scheduled_callbacks(now, to_schedule);
     dispatch_user_callbacks(triggered, to_schedule);
 

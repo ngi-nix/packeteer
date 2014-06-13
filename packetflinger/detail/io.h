@@ -27,10 +27,19 @@
 
 #include <packetflinger/packetflinger.h>
 
+#include <vector>
+
+#include <twine/chrono.h>
+
 #include <packetflinger/types.h>
 
 namespace packetflinger {
 namespace detail {
+
+/**
+ * Forward declaration
+ **/
+struct event_data;
 
 /**
  * Pure virtual base class for I/O subsystem
@@ -49,8 +58,8 @@ public:
   virtual void unregister_fds(int const * fds, size_t amount,
       events_t const & events) = 0;
 
-  // FIXME
-  // void get_events(std::vector<event_data> & events);
+  virtual void wait_for_events(std::vector<event_data> & events,
+      twine::chrono::nanoseconds const & timeout) = 0;
 };
 
 
