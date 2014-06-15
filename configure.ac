@@ -98,6 +98,8 @@ JF_CHECK_FUNC_IN([sys/select.h cstring], [pselect],
     [int ret = pselect(0, NULL, NULL, NULL, NULL, NULL);])
 JF_CHECK_FUNC_IN([poll.h cstring], [poll],
     [int ret = poll(NULL, 0, 0);])
+JF_CHECK_FUNC_IN([poll.h cstring], [ppoll],
+    [int ret = ppoll(NULL, 0, 0, NULL);])
 
 ##############################################################################
 # Optional programs
