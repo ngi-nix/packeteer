@@ -51,7 +51,9 @@ scheduler::~scheduler()
 error_t
 scheduler::register_fd(events_t const & events, int fd, callback const & callback)
 {
-  // TODO
+  auto entry = new detail::io_callback_entry(callback, fd, events);
+  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
+  return ERR_SUCCESS;
 }
 
 
@@ -59,7 +61,9 @@ scheduler::register_fd(events_t const & events, int fd, callback const & callbac
 error_t
 scheduler::unregister_fd(events_t const & events, int fd, callback const & callback)
 {
-  // TODO
+  auto entry = new detail::io_callback_entry(callback, fd, events);
+  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  return ERR_SUCCESS;
 }
 
 
@@ -67,8 +71,7 @@ scheduler::unregister_fd(events_t const & events, int fd, callback const & callb
 error_t
 scheduler::schedule_once(tc::nanoseconds const & delay, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, tc::now() + delay,
-      0, tc::nanoseconds(0));
+  auto entry = new detail::scheduled_callback_entry(callback, tc::now() + delay);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -79,8 +82,7 @@ scheduler::schedule_once(tc::nanoseconds const & delay, callback const & callbac
 error_t
 scheduler::schedule_at(tc::nanoseconds const & time, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, time, 0,
-      tc::nanoseconds(0));
+  auto entry = new detail::scheduled_callback_entry(callback, time);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -118,8 +120,7 @@ scheduler::schedule(tc::nanoseconds const & first, tc::nanoseconds const & inter
 error_t
 scheduler::unschedule(callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, tc::nanoseconds(0),
-      0, tc::nanoseconds(0));
+  auto entry = new detail::scheduled_callback_entry(callback, tc::nanoseconds(0));
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
 
   return ERR_SUCCESS;
