@@ -27,6 +27,8 @@
 
 #include <twine/thread.h>
 
+#include <packeteer/pipe.h>
+
 namespace pk = packeteer;
 namespace tc = twine::chrono;
 
@@ -53,7 +55,7 @@ struct test_callback
   {
     ++m_called;
     m_mask = mask;
-    LOG("callback called");
+    LOG("callback called: " << error << " - " << fd << " - " << mask);
 
     return pk::error_t(0);
   }
@@ -97,6 +99,14 @@ struct thread_id_callback
     cb.m_mask = 0; /* reset mask */                         \
   }
 
+#define ASSERT_CALLBACK_GREATER(cb, expected_called, expected_mask) \
+  {                                                         \
+    int called = cb.m_called;                               \
+    CPPUNIT_ASSERT(called > expected_called);               \
+    uint64_t mask = cb.m_mask;                              \
+    CPPUNIT_ASSERT_EQUAL((uint64_t) expected_mask, mask);   \
+    cb.m_mask = 0; /* reset mask */                         \
+  }
 
 } // anonymous namespace
 
@@ -396,7 +406,62 @@ public:
 
 
 
+  void testIOCallback()
+  {
+    // The simplest way to test I/O callbacks is with a pipe.
+    pk::pipe pipe;
+    LOG("read FD: " << pipe.get_read_fd());
+    LOG("write FD: " << pipe.get_write_fd());
 
+    // We only need one thread for this.
+    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+
+    test_callback source1;
+    pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
+    sched.register_fd(pk::EV_IO_READ, pipe.get_read_fd(), cb1);
+
+    test_callback source2;
+    pk::callback cb2 = pk::make_callback(&source2, &test_callback::func);
+    sched.register_fd(pk::EV_IO_WRITE, pipe.get_write_fd(), cb2);
+
+    tc::sleep(tc::milliseconds(50));
+
+    sched.unregister_fd(pk::EV_IO_WRITE, pipe.get_write_fd(), cb2);
+
+    tc::sleep(tc::milliseconds(50));
+
+    // The second callback must have been invoked multiple times, because the
+    // pipe is always (at this level of I/O load) writeable.
+    ASSERT_CALLBACK_GREATER(source2, 0, pk::EV_IO_WRITE);
+
+    // On the other hand, without writing to the pipe, we should not have any
+    // callbacks for reading.
+    ASSERT_CALLBACK(source1, 0, 0);
+
+    // So let's write something to the pipe. This will trigger the read callback
+    // until we're reading from the pipe again.
+    char buf[] = { '\0' };
+    pipe.write(buf, sizeof(buf));
+
+    tc::sleep(tc::milliseconds(50));
+
+    ASSERT_CALLBACK_GREATER(source1, 0, pk::EV_IO_READ);
+
+    int current = source1.m_called;
+
+    size_t amount = 0;
+    pipe.read(buf, sizeof(buf), amount);
+    CPPUNIT_ASSERT_EQUAL(sizeof(buf), amount);
+
+    // Now the callbacks should stop again - we'll check by ensuring we don't
+    // have more than 'current' invocations even after a delay. However, timing
+    // being a bit of a bitch, we'll have to make some allowances.
+    tc::sleep(tc::milliseconds(100));
+
+    ASSERT_CALLBACK_GREATER(source1, current, pk::EV_IO_READ);
+    current = source1.m_called - current;
+    CPPUNIT_ASSERT(current < 3); // maybe that many callbacks still happened.
+  }
 };
 
 
@@ -417,6 +482,9 @@ public:
 
     // User callbacks
     CPPUNIT_TEST(testUserCallback);
+
+    // I/O callbacks
+    CPPUNIT_TEST(testIOCallback);
 
   CPPUNIT_TEST_SUITE_END();
 };
@@ -440,6 +508,9 @@ public:
     // User callbacks
     CPPUNIT_TEST(testUserCallback);
 
+    // I/O callbacks
+    CPPUNIT_TEST(testIOCallback);
+
   CPPUNIT_TEST_SUITE_END();
 };
 
@@ -461,6 +532,9 @@ public:
 
     // User callbacks
     CPPUNIT_TEST(testUserCallback);
+
+    // I/O callbacks
+    CPPUNIT_TEST(testIOCallback);
 
   CPPUNIT_TEST_SUITE_END();
 };
