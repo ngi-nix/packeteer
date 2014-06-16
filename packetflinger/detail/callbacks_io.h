@@ -29,6 +29,8 @@
 
 #include <packetflinger/types.h>
 
+#include <map>
+
 namespace packetflinger {
 namespace detail {
 
@@ -55,32 +57,6 @@ struct io_callback_entry : public callback_entry
   }
 };
 
-/* FIXME
-typedef boost::multi_index_container<
-  io_callback_entry *,
-
-  boost::multi_index::indexed_by<
-    // Ordered, unique index on file descriptors to make scheduler main loop's
-    // lookups fast.
-    boost::multi_index::ordered_unique<
-      boost::multi_index::tag<fd_tag>,
-      boost::multi_index::member<
-        io_callback_entry,
-        int,
-        &io_callback_entry::m_fd
-      >
-    >,
-
-    // Sequenced index for finding matches for event masks; used during
-    // registration/deregistration.
-    // XXX: a better index would be possible, but boost does not seem to support
-    // it.
-    boost::multi_index::sequenced<
-      boost::multi_index::tag<events_tag>
-    >
-  >
-> io_callbacks_t;
-*/
 
 struct io_callbacks_t
 {
@@ -88,8 +64,118 @@ struct io_callbacks_t
   {
   }
 
-  // FIXME
-  // packetflinger_hash_map<int, io_callback_entry> m_map;
+
+
+  /**
+   * Takes ownership of the passed entry.
+   *
+   * If an entry with the same callback/file descriptor exists, their event masks
+   * are merged. Otherwise, the entry is added.
+   **/
+  inline void add(io_callback_entry * cb)
+  {
+    // Try to find callbacks matching the file descriptor.
+    auto range = m_callback_map.equal_range(cb->m_fd);
+
+    // Within these, try to find an entry matching the callback already.
+    auto c_iter = range.first;
+    for ( ; c_iter != range.second ; ++c_iter) {
+      if (cb->m_callback == c_iter->second->m_callback) {
+        // Found an entry
+        break;
+      }
+    }
+
+    // Let's see if we found the callback/fd combination
+    if (range.second != c_iter) {
+      // Yep, found it. Merge event mask.
+      c_iter->second->m_events |= cb->m_events;
+      delete cb;
+    }
+    else {
+      // Nope, new entry
+      m_callback_map.insert(std::make_pair(cb->m_fd, cb));
+    }
+  }
+
+
+
+  /**
+   * Removes as much of the passed entry as possible.
+   *
+   * Primarily, this removes the passed entry's flags from any item in the
+   * container matching the callback. If there are no flags left afterwards,
+   * the item is removed entirely.
+   **/
+  inline void remove(io_callback_entry * cb)
+  {
+    // Try to find callbacks matching the file descriptor
+    auto range = m_callback_map.equal_range(cb->m_fd);
+    if (range.first == range.second) {
+      // Nothing matches this file descriptor
+      return;
+    }
+
+    // Try to find an entry matching the callback.
+    auto c_iter = range.first;
+    for ( ; c_iter != range.second ; ++c_iter) {
+      if (cb->m_callback == c_iter->second->m_callback) {
+        // Found an entry
+        break;
+      }
+    }
+
+    // Let's see if we found the callback/fd combination
+    if (range.second != c_iter) {
+      // Yep. Remove the event mask bits
+      c_iter->second->m_events &= ~(cb->m_events);
+      if (!c_iter->second->m_events) {
+        delete c_iter->second;
+        m_callback_map.erase(c_iter);
+      }
+    }
+    else {
+      // Not found, ignoring.
+    }
+  }
+
+
+
+  /**
+   * As the name implies, this function creates a copy (ownership goes to the
+   * caller) of all entries matching one or more of the events in the passed
+   * event mask for the given FD.
+   **/
+  std::vector<io_callback_entry *>
+  copy_matching(int fd, events_t const & events) const
+  {
+    std::vector<io_callback_entry *> result;
+
+    // Try to find callbacks matching the file descriptor
+    auto range = m_callback_map.equal_range(fd);
+    if (range.first == range.second) {
+      // Nothing matches this file descriptor
+      return result;
+    }
+
+    // Try to find entries matching the event mask
+    auto iter = range.first;
+    for ( ; iter != range.second ; ++iter) {
+      events_t masked = iter->second->m_events & events;
+      if (masked) {
+        auto copy = new io_callback_entry(*(iter->second));
+        copy->m_events = masked;
+        result.push_back(copy);
+      }
+    }
+
+    return result;
+  }
+
+
+private:
+  // For the same file descriptor, we may have multiple callback entries.
+  std::multimap<int, io_callback_entry *> m_callback_map;
 };
 
 
