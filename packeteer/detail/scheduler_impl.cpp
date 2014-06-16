@@ -94,14 +94,14 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
 #elif defined(PACKETEER_HAVE_SELECT)
       m_io = new detail::io_select();
 #else
-      throw std::runtime_error("unsupported platform");
+      throw exception(ERR_UNEXPECTED, "unsupported platform.");
 #endif
       break;
 
 
     case TYPE_SELECT:
 #if !defined(PACKETEER_HAVE_SELECT)
-      throw std::runtime_error("select is not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "select() is not supported on this platform.");
 #endif
       m_io = new detail::io_select();
       break;
@@ -109,7 +109,7 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
 
     case TYPE_EPOLL:
 #if !defined(PACKETEER_HAVE_EPOLL_CREATE1)
-      throw std::runtime_error("epoll is not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "epoll() is not supported on this platform.");
 #endif
       m_io = new detail::io_epoll();
       break;
@@ -117,14 +117,14 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
 
     case TYPE_POLL:
 #if !defined(PACKETEER_HAVE_POLL)
-      throw std::runtime_error("poll is not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "poll() is not supported on this platform.");
 #endif
       m_io = new detail::io_poll();
       break;
 
 
     default:
-      throw std::runtime_error("unsupported scheduler type");
+      throw exception(ERR_INVALID_OPTION, "unsupported scheduler type.");
   }
 
   m_io->init();

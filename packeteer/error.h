@@ -84,6 +84,10 @@ PACKETEER_ERRDEF(ERR_EMPTY_CALLBACK,
     7,
     "Tried to invoke an empty callback object.")
 
+PACKETEER_ERRDEF(ERR_INVALID_OPTION,
+    8,
+    "Invalid option specified.")
+
 PACKETEER_END_ERRORS
 
 
