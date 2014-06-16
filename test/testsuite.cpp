@@ -1,5 +1,5 @@
 /**
- * This file is part of packetflinger.
+ * This file is part of packeteer.
  *
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
@@ -33,8 +33,8 @@
 #include <cppunit/Test.h>
 #include <cppunit/TestFailure.h>
 
-#include <packetflinger/packetflinger.h>
-#include <packetflinger/version.h>
+#include <packeteer/packeteer.h>
+#include <packeteer/version.h>
 
 
 /**
@@ -324,7 +324,7 @@ VerboseOutput::endTestRun(CppUnit::Test * test,
 
 int main(int argc, char **argv)
 {
-  std::cout << packetflinger::copyright_string << std::endl;
+  std::cout << packeteer::copyright_string << std::endl;
 
   std::string testPath = (argc > 1) ? std::string(argv[1]) : "";
 

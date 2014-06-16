@@ -4,7 +4,7 @@ TESTS = testsuite
 check_PROGRAMS = $(TESTS)
 
 testsuite_CPPFLAGS = $(CPPUNIT_CFLAGS)
-testsuite_LDADD = $(top_builddir)/packetflinger/libpacketflinger.la \
+testsuite_LDADD = $(top_builddir)/packeteer/libpacketeer.la \
 	$(CPPUNIT_LIBS) $(TWINE_LIBS)
 
 testsuite_SOURCES = \

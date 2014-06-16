@@ -1,5 +1,5 @@
 /**
- * This file is part of packetflinger.
+ * This file is part of packeteer.
  *
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
@@ -18,11 +18,11 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packetflinger/pipe.h>
+#include <packeteer/pipe.h>
 
 #include <cppunit/extensions/HelperMacros.h>
 
-namespace pf = packetflinger;
+namespace pk = packeteer;
 
 
 class PipeTest
@@ -40,15 +40,15 @@ private:
   void testBasicFunctionality()
   {
     // Test writing to and reading from a pipe works as expected.
-    pf::pipe pipe;
+    pk::pipe pipe;
 
     std::string msg = "hello, world!";
-    CPPUNIT_ASSERT_EQUAL(pf::ERR_SUCCESS, pipe.write(msg.c_str(), msg.size()));
+    CPPUNIT_ASSERT_EQUAL(pk::ERR_SUCCESS, pipe.write(msg.c_str(), msg.size()));
 
     std::vector<char> result;
     result.reserve(2 * msg.size());
     size_t amount = 0;
-    CPPUNIT_ASSERT_EQUAL(pf::ERR_SUCCESS, pipe.read(&result[0], result.capacity(),
+    CPPUNIT_ASSERT_EQUAL(pk::ERR_SUCCESS, pipe.read(&result[0], result.capacity(),
           amount));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 

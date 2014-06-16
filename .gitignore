@@ -11,7 +11,7 @@ Makefile.in
 /install-sh
 /missing
 /config.*
-/packetflinger/_config.*
+/packeteer/_config.*
 Makefile
 .deps
 .libs
@@ -29,7 +29,7 @@ ltmain.sh
 libtool
 
 # pkg-config
-packetflinger.pc
+packeteer.pc
 
 # editor
 .*.sw*

@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: packeteer
+Description: FIXME
+Requires: FIXME
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lpacketeer @BOOST_SIGNALS_LIB@
+Cflags: -I${includedir}/packeteer -I${libdir}/packeteer/include @BOOST_CPPFLAGS@

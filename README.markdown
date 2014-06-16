@@ -1,5 +1,5 @@
 # Overview #
-Packetflinger provides a simplified, asynchronous, event-based socket API.
+Packeteer provides a simplified, asynchronous, event-based socket API.
 
 By itself, it is not a full-featured networking library, but implements common
 boilerplate for high-performance networking. In particular, it provides the
@@ -15,13 +15,13 @@ following:
   threads as you want.
   There is very deliberately no logic to automagically shrink or grow the thread
   pool, but there is functionality that would allow you to implement such thread
-  pool management on top of packetflinger.
+  pool management on top of packeteer.
 - A highly performant main loop for all of this logic, running in a scheduler
   thread. There is a choice of implementations for this, based on epoll, kqueue
   or select. It is expected that the choice of implementations will expand
   in future to I/O completion ports on Windows systems.
 
-What packetflinger is not, amongst other things, is a message queue system. For
+What packeteer is not, amongst other things, is a message queue system. For
 one thing, there is no concept of messages and all that implies. For another,
 there is not much queueing going on.
 
@@ -33,17 +33,18 @@ See the COPYING file.
 
 # Requirements #
 
-- Packetflinger is implemented in C++, and requires some compiler support for
+- Packeteer is implemented in C++, and requires some compiler support for
   the new C++11 standard. If you're using GCC 4.6 and above, things should work
   for you.
-- Packetflinger uses some [boost](http://www.boost.org/) libraries, including
-  the threading library.
-- Depending on which scheduler implementation you want to use, packetflinger may
+- Packeteer uses [twine](https://github.com/jfinkhaeuser/twine) for threading,
+  and [meta](https://github.com/jfinkhaeuser/meta) for some meta-programming
+  constructs.
+- Depending on which scheduler implementation you want to use, packeteer may
   require specific OS and kernel versions, e.g. Linux 2.6.9+ for the epoll
   scheduler, etc.
 
 If you're running a recent-ish UNIX-derivative, it's probably best to just
-download packetflinger and try to compile it.
+download packeteer and try to compile it.
 
 # Tests #
 

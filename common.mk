@@ -6,7 +6,7 @@ AM_CXXFLAGS += -g -std=c++0x -Wc++0x-compat -Wno-pmf-conversions \
 	-DMETA_CXX_MODE=META_CXX_MODE_CXX0X \
 	-DTWINE_CXX_MODE=TWINE_CXX_MODE_CXX0X
 
-# Dependencies XXX keep these in sync with packetflinger.pc.in
+# Dependencies XXX keep these in sync with packeteer.pc.in
 AM_CXXFLAGS += $(META_CFLAGS) $(TWINE_CFLAGS)
 # AM_LDFLAGS += 
 

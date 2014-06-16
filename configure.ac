@@ -3,15 +3,15 @@
 AC_PREREQ([2.68])
 LT_PREREQ([2.4])
 
-AC_INIT([packetflinger], [0.1], [jens@unwesen.co.uk])
-AC_CONFIG_SRCDIR([packetflinger])
+AC_INIT([packeteer], [0.1], [jens@unwesen.co.uk])
+AC_CONFIG_SRCDIR([packeteer])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 
-AC_CONFIG_HEADER([packetflinger/_config.h])
-AX_PREFIX_CONFIG_H([packetflinger/packetflinger-config.h])
+AC_CONFIG_HEADER([packeteer/_config.h])
+AX_PREFIX_CONFIG_H([packeteer/packeteer-config.h])
 
 LT_INIT
 AC_SUBST([LIBTOOL_DEPS])
@@ -115,8 +115,8 @@ AC_SUBST([AM_LDFLAGS])
 # Output
 AC_CONFIG_FILES([
   Makefile
-  packetflinger/Makefile
+  packeteer/Makefile
   test/Makefile
-  packetflinger.pc
+  packeteer.pc
 ])
 AC_OUTPUT

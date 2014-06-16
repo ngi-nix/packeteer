@@ -5,10 +5,10 @@ libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status libtool
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = packetflinger.pc
+pkgconfig_DATA = packeteer.pc
 
-DISTCLEANFILES = _configs.sed packetflinger/packetflinger-config.h
+DISTCLEANFILES = _configs.sed packeteer/packeteer-config.h
 
 SUBDIRS = \
-	packetflinger \
+	packeteer \
 	test

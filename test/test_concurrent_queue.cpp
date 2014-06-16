@@ -1,5 +1,5 @@
 /**
- * This file is part of packetflinger.
+ * This file is part of packeteer.
  *
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
@@ -18,11 +18,11 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packetflinger/concurrent_queue.h>
+#include <packeteer/concurrent_queue.h>
 
 #include <cppunit/extensions/HelperMacros.h>
 
-namespace pf = packetflinger;
+namespace pk = packeteer;
 
 
 class ConcurrentQueueTest
@@ -41,7 +41,7 @@ private:
   {
     // Test that the FIFO principle works for the queue as such, and that
     // extra functions do what they're supposed to do.
-    pf::concurrent_queue<int> queue;
+    pk::concurrent_queue<int> queue;
     CPPUNIT_ASSERT_EQUAL(true, queue.empty());
     CPPUNIT_ASSERT_EQUAL(size_t(0), queue.size());
 

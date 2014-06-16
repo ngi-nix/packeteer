@@ -1,5 +1,5 @@
 /**
- * This file is part of packetflinger.
+ * This file is part of packeteer.
  *
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
@@ -18,7 +18,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packetflinger/detail/scheduler_impl.h>
+#include <packeteer/detail/scheduler_impl.h>
 
 #include <cppunit/extensions/HelperMacros.h>
 
@@ -26,7 +26,7 @@
 
 #include <boost/lambda/lambda.hpp>
 
-namespace pf = packetflinger;
+namespace pk = packeteer;
 namespace tc = twine::chrono;
 
 namespace {
@@ -34,20 +34,20 @@ namespace {
 /**
  * Two callbacks, just so we have different function pointers to work with.
  **/
-pf::error_t
-foo(uint64_t mask, pf::error_t error, int fd, void * baton)
+pk::error_t
+foo(uint64_t mask, pk::error_t error, int fd, void * baton)
 {
   // no-op
 }
 
-pf::error_t
-bar(uint64_t mask, pf::error_t error, int fd, void * baton)
+pk::error_t
+bar(uint64_t mask, pk::error_t error, int fd, void * baton)
 {
   // no-op
 }
 
-pf::error_t
-baz(uint64_t mask, pf::error_t error, int fd, void * baton)
+pk::error_t
+baz(uint64_t mask, pk::error_t error, int fd, void * baton)
 {
   // no-op
 }
@@ -96,24 +96,24 @@ private:
     // at two different m_timeout values. If the container works as intended,
     // the callback with the lowest timeout value will be found first on
     // iteration.
-    pf::detail::scheduled_callbacks_t container;
+    pk::detail::scheduled_callbacks_t container;
 
-    pf::detail::scheduled_callback_entry * entry = new pf::detail::scheduled_callback_entry();
+    pk::detail::scheduled_callback_entry * entry = new pk::detail::scheduled_callback_entry();
     entry->m_timeout = tc::microseconds(2);
     entry->m_callback = &foo;
     container.add(entry);
 
-    entry = new pf::detail::scheduled_callback_entry();
+    entry = new pk::detail::scheduled_callback_entry();
     entry->m_timeout = tc::microseconds(3);
     entry->m_callback = &bar;
     container.add(entry);
 
-    entry = new pf::detail::scheduled_callback_entry();
+    entry = new pk::detail::scheduled_callback_entry();
     entry->m_timeout = tc::microseconds(1);
     entry->m_callback = &foo;
     container.add(entry);
 
-    entry = new pf::detail::scheduled_callback_entry();
+    entry = new pk::detail::scheduled_callback_entry();
     entry->m_timeout = tc::microseconds(3);
     entry->m_callback = &baz;
     container.add(entry);
@@ -132,7 +132,7 @@ private:
     }
 
     // Ensure that when we remove an entry, that's reflected in the timeout index
-    entry = new pf::detail::scheduled_callback_entry();
+    entry = new pk::detail::scheduled_callback_entry();
     entry->m_timeout = tc::microseconds(2);
     entry->m_callback = &foo;
     container.remove(entry);
@@ -159,30 +159,30 @@ private:
     // means finding entries with events >= a given event mask.
     enum user_events
     {
-      EVENT_1 = 1 * pf::EV_USER,
-      EVENT_2 = 2 * pf::EV_USER,
-      EVENT_3 = 4 * pf::EV_USER,
-      EVENT_4 = 8 * pf::EV_USER,
+      EVENT_1 = 1 * pk::EV_USER,
+      EVENT_2 = 2 * pk::EV_USER,
+      EVENT_3 = 4 * pk::EV_USER,
+      EVENT_4 = 8 * pk::EV_USER,
     };
 
-    pf::detail::user_callbacks_t container;
+    pk::detail::user_callbacks_t container;
 
-    pf::detail::user_callback_entry * entry = new pf::detail::user_callback_entry();
+    pk::detail::user_callback_entry * entry = new pk::detail::user_callback_entry();
     entry->m_events = EVENT_1;
     entry->m_callback = &foo;
     container.add(entry);
 
-    entry = new pf::detail::user_callback_entry();
+    entry = new pk::detail::user_callback_entry();
     entry->m_events = EVENT_3;
     entry->m_callback = &bar;
     container.add(entry);
 
-    entry = new pf::detail::user_callback_entry();
+    entry = new pk::detail::user_callback_entry();
     entry->m_events = EVENT_1 | EVENT_3;
     entry->m_callback = &baz;
     container.add(entry);
 
-    entry = new pf::detail::user_callback_entry();
+    entry = new pk::detail::user_callback_entry();
     entry->m_events = EVENT_1 | EVENT_2;
     entry->m_callback = &bar;
     container.add(entry);
