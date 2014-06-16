@@ -172,6 +172,7 @@ private:
     // Ensure that when we remove an entry, that's reflected in the timeout index
     entry = new pk::detail::scheduled_callback_entry(&foo, tc::microseconds(2));
     container.remove(entry);
+    delete entry;
 
     timeout_index = container.get_timed_out(twine::chrono::microseconds(0));
     CPPUNIT_ASSERT_EQUAL(size_t(0), timeout_index.size());

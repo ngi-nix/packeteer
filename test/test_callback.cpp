@@ -75,6 +75,7 @@ public:
     CPPUNIT_TEST(testEmpty);
     CPPUNIT_TEST(testAssignment);
     CPPUNIT_TEST(testHash);
+    CPPUNIT_TEST(testCopy);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -204,6 +205,18 @@ private:
     pk::callback cb6 = pk::make_callback(&f2, &functor::member_func);
     CPPUNIT_ASSERT(hasher(cb4) != hasher(cb6));
     CPPUNIT_ASSERT(hasher(cb5) != hasher(cb6));
+  }
+
+
+  void testCopy()
+  {
+    // Copy ctor
+    pk::callback cb1 = &free_func1;
+    pk::callback cb2 = cb1;
+
+    // Assign
+    pk::callback cb3;
+    cb3 = cb1;
   }
 };
 

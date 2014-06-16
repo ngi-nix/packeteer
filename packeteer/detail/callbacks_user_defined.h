@@ -83,6 +83,16 @@ public:
   }
 
 
+
+  ~user_callbacks_t()
+  {
+    for (auto entry : m_callback_map) {
+      delete entry.second;
+    }
+  }
+
+
+
   /**
    * Takes ownership of the passed entry.
    *

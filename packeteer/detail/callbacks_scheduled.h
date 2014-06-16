@@ -85,6 +85,14 @@ public:
   }
 
 
+  ~scheduled_callbacks_t()
+  {
+    for (auto entry : m_timeout_map) {
+      delete entry.second;
+    }
+  }
+
+
   /**
    * Takes ownership of the passed entry.
    *

@@ -141,6 +141,17 @@ scheduler::scheduler_impl::~scheduler_impl()
 
   m_io->deinit();
   delete m_io;
+
+  // There might be a bunch of items still in the in- and out queues.
+  in_queue_entry_t item;
+  while (m_in_queue.pop(item)) {
+    delete item.second;
+  }
+
+  pdt::callback_entry * entry = nullptr;
+  while (m_out_queue.pop(entry)) {
+    delete entry;
+  }
 }
 
 
@@ -238,6 +249,7 @@ scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
         break;
 
       default:
+        delete item.second;
         throw exception(ERR_UNEXPECTED, "Bad callback entry type, unreachable line reached");
         break;
     }
@@ -270,6 +282,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
 
     case ACTION_TRIGGER:
     default:
+      delete io;
       LOG("Ignoring invalid TRIGGER action for I/O callback.");
       break;
   }
@@ -305,6 +318,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
 
     case ACTION_TRIGGER:
     default:
+      delete scheduled;
       LOG("Ignoring invalid TRIGGER action for scheduled callback.");
       break;
   }
@@ -318,7 +332,7 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 {
   switch (action) {
     case ACTION_ADD:
-      // Add the callback/entry mask
+      // Add the callback/entry mask; container takes ownership
       m_user_callbacks.add(entry);
       break;
 
@@ -326,11 +340,12 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
     case ACTION_REMOVE:
       // Remove the callback/entry mask
       m_user_callbacks.remove(entry);
+      delete entry;
       break;
 
 
     case ACTION_TRIGGER:
-      // Remember it for a later processing stage.
+      // Remember it for a later processing stage; triggered takes ownership
       triggered.push_back(entry);
       break;
 
@@ -438,6 +453,9 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
     // may respond to the entry's events.
     auto range = m_user_callbacks.copy_matching(entry->m_events);
     to_schedule.insert(to_schedule.end(), range.begin(), range.end());
+
+    // This was a temporary object, and we had ownership
+    delete entry;
   }
 }
 
