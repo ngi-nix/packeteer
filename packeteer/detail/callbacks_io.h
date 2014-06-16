@@ -49,12 +49,14 @@ struct io_callback_entry : public callback_entry
   int           m_fd;
   events_t      m_events;
 
-  io_callback_entry()
-    : callback_entry(CB_ENTRY_IO)
-    , m_fd()
-    , m_events()
+  io_callback_entry(callback const & cb, int fd, events_t const & events)
+    : callback_entry(CB_ENTRY_IO, cb)
+    , m_fd(fd)
+    , m_events(events)
   {
   }
+
+  // Automatic copy constructor is used
 };
 
 

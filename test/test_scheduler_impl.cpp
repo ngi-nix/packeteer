@@ -98,24 +98,19 @@ private:
     // iteration.
     pk::detail::scheduled_callbacks_t container;
 
-    pk::detail::scheduled_callback_entry * entry = new pk::detail::scheduled_callback_entry();
+    pk::detail::scheduled_callback_entry * entry = new pk::detail::scheduled_callback_entry(&foo,
+        tc::microseconds(2));
     entry->m_timeout = tc::microseconds(2);
     entry->m_callback = &foo;
     container.add(entry);
 
-    entry = new pk::detail::scheduled_callback_entry();
-    entry->m_timeout = tc::microseconds(3);
-    entry->m_callback = &bar;
+    entry = new pk::detail::scheduled_callback_entry(&bar, tc::microseconds(3));
     container.add(entry);
 
-    entry = new pk::detail::scheduled_callback_entry();
-    entry->m_timeout = tc::microseconds(1);
-    entry->m_callback = &foo;
+    entry = new pk::detail::scheduled_callback_entry(&foo, tc::microseconds(1));
     container.add(entry);
 
-    entry = new pk::detail::scheduled_callback_entry();
-    entry->m_timeout = tc::microseconds(3);
-    entry->m_callback = &baz;
+    entry = new pk::detail::scheduled_callback_entry(&baz, tc::microseconds(3));
     container.add(entry);
 
     auto timeout_index = container.get_timed_out(twine::chrono::microseconds(0));
@@ -132,9 +127,7 @@ private:
     }
 
     // Ensure that when we remove an entry, that's reflected in the timeout index
-    entry = new pk::detail::scheduled_callback_entry();
-    entry->m_timeout = tc::microseconds(2);
-    entry->m_callback = &foo;
+    entry = new pk::detail::scheduled_callback_entry(&foo, tc::microseconds(2));
     container.remove(entry);
 
     timeout_index = container.get_timed_out(twine::chrono::microseconds(0));
@@ -167,24 +160,16 @@ private:
 
     pk::detail::user_callbacks_t container;
 
-    pk::detail::user_callback_entry * entry = new pk::detail::user_callback_entry();
-    entry->m_events = EVENT_1;
-    entry->m_callback = &foo;
+    pk::detail::user_callback_entry * entry = new pk::detail::user_callback_entry(&foo, EVENT_1);
     container.add(entry);
 
-    entry = new pk::detail::user_callback_entry();
-    entry->m_events = EVENT_3;
-    entry->m_callback = &bar;
+    entry = new pk::detail::user_callback_entry(&bar, EVENT_3);
     container.add(entry);
 
-    entry = new pk::detail::user_callback_entry();
-    entry->m_events = EVENT_1 | EVENT_3;
-    entry->m_callback = &baz;
+    entry = new pk::detail::user_callback_entry(&baz, EVENT_1 | EVENT_3);
     container.add(entry);
 
-    entry = new pk::detail::user_callback_entry();
-    entry->m_events = EVENT_1 | EVENT_2;
-    entry->m_callback = &bar;
+    entry = new pk::detail::user_callback_entry(&bar, EVENT_1 | EVENT_2);
     container.add(entry);
 
     // Finding entries for the EVENT_1 mask should yield 3 entries, as adding

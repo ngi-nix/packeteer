@@ -53,7 +53,7 @@ struct user_callback_entry : public callback_entry
 {
   events_t      m_events;
 
-  user_callback_entry(callback cb, events_t const & events)
+  user_callback_entry(callback const & cb, events_t const & events)
     : callback_entry(CB_ENTRY_USER, cb)
     , m_events(events)
   {
@@ -65,11 +65,7 @@ struct user_callback_entry : public callback_entry
   {
   }
 
-  user_callback_entry()
-    : callback_entry(CB_ENTRY_USER)
-    , m_events()
-  {
-  }
+  // Automatic copy constructor is used
 };
 
 

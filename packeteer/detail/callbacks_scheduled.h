@@ -60,9 +60,9 @@ struct scheduled_callback_entry : public callback_entry
   twine::chrono::nanoseconds  m_interval;
 
 
-  scheduled_callback_entry(callback cb,
-      twine::chrono::nanoseconds const & timeout, ssize_t count,
-      twine::chrono::nanoseconds const & interval)
+  scheduled_callback_entry(callback const & cb,
+      twine::chrono::nanoseconds const & timeout, ssize_t count = 0,
+      twine::chrono::nanoseconds const & interval = twine::chrono::nanoseconds(0))
     : callback_entry(CB_ENTRY_SCHEDULED, cb)
     , m_timeout(timeout)
     , m_count(count)
@@ -70,13 +70,7 @@ struct scheduled_callback_entry : public callback_entry
   {
   }
 
-  scheduled_callback_entry()
-    : callback_entry(CB_ENTRY_SCHEDULED)
-    , m_timeout()
-    , m_count()
-    , m_interval()
-  {
-  }
+  // Automatic copy constructor is used
 };
 
 
