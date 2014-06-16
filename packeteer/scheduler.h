@@ -90,6 +90,14 @@ public:
    *
    * You can pass non-I/O events here, but EV_TIMEOUT will be ignored as there
    * is no timeout value specified.
+   *
+   * It is not recommended that you register a callback for EV_IO_WRITE for a
+   * long time. All non-blocking file descriptors will generally always be ready
+   * for writing, which means these callbacks will be fired all the time.
+   *
+   * It is much better to register callbacks only when you have data to write,
+   * and writing is not currently possible - then unregister the callback again
+   * when it's called, and all data could be written.
    **/
   error_t register_fd(events_t const & events, int fd, callback const & callback);
 
@@ -190,6 +198,9 @@ public:
    *
    * User-defined events must be specified as 64 bit unsigned integer values
    * >= EV_USER.
+   *
+   * You can also register a callback for EV_ERROR events to listen to internal
+   * errors.
    **/
   error_t register_event(events_t const & events, callback const & callback);
 
