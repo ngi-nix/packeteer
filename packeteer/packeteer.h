@@ -35,8 +35,6 @@
 
 namespace packeteer {
 
-// TODO
-
 } // namespace packeteer
 
 #endif // guard
