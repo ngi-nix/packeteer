@@ -77,12 +77,57 @@ private:
 
   void testIOCallbacksContainer()
   {
-    // Lastly, we want to be able to find a range of eventmasks for a given
+    // We want to be able to find a range of eventmasks for a given
     // file descriptor. Since event masks are bitfields, and the index is
     // ordered, we should be able to find candidates quicker because we know
     // the event masks we're looking for will be >= the event that got
     // triggered.
-    CPPUNIT_FAIL("not yet implemented");
+    pk::detail::io_callbacks_t container;
+
+    pk::detail::io_callback_entry * entry = new pk::detail::io_callback_entry(&foo,
+        1, pk::EV_IO_WRITE);
+    container.add(entry);
+
+    entry = new pk::detail::io_callback_entry(&bar, 1, pk::EV_IO_WRITE | pk::EV_IO_READ);
+    container.add(entry);
+
+    entry = new pk::detail::io_callback_entry(&foo, 1, pk::EV_IO_READ);
+    container.add(entry);
+
+    entry = new pk::detail::io_callback_entry(&baz, 1, pk::EV_IO_READ);
+    container.add(entry);
+
+    entry = new pk::detail::io_callback_entry(&foo, 2, pk::EV_IO_READ);
+    container.add(entry);
+
+    // Two of the entries get merged, so we should have 3 entries for FD 1, and 
+    // one entry for FD 2.
+
+    // More precisely, there should be three read callbacks for FD 1
+    auto range = container.copy_matching(1, pk::EV_IO_READ);
+    CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
+    for (auto entry : range) { delete entry; }
+
+    // There should be two write callbacks for FD 1
+    range = container.copy_matching(1, pk::EV_IO_WRITE);
+    CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
+    for (auto entry : range) { delete entry; }
+
+    // There should be 1 read callback for FD 2
+    range = container.copy_matching(2, pk::EV_IO_READ);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), range.size());
+    for (auto entry : range) { delete entry; }
+
+    // And no write callback for FD 2
+    range = container.copy_matching(2, pk::EV_IO_WRITE);
+    CPPUNIT_ASSERT_EQUAL(size_t(0), range.size());
+    for (auto entry : range) { delete entry; }
+
+    // Lastly, if we ask for callbacks for read or write, that should be three
+    // again (for FD 1)
+    range = container.copy_matching(1, pk::EV_IO_READ | pk::EV_IO_WRITE);
+    CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
+    for (auto entry : range) { delete entry; }
   }
 
 
@@ -100,8 +145,6 @@ private:
 
     pk::detail::scheduled_callback_entry * entry = new pk::detail::scheduled_callback_entry(&foo,
         tc::microseconds(2));
-    entry->m_timeout = tc::microseconds(2);
-    entry->m_callback = &foo;
     container.add(entry);
 
     entry = new pk::detail::scheduled_callback_entry(&bar, tc::microseconds(3));
@@ -176,25 +219,31 @@ private:
     // 'bar' the second time merges the entry with the first.
     auto range = container.copy_matching(EVENT_1);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
+    for (auto entry : range) { delete entry; }
 
     // Similarly, there should be one match for EVENT_2...
     range = container.copy_matching(EVENT_2);
     CPPUNIT_ASSERT_EQUAL(size_t(1), range.size());
+    for (auto entry : range) { delete entry; }
 
     // ... two matches again for EVENT_3...
     range = container.copy_matching(EVENT_3);
     CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
+    for (auto entry : range) { delete entry; }
 
     // ... and no matches again for EVENT_4.
     range = container.copy_matching(EVENT_4);
     CPPUNIT_ASSERT_EQUAL(size_t(0), range.size());
+    for (auto entry : range) { delete entry; }
 
     // Now try to find entries with more complex masks.
     range = container.copy_matching(EVENT_1 | EVENT_2);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
+    for (auto entry : range) { delete entry; }
 
     range = container.copy_matching(EVENT_2 | EVENT_3);
     CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
+    for (auto entry : range) { delete entry; }
   }
 };
 
