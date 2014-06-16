@@ -334,7 +334,7 @@ private:
  * operator().
  **/
 template <typename T>
-detail::callback_helper<T> *
+inline detail::callback_helper<T> *
 make_callback(T * object,
     typename detail::callback_helper<T>::member_function_type function)
 {
@@ -344,7 +344,7 @@ make_callback(T * object,
 
 
 template <typename T>
-detail::callback_helper<T> *
+inline detail::callback_helper<T> *
 make_callback(T * object)
 {
   return new detail::callback_helper<T>(object, &T::operator());
