@@ -54,71 +54,6 @@ worker::~worker()
 
 
 
-//void
-//worker::interrupt()
-//{
-//  char buf[1] = { '\0' };
-//  m_pipe.write(buf, sizeof(buf));
-//}
-//
-//
-//
-//void
-//worker::sleep()
-//{
-//  // Similar to duration::sleep, but sleeps indefinitely, and waits for an
-//  // interruption on the pipe's read file descriptor.
-//  ::fd_set read_fds;
-//  FD_ZERO(&read_fds);
-//
-//  ::fd_set err_fds;
-//  FD_ZERO(&err_fds);
-//
-//  int read_fd = m_pipe.get_read_fd();
-//  FD_SET(read_fd, &read_fds);
-//  FD_SET(read_fd, &err_fds);
-//
-//  do {
-//    int ret = ::select(read_fd + 1, &read_fds, nullptr, &err_fds, nullptr);
-//
-//    if (0 == ret) {
-//      // Hmm, shouldn't happen. Still, it's not an error, so continue.
-//      continue;
-//    }
-//
-//    if (-1 == ret) {
-//      if (EINTR == errno) {
-//        continue;
-//      }
-//      else {
-//        // TODO throw
-//        LOG("select errno: " << errno);
-//        break;
-//      }
-//    }
-//
-//    LOG("read from FDs: " << ret);
-//    if (FD_ISSET(read_fd, &read_fds)) {
-//      LOG("sleep interrupted");
-//      detail::clear_interrupt(m_pipe);
-//      break;
-//    }
-//    else if (FD_ISSET(read_fd, &err_fds)) {
-//      LOG("error on pipe FD");
-//      break;
-//    }
-//    else {
-//      // TODO throw ?
-//      LOG("pipe FD not in FD set, yet it was the only one added");
-//      break;
-//    }
-//  } while (true);
-//
-//  LOG("returning from sleep");
-//}
-
-
-
 void
 worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
 {
@@ -128,9 +63,18 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
     detail::callback_entry * entry = nullptr;
     while (m_work_queue.pop(entry)) {
       LOG("worker picked up entry of type: " << entry->m_type);
-      execute_callback(entry);
-      // FIXME should be a delete here, but memory management is still shot.
-      // delete entry;
+      try {
+        execute_callback(entry);
+      } catch (std::exception const & ex) {
+        LOG("Error in callback: " << ex.what());
+        delete entry;
+      } catch (std::string const & str) {
+        LOG("Error in callback: " << str);
+        delete entry;
+      } catch (...) {
+        LOG("Error in callback.");
+        delete entry;
+      }
     }
     LOG("worker going to sleep");
   } while (tasklet.sleep());
@@ -157,8 +101,11 @@ worker::execute_callback(detail::callback_entry * entry)
       break;
 
     case detail::CB_ENTRY_IO:
-      // TODO
-      // FIXME break;
+      {
+        auto io = reinterpret_cast<detail::io_callback_entry *>(entry);
+        err = io->m_callback(io->m_events, ERR_SUCCESS, io->m_fd, nullptr);
+      }
+      break;
 
     default:
       // Unknown type. Signal an error on the callback.
