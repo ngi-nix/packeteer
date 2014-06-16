@@ -131,6 +131,10 @@ scheduler::unschedule(callback const & callback)
 error_t
 scheduler::register_event(events_t const & events, callback const & callback)
 {
+  if (events < EV_USER) {
+    return ERR_INVALID_VALUE;
+  }
+
   auto entry = new detail::user_callback_entry(callback, events);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 

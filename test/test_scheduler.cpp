@@ -410,8 +410,6 @@ public:
   {
     // The simplest way to test I/O callbacks is with a pipe.
     pk::pipe pipe;
-    LOG("read FD: " << pipe.get_read_fd());
-    LOG("write FD: " << pipe.get_write_fd());
 
     // We only need one thread for this.
     pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
@@ -460,7 +458,7 @@ public:
 
     ASSERT_CALLBACK_GREATER(source1, current, pk::EV_IO_READ);
     current = source1.m_called - current;
-    CPPUNIT_ASSERT(current < 3); // maybe that many callbacks still happened.
+    CPPUNIT_ASSERT_MESSAGE("Should not normally fail.", current < 3);
   }
 };
 

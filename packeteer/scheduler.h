@@ -188,19 +188,11 @@ public:
 
 
   /**
-   * Register a callback for the specified events. Whenever an event with one
-   * of the given event types is fired, the callback is invoked.
-   *
-   * You can use this function to register for any type of event, but
-   * registering for system (i.e. non user-defined) events is not recommended.
-   * If you do, you may slow down the system considerably. Also see
-   * unregister_event() below.
+   * Register a callback for the specified user-defined events. Whenever an
+   * event with one of the given event types is fired, the callback is invoked.
    *
    * User-defined events must be specified as 64 bit unsigned integer values
    * >= EV_USER.
-   *
-   * You can also register a callback for EV_ERROR events to listen to internal
-   * errors.
    **/
   error_t register_event(events_t const & events, callback const & callback);
 
@@ -209,9 +201,8 @@ public:
   /**
    * Unregister a callback for the specified events.
    *
-   * Note that this will not distinguish between system (i.e. non user-defined)
-   * events registered via register_event() and system events registered via
-   * register_fd() or any of the schedule_*() functions.
+   * See register_event() for details on which types of events you can register
+   * a callback for.
    **/
   error_t unregister_event(events_t const & events, callback const & callback);
 
