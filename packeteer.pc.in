@@ -4,8 +4,8 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: packeteer
-Description: FIXME
-Requires: FIXME
+Description: Packeteer provides a simplified, asynchronous, event-based socket API.
+Requires: meta >= 0.1, twine >= 0.1
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lpacketeer @BOOST_SIGNALS_LIB@
 Cflags: -I${includedir}/packeteer -I${libdir}/packeteer/include @BOOST_CPPFLAGS@
