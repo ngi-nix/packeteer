@@ -88,7 +88,7 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
   int translated = translate_events_to_os(events);
 
   for (size_t i = 0 ; i < size ; ++i) {
-    ::epoll_event event;
+    ::epoll_event event = { 0 };
     event.events = translated;
     event.data.fd = fds[i];
     int ret = ::epoll_ctl(epoll_fd, action, fds[i], &event);
