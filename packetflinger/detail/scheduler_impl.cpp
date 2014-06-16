@@ -238,7 +238,7 @@ scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
         break;
 
       default:
-        // TODO don't know what to do here.
+        throw exception(ERR_UNEXPECTED, "Bad callback entry type, unreachable line reached");
         break;
     }
   }
@@ -250,7 +250,29 @@ void
 scheduler::scheduler_impl::process_in_queue_io(action_type action,
     pdt::io_callback_entry * io)
 {
-  // TODO
+  switch (action) {
+    case ACTION_ADD:
+      {
+        // Add the callback for the event mask
+        m_io_callbacks.add(io);
+      }
+      break;
+
+
+    case ACTION_REMOVE:
+      {
+        // Add the callback from the event mask
+        m_io_callbacks.remove(io);
+        delete io;
+      }
+      break;
+
+
+    case ACTION_TRIGGER:
+    default:
+      LOG("Ignoring invalid TRIGGER action for I/O callback.");
+      break;
+  }
 }
 
 
@@ -265,7 +287,6 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
         // When adding, we simply add scheduled entries. It's entirely
         // possible that the same (callback, timeout) combination is added
         // multiple times, but that might be the caller's intent.
-        LOG("add scheduled callback at " << scheduled->m_timeout);
         m_scheduled_callbacks.add(scheduled);
       }
       break;
@@ -276,7 +297,6 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
         // When deleting, we need to delete *all* (callback, timeout)
         // combinations that match. That might not be what the caller
         // intends, but we have no way of distinguishing between them.
-        LOG("remove scheduled callback");
         m_scheduled_callbacks.remove(scheduled);
         delete scheduled;
       }
@@ -285,7 +305,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
 
     case ACTION_TRIGGER:
     default:
-      // TODO error?
+      LOG("Ignoring invalid TRIGGER action for scheduled callback.");
       break;
   }
 }
@@ -316,8 +336,7 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
 
     default:
-      // TODO error?
-      break;
+      throw exception(ERR_UNEXPECTED, "Bad action for user callback, unreachable line reached");
   }
 }
 
@@ -337,7 +356,9 @@ scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data>
       continue;
     }
 
-    // TODO find callback; this event we should care about
+    // Find callback(s).
+    auto callbacks = m_io_callbacks.copy_matching(event.fd, event.events);
+    to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
   }
 }
 
@@ -416,9 +437,7 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
     // each entry we'll have to scour the user callbacks for any callbacks that
     // may respond to the entry's events.
     auto range = m_user_callbacks.copy_matching(entry->m_events);
-    for (auto copy : range) {
-      to_schedule.push_back(copy);
-    }
+    to_schedule.insert(to_schedule.end(), range.begin(), range.end());
   }
 }
 
