@@ -174,6 +174,8 @@ scheduler::scheduler_impl::start_main_loop()
 
   m_io->register_fd(m_main_loop_pipe.get_read_fd(),
       EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
+  // m_io->register_fd(m_main_loop_pipe.get_write_fd(),
+  //     EV_IO_WRITE | EV_IO_ERROR | EV_IO_CLOSE);
 
   m_main_loop_thread.set_func(
       twine::thread::binder<scheduler_impl, &scheduler_impl::main_scheduler_loop>::function,
@@ -268,6 +270,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       {
         // Add the callback for the event mask
         m_io_callbacks.add(io);
+        m_io->register_fd(io->m_fd, io->m_events);
       }
       break;
 
@@ -276,6 +279,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       {
         // Add the callback from the event mask
         m_io_callbacks.remove(io);
+        m_io->unregister_fd(io->m_fd, io->m_events);
         delete io;
       }
       break;
@@ -362,6 +366,7 @@ void
 scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data> const & events,
       entry_list_t & to_schedule)
 {
+  LOG("I/O callbacks");
   int own_pipe = m_main_loop_pipe.get_read_fd();
 
   // Process events, and try to find a callback for each of them.
