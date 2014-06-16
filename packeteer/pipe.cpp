@@ -55,6 +55,7 @@ pipe::pipe()
     throw exception(ERR_UNEXPECTED);
   }
 
+  // Make the write end non-blocking
   val = ::fcntl(m_fds[1], F_GETFL, 0);
   val |= O_NONBLOCK | O_CLOEXEC;
   val = ::fcntl(m_fds[1], F_SETFL, val);
