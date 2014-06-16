@@ -37,6 +37,7 @@
 
 
 namespace pdt = packeteer::detail;
+namespace tc = twine::chrono;
 
 namespace packeteer {
 
@@ -380,7 +381,7 @@ scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data>
 
 
 void
-scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanoseconds const & now,
+scheduler::scheduler_impl::dispatch_scheduled_callbacks(tc::nanoseconds const & now,
     entry_list_t & to_schedule)
 {
   LOG("scheduled callbacks at: " << now);
@@ -393,7 +394,7 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(twine::chrono::nanosecon
 
   for (auto entry : range) {
     LOG("scheduled callback expired at " << now);
-    if (twine::chrono::nanoseconds(0) == entry->m_interval) {
+    if (tc::nanoseconds(0) == entry->m_interval) {
       // If it's a one shot event, we want to *move* it into the to_schedule
       // vector thereby granting ownership to the worker that picks it up.
       LOG("one-shot callback, handing over to worker");
@@ -478,7 +479,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
     // FIXME timeout can be platform dependent; in a further iteration, we
     // should make it dependent on whether there are items in the in-queue and/
     // (see above) or items in the callbacks to schedule (see below)
-    m_io->wait_for_events(events, twine::chrono::milliseconds(20));
+    m_io->wait_for_events(events, tc::milliseconds(20));
     for (auto event : events) {
       LOG("got events " << event.events << " for " << event.fd);
     }
@@ -489,7 +490,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
     // those entries to the out queue later.
     // The scheduler relinquishes ownership over entries in the to_schedule
     // vector to workers.
-    twine::chrono::nanoseconds now = twine::chrono::now();
+    tc::nanoseconds now = tc::now();
     entry_list_t to_schedule;
 
     dispatch_io_callbacks(events, to_schedule);
