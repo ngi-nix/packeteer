@@ -29,8 +29,6 @@
 
 #include <packetflinger/types.h>
 
-#include <meta/range.h>
-
 
 namespace packetflinger {
 namespace detail {
@@ -162,7 +160,7 @@ public:
       events_t masked = iter->second->m_events & events;
       // LOG("mask of " << iter->second->m_events << " is " << masked);
       if (masked) {
-        auto copy = new user_callback_entry(*(iter)->second);
+        auto copy = new user_callback_entry(*(iter->second));
         copy->m_events = masked;
         result.push_back(copy);
       }

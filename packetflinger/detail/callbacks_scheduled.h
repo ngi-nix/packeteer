@@ -31,8 +31,6 @@
 
 #include <map>
 
-#include <meta/range.h>
-
 namespace packetflinger {
 namespace detail {
 
