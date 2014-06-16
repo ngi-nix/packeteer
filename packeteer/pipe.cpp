@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 
 #include <packeteer/error.h>
 
@@ -78,12 +79,30 @@ pipe::write(char const * buf, size_t bufsize)
   ssize_t written = 0;
   do {
     written = ::write(m_fds[1], buf, bufsize);
-  } while (written == -1 && errno == EAGAIN);
+  } while (written == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
 
   if (-1 == written) {
-    // TODO we can do better.
-    LOG("errno is: " << errno);
-    return ERR_UNEXPECTED;
+    LOG("Error writing to pipe: " << ::strerror(errno));
+    switch (errno) {
+      case EBADF:
+      case EINVAL:
+      case EDESTADDRREQ:
+      case EPIPE:
+        // The file descriptor is invalid for some reason.
+        return ERR_INVALID_VALUE;
+
+      case EFAULT:
+      case EFBIG:
+      case ENOSPC:
+        // Technically, OOM and out of disk space/file size.
+        return ERR_OUT_OF_MEMORY;
+
+      case EINTR:
+        // FIXME signal handling?
+      case EIO:
+      default:
+        return ERR_UNEXPECTED;
+    }
   }
 
   return ERR_SUCCESS;
@@ -98,13 +117,28 @@ pipe::read(char * buf, size_t bufsize, size_t & amount)
 
   do {
     read = ::read(m_fds[0], buf, bufsize);
-  } while (read == -1 && errno == EAGAIN);
+  } while (read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
   amount = read;
 
   if (read == -1) {
-    // TODO we can do better
-    LOG("errno is: " << errno);
-    return ERR_UNEXPECTED;
+    LOG("Error reading from pipe: " << ::strerror(errno));
+    switch (errno) {
+      case EBADF:
+      case EINVAL:
+        // The file descriptor is invalid for some reason.
+        return ERR_INVALID_VALUE;
+
+      case EFAULT:
+        // Technically, OOM and out of disk space/file size.
+        return ERR_OUT_OF_MEMORY;
+
+      case EINTR:
+        // FIXME signal handling?
+      case EIO:
+      case EISDIR:
+      default:
+        return ERR_UNEXPECTED;
+    }
   }
 
   return ERR_SUCCESS;
