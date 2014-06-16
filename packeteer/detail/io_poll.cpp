@@ -166,6 +166,7 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   for (auto entry : m_fds) {
     fds[i].fd = entry.first;
     fds[i].events = translate_events_to_os(entry.second);
+    fds[i].revents = 0;
     ++i;
   }
 
