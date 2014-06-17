@@ -26,108 +26,111 @@
 
 #include <stdexcept>
 
+using namespace packeteer;
+
 namespace {
 
 struct test_data
 {
-  char const *  address;
-  bool          valid;
+  char const *              address;
+  bool                      valid;
+  connector::connector_type type;
 } tests[] = {
   // Garbage
-  { "foo", false },
-  { "foo:", false },
-  { "foo://", false },
-  { "foo:///some/path", false },
-  { "foo://123.123.133.123:12", false },
-  { "tcp://foo", false },
-  { "tcp4://foo", false },
-  { "tcp6://foo", false },
-  { "udp://foo", false },
-  { "udp4://foo", false },
-  { "udp6://foo", false },
-  { "file://", false },
-  { "ipc://", false },
-  { "pipe://", false },
+  { "foo", false, connector::CT_UNSPEC },
+  { "foo:", false, connector::CT_UNSPEC },
+  { "foo://", false, connector::CT_UNSPEC },
+  { "foo:///some/path", false, connector::CT_UNSPEC },
+  { "foo://123.123.133.123:12", false, connector::CT_UNSPEC },
+  { "tcp://foo", false, connector::CT_UNSPEC },
+  { "tcp4://foo", false, connector::CT_UNSPEC },
+  { "tcp6://foo", false, connector::CT_UNSPEC },
+  { "udp://foo", false, connector::CT_UNSPEC },
+  { "udp4://foo", false, connector::CT_UNSPEC },
+  { "udp6://foo", false, connector::CT_UNSPEC },
+  { "file://", false, connector::CT_UNSPEC },
+  { "ipc://", false, connector::CT_UNSPEC },
+  { "pipe://", false, connector::CT_UNSPEC },
 
   // IPv4 hosts
-  { "tcp://192.168.0.1",      true },
-  { "tcp://192.168.0.1:8080", true },
-  { "tCp://192.168.0.1",      true },
-  { "tcP://192.168.0.1:8080", true },
+  { "tcp://192.168.0.1",      true, connector::CT_TCP },
+  { "tcp://192.168.0.1:8080", true, connector::CT_TCP },
+  { "tCp://192.168.0.1",      true, connector::CT_TCP },
+  { "tcP://192.168.0.1:8080", true, connector::CT_TCP },
 
-  { "tcp4://192.168.0.1",      true },
-  { "tcp4://192.168.0.1:8080", true },
-  { "tCp4://192.168.0.1",      true },
-  { "tcP4://192.168.0.1:8080", true },
+  { "tcp4://192.168.0.1",      true, connector::CT_TCP4 },
+  { "tcp4://192.168.0.1:8080", true, connector::CT_TCP4 },
+  { "tCp4://192.168.0.1",      true, connector::CT_TCP4 },
+  { "tcP4://192.168.0.1:8080", true, connector::CT_TCP4 },
 
-  { "tcp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, },
-  { "tcp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, },
-  { "tcp4://2001:0db8:85a3::8a2e:0370:7334",             false, },
-  { "Tcp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, },
-  { "tCp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, },
-  { "tcP4://2001:0db8:85a3::8a2e:0370:7334",             false, },
+  { "tcp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, connector::CT_UNSPEC, },
+  { "tcp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, connector::CT_UNSPEC, },
+  { "tcp4://2001:0db8:85a3::8a2e:0370:7334",             false, connector::CT_UNSPEC, },
+  { "Tcp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, connector::CT_UNSPEC, },
+  { "tCp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, connector::CT_UNSPEC, },
+  { "tcP4://2001:0db8:85a3::8a2e:0370:7334",             false, connector::CT_UNSPEC, },
 
-  { "udp://192.168.0.1",      true },
-  { "udp://192.168.0.1:8080", true },
-  { "uDp://192.168.0.1",      true },
-  { "udP://192.168.0.1:8080", true },
+  { "udp://192.168.0.1",      true, connector::CT_UDP },
+  { "udp://192.168.0.1:8080", true, connector::CT_UDP },
+  { "uDp://192.168.0.1",      true, connector::CT_UDP },
+  { "udP://192.168.0.1:8080", true, connector::CT_UDP },
 
-  { "udp4://192.168.0.1",      true },
-  { "udp4://192.168.0.1:8080", true },
-  { "uDp4://192.168.0.1",      true },
-  { "udP4://192.168.0.1:8080", true },
+  { "udp4://192.168.0.1",      true, connector::CT_UDP4 },
+  { "udp4://192.168.0.1:8080", true, connector::CT_UDP4 },
+  { "uDp4://192.168.0.1",      true, connector::CT_UDP4 },
+  { "udP4://192.168.0.1:8080", true, connector::CT_UDP4 },
 
-  { "udp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, },
-  { "udp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, },
-  { "udp4://2001:0db8:85a3::8a2e:0370:7334",             false, },
-  { "Udp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, },
-  { "uDp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, },
-  { "udP4://2001:0db8:85a3::8a2e:0370:7334",             false, },
+  { "udp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, connector::CT_UNSPEC, },
+  { "udp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, connector::CT_UNSPEC, },
+  { "udp4://2001:0db8:85a3::8a2e:0370:7334",             false, connector::CT_UNSPEC, },
+  { "Udp4://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    false, connector::CT_UNSPEC, },
+  { "uDp4://2001:0db8:85a3:0:0:8a2e:0370:7334",          false, connector::CT_UNSPEC, },
+  { "udP4://2001:0db8:85a3::8a2e:0370:7334",             false, connector::CT_UNSPEC, },
 
   // IPv6 hosts
-  { "tcp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "tcp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "tcp://2001:0db8:85a3::8a2e:0370:7334",             true, },
-  { "Tcp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "tCp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "tcP://2001:0db8:85a3::8a2e:0370:7334",             true, },
+  { "tcp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_TCP, },
+  { "tcp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_TCP, },
+  { "tcp://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_TCP, },
+  { "Tcp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_TCP, },
+  { "tCp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_TCP, },
+  { "tcP://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_TCP, },
 
-  { "tcp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "tcp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "tcp6://2001:0db8:85a3::8a2e:0370:7334",             true, },
-  { "Tcp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "tCp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "tcP6://2001:0db8:85a3::8a2e:0370:7334",             true, },
+  { "tcp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_TCP6, },
+  { "tcp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_TCP6, },
+  { "tcp6://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_TCP6, },
+  { "Tcp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_TCP6, },
+  { "tCp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_TCP6, },
+  { "tcP6://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_TCP6, },
 
-  { "tcp6://192.168.0.1",      false },
-  { "tcp6://192.168.0.1:8080", false },
-  { "tCp6://192.168.0.1",      false },
-  { "tcP6://192.168.0.1:8080", false },
+  { "tcp6://192.168.0.1",      false, connector::CT_UNSPEC },
+  { "tcp6://192.168.0.1:8080", false, connector::CT_UNSPEC },
+  { "tCp6://192.168.0.1",      false, connector::CT_UNSPEC },
+  { "tcP6://192.168.0.1:8080", false, connector::CT_UNSPEC },
 
-  { "udp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "udp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "udp://2001:0db8:85a3::8a2e:0370:7334",             true, },
-  { "Udp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "uDp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "udP://2001:0db8:85a3::8a2e:0370:7334",             true, },
+  { "udp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_UDP, },
+  { "udp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_UDP, },
+  { "udp://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_UDP, },
+  { "Udp://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_UDP, },
+  { "uDp://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_UDP, },
+  { "udP://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_UDP, },
 
-  { "udp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "udp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "udp6://2001:0db8:85a3::8a2e:0370:7334",             true, },
-  { "Udp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, },
-  { "uDp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, },
-  { "udP6://2001:0db8:85a3::8a2e:0370:7334",             true, },
+  { "udp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_UDP6, },
+  { "udp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_UDP6, },
+  { "udp6://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_UDP6, },
+  { "Udp6://2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true, connector::CT_UDP6, },
+  { "uDp6://2001:0db8:85a3:0:0:8a2e:0370:7334",          true, connector::CT_UDP6, },
+  { "udP6://2001:0db8:85a3::8a2e:0370:7334",             true, connector::CT_UDP6, },
 
-  { "udp6://192.168.0.1",      false },
-  { "udp6://192.168.0.1:8080", false },
-  { "udP6://192.168.0.1",      false },
-  { "uDp6://192.168.0.1:8080", false },
+  { "udp6://192.168.0.1",      false, connector::CT_UNSPEC },
+  { "udp6://192.168.0.1:8080", false, connector::CT_UNSPEC },
+  { "udP6://192.168.0.1",      false, connector::CT_UNSPEC },
+  { "uDp6://192.168.0.1:8080", false, connector::CT_UNSPEC },
 
   // All other types require path names. There's not much common
   // about path names, so our only requirement is that it exists.
-  { "file://foo", true },
-  { "ipc://foo", true },
-  { "pipe://foo", true },
+  { "file://foo", true, connector::CT_FILE },
+  { "ipc://foo", true, connector::CT_IPC },
+  { "pipe://foo", true, connector::CT_PIPE },
 
 };
 
@@ -147,13 +150,13 @@ private:
 
   void testAddressParsing()
   {
-    using namespace packeteer;
-
     for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
       // std::cout << "test: " << tests[i].address << std::endl;
 
       if (tests[i].valid) {
         CPPUNIT_ASSERT_NO_THROW(auto c = connector(tests[i].address));
+        auto c = connector(tests[i].address);
+        CPPUNIT_ASSERT_EQUAL(tests[i].type, c.type());
       }
       else {
         CPPUNIT_ASSERT_THROW(auto c = connector(tests[i].address), std::runtime_error);

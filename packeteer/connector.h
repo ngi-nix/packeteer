@@ -44,12 +44,13 @@ public:
   // Types of connectors
   enum connector_type
   {
+    CT_UNSPEC = -1, // Never returned
     CT_TCP4 = 0,
     CT_TCP6,
-    CT_TCP,
+    CT_TCP,         // Not returned
     CT_UDP4,
     CT_UDP6,
-    CT_UDP,
+    CT_UDP,         // Not returned
     CT_FILE,
     CT_IPC,
     CT_PIPE,
@@ -91,6 +92,11 @@ public:
    **/
   connector(std::string const & address);
   ~connector();
+
+  /**
+   * Returns the connector type.
+   **/
+  connector_type type() const;
 
 private:
   // pimpl

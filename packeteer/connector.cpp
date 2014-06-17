@@ -110,6 +110,8 @@ split_address(std::string const & address)
  **/
 struct connector::connector_impl
 {
+  connector::connector_type   m_type;
+
   connector_impl(std::string const & address)
   {
     auto pre_parsed = split_address(address);
@@ -140,10 +142,12 @@ struct connector::connector_impl
       }
 
       // Looks good for TCP/UDP style connectors!
+      m_type = pre_parsed.first;
       // TODO
     }
     else {
       // Looks good for non-TCP/UDP style connectors!
+      m_type = pre_parsed.first;
       // TODO
     }
   }
@@ -162,6 +166,14 @@ connector::connector(std::string const & address)
 connector::~connector()
 {
   delete m_impl;
+}
+
+
+
+connector::connector_type
+connector::type() const
+{
+  return m_impl->m_type;
 }
 
 } // namespace packeteer
