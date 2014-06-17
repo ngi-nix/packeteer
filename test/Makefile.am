@@ -16,4 +16,5 @@ testsuite_SOURCES = \
 	test_pipe.cpp \
 	test_scheduler_impl.cpp \
 	test_scheduler.cpp \
+	test_connector.cpp \
 	testsuite.cpp

@@ -16,6 +16,7 @@ pkginclude_HEADERS = \
 	pipe.h \
 	events.h \
 	scheduler.h \
+	connector.h \
 	net/socket_address.h \
 	net/network.h \
 	net/detail/sysincludes.h
@@ -39,6 +40,7 @@ libpacketeer_la_SOURCES = \
 	packeteer.cpp \
 	pipe.cpp \
 	scheduler.cpp \
+	connector.cpp \
 	detail/worker.cpp \
 	detail/scheduler_impl.cpp \
 	net/socket_address.cpp \
