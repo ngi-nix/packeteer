@@ -50,8 +50,17 @@ namespace detail {
  * present after all.
  *
  * Also returns the protocol type in the proto value.
+ *
+ * The CIDR specification is extended in that we also parse ports, if specified.
+ * Note that any argument to the port parameter will override the port
+ * specification found in the cidr string.
+ *
+ * For IPv4 and IPv6, the port is specified after the address part, separated by
+ * a colon. For IPv6, the address part additionally needs to be enclosed in
+ * square brackets. Note that if a port is specified, a netmask cannot be and
+ * vice versa.
  **/
-ssize_t parse_cidr(std::string const & cidr, bool no_mask,
+ssize_t parse_extended_cidr(std::string const & cidr, bool no_mask,
     address_type & address, sa_family_t & proto, uint16_t port = 0);
 
 }}} // namespace packeteer::net::detail

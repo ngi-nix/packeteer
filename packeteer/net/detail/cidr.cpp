@@ -30,8 +30,8 @@ namespace detail {
 
 
 ssize_t
-parse_cidr(std::string const & _cidr, bool no_mask, address_type & address,
-    sa_family_t & proto, uint16_t port /* = 0 */)
+parse_extended_cidr(std::string const & _cidr, bool no_mask,
+    address_type & address, sa_family_t & proto, uint16_t port /* = 0 */)
 {
   // Initialize return value for proto
   proto = AF_UNSPEC;
@@ -57,18 +57,73 @@ parse_cidr(std::string const & _cidr, bool no_mask, address_type & address,
     *mask_ptr = '\0';
   }
 
+  // Let's see if we've got a port part. At this point, we need to parse a
+  // little bit by hand:
+  // - For IPv4 addresses, a colon (address-port-delimiter) is not a valid
+  //   character, so finding it is an indicator that a port is specified.
+  // - For IPv6 addresses, a colon (address-port-delimiter) is a valid
+  //   character. If a port is specified, the address part is enclosed in
+  //   square brackets.
+  // The best strategy appears to be to check if there is a part enclosed
+  // in square brackets. Then try to find a colon behind it (or from the start,
+  // if no square brackets are found), and a port behind that.
+  char * cidr_start = &cidr[0];
+  char * port_ptr = nullptr;
+  bool skip_brace = false;
+  if ('[' == cidr[0]) {
+    port_ptr = ::strstr(&cidr[1], "]:");
+    if (nullptr != port_ptr) {
+      cidr_start = &cidr[1];
+      skip_brace = true;
+    }
+  }
+  else {
+    port_ptr = ::strstr(&cidr[0], ":");
+  }
+  if (nullptr != port_ptr) {
+    // Now if there are any non-numeric characters in the port part, we'll
+    // know this isn't actually a port, but an IPv6 address (presumably!)
+    // without the enclosing braces.
+    char * test = port_ptr + 1;
+    if (skip_brace) {
+      ++test;
+    }
+    for ( ; *test ; ++test) {
+      if (*test < '0' || *test > '9') {
+        port_ptr = nullptr;
+        break;
+      }
+    }
+  }
+  if (nullptr != port_ptr) {
+    if (nullptr != mask_ptr) {
+      return -1;
+    }
+    *port_ptr = '\0';
+  }
+
+  // Alright, parse port (if necessary).
+  uint16_t detected_port = port;
+  if (!detected_port && port_ptr) {
+    char * parse = port_ptr + 1;
+    if (skip_brace) {
+      ++parse;
+    }
+    detected_port = ::atoi(parse);
+  }
+
   // Now try to parse the cidr as an IPv4 or IPv6 address. One of them will
   // succeed (hopefully). We'll use the buffer passed into this function for
   // that.
-  if (1 == inet_pton(AF_INET, &cidr[0], &(address.sa_in.sin_addr))) {
+  if (1 == inet_pton(AF_INET, cidr_start, &(address.sa_in.sin_addr))) {
     // It's IPv4.
     address.sa_in.sin_family = proto = AF_INET;
-    address.sa_in.sin_port = htons(port);
+    address.sa_in.sin_port = htons(detected_port);
   }
-  else if (1 == inet_pton(AF_INET6, &cidr[0], &(address.sa_in6.sin6_addr))) {
+  else if (1 == inet_pton(AF_INET6, cidr_start, &(address.sa_in6.sin6_addr))) {
     // It's IPv6.
     address.sa_in6.sin6_family = proto = AF_INET6;
-    address.sa_in6.sin6_port = htons(port);
+    address.sa_in6.sin6_port = htons(detected_port);
   }
   else {
     // Invalid address
