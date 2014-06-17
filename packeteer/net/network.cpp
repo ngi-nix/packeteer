@@ -112,7 +112,8 @@ struct network::network_impl
     // contains a netmask, and socket_address doesn't like that. But we can
     // easily parse it now. XXX This is a little wasteful, parsing two
     // netspecs, but not as bad as convoluting the cidr API even more.
-    ssize_t err = detail::parse_cidr(netspec, false, m_network.data, m_family);
+    ssize_t err = detail::parse_extended_cidr(netspec, false, m_network.data,
+        m_family);
     if (-1 == err) {
       throw exception(ERR_INVALID_VALUE, "Could not parse CIDR specification.");
     }
@@ -169,7 +170,8 @@ network::verify_netspec(std::string const & netspec)
 {
   detail::address_type dummy_addr;
   sa_family_t dummy_proto;
-  ssize_t err = detail::parse_cidr(netspec, false, dummy_addr, dummy_proto);
+  ssize_t err = detail::parse_extended_cidr(netspec, false, dummy_addr,
+      dummy_proto);
   return (-1 != err);
 }
 

@@ -66,7 +66,8 @@ socket_address::socket_address(std::string const & address,
   ::memset(&data.sa_storage, 0, sizeof(data));
 
   sa_family_t dummy_proto;
-  ssize_t err = detail::parse_cidr(address, true, data, dummy_proto, port);
+  ssize_t err = detail::parse_extended_cidr(address, true, data, dummy_proto,
+      port);
   if (-1 == err) {
     throw exception(ERR_INVALID_VALUE, "socket_address: could not parse socket address.");
   }
@@ -80,7 +81,8 @@ socket_address::socket_address(char const * address, uint16_t port /* = 0 */)
   ::memset(&data.sa_storage, 0, sizeof(data));
 
   sa_family_t dummy_proto;
-  ssize_t err = detail::parse_cidr(address, true, data, dummy_proto, port);
+  ssize_t err = detail::parse_extended_cidr(address, true, data, dummy_proto,
+      port);
   if (-1 == err) {
     throw exception(ERR_INVALID_VALUE, "socket_address: could not parse socket address.");
   }
@@ -93,7 +95,8 @@ socket_address::verify_address(std::string const & address)
 {
   detail::address_type dummy_addr;
   sa_family_t dummy_proto;
-  size_t err = detail::parse_cidr(address, true, dummy_addr, dummy_proto);
+  size_t err = detail::parse_extended_cidr(address, true, dummy_addr,
+      dummy_proto);
   return (0 == err);
 }
 
