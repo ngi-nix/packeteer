@@ -88,6 +88,10 @@ PACKETEER_ERRDEF(ERR_INVALID_OPTION,
     8,
     "Invalid option specified.")
 
+PACKETEER_ERRDEF(ERR_NUM_ITEMS,
+    9,
+    "Too many items.")
+
 PACKETEER_END_ERRORS
 
 

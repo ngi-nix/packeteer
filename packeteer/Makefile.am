@@ -15,7 +15,10 @@ pkginclude_HEADERS = \
 	callback.h \
 	pipe.h \
 	events.h \
-	scheduler.h
+	scheduler.h \
+	net/socket_address.h \
+	net/network.h \
+	net/detail/sysincludes.h
 
 noinst_HEADERS = \
 	detail/scheduler_impl.h \
@@ -23,7 +26,8 @@ noinst_HEADERS = \
 	detail/callbacks_scheduled.h \
 	detail/callbacks_user_defined.h \
 	detail/io.h \
-	detail/worker.h
+	detail/worker.h \
+	net/detail/cidr.h
 
 libpacketeer_la_CPPFLAGS = $(DEPS_CFLAGS)
 libpacketeer_la_LIBADD = $(DEPS_LIBS)
@@ -36,7 +40,10 @@ libpacketeer_la_SOURCES = \
 	pipe.cpp \
 	scheduler.cpp \
 	detail/worker.cpp \
-	detail/scheduler_impl.cpp
+	detail/scheduler_impl.cpp \
+	net/socket_address.cpp \
+	net/network.cpp \
+	net/detail/cidr.cpp
 
 if HAVE_EPOLL_CREATE1
 libpacketeer_la_SOURCES += \

@@ -3,8 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
- * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012-2014 Unwesen Ltd.
+ * Copyright (c) 2014 Unwesen Ltd.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -18,24 +17,15 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_PACKETEER_H
-#define PACKETEER_PACKETEER_H
 
-#ifndef __cplusplus
-#error You are trying to include a C++ only header file
+#ifndef PACKETEER_NET_DETAIL_SYSINCLUDES_H
+#define PACKETEER_NET_DETAIL_SYSINCLUDES_H
+
+#include <arpa/inet.h>
+
+#if defined(linux) || defined(__gnu_linux__) || defined(__linux__) || defined(__linux)
+#include <linux/if.h>
+#include <linux/if_tun.h>
 #endif
-
-#include <packeteer/packeteer-config.h>
-
-#define __STDC_LIMIT_MACROS
-#include <stdint.h>
-
-// Not all, but the very basic headers are always included.
-#include <packeteer/macros.h>
-
-
-namespace packeteer {
-
-} // namespace packeteer
 
 #endif // guard

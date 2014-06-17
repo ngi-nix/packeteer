@@ -8,6 +8,9 @@ testsuite_LDADD = $(top_builddir)/packeteer/libpacketeer.la \
 	$(CPPUNIT_LIBS) $(TWINE_LIBS)
 
 testsuite_SOURCES = \
+	test_cidr.cpp \
+	test_socket_address.cpp \
+	test_network.cpp \
 	test_callback.cpp \
 	test_concurrent_queue.cpp \
 	test_pipe.cpp \
