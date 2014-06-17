@@ -70,6 +70,13 @@ union address_type
 class socket_address
 {
 public:
+  // Socket address type
+  enum socket_address_type
+  {
+    SAT_INET4 = 0,
+    SAT_INET6
+  };
+
   /**
    * Default constructor. The resulting socket address does not point anywhere.
    **/
@@ -116,6 +123,12 @@ public:
    * Returns the port part of this address.
    **/
   uint16_t port() const;
+
+
+  /**
+   * Returns the socket address type
+   **/
+  socket_address_type type() const;
 
 
   /**

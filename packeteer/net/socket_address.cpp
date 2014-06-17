@@ -298,6 +298,19 @@ socket_address::operator++()
 
 
 
+socket_address::socket_address_type
+socket_address::type() const
+{
+  if (AF_INET == data.sa_storage.ss_family) {
+    return SAT_INET4;
+  }
+  else {
+    return SAT_INET6;
+  }
+}
+
+
+
 size_t
 socket_address::hash() const
 {
