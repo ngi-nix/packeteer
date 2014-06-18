@@ -59,7 +59,7 @@ match_scheme(std::string const & scheme)
   // Find scheme type
   auto iter = mapping.find(scheme);
   if (mapping.end() == iter) {
-    throw std::runtime_error("FIXME");
+    throw exception(ERR_INVALID_VALUE, "Unsupported connector scheme requested.");
   }
 
   return iter->second;
@@ -73,19 +73,19 @@ split_address(std::string const & address)
   // We'll find the first occurrence of a colon; that *should* delimit the scheme.
   auto pos = address.find_first_of(':');
   if (std::string::npos == pos) {
-    throw std::runtime_error("FIXME");
+    throw exception(ERR_FORMAT, "No scheme separator found in connector address.");
   }
   // std::cout << "colon at: " << pos << std::endl;
 
   // We'll then try to see if the characters immediately following are two
   // slashes.
   if (pos + 3 > address.size()) {
-    throw std::runtime_error("FIXME");
+    throw exception(ERR_FORMAT, "Bad scheme separator found in connector address.");
   }
   // std::cout << "pos + 1: " << address[pos + 1] << std::endl;
   // std::cout << "pos + 2: " << address[pos + 2] << std::endl;
   if (!('/' == address[pos + 1] && '/' == address[pos + 2])) {
-    throw std::runtime_error("FIXME");
+    throw exception(ERR_FORMAT, "Bad scheme separator found in connector address.");
   }
 
   // Ok, we seem to have a scheme part. Lower-case it.
@@ -124,7 +124,7 @@ struct connector::connector_impl
         && pre_parsed.first <= connector::CT_UDP)
     {
       if (pre_parsed.second.empty()) {
-        throw std::runtime_error("FIXME");
+        throw exception(ERR_FORMAT, "Require address part in address string.");
       }
 
       // Parse socket address.
@@ -137,7 +137,7 @@ struct connector::connector_impl
             && connector::CT_UDP4 != pre_parsed.first
             && connector::CT_UDP != pre_parsed.first)
         {
-          throw std::runtime_error("FIXME");
+          throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
         }
       }
       if (net::socket_address::SAT_INET6 == addr.type()) {
@@ -146,7 +146,7 @@ struct connector::connector_impl
             && connector::CT_UDP6 != pre_parsed.first
             && connector::CT_UDP != pre_parsed.first)
         {
-          throw std::runtime_error("FIXME");
+          throw exception(ERR_FORMAT, "IPv6 address provided with IPv4 scheme.");
         }
       }
 
@@ -156,10 +156,6 @@ struct connector::connector_impl
     }
 
     else if (connector::CT_ANON == pre_parsed.first) {
-      if (!pre_parsed.second.empty()) {
-        throw std::runtime_error("FIXME");
-      }
-
       // Looks good for anonymous connectors
       m_type = pre_parsed.first;
 
@@ -175,7 +171,7 @@ struct connector::connector_impl
         block = true;
       }
       else {
-        throw std::runtime_error("FIXME");
+        throw exception(ERR_FORMAT, "Invalid keyword in address string.");
       }
 
       m_conn = new detail::connector_pipe(block);
@@ -183,7 +179,7 @@ struct connector::connector_impl
 
     else {
       if (pre_parsed.second.empty()) {
-        throw std::runtime_error("FIXME");
+        throw exception(ERR_FORMAT, "Require path in address string.");
       }
       // Looks good for non-TCP/UDP style connectors!
       m_type = pre_parsed.first;
