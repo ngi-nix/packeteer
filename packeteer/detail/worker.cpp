@@ -65,6 +65,9 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
       LOG("worker picked up entry of type: " << entry->m_type);
       try {
         execute_callback(entry);
+      } catch (exception const & ex) {
+        LOG("Error in callback: [" << ex.code() << "] " << ex.what()
+            << " - " << ex.details());
       } catch (std::exception const & ex) {
         LOG("Error in callback: " << ex.what());
         delete entry;

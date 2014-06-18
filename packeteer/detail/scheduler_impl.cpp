@@ -482,55 +482,67 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
 {
   LOG("CPUS: " << twine::thread::hardware_concurrency());
 
-  while (m_main_loop_continue) {
-    // While processing the in-queue, we will find triggers for user-defined
-    // events. We can't really execute them until we've processed the whole
-    // in-queue, so we'll store them temporarily and get back to them later.
-    entry_list_t triggered;
-    process_in_queue(triggered);
+  try {
+    while (m_main_loop_continue) {
+      // While processing the in-queue, we will find triggers for user-defined
+      // events. We can't really execute them until we've processed the whole
+      // in-queue, so we'll store them temporarily and get back to them later.
+      entry_list_t triggered;
+      process_in_queue(triggered);
 
-    // Get I/O events from the subsystem
-    std::vector<detail::event_data> events;
+      // Get I/O events from the subsystem
+      std::vector<detail::event_data> events;
 
-    // Timeout is *fixed*, because:
-    // - I/O events will interrupt this anyway.
-    // - OSX has a minimum timeout of 20 msec for *select*
-    // - It would not make sense for user/scheduled callbacks to be triggered at
-    //   different resolution on different platforms.
-    m_io->wait_for_events(events, tc::milliseconds(20));
-    //for (auto event : events) {
-    //  LOG("got events " << event.events << " for " << event.fd);
-    //}
+      // Timeout is *fixed*, because:
+      // - I/O events will interrupt this anyway.
+      // - OSX has a minimum timeout of 20 msec for *select*
+      // - It would not make sense for user/scheduled callbacks to be triggered at
+      //   different resolution on different platforms.
+      m_io->wait_for_events(events, tc::milliseconds(20));
+      //for (auto event : events) {
+      //  LOG("got events " << event.events << " for " << event.fd);
+      //}
 
-    // Process all callbacks that want to be invoked now. Since we can't have
-    // workers access the same entries we may still have in our multi-index
-    // containers, we'll collect callbacks into a local vector first, and add
-    // those entries to the out queue later.
-    // The scheduler relinquishes ownership over entries in the to_schedule
-    // vector to workers.
-    tc::nanoseconds now = tc::now();
-    entry_list_t to_schedule;
+      // Process all callbacks that want to be invoked now. Since we can't have
+      // workers access the same entries we may still have in our multi-index
+      // containers, we'll collect callbacks into a local vector first, and add
+      // those entries to the out queue later.
+      // The scheduler relinquishes ownership over entries in the to_schedule
+      // vector to workers.
+      tc::nanoseconds now = tc::now();
+      entry_list_t to_schedule;
 
-    dispatch_io_callbacks(events, to_schedule);
-    dispatch_scheduled_callbacks(now, to_schedule);
-    dispatch_user_callbacks(triggered, to_schedule);
+      dispatch_io_callbacks(events, to_schedule);
+      dispatch_scheduled_callbacks(now, to_schedule);
+      dispatch_user_callbacks(triggered, to_schedule);
 
-    // After callbacks of all kinds have been added to to_schedule, we can push
-    // those entries to the out queue and wake workers.
-    if (!to_schedule.empty()) {
-      m_out_queue.push_range(to_schedule.begin(), to_schedule.end());
+      // After callbacks of all kinds have been added to to_schedule, we can push
+      // those entries to the out queue and wake workers.
+      if (!to_schedule.empty()) {
+        m_out_queue.push_range(to_schedule.begin(), to_schedule.end());
 
-      // We need to interrupt the worker pipe more than once, in order to wake
-      // up multiple workers. But we don't want to interrupt the pipe more than
-      // there are workers or jobs, either, to avoid needless lock contention.
-      twine::scoped_lock<twine::recursive_mutex> lock(m_worker_mutex);
-      size_t interrupts = std::min(to_schedule.size(), m_workers.size());
-      while (interrupts--) {
-        LOG("interrupting worker pipe");
-        m_worker_condition.notify_one();
+        // We need to interrupt the worker pipe more than once, in order to wake
+        // up multiple workers. But we don't want to interrupt the pipe more than
+        // there are workers or jobs, either, to avoid needless lock contention.
+        twine::scoped_lock<twine::recursive_mutex> lock(m_worker_mutex);
+        size_t interrupts = std::min(to_schedule.size(), m_workers.size());
+        while (interrupts--) {
+          LOG("interrupting worker pipe");
+          m_worker_condition.notify_one();
+        }
       }
     }
+  } catch (exception const & ex) {
+    LOG("Error in main loop: [" << ex.code() << "] " << ex.what()
+        << " - " << ex.details());
+  } catch (std::exception const & ex) {
+    LOG("Error in main loop: " << ex.what());
+  } catch (std::string const & str) {
+    LOG("Error in main loop: " << str);
+  } catch (...) {
+    LOG("Error in main loop.");
   }
+
 
   LOG("scheduler main loop terminated.");
 }
