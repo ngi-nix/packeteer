@@ -43,11 +43,12 @@ private:
     pk::pipe pipe;
 
     std::string msg = "hello, world!";
-    CPPUNIT_ASSERT_EQUAL(pk::ERR_SUCCESS, pipe.write(msg.c_str(), msg.size()));
+    size_t amount = 0;
+    CPPUNIT_ASSERT_EQUAL(pk::ERR_SUCCESS, pipe.write(msg.c_str(), msg.size(), amount));
+    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 
     std::vector<char> result;
     result.reserve(2 * msg.size());
-    size_t amount = 0;
     CPPUNIT_ASSERT_EQUAL(pk::ERR_SUCCESS, pipe.read(&result[0], result.capacity(),
           amount));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);

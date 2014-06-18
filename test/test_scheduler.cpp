@@ -439,7 +439,9 @@ public:
     // So let's write something to the pipe. This will trigger the read callback
     // until we're reading from the pipe again.
     char buf[] = { '\0' };
-    pipe.write(buf, sizeof(buf));
+    size_t amount = 0;
+    pipe.write(buf, sizeof(buf), amount);
+    CPPUNIT_ASSERT_EQUAL(sizeof(buf), amount);
 
     tc::sleep(tc::milliseconds(50));
 
@@ -447,7 +449,6 @@ public:
 
     int current = source1.m_called;
 
-    size_t amount = 0;
     pipe.read(buf, sizeof(buf), amount);
     CPPUNIT_ASSERT_EQUAL(sizeof(buf), amount);
 

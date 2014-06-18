@@ -49,7 +49,8 @@ namespace detail {
 void interrupt(pipe & pipe)
 {
   char buf[1] = { '\0' };
-  pipe.write(buf, sizeof(buf));
+  size_t amount = 0;
+  pipe.write(buf, sizeof(buf), amount);
 }
 
 

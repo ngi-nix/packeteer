@@ -29,7 +29,7 @@
 
 namespace packeteer {
 
-pipe::pipe()
+pipe::pipe(bool block /* = true */)
   : m_fds({ -1, -1})
 {
   int ret = ::pipe(m_fds);
@@ -48,7 +48,13 @@ pipe::pipe()
 
   // Make the read end non-blocking.
   int val = ::fcntl(m_fds[0], F_GETFL, 0);
-  val |= O_NONBLOCK | O_CLOEXEC;
+  val |= O_CLOEXEC;
+  if (!block) {
+    val |= O_NONBLOCK;
+  }
+  else {
+    val &= ~O_NONBLOCK;
+  }
   val = ::fcntl(m_fds[0], F_SETFL, val);
   if (-1 == val) {
     // Really all errors are unexpected here.
@@ -57,7 +63,13 @@ pipe::pipe()
 
   // Make the write end non-blocking
   val = ::fcntl(m_fds[1], F_GETFL, 0);
-  val |= O_NONBLOCK | O_CLOEXEC;
+  val |= O_CLOEXEC;
+  if (!block) {
+    val |= O_NONBLOCK;
+  }
+  else {
+    val &= ~O_NONBLOCK;
+  }
   val = ::fcntl(m_fds[1], F_SETFL, val);
   if (-1 == val) {
     throw exception(ERR_UNEXPECTED);
@@ -75,12 +87,10 @@ pipe::~pipe()
 
 
 error_t
-pipe::write(char const * buf, size_t bufsize)
+pipe::write(char const * buf, size_t bufsize, size_t & bytes_written)
 {
-  ssize_t written = 0;
-  do {
-    written = ::write(m_fds[1], buf, bufsize);
-  } while (written == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
+  ssize_t written = ::write(m_fds[1], buf, bufsize);
+  bytes_written = written;
 
   if (-1 == written) {
     LOG("Error writing to pipe: " << ::strerror(errno));
@@ -112,14 +122,10 @@ pipe::write(char const * buf, size_t bufsize)
 
 
 error_t
-pipe::read(char * buf, size_t bufsize, size_t & amount)
+pipe::read(char * buf, size_t bufsize, size_t & bytes_read)
 {
-  ssize_t read = 0;
-
-  do {
-    read = ::read(m_fds[0], buf, bufsize);
-  } while (read == -1 && (errno == EAGAIN || errno == EWOULDBLOCK));
-  amount = read;
+  ssize_t read = ::read(m_fds[0], buf, bufsize);
+  bytes_read = read;
 
   if (read == -1) {
     LOG("Error reading from pipe: " << ::strerror(errno));
@@ -148,7 +154,7 @@ pipe::read(char * buf, size_t bufsize, size_t & amount)
 
 
 int
-pipe::get_read_fd()
+pipe::get_read_fd() const
 {
   return m_fds[0];
 }
@@ -156,7 +162,7 @@ pipe::get_read_fd()
 
 
 int
-pipe::get_write_fd()
+pipe::get_write_fd() const
 {
   return m_fds[1];
 }

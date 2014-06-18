@@ -37,14 +37,26 @@ namespace packeteer {
 class pipe
 {
 public:
-  pipe();
+  /**
+   * Constructor; if the block parameter is given, read and write calls will 
+   * block until the specified buffer size is read or written respectively.
+   **/
+  pipe(bool block = true);
   ~pipe();
 
-  error_t write(char const * buf, size_t bufsize);
-  error_t read(char * buf, size_t bufsize, size_t & amount);
+  /**
+   * Read from the pipe into the given buffer, or write to the pipe from the
+   * given buffer. Read or write at most bufsize bytes. The actual amount read
+   * or written is returned in the last parameter.
+   **/
+  error_t write(char const * buf, size_t bufsize, size_t & bytes_written);
+  error_t read(char * buf, size_t bufsize, size_t & bytes_read);
 
-  int get_read_fd();
-  int get_write_fd();
+  /**
+   * Get read and write file descriptors for use with the scheduler class.
+   **/
+  int get_read_fd() const;
+  int get_write_fd() const;
 
 private:
   int m_fds[2];
