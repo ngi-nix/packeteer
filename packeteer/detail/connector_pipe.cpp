@@ -19,11 +19,18 @@
  **/
 #include <packeteer/detail/connector_pipe.h>
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+
+
 namespace packeteer {
 namespace detail {
 
-connector_pipe::connector_pipe()
-  : m_pipe(nullptr)
+connector_pipe::connector_pipe(bool block /* = false */)
+  : m_block(block)
+  , m_fds({ -1, -1})
 {
 }
 
@@ -31,7 +38,7 @@ connector_pipe::connector_pipe()
 
 connector_pipe::~connector_pipe()
 {
-  delete m_pipe;
+  close();
 }
 
 
@@ -39,15 +46,56 @@ connector_pipe::~connector_pipe()
 error_t
 connector_pipe::create_pipe()
 {
-  if (m_pipe) {
+  if (connected()) {
     return ERR_INITIALIZATION;
   }
 
-  try {
-    m_pipe = new pipe();
-  } catch (exception const & ex) {
-    return ex.code();
-  } catch (...) {
+  // Create pipe
+  int ret = ::pipe(m_fds);
+  if (-1 == ret) {
+    switch (errno) {
+      case EMFILE:
+      case ENFILE:
+        close();
+        return ERR_NUM_FILES;
+        break;
+
+      default:
+        close();
+        return ERR_UNEXPECTED;
+        break;
+    }
+  }
+
+  // Optionally make the read end non-blocking
+  int val = ::fcntl(m_fds[0], F_GETFL, 0);
+  val |= O_CLOEXEC;
+  if (!m_block) {
+    val |= O_NONBLOCK;
+  }
+  else {
+    val &= ~O_NONBLOCK;
+  }
+  val = ::fcntl(m_fds[0], F_SETFL, val);
+  if (-1 == val) {
+    // Really all errors are unexpected here.
+    close();
+    return ERR_UNEXPECTED;
+  }
+
+  // Optionally make the write end non-blocking
+  val = ::fcntl(m_fds[1], F_GETFL, 0);
+  val |= O_CLOEXEC;
+  if (!m_block) {
+    val |= O_NONBLOCK;
+  }
+  else {
+    val &= ~O_NONBLOCK;
+  }
+  val = ::fcntl(m_fds[1], F_SETFL, val);
+  if (-1 == val) {
+    // Really all errors are unexpected here.
+    close();
     return ERR_UNEXPECTED;
   }
 
@@ -67,7 +115,7 @@ connector_pipe::bind()
 bool
 connector_pipe::bound() const
 {
-  return (nullptr != m_pipe);
+  return connected();
 }
 
 
@@ -83,7 +131,7 @@ connector_pipe::connect()
 bool
 connector_pipe::connected() const
 {
-  return (nullptr != m_pipe);
+  return (m_fds[0] != -1 && m_fds[1] != -1);
 }
 
 
@@ -91,10 +139,7 @@ connector_pipe::connected() const
 int
 connector_pipe::get_read_fd() const
 {
-  if (!m_pipe) {
-    return -1;
-  }
-  return m_pipe->get_read_fd();
+  return m_fds[0];
 }
 
 
@@ -102,10 +147,7 @@ connector_pipe::get_read_fd() const
 int
 connector_pipe::get_write_fd() const
 {
-  if (!m_pipe) {
-    return -1;
-  }
-  return m_pipe->get_write_fd();
+  return m_fds[1];
 }
 
 
@@ -113,10 +155,35 @@ connector_pipe::get_write_fd() const
 error_t
 connector_pipe::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
-  if (!m_pipe) {
+  if (!connected()) {
     return ERR_INITIALIZATION;
   }
-  return m_pipe->read(static_cast<char *>(buf), bufsize, bytes_read);
+
+  ssize_t read = ::read(m_fds[0], buf, bufsize);
+  bytes_read = read;
+
+  if (read == -1) {
+    LOG("Error reading from pipe: " << ::strerror(errno));
+    switch (errno) {
+      case EBADF:
+      case EINVAL:
+        // The file descriptor is invalid for some reason.
+        return ERR_INVALID_VALUE;
+
+      case EFAULT:
+        // Technically, OOM and out of disk space/file size.
+        return ERR_OUT_OF_MEMORY;
+
+      case EINTR:
+        // FIXME signal handling?
+      case EIO:
+      case EISDIR:
+      default:
+        return ERR_UNEXPECTED;
+    }
+  }
+
+  return ERR_SUCCESS;
 }
 
 
@@ -124,10 +191,38 @@ connector_pipe::read(void * buf, size_t bufsize, size_t & bytes_read)
 error_t
 connector_pipe::write(void const * buf, size_t bufsize, size_t & bytes_written)
 {
-  if (!m_pipe) {
+  if (!connected()) {
     return ERR_INITIALIZATION;
   }
-  return m_pipe->write(static_cast<char const *>(buf), bufsize, bytes_written);
+
+  ssize_t written = ::write(m_fds[1], buf, bufsize);
+  bytes_written = written;
+
+  if (-1 == written) {
+    LOG("Error writing to pipe: " << ::strerror(errno));
+    switch (errno) {
+      case EBADF:
+      case EINVAL:
+      case EDESTADDRREQ:
+      case EPIPE:
+        // The file descriptor is invalid for some reason.
+        return ERR_INVALID_VALUE;
+
+      case EFAULT:
+      case EFBIG:
+      case ENOSPC:
+        // Technically, OOM and out of disk space/file size.
+        return ERR_OUT_OF_MEMORY;
+
+      case EINTR:
+        // FIXME signal handling?
+      case EIO:
+      default:
+        return ERR_UNEXPECTED;
+    }
+  }
+
+  return ERR_SUCCESS;
 }
 
 
@@ -135,7 +230,17 @@ connector_pipe::write(void const * buf, size_t bufsize, size_t & bytes_written)
 error_t
 connector_pipe::close()
 {
-  delete m_pipe;
+  if (!connected()) {
+    return ERR_INITIALIZATION;
+  }
+
+  // We ignore errors from close() here. This is a problem with NFS, as the man
+  // pages state, but it's the price of the abstraction.
+  ::close(m_fds[0]);
+  ::close(m_fds[1]);
+
+  m_fds[0] = m_fds[1] = -1;
+
   return ERR_SUCCESS;
 }
 

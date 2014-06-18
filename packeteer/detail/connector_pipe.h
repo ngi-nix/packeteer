@@ -39,7 +39,7 @@ namespace detail {
 struct connector_pipe : public ::packeteer::detail::connector
 {
 public:
-  connector_pipe();
+  connector_pipe(bool block = false);
   ~connector_pipe();
 
   error_t bind();
@@ -58,7 +58,8 @@ public:
 private:
   error_t create_pipe();
 
-  ::packeteer::pipe * m_pipe;
+  bool  m_block;
+  int   m_fds[2];
 };
 
 }} // namespace packeteer::detail
