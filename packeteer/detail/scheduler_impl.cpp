@@ -20,6 +20,8 @@
  **/
 #include <packeteer/scheduler.h>
 
+#include <packeteer/connector.h>
+
 #include <packeteer/detail/scheduler_impl.h>
 #include <packeteer/detail/worker.h>
 
@@ -46,7 +48,7 @@ namespace packeteer {
  **/
 namespace detail {
 
-void interrupt(pipe & pipe)
+void interrupt(connector & pipe)
 {
   char buf[1] = { '\0' };
   size_t amount = 0;
@@ -55,7 +57,7 @@ void interrupt(pipe & pipe)
 
 
 
-void clear_interrupt(pipe & pipe)
+void clear_interrupt(connector & pipe)
 {
   char buf[1] = { '\0' };
   size_t amount = 0;
@@ -80,7 +82,7 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
   , m_worker_mutex()
   , m_main_loop_continue(true)
   , m_main_loop_thread()
-  , m_main_loop_pipe()
+  , m_main_loop_pipe("anon://")
   , m_in_queue()
   , m_out_queue()
   , m_scheduled_callbacks()
@@ -173,6 +175,11 @@ scheduler::scheduler_impl::start_main_loop()
 {
   m_main_loop_continue = true;
 
+  error_t err = m_main_loop_pipe.connect();
+  if (ERR_SUCCESS != err) {
+    throw exception(err, "Could not connect pipe.");
+  }
+
   m_io->register_fd(m_main_loop_pipe.get_read_fd(),
       EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
   // m_io->register_fd(m_main_loop_pipe.get_write_fd(),
@@ -196,6 +203,8 @@ scheduler::scheduler_impl::stop_main_loop()
 
   m_io->unregister_fd(m_main_loop_pipe.get_read_fd(),
       EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
+
+  m_main_loop_pipe.close();
 }
 
 

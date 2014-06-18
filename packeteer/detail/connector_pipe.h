@@ -28,8 +28,6 @@
 
 #include <packeteer/detail/connector.h>
 
-#include <packeteer/pipe.h>
-
 namespace packeteer {
 namespace detail {
 

@@ -36,7 +36,7 @@
 
 #include <packeteer/types.h>
 #include <packeteer/concurrent_queue.h>
-#include <packeteer/pipe.h>
+#include <packeteer/connector.h>
 
 #include <packeteer/detail/io.h>
 
@@ -55,8 +55,8 @@ class worker;
  **/
 namespace detail {
 
-void interrupt(pipe & pipe);
-void clear_interrupt(pipe & pipe);
+void interrupt(connector & pipe);
+void clear_interrupt(connector & pipe);
 
 } // namespace detail
 
@@ -209,7 +209,7 @@ private:
   // Main loop state.
   std::atomic<bool>               m_main_loop_continue;
   twine::thread                   m_main_loop_thread;
-  pipe                            m_main_loop_pipe;
+  connector                       m_main_loop_pipe;
 
   // We use a weird scheme for moving things to/from the internal containers
   // defined above.

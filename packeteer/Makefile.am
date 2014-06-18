@@ -13,7 +13,6 @@ pkginclude_HEADERS = \
 	types.h \
 	concurrent_queue.h \
 	callback.h \
-	pipe.h \
 	events.h \
 	scheduler.h \
 	connector.h \
@@ -40,7 +39,6 @@ libpacketeer_la_SOURCES = \
 	version.cpp \
 	error.cpp \
 	packeteer.cpp \
-	pipe.cpp \
 	scheduler.cpp \
 	connector.cpp \
 	detail/worker.cpp \

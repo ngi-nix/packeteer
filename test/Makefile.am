@@ -13,7 +13,6 @@ testsuite_SOURCES = \
 	test_network.cpp \
 	test_callback.cpp \
 	test_concurrent_queue.cpp \
-	test_pipe.cpp \
 	test_scheduler_impl.cpp \
 	test_scheduler.cpp \
 	test_connector.cpp \

@@ -27,7 +27,7 @@
 
 #include <twine/thread.h>
 
-#include <packeteer/pipe.h>
+#include <packeteer/connector.h>
 
 namespace pk = packeteer;
 namespace tc = twine::chrono;
@@ -409,7 +409,8 @@ public:
   void testIOCallback()
   {
     // The simplest way to test I/O callbacks is with a pipe.
-    pk::pipe pipe;
+    pk::connector pipe("anon://");
+    pipe.connect();
 
     // We only need one thread for this.
     pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);

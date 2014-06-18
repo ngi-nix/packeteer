@@ -30,7 +30,6 @@
 #include <twine/tasklet.h>
 
 #include <packeteer/concurrent_queue.h>
-#include <packeteer/pipe.h>
 
 #include <packeteer/detail/scheduler_impl.h>
 
@@ -48,8 +47,8 @@ public:
    * Interface
    **/
   /**
-   * The worker thread sleeps waiting for an event on the pipe, and wakes up to
-   * check the work queue for work to execute.
+   * The worker thread sleeps waiting for an event on the condition, and wakes
+   * up to check the work queue for work to execute.
    **/
   worker(twine::condition & condition, twine::recursive_mutex & mutex,
       concurrent_queue<detail::callback_entry *> & work_queue);
