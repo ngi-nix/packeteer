@@ -86,8 +86,10 @@ public:
    *    scheme://address[:port]
    *
    * The anonymous pipe expects the scheme to be followed by nothing at all,
-   * i.e. the URI string must always be:
-   *    anon://
+   * or one of the keywords "blocking" or "nonblocking", to specify whether
+   * a blocking or non-blocking pipe is expected. If the keyword is left out,
+   * a non-blocking pipe is created.
+   *    anon://[blocking|nonblocking]
    *
    * The last three expect the following format:
    *    scheme://path

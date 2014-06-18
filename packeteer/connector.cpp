@@ -162,7 +162,23 @@ struct connector::connector_impl
 
       // Looks good for anonymous connectors
       m_type = pre_parsed.first;
-      m_conn = new detail::connector_pipe();
+
+      std::string type = pre_parsed.second;
+      std::transform(type.begin(), type.end(), type.begin(),
+          std::bind2nd(std::ptr_fun(&std::tolower<char>), std::locale("")));
+
+      bool block = false;
+      if (type.empty() || "nonblocking" == type) {
+        block = false;
+      }
+      else if ("blocking" == type) {
+        block = true;
+      }
+      else {
+        throw std::runtime_error("FIXME");
+      }
+
+      m_conn = new detail::connector_pipe(block);
     }
 
     else {
