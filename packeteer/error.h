@@ -92,6 +92,10 @@ PACKETEER_ERRDEF(ERR_NUM_ITEMS,
     9,
     "Too many items.")
 
+PACKETEER_ERRDEF(ERR_INITIALIZATION,
+    10,
+    "An operation was attempted on an improperly initialized object.")
+
 PACKETEER_END_ERRORS
 
 

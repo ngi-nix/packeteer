@@ -27,6 +27,8 @@
 #include <packeteer/error.h>
 #include <packeteer/net/socket_address.h>
 
+#include <packeteer/detail/connector_pipe.h>
+
 
 namespace packeteer {
 
@@ -51,6 +53,7 @@ match_scheme(std::string const & scheme)
     mapping["file"] = connector::CT_FILE;
     mapping["ipc"] = connector::CT_IPC;
     mapping["pipe"] = connector::CT_PIPE;
+    mapping["anon"] = connector::CT_ANON;
   }
 
   // Find scheme type
@@ -75,9 +78,8 @@ split_address(std::string const & address)
   // std::cout << "colon at: " << pos << std::endl;
 
   // We'll then try to see if the characters immediately following are two
-  // slashes. We also need a non-empty address, so we'll check that there's
-  // space for 1 character more than the two slashes and the colon itself.
-  if (pos + 4 > address.size()) {
+  // slashes.
+  if (pos + 3 > address.size()) {
     throw std::runtime_error("FIXME");
   }
   // std::cout << "pos + 1: " << address[pos + 1] << std::endl;
@@ -111,13 +113,20 @@ split_address(std::string const & address)
 struct connector::connector_impl
 {
   connector::connector_type   m_type;
+  detail::connector *         m_conn;
 
   connector_impl(std::string const & address)
+    : m_type(CT_UNSPEC)
+    , m_conn(nullptr)
   {
     auto pre_parsed = split_address(address);
     if (pre_parsed.first >= connector::CT_TCP4
         && pre_parsed.first <= connector::CT_UDP)
     {
+      if (pre_parsed.second.empty()) {
+        throw std::runtime_error("FIXME");
+      }
+
       // Parse socket address.
       auto addr = net::socket_address(pre_parsed.second);
 
@@ -145,11 +154,31 @@ struct connector::connector_impl
       m_type = pre_parsed.first;
       // TODO
     }
+
+    else if (connector::CT_ANON == pre_parsed.first) {
+      if (!pre_parsed.second.empty()) {
+        throw std::runtime_error("FIXME");
+      }
+
+      // Looks good for anonymous connectors
+      m_type = pre_parsed.first;
+      m_conn = new detail::connector_pipe();
+    }
+
     else {
+      if (pre_parsed.second.empty()) {
+        throw std::runtime_error("FIXME");
+      }
       // Looks good for non-TCP/UDP style connectors!
       m_type = pre_parsed.first;
       // TODO
     }
+  }
+
+
+  ~connector_impl()
+  {
+    delete m_conn;
   }
 };
 
@@ -175,5 +204,105 @@ connector::type() const
 {
   return m_impl->m_type;
 }
+
+
+
+error_t
+connector::bind()
+{
+  if (!m_impl->m_conn) {
+    return ERR_INITIALIZATION;
+  }
+  return m_impl->m_conn->bind();
+}
+
+
+
+bool
+connector::bound() const
+{
+  if (!m_impl->m_conn) {
+    return false;
+  }
+  return m_impl->m_conn->bound();
+}
+
+
+
+error_t
+connector::connect()
+{
+  if (!m_impl->m_conn) {
+    return ERR_INITIALIZATION;
+  }
+  return m_impl->m_conn->connect();
+}
+
+
+
+bool
+connector::connected() const
+{
+  if (!m_impl->m_conn) {
+    return false;
+  }
+  return m_impl->m_conn->connected();
+}
+
+
+
+int
+connector::get_read_fd() const
+{
+  if (!m_impl->m_conn) {
+    return -1;
+  }
+  return m_impl->m_conn->get_read_fd();
+}
+
+
+
+int
+connector::get_write_fd() const
+{
+  if (!m_impl->m_conn) {
+    return -1;
+  }
+  return m_impl->m_conn->get_write_fd();
+}
+
+
+
+error_t
+connector::read(void * buf, size_t bufsize, size_t & bytes_read)
+{
+  if (!m_impl->m_conn) {
+    return ERR_INITIALIZATION;
+  }
+  return m_impl->m_conn->read(buf, bufsize, bytes_read);
+}
+
+
+
+error_t
+connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
+{
+  if (!m_impl->m_conn) {
+    return ERR_INITIALIZATION;
+  }
+  return m_impl->m_conn->write(buf, bufsize, bytes_written);
+}
+
+
+
+error_t
+connector::close()
+{
+  if (!m_impl->m_conn) {
+    return ERR_INITIALIZATION;
+  }
+  return m_impl->m_conn->close();
+}
+
 
 } // namespace packeteer
