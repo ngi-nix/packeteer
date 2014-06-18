@@ -51,6 +51,7 @@ struct test_data
   { "file://", false, connector::CT_UNSPEC },
   { "ipc://", false, connector::CT_UNSPEC },
   { "pipe://", false, connector::CT_UNSPEC },
+  { "anon://anything/here", false, connector::CT_UNSPEC },
 
   // IPv4 hosts
   { "tcp://192.168.0.1",      true, connector::CT_TCP },
@@ -131,6 +132,7 @@ struct test_data
   { "file://foo", true, connector::CT_FILE },
   { "ipc://foo", true, connector::CT_IPC },
   { "pipe://foo", true, connector::CT_PIPE },
+  { "anon://", true, connector::CT_ANON },
 
 };
 
@@ -143,6 +145,7 @@ public:
   CPPUNIT_TEST_SUITE(ConnectorTest);
 
     CPPUNIT_TEST(testAddressParsing);
+    CPPUNIT_TEST(testAnonConnector);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -161,6 +164,39 @@ private:
       else {
         CPPUNIT_ASSERT_THROW(auto c = connector(tests[i].address), std::runtime_error);
       }
+    }
+  }
+
+
+
+  void testAnonConnector()
+  {
+    // Anonymous pipes are essentially a wrapper around the pipe class, so this
+    // test and the pipe tests should be similar.
+    connector conn("anon://");
+    CPPUNIT_ASSERT_EQUAL(connector::CT_ANON, conn.type());
+
+    CPPUNIT_ASSERT(!conn.bound());
+    CPPUNIT_ASSERT(!conn.connected());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.bind());
+
+    CPPUNIT_ASSERT(conn.bound());
+    CPPUNIT_ASSERT(conn.connected());
+
+    std::string msg = "hello, world!";
+    size_t amount = 0;
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.write(msg.c_str(), msg.size(), amount));
+    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
+
+    std::vector<char> result;
+    result.reserve(2 * msg.size());
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.read(&result[0], result.capacity(),
+          amount));
+    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
+
+    for (int i = 0 ; i < msg.size() ; ++i) {
+      CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
     }
   }
 

@@ -28,6 +28,8 @@ noinst_HEADERS = \
 	detail/callbacks_user_defined.h \
 	detail/io.h \
 	detail/worker.h \
+	detail/connector.h \
+	detail/connector_pipe.h \
 	net/detail/cidr.h
 
 libpacketeer_la_CPPFLAGS = $(DEPS_CFLAGS)
@@ -43,6 +45,7 @@ libpacketeer_la_SOURCES = \
 	connector.cpp \
 	detail/worker.cpp \
 	detail/scheduler_impl.cpp \
+	detail/connector_pipe.cpp \
 	net/socket_address.cpp \
 	net/network.cpp \
 	net/detail/cidr.cpp
