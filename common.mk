@@ -2,7 +2,7 @@
 AM_CXXFLAGS = -I$(top_srcdir) -I$(top_builddir) @AM_CXXFLAGS@
 
 # Set default compiler flags
-AM_CXXFLAGS += -g -std=c++0x -Wc++0x-compat -Wno-pmf-conversions \
+AM_CXXFLAGS += -g -std=c++0x -Wc++0x-compat \
 	-DMETA_CXX_MODE=META_CXX_MODE_CXX0X \
 	-DTWINE_CXX_MODE=TWINE_CXX_MODE_CXX0X
 
