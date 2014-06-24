@@ -30,8 +30,8 @@ namespace detail {
 
 connector_pipe::connector_pipe(bool block /* = false */)
   : m_block(block)
-  , m_fds({ -1, -1})
 {
+  m_fds[0] = m_fds[1] = -1;
 }
 
 

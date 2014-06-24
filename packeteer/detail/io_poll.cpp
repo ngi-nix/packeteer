@@ -216,7 +216,10 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   for (size_t i = 0 ; i < size ; ++i) {
     int translated = translate_os_to_events(fds[i].revents);
     if (translated) {
-      events.push_back({fds[i].fd, translated});
+      event_data ev;
+      ev.fd = fds[i].fd;
+      ev.events = translated;
+      events.push_back(ev);
     }
   }
 }

@@ -187,7 +187,10 @@ io_select::wait_for_events(std::vector<event_data> & events,
       }
 
       if (mask) {
-        events.push_back({entry.first, mask});
+        event_data ev;
+        ev.fd = entry.first;
+        ev.events = mask;
+        events.push_back(ev);
       }
     }
 
