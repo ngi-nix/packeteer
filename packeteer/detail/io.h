@@ -47,6 +47,8 @@ struct event_data;
 struct io
 {
 public:
+  virtual ~io() {};
+
   virtual void init() = 0;
   virtual void deinit() = 0;
 

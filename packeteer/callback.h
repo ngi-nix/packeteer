@@ -45,6 +45,7 @@ namespace detail {
  **/
 struct callback_helper_base
 {
+  virtual ~callback_helper_base() {}
   virtual error_t invoke(events_t const & events, error_t error, int fd, void * baton) = 0;
   virtual bool compare(callback_helper_base const * other) const = 0;
   virtual size_t hash() const = 0;
