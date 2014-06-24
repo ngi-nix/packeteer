@@ -19,6 +19,14 @@
  **/
 #include <packeteer/connector.h>
 
+#if defined(PACKETEER_HAVE_ARPA_INET_H)
+#include <arpa/inet.h>
+#endif
+
+#if defined(PACKETEER_HAVE_NETINET_IN_H)
+#include <netinet/in.h>
+#endif
+
 #include <cctype>
 
 #include <algorithm>
