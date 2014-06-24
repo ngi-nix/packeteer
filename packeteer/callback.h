@@ -271,6 +271,13 @@ private:
 namespace detail {
 
 template <typename T>
+void
+hash_helper()
+{
+}
+
+
+template <typename T>
 struct callback_helper : public callback_helper_base
 {
   typedef error_t (T::*member_function_type)(uint64_t, error_t, int, void *);
@@ -309,8 +316,7 @@ struct callback_helper : public callback_helper_base
   {
     return meta::hash::multi_hash(
         reinterpret_cast<size_t>(m_object),
-        reinterpret_cast<size_t>(
-          reinterpret_cast<void *>(m_function)));
+        reinterpret_cast<size_t>(&hash_helper<T>));
   }
 
 
