@@ -466,6 +466,7 @@ public:
 
 
 
+#if defined(PACKETEER_HAVE_EPOLL_CREATE1)
 class SchedulerTestEpoll
     : public SchedulerTestImpl<pk::scheduler::TYPE_EPOLL>
 {
@@ -489,8 +490,12 @@ public:
   CPPUNIT_TEST_SUITE_END();
 };
 
+CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestEpoll);
+#endif
 
 
+
+#if defined(PACKETEER_HAVE_POLL)
 class SchedulerTestPoll
     : public SchedulerTestImpl<pk::scheduler::TYPE_POLL>
 {
@@ -514,8 +519,12 @@ public:
   CPPUNIT_TEST_SUITE_END();
 };
 
+CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestPoll);
+#endif
 
 
+
+#if defined(PACKETEER_HAVE_SELECT)
 class SchedulerTestSelect
     : public SchedulerTestImpl<pk::scheduler::TYPE_SELECT>
 {
@@ -539,7 +548,5 @@ public:
   CPPUNIT_TEST_SUITE_END();
 };
 
-
-CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestEpoll);
-CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestPoll);
 CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestSelect);
+#endif
