@@ -43,14 +43,14 @@ struct ctor_test_data
   char const *  expected_broadcast;
 } ctor_tests[] = {
   // Garbage
-  { "asddfs",         true,   AF_UNSPEC, -1, "", "", },
-  { "asddfs",         true,   AF_UNSPEC, -1, "", "", },
+  { "asddfs",         true,   AF_UNSPEC, size_t(-1), "", "", },
+  { "asddfs",         true,   AF_UNSPEC, size_t(-1), "", "", },
 
   // IPv4 hosts
-  { "192.168.0.1",    true,   AF_UNSPEC, -1, "", "", },
+  { "192.168.0.1",    true,   AF_UNSPEC, size_t(-1), "", "", },
 
   // IPv4 networks
-  { "192.168.0.1/33", true,       AF_INET,   -1, "", "", },
+  { "192.168.0.1/33", true,       AF_INET,   size_t(-1), "", "", },
   { "192.168.0.1/32", false,      AF_INET,   32, "192.168.0.1",     "192.168.0.1", },
   { "192.168.134.121/31", false,  AF_INET,   31, "192.168.134.120", "192.168.134.121", },
   { "192.168.134.121/25", false,  AF_INET,   25, "192.168.134.0",   "192.168.134.127", },
@@ -62,20 +62,20 @@ struct ctor_test_data
   { "192.168.134.121/9",  false,  AF_INET,    9, "192.128.0.0",     "192.255.255.255", },
   { "192.168.134.121/8",  false,  AF_INET,    8, "192.0.0.0",       "192.255.255.255", },
   { "192.168.134.121/7",  false,  AF_INET,    7, "192.0.0.0",       "193.255.255.255", },
-  { "192.168.134.121/0",  true,   AF_INET,   -1, "", "", },
+  { "192.168.134.121/0",  true,   AF_INET,   size_t(-1), "", "", },
 
   // IPv6 hosts
-  { "2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true,   AF_UNSPEC, -1, "", "", },
-  { "2001:0db8:85a3:0:0:8a2e:0370:7334",          true,   AF_UNSPEC, -1, "", "", },
-  { "2001:0db8:85a3::8a2e:0370:7334",             true,   AF_UNSPEC, -1, "", "", },
+  { "2001:0db8:85a3:0000:0000:8a2e:0370:7334",    true,   AF_UNSPEC, size_t(-1), "", "", },
+  { "2001:0db8:85a3:0:0:8a2e:0370:7334",          true,   AF_UNSPEC, size_t(-1), "", "", },
+  { "2001:0db8:85a3::8a2e:0370:7334",             true,   AF_UNSPEC, size_t(-1), "", "", },
 
   // IPv6 networks
   { "2001:0db8:85a3:0000:0000:8a2e:0370:7334/22", false,  AF_INET6,  22, "2001:C00::", "2001:fff:ffff:ffff:ffff:ffff:ffff:ffff", },
   { "2001:0db8:85a3:0:0:8a2e:0370:7334/22",       false,  AF_INET6,  22, "2001:C00::", "2001:fff:ffff:ffff:ffff:ffff:ffff:ffff", },
   { "2001:0db8:85a3::8a2e:0370:7334/22",          false,  AF_INET6,  22, "2001:C00::", "2001:fff:ffff:ffff:ffff:ffff:ffff:ffff", },
 
-  { "2001:0db8:85a3:0000:0000:8a2e:0370:7334/129",true,   AF_INET6,  -1, "", "", },
-  { "2001:0db8:85a3::8a2e:0370:7334/0",           true,   AF_INET6,  -1, "", "", },
+  { "2001:0db8:85a3:0000:0000:8a2e:0370:7334/129",true,   AF_INET6,  size_t(-1), "", "", },
+  { "2001:0db8:85a3::8a2e:0370:7334/0",           true,   AF_INET6,  size_t(-1), "", "", },
 
 };
 
