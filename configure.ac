@@ -100,6 +100,10 @@ JF_CHECK_FUNC_IN([poll.h cstring], [poll],
     [int ret = poll(NULL, 0, 0);])
 JF_CHECK_FUNC_IN([poll.h cstring], [ppoll],
     [int ret = ppoll(NULL, 0, 0, NULL);])
+JF_CHECK_FUNC_IN([poll.h cstring], [POLLRDHUP],
+    [int foo = POLLRDHUP;])
+JF_CHECK_FUNC_IN([poll.h cstring], [POLLHUP],
+    [int foo = POLLHUP;])
 
 ##############################################################################
 # Optional programs
