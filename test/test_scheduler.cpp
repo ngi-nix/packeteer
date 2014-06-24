@@ -233,7 +233,7 @@ public:
     tc::milliseconds interval = tc::milliseconds(80);
     // Now the initial delay needs to be just higher than the difference between
     // the wait time and two intervals, i.e. delay > wait - 2 * interval
-    tc::milliseconds delay = tc::milliseconds(50);
+    tc::milliseconds delay = tc::milliseconds(60);
 
     // We only need one thread for this.
     pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
