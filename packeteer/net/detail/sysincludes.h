@@ -21,11 +21,17 @@
 #ifndef PACKETEER_NET_DETAIL_SYSINCLUDES_H
 #define PACKETEER_NET_DETAIL_SYSINCLUDES_H
 
-#include <arpa/inet.h>
-
 #if defined(linux) || defined(__gnu_linux__) || defined(__linux__) || defined(__linux)
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#endif
+
+#if defined(PACKETEER_HAVE_ARPA_INET_H)
+#include <arpa/inet.h>
+#endif
+
+#if defined(PACKETEER_HAVE_NETINET_IN_H)
+#include <netinet/in.h>
 #endif
 
 #endif // guard
