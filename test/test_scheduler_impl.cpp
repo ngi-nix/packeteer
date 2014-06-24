@@ -18,13 +18,13 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#include <packeteer/error.h>
+
 #include <packeteer/detail/scheduler_impl.h>
 
 #include <cppunit/extensions/HelperMacros.h>
 
 #include <utility>
-
-#include <boost/lambda/lambda.hpp>
 
 namespace pk = packeteer;
 namespace tc = twine::chrono;
@@ -38,18 +38,21 @@ pk::error_t
 foo(uint64_t mask, pk::error_t error, int fd, void * baton)
 {
   // no-op
+  return pk::ERR_UNEXPECTED;
 }
 
 pk::error_t
 bar(uint64_t mask, pk::error_t error, int fd, void * baton)
 {
   // no-op
+  return pk::ERR_UNEXPECTED;
 }
 
 pk::error_t
 baz(uint64_t mask, pk::error_t error, int fd, void * baton)
 {
   // no-op
+  return pk::ERR_UNEXPECTED;
 }
 
 } // anonymous namespace
