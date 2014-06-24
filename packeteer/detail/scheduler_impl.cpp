@@ -105,24 +105,27 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
     case TYPE_SELECT:
 #if !defined(PACKETEER_HAVE_SELECT)
       throw exception(ERR_INVALID_OPTION, "select() is not supported on this platform.");
-#endif
+#else
       m_io = new detail::io_select();
+#endif
       break;
 
 
     case TYPE_EPOLL:
 #if !defined(PACKETEER_HAVE_EPOLL_CREATE1)
       throw exception(ERR_INVALID_OPTION, "epoll() is not supported on this platform.");
-#endif
+#else
       m_io = new detail::io_epoll();
+#endif
       break;
 
 
     case TYPE_POLL:
 #if !defined(PACKETEER_HAVE_POLL)
       throw exception(ERR_INVALID_OPTION, "poll() is not supported on this platform.");
-#endif
+#else
       m_io = new detail::io_poll();
+#endif
       break;
 
 
