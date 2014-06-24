@@ -63,7 +63,7 @@ PKG_CHECK_MODULES([TWINE], [twine >= 0.1])
 ##############################################################################
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([sys/select.h sys/time.h, sys/epoll.h poll.h])
+AC_CHECK_HEADERS([sys/select.h sys/time.h, sys/epoll.h poll.h arpa/inet.h netinet/in.h])
 
 AX_CXX_HEADER_STDCXX_98
 AX_CXX_HEADER_STDCXX_TR1
