@@ -48,7 +48,10 @@ translate_events_to_os(events_t const & events)
     ret |= POLLOUT;
   }
   if (events & EV_IO_CLOSE) {
-    ret |= POLLRDHUP | POLLHUP;
+    ret |= POLLHUP;
+#if defined(PACKETEER_HAVE_POLLRDHUP)
+    ret |= POLLRDHUP;
+#endif
   }
   if (events & EV_IO_ERROR) {
     ret |= POLLERR | POLLNVAL;
@@ -70,9 +73,14 @@ translate_os_to_events(int os)
   if (os & POLLOUT) {
     ret |= EV_IO_WRITE;
   }
-  if ((os & POLLRDHUP) || (os & POLLHUP)) {
+  if ((os & POLLHUP)) {
     ret |= EV_IO_CLOSE;
   }
+#if defined(PACKETEER_HAVE_POLLRDHUP)
+  if ((os & POLLRDHUP)) {
+    ret |= EV_IO_CLOSE;
+  }
+#endif
   if ((os & POLLERR) || (os & POLLNVAL)) {
     ret |= EV_IO_ERROR;
   }
