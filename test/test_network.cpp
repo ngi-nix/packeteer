@@ -251,10 +251,6 @@ private:
     CPPUNIT_ASSERT_NO_THROW(address = net.reserve_address(id1));
     CPPUNIT_ASSERT(net.in_network(address));
 
-    // XXX as *luck* would have it, "foobar" matches the following address,
-    // given the current hash implementaiton.
-    CPPUNIT_ASSERT_EQUAL(socket_address("192.168.0.98"), address);
-
     // Let's ensure first that using the same ID again will result in an
     // error result as it's already allocated.
     socket_address address2;
