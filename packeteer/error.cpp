@@ -20,7 +20,7 @@
  **/
 #include <packeteer/error.h>
 
-#include <string.h>
+#include <cstring>
 
 namespace packeteer {
 

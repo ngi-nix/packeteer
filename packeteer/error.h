@@ -27,6 +27,7 @@
 
 #include <packeteer/packeteer.h>
 
+#include <string>
 #include <stdexcept>
 
 #include <packeteer/macros.h>
