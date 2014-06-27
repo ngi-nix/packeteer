@@ -37,6 +37,9 @@
 #include <packeteer/detail/io_poll.h>
 #endif
 
+#if defined(PACKETEER_HAVE_KQUEUE)
+#include <packeteer/detail/io_kqueue.h>
+#endif
 
 namespace pdt = packeteer::detail;
 namespace tc = twine::chrono;
@@ -92,6 +95,8 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
     case TYPE_AUTOMATIC:
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
       m_io = new detail::io_epoll();
+#elif defined(PACKETEER_HAVE_KQUEUE)
+      m_io = new detail::io_kqueue();
 #elif defined(PACKETEER_HAVE_POLL)
       m_io = new detail::io_poll();
 #elif defined(PACKETEER_HAVE_SELECT)
@@ -129,11 +134,18 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
       break;
 
 
+    case TYPE_KQUEUE:
+#if !defined(PACKETEER_HAVE_KQUEUE)
+      throw exception(ERR_INVALID_OPTION, "kqueue() is not supported on this platform.");
+#else
+      m_io = new detail::io_kqueue();
+#endif
+      break;
+
+
     default:
       throw exception(ERR_INVALID_OPTION, "unsupported scheduler type.");
   }
-
-  m_io->init();
 
   start_main_loop();
   adjust_workers(m_num_worker_threads);
@@ -146,7 +158,6 @@ scheduler::scheduler_impl::~scheduler_impl()
   adjust_workers(0);
   stop_main_loop();
 
-  m_io->deinit();
   delete m_io;
 
   // There might be a bunch of items still in the in- and out queues.
@@ -184,9 +195,9 @@ scheduler::scheduler_impl::start_main_loop()
   }
 
   m_io->register_fd(m_main_loop_pipe.get_read_fd(),
-      EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
+      PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
   // m_io->register_fd(m_main_loop_pipe.get_write_fd(),
-  //     EV_IO_WRITE | EV_IO_ERROR | EV_IO_CLOSE);
+  //     PEV_IO_WRITE | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_thread.set_func(
       twine::thread::binder<scheduler_impl, &scheduler_impl::main_scheduler_loop>::function,
@@ -205,7 +216,7 @@ scheduler::scheduler_impl::stop_main_loop()
   m_main_loop_thread.join();
 
   m_io->unregister_fd(m_main_loop_pipe.get_read_fd(),
-      EV_IO_READ | EV_IO_ERROR | EV_IO_CLOSE);
+      PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_pipe.close();
 }

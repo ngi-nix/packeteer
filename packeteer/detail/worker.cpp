@@ -97,7 +97,7 @@ worker::execute_callback(detail::callback_entry * entry)
 
   switch (entry->m_type) {
     case detail::CB_ENTRY_SCHEDULED:
-      err = entry->m_callback(EV_TIMEOUT, ERR_SUCCESS, -1, nullptr);
+      err = entry->m_callback(PEV_TIMEOUT, ERR_SUCCESS, -1, nullptr);
       break;
 
     case detail::CB_ENTRY_USER:
@@ -116,7 +116,7 @@ worker::execute_callback(detail::callback_entry * entry)
 
     default:
       // Unknown type. Signal an error on the callback.
-      err = entry->m_callback(EV_ERROR, ERR_UNEXPECTED, -1, nullptr);
+      err = entry->m_callback(PEV_ERROR, ERR_UNEXPECTED, -1, nullptr);
       break;
   }
 

@@ -550,3 +550,32 @@ public:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestSelect);
 #endif
+
+
+
+#if defined(PACKETEER_HAVE_KQUEUE)
+class SchedulerTestKQueue
+    : public SchedulerTestImpl<pk::scheduler::TYPE_KQUEUE>
+{
+public:
+  CPPUNIT_TEST_SUITE(SchedulerTestKQueue);
+
+    // Scheduled callbacks
+    CPPUNIT_TEST(testDelayedCallback);
+    CPPUNIT_TEST(testTimedCallback);
+    CPPUNIT_TEST(testRepeatCallback);
+    CPPUNIT_TEST(testInfiniteCallback);
+    CPPUNIT_TEST(testDelayedRepeatCallback);
+    CPPUNIT_TEST(testParallelCallbacks);
+
+    // User callbacks
+    CPPUNIT_TEST(testUserCallback);
+
+    // I/O callbacks
+    CPPUNIT_TEST(testIOCallback);
+
+  CPPUNIT_TEST_SUITE_END();
+};
+
+CPPUNIT_TEST_SUITE_REGISTRATION(SchedulerTestKQueue);
+#endif

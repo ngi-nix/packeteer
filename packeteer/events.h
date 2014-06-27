@@ -33,15 +33,15 @@ namespace packeteer {
   // will be notified for which event(s) it was invoked.
   enum
   {
-    EV_IO_READ    = 1,      // A file descriptor is ready for reading
-    EV_IO_WRITE   = 2,      // A file descriptor is ready for writing
-    EV_IO_ERROR   = 4,      // A file descriptor has produced errors
-    EV_IO_CLOSE   = 8,      // A file descriptor has been closed. This event
+    PEV_IO_READ    = 1,     // A file descriptor is ready for reading
+    PEV_IO_WRITE   = 2,     // A file descriptor is ready for writing
+    PEV_IO_ERROR   = 4,     // A file descriptor has produced errors
+    PEV_IO_CLOSE   = 8,     // A file descriptor has been closed. This event
                             // cannot be reliably reported.
-    EV_TIMEOUT    = 128,    // A timout has been reached that the callback was
+    PEV_TIMEOUT    = 128,   // A timout has been reached that the callback was
                             // registered for.
-    EV_ERROR      = 256,    // Internal scheduler error.
-    EV_USER       = 32768,  // A user-defined event was fired (see below).
+    PEV_ERROR      = 256,   // Internal scheduler error.
+    PEV_USER       = 32768, // A user-defined event was fired (see below).
   };
 
   typedef uint64_t events_t;
