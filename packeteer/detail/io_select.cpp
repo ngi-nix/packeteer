@@ -47,15 +47,7 @@ io_select::io_select()
 
 
 
-void
-io_select::init()
-{
-}
-
-
-
-void
-io_select::deinit()
+io_select::~io_select()
 {
 }
 
@@ -127,10 +119,10 @@ io_select::wait_for_events(std::vector<event_data> & events,
         max_fd = entry.first;
       }
 
-      if (entry.second & EV_IO_READ) {
+      if (entry.second & PEV_IO_READ) {
         FD_SET(entry.first, &read_fds);
       }
-      if (entry.second & EV_IO_WRITE) {
+      if (entry.second & PEV_IO_WRITE) {
         FD_SET(entry.first, &write_fds);
       }
       FD_SET(entry.first, &err_fds);
@@ -177,13 +169,13 @@ io_select::wait_for_events(std::vector<event_data> & events,
     for (auto entry : m_fds) {
       int mask = 0;
       if (FD_ISSET(entry.first, &read_fds)) {
-        mask |= EV_IO_READ;
+        mask |= PEV_IO_READ;
       }
       if (FD_ISSET(entry.first, &write_fds)) {
-        mask |= EV_IO_WRITE;
+        mask |= PEV_IO_WRITE;
       }
       if (FD_ISSET(entry.first, &err_fds)) {
-        mask |= EV_IO_ERROR;
+        mask |= PEV_IO_ERROR;
       }
 
       if (mask) {

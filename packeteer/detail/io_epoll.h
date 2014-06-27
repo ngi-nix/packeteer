@@ -28,7 +28,7 @@
 #include <packeteer/packeteer.h>
 
 #if !defined(PACKETEER_HAVE_EPOLL_CREATE1)
-#error sys/epoll.h not detected
+#error epoll not detected
 #endif
 
 #include <packeteer/events.h>
@@ -43,9 +43,7 @@ struct io_epoll : public io
 {
 public:
   io_epoll();
-
-  void init();
-  void deinit();
+  ~io_epoll();
 
   void register_fd(int fd, events_t const & events);
   void register_fds(int const * fds, size_t amount, events_t const & events);

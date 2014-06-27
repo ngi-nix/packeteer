@@ -153,16 +153,8 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
 io_epoll::io_epoll()
   : m_epoll_fd(-1)
 {
-  LOG("Epoll based I/O subsystem created.");
-}
-
-
-
-void
-io_epoll::init()
-{
-  m_epoll_fd = ::epoll_create1(EPOLL_CLOEXEC);
-  if (-1 == m_epoll_fd) {
+  int res = ::epoll_create1(EPOLL_CLOEXEC);
+  if (res < 0) {
     switch (errno) {
       case EMFILE:
       case ENFILE:
@@ -178,18 +170,23 @@ io_epoll::init()
         break;
     }
   }
+  else {
+    m_epoll_fd = res;
+  }
+
+  LOG("Epoll based I/O subsystem created.");
 }
 
 
 
-void
-io_epoll::deinit()
+io_epoll::~io_epoll()
 {
   if (-1 != m_epoll_fd) {
     ::close(m_epoll_fd);
     m_epoll_fd = -1;
   }
 }
+
 
 
 

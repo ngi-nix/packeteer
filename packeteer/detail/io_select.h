@@ -28,7 +28,7 @@
 #include <packeteer/packeteer.h>
 
 #if !defined(PACKETEER_HAVE_SELECT)
-#error sys/select.h not detected
+#error select not detected
 #endif
 
 #include <map>
@@ -45,9 +45,7 @@ struct io_select : public io
 {
 public:
   io_select();
-
-  void init();
-  void deinit();
+  ~io_select();
 
   void register_fd(int fd, events_t const & events);
   void register_fds(int const * fds, size_t amount, events_t const & events);

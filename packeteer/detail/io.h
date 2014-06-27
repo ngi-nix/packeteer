@@ -49,9 +49,6 @@ struct io
 public:
   virtual ~io() {};
 
-  virtual void init() = 0;
-  virtual void deinit() = 0;
-
   virtual void register_fd(int fd, events_t const & events) = 0;
   virtual void register_fds(int const * fds, size_t amount,
       events_t const & events) = 0;

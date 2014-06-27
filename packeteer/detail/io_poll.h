@@ -27,8 +27,8 @@
 
 #include <packeteer/packeteer.h>
 
-#if !defined(PACKETEER_HAVE_SELECT)
-#error sys/select.h not detected
+#if !defined(PACKETEER_HAVE_POLL)
+#error poll not detected
 #endif
 
 #include <map>
@@ -45,9 +45,7 @@ struct io_poll : public io
 {
 public:
   io_poll();
-
-  void init();
-  void deinit();
+  ~io_poll();
 
   void register_fd(int fd, events_t const & events);
   void register_fds(int const * fds, size_t amount, events_t const & events);

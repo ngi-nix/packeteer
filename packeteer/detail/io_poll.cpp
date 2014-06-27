@@ -41,19 +41,19 @@ translate_events_to_os(events_t const & events)
 {
   int ret = 0;
 
-  if (events & EV_IO_READ) {
+  if (events & PEV_IO_READ) {
     ret |= POLLIN | POLLPRI;
   }
-  if (events & EV_IO_WRITE) {
+  if (events & PEV_IO_WRITE) {
     ret |= POLLOUT;
   }
-  if (events & EV_IO_CLOSE) {
+  if (events & PEV_IO_CLOSE) {
     ret |= POLLHUP;
 #if defined(PACKETEER_HAVE_POLLRDHUP)
     ret |= POLLRDHUP;
 #endif
   }
-  if (events & EV_IO_ERROR) {
+  if (events & PEV_IO_ERROR) {
     ret |= POLLERR | POLLNVAL;
   }
 
@@ -68,21 +68,21 @@ translate_os_to_events(int os)
   events_t ret = 0;
 
   if ((os & POLLIN) || (os & POLLPRI)) {
-    ret |= EV_IO_READ;
+    ret |= PEV_IO_READ;
   }
   if (os & POLLOUT) {
-    ret |= EV_IO_WRITE;
+    ret |= PEV_IO_WRITE;
   }
   if ((os & POLLHUP)) {
-    ret |= EV_IO_CLOSE;
+    ret |= PEV_IO_CLOSE;
   }
 #if defined(PACKETEER_HAVE_POLLRDHUP)
   if ((os & POLLRDHUP)) {
-    ret |= EV_IO_CLOSE;
+    ret |= PEV_IO_CLOSE;
   }
 #endif
   if ((os & POLLERR) || (os & POLLNVAL)) {
-    ret |= EV_IO_ERROR;
+    ret |= PEV_IO_ERROR;
   }
 
   return ret;
@@ -99,15 +99,7 @@ io_poll::io_poll()
 
 
 
-void
-io_poll::init()
-{
-}
-
-
-
-void
-io_poll::deinit()
+io_poll::~io_poll()
 {
 }
 
