@@ -64,9 +64,10 @@ public:
   {
     TYPE_AUTOMATIC = 0,
     TYPE_EPOLL,
+    TYPE_KQUEUE,
     TYPE_POLL,
     TYPE_SELECT,
-    // TODO add KQUEUE, I/O completion ports, etc.
+    // TODO add I/O completion ports, etc.
   };
 
 

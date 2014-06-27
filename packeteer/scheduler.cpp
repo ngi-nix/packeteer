@@ -131,7 +131,7 @@ scheduler::unschedule(callback const & callback)
 error_t
 scheduler::register_event(events_t const & events, callback const & callback)
 {
-  if (events < EV_USER) {
+  if (events < PEV_USER) {
     return ERR_INVALID_VALUE;
   }
 
@@ -157,7 +157,7 @@ scheduler::unregister_event(events_t const & events, callback const & callback)
 error_t
 scheduler::fire_events(events_t const & events)
 {
-  if (events < EV_USER) {
+  if (events < PEV_USER) {
     return ERR_INVALID_VALUE;
   }
 
