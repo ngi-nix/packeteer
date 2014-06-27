@@ -123,6 +123,15 @@ int main(int, char**)
 }
 " PACKETEER_HAVE_POLLHUP)
 
+check_cxx_source_compiles("
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+
+int main(int, char **)
+{
+  int foo = kqueue();
+}" PACKETEER_HAVE_KQUEUE)
 
 check_cxx_source_compiles("
 #include <unordered_map>
@@ -302,6 +311,13 @@ if (PACKETEER_HAVE_POLL)
       packeteer/detail/io_poll.cpp
   )
 endif (PACKETEER_HAVE_POLL)
+
+if (PACKETEER_HAVE_KQUEUE)
+  set(LIB_SOURCES ${LIB_SOURCES}
+      packeteer/detail/io_kqueue.cpp
+  )
+endif (PACKETEER_HAVE_KQUEUE)
+
 
 add_library(packeteer_static STATIC ${LIB_SOURCES})
 add_library(packeteer_shared SHARED ${LIB_SOURCES})
