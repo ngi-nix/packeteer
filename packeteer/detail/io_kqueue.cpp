@@ -88,10 +88,10 @@ modify_kqueue(bool add, int queue, int const * fds, size_t amount,
     // Now we access the last (i.e. the newly added) element of the vector.
     int translated = translate_events_to_os(events);
     if (add) {
-      EV_SET(&pending[i], fds[i], translated, EV_ADD|EV_RECEIPT, 0, 0, nullptr);
+      EV_SET(&pending[i], fds[i], translated, EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
     }
     else {
-      EV_SET(&pending[i], fds[i], translated, EV_DELETE|EV_RECEIPT, 0, 0, nullptr);
+      EV_SET(&pending[i], fds[i], translated, EV_DELETE, 0, 0, nullptr);
     }
   }
 
@@ -251,11 +251,17 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
       ev.events = PEV_IO_ERROR;
       events.push_back(ev);
     }
+    else if (kqueue_events[i].flags & EV_EOF) {
+      event_data ev;
+      ev.fd = kqueue_events[i].ident;
+      ev.events = PEV_IO_CLOSE;
+      events.push_back(ev);
+    }
     else {
-      int translated = translate_os_to_events(kqueue_events[i].fflags);
+      int translated = translate_os_to_events(kqueue_events[i].filter);
       if (translated) {
         event_data ev;
-      ev.fd = kqueue_events[i].ident;
+        ev.fd = kqueue_events[i].ident;
         ev.events = translated;
         events.push_back(ev);
       }
