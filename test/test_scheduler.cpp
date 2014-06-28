@@ -134,7 +134,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(1, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::PEV_TIMEOUT), mask);
   }
 
 
@@ -155,7 +155,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(1, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::PEV_TIMEOUT), mask);
   }
 
 
@@ -177,7 +177,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::PEV_TIMEOUT), mask);
   }
 
 
@@ -204,7 +204,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::PEV_TIMEOUT), mask);
 
     sched.unschedule(cb);
 
@@ -216,7 +216,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::PEV_TIMEOUT), mask);
   }
 
 
@@ -250,7 +250,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(2, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::PEV_TIMEOUT), mask);
 
     sched.unschedule(cb);
   }
@@ -292,9 +292,9 @@ public:
     // to only be invoked for the other.
     enum user_events
     {
-      EVENT_1 = 1 * pk::EV_USER,
-      EVENT_2 = 2 * pk::EV_USER,
-      EVENT_3 = 4 * pk::EV_USER,
+      EVENT_1 = 1 * pk::PEV_USER,
+      EVENT_2 = 2 * pk::PEV_USER,
+      EVENT_3 = 4 * pk::PEV_USER,
     };
 
     // We only need one thread for this.
@@ -401,7 +401,7 @@ public:
 
     // Also ensure that fire_event() does not work with system events.
     CPPUNIT_ASSERT_EQUAL(pk::ERR_INVALID_VALUE,
-        sched.fire_events(pk::EV_IO_READ));
+        sched.fire_events(pk::PEV_IO_READ));
   }
 
 
@@ -417,21 +417,21 @@ public:
 
     test_callback source1;
     pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
-    sched.register_fd(pk::EV_IO_READ, pipe.get_read_fd(), cb1);
+    sched.register_fd(pk::PEV_IO_READ, pipe.get_read_fd(), cb1);
 
     test_callback source2;
     pk::callback cb2 = pk::make_callback(&source2, &test_callback::func);
-    sched.register_fd(pk::EV_IO_WRITE, pipe.get_write_fd(), cb2);
+    sched.register_fd(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
 
     tc::sleep(tc::milliseconds(50));
 
-    sched.unregister_fd(pk::EV_IO_WRITE, pipe.get_write_fd(), cb2);
+    sched.unregister_fd(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
 
     tc::sleep(tc::milliseconds(50));
 
     // The second callback must have been invoked multiple times, because the
     // pipe is always (at this level of I/O load) writeable.
-    ASSERT_CALLBACK_GREATER(source2, 0, pk::EV_IO_WRITE);
+    ASSERT_CALLBACK_GREATER(source2, 0, pk::PEV_IO_WRITE);
 
     // On the other hand, without writing to the pipe, we should not have any
     // callbacks for reading.
@@ -446,7 +446,7 @@ public:
 
     tc::sleep(tc::milliseconds(50));
 
-    ASSERT_CALLBACK_GREATER(source1, 0, pk::EV_IO_READ);
+    ASSERT_CALLBACK_GREATER(source1, 0, pk::PEV_IO_READ);
 
     int current = source1.m_called;
 
@@ -458,7 +458,7 @@ public:
     // being a bit of a bitch, we'll have to make some allowances.
     tc::sleep(tc::milliseconds(100));
 
-    ASSERT_CALLBACK_GREATER(source1, current, pk::EV_IO_READ);
+    ASSERT_CALLBACK_GREATER(source1, current, pk::PEV_IO_READ);
     current = source1.m_called - current;
     CPPUNIT_ASSERT_MESSAGE("Should not normally fail.", current < 3);
   }
