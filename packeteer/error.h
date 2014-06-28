@@ -97,6 +97,11 @@ PACKETEER_ERRDEF(ERR_INITIALIZATION,
     10,
     "An operation was attempted on an improperly initialized object.")
 
+PACKETEER_ERRDEF(ERR_ACCESS_VIOLATION,
+    11,
+    "An operation was attempted that was not permitted.")
+
+
 PACKETEER_END_ERRORS
 
 
