@@ -41,7 +41,7 @@ namespace packeteer {
  **/
 
 
-char const * const
+char const *
 error_message(error_t code)
 {
   if (0 > code || code >= PACKETEER_ERROR_LAST) {
@@ -62,7 +62,7 @@ error_message(error_t code)
 
 
 
-char const * const
+char const *
 error_name(error_t code)
 {
   if (0 > code || code >= PACKETEER_ERROR_LAST) {

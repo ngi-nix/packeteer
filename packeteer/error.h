@@ -113,13 +113,13 @@ namespace packeteer {
  * nullptr; if an unknown error code is given, an "unidentified error" string is
  * returned. Not that this should happen, given that error_t is an enum...
  **/
-char const * const error_message(error_t code);
+char const * error_message(error_t code);
 
 /**
  * Return a string representation of the given error code. Also never returns
  * nullptr, see error_message() above.
  **/
-char const * const error_name(error_t code);
+char const * error_name(error_t code);
 
 
 
