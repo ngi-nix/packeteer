@@ -34,17 +34,23 @@ version()
 
 
 
-char const * const copyright_string = PACKETEER_PACKAGE_NAME " " PACKETEER_PACKAGE_VERSION " " PACKETEER_PACKAGE_URL "\n"
+char const * copyright_string()
+{
+  static char const * const ret =
+    PACKETEER_PACKAGE_NAME " " PACKETEER_PACKAGE_VERSION " " PACKETEER_PACKAGE_URL "\n"
     "Copyright (c) 2011 Jens Finkhaeuser.\n"
     "Copyright (c) 2012-2014 Unwesen Ltd.\n"
     "Licensed under the the GPLv3 for personal, educational or non-profit use.\n"
     "Other licensing options available; please contact the copyright holder for\n"
     "information."
     ;
+  return ret;
+}
 
 
-char const * const license_string =
-
+char const * license_string()
+{
+  static char const * const ret =
     "This software is licensed under the terms of the GNU GPLv3 for personal,\n"
     "educational and non-profit use. For all other uses, alternative license\n"
     "options are available. Please contact the copyright holder for additional\n"
@@ -57,6 +63,7 @@ char const * const license_string =
     "without even the implied warranty of MERCHANTABILITY or FITNESS FOR A\n"
     "PARTICULAR PURPOSE."
     ;
-
+  return ret;
+}
 
 } // namespace packeteer

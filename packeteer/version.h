@@ -55,13 +55,13 @@ std::pair<std::string, std::string> version();
 /**
  * Return the library version as a string, with appropriate copyright notice.
  **/
-extern char const * const copyright_string;
+char const * copyright_string();
 
 
 /**
  * Returns a short string with licensing information.
  **/
-extern char const * const license_string;
+char const * license_string();
 
 } // namespace packeteer
 
