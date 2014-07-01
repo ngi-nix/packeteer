@@ -51,7 +51,7 @@ struct test_callback
 
 
   pk::error_t
-  func(uint64_t mask, pk::error_t error, int fd, void * baton)
+  func(uint64_t mask, pk::error_t error, int fd, void *)
   {
     ++m_called;
     m_mask = mask;
@@ -74,7 +74,7 @@ struct thread_id_callback
 
 
   pk::error_t
-  func(uint64_t mask, pk::error_t error, int fd, void * baton)
+  func(uint64_t, pk::error_t, int, void *)
   {
     m_tid = twine::this_thread::get_id();
 
@@ -95,7 +95,7 @@ struct thread_id_callback
     int called = cb.m_called;                               \
     CPPUNIT_ASSERT_EQUAL(expected_called, called);          \
     uint64_t mask = cb.m_mask;                              \
-    CPPUNIT_ASSERT_EQUAL((uint64_t) expected_mask, mask);   \
+    CPPUNIT_ASSERT_EQUAL(uint64_t(expected_mask), mask);    \
     cb.m_mask = 0; /* reset mask */                         \
   }
 
@@ -104,7 +104,7 @@ struct thread_id_callback
     int called = cb.m_called;                               \
     CPPUNIT_ASSERT(called > expected_called);               \
     uint64_t mask = cb.m_mask;                              \
-    CPPUNIT_ASSERT_EQUAL((uint64_t) expected_mask, mask);   \
+    CPPUNIT_ASSERT_EQUAL(uint64_t(expected_mask), mask);    \
     cb.m_mask = 0; /* reset mask */                         \
   }
 
@@ -121,7 +121,7 @@ public:
   void testDelayedCallback()
   {
     // We only need one thread for this.
-    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -134,7 +134,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(1, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pk::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
   }
 
 
@@ -142,7 +142,7 @@ public:
   void testTimedCallback()
   {
     // We only need one thread for this.
-    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -155,7 +155,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(1, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pk::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
   }
 
 
@@ -163,7 +163,7 @@ public:
   void testRepeatCallback()
   {
     // We only need one thread for this.
-    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -177,7 +177,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pk::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
   }
 
 
@@ -189,7 +189,7 @@ public:
     // explicitly unscheduled, the callback cannot be invoked any longer.
 
     // We only need one thread for this.
-    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -204,7 +204,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pk::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
 
     sched.unschedule(cb);
 
@@ -216,7 +216,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(3, called);
 
     mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pk::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
   }
 
 
@@ -236,7 +236,7 @@ public:
     tc::milliseconds delay = tc::milliseconds(60);
 
     // We only need one thread for this.
-    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -250,7 +250,7 @@ public:
     CPPUNIT_ASSERT_EQUAL(2, called);
 
     uint64_t mask = source.m_mask;
-    CPPUNIT_ASSERT_EQUAL((uint64_t) pk::EV_TIMEOUT, mask);
+    CPPUNIT_ASSERT_EQUAL(uint64_t(pk::EV_TIMEOUT), mask);
 
     sched.unschedule(cb);
   }
@@ -265,7 +265,7 @@ public:
     // thread ids afterwards for this to succeed.
 
     // We need >1 thread to enable parallell processing.
-    pk::scheduler sched(2, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(2, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     thread_id_callback source1;
     pk::callback cb1 = pk::make_callback(&source1, &thread_id_callback::func);
@@ -298,7 +298,7 @@ public:
     };
 
     // We only need one thread for this.
-    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     test_callback source1;
     pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
@@ -413,7 +413,7 @@ public:
     pipe.connect();
 
     // We only need one thread for this.
-    pk::scheduler sched(1, (pk::scheduler::scheduler_type) SCHED_TYPE);
+    pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
     test_callback source1;
     pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);

@@ -35,21 +35,21 @@ namespace {
  * Two callbacks, just so we have different function pointers to work with.
  **/
 pk::error_t
-foo(uint64_t mask, pk::error_t error, int fd, void * baton)
+foo(uint64_t, pk::error_t, int, void *)
 {
   // no-op
   return pk::ERR_UNEXPECTED;
 }
 
 pk::error_t
-bar(uint64_t mask, pk::error_t error, int fd, void * baton)
+bar(uint64_t, pk::error_t, int, void *)
 {
   // no-op
   return pk::ERR_UNEXPECTED;
 }
 
 pk::error_t
-baz(uint64_t mask, pk::error_t error, int fd, void * baton)
+baz(uint64_t, pk::error_t, int, void *)
 {
   // no-op
   return pk::ERR_UNEXPECTED;

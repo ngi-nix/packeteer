@@ -238,7 +238,7 @@ VerboseOutput::addFailure(CppUnit::TestFailure const & failure)
 
 // Called just after a TestCase was run (even if a failure occured).
 void
-VerboseOutput::endTest(CppUnit::Test * test)
+VerboseOutput::endTest(CppUnit::Test *)
 {
   switch (m_status) {
     case ST_OK:
@@ -297,8 +297,8 @@ VerboseOutput::endSuite(CppUnit::Test * suite)
 
 // Called by a TestRunner before running the test.
 void
-VerboseOutput::startTestRun(CppUnit::Test * test,
-        CppUnit::TestResult * eventManager)
+VerboseOutput::startTestRun(CppUnit::Test *,
+        CppUnit::TestResult *)
 {
   m_os << std::endl;
 }
@@ -306,8 +306,8 @@ VerboseOutput::startTestRun(CppUnit::Test * test,
 
 // Called by a TestRunner after running the test.
 void
-VerboseOutput::endTestRun(CppUnit::Test * test,
-        CppUnit::TestResult * eventManager)
+VerboseOutput::endTestRun(CppUnit::Test *,
+        CppUnit::TestResult *)
 {
   m_os << LINE('=') << std::endl;
   if (m_results.top().errors || m_results.top().failures) {
@@ -324,7 +324,7 @@ VerboseOutput::endTestRun(CppUnit::Test * test,
 
 int main(int argc, char **argv)
 {
-  std::cout << packeteer::copyright_string << std::endl;
+  std::cout << packeteer::copyright_string() << std::endl;
 
   std::string testPath = (argc > 1) ? std::string(argv[1]) : "";
 

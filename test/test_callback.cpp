@@ -28,14 +28,14 @@ namespace pk = packeteer;
 
 namespace {
 
-pk::error_t free_func1(uint64_t events, pk::error_t error, int fd, void * baton)
+pk::error_t free_func1(uint64_t events, pk::error_t, int, void *)
 {
   CPPUNIT_ASSERT_EQUAL(uint64_t(42), events);
   return pk::error_t(1);
 }
 
 
-pk::error_t free_func2(uint64_t events, pk::error_t error, int fd, void * baton)
+pk::error_t free_func2(uint64_t events, pk::error_t, int, void *)
 {
   CPPUNIT_ASSERT_EQUAL(uint64_t(666), events);
   return pk::error_t(2);
@@ -44,7 +44,7 @@ pk::error_t free_func2(uint64_t events, pk::error_t error, int fd, void * baton)
 
 struct functor
 {
-  pk::error_t member_func(uint64_t events, pk::error_t error, int fd, void * baton)
+  pk::error_t member_func(uint64_t events, pk::error_t, int, void *)
   {
     CPPUNIT_ASSERT_EQUAL(uint64_t(1234), events);
     return pk::error_t(3);
@@ -52,7 +52,7 @@ struct functor
 
 
 
-  pk::error_t operator()(uint64_t events, pk::error_t error, int fd, void * baton)
+  pk::error_t operator()(uint64_t events, pk::error_t, int, void *)
   {
     CPPUNIT_ASSERT_EQUAL(uint64_t(0xdeadbeef), events);
     return pk::error_t(4);

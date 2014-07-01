@@ -124,11 +124,11 @@ private:
       CPPUNIT_ASSERT_EQUAL(tests[i].expected_mask, mask);
 
       if (AF_INET == proto) {
-        sockaddr_in * addr = (sockaddr_in *) &address;
+        sockaddr_in * addr = reinterpret_cast<sockaddr_in *>(&address);
         CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port1)), addr->sin_port);
       }
       else if (AF_INET6 == proto) {
-        sockaddr_in6 * addr = (sockaddr_in6 *) &address;
+        sockaddr_in6 * addr = reinterpret_cast<sockaddr_in6 *>(&address);
         CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port1)), addr->sin6_port);
       }
 
@@ -142,11 +142,11 @@ private:
       CPPUNIT_ASSERT_EQUAL(tests[i].expected_mask, mask);
 
       if (AF_INET == proto) {
-        sockaddr_in * addr = (sockaddr_in *) &address;
+        sockaddr_in * addr = reinterpret_cast<sockaddr_in *>(&address);
         CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port2)), addr->sin_port);
       }
       else if (AF_INET6 == proto) {
-        sockaddr_in6 * addr = (sockaddr_in6 *) &address;
+        sockaddr_in6 * addr = reinterpret_cast<sockaddr_in6 *>(&address);
         CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port2)), addr->sin6_port);
       }
 
