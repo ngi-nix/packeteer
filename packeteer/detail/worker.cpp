@@ -64,9 +64,13 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
     while (m_work_queue.pop(entry)) {
       LOG("worker picked up entry of type: " << entry->m_type);
       try {
-        execute_callback(entry);
+        error_t err = execute_callback(entry);
+        if (ERR_SUCCESS != err) {
+          LOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
+        }
+
       } catch (exception const & ex) {
-        LOG("Error in callback: [" << ex.code() << "] " << ex.what()
+        LOG("Error in callback: [" << error_name(ex.code()) << "] " << ex.what()
             << " - " << ex.details());
       } catch (std::exception const & ex) {
         LOG("Error in callback: " << ex.what());
@@ -86,7 +90,7 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
 
 
 
-void
+error_t
 worker::execute_callback(detail::callback_entry * entry)
 {
   error_t err = ERR_SUCCESS;
@@ -116,7 +120,9 @@ worker::execute_callback(detail::callback_entry * entry)
       break;
   }
 
+  // Cleanup
   delete entry;
+  return err;
 }
 
 }} // namespace packeteer::detail

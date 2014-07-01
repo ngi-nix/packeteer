@@ -66,7 +66,7 @@ private:
   /**
    * Run a callback
    **/
-  void execute_callback(detail::callback_entry * entry);
+  error_t execute_callback(detail::callback_entry * entry);
 
   std::atomic<bool>                             m_alive;
   concurrent_queue<detail::callback_entry *> &  m_work_queue;
