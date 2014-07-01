@@ -24,6 +24,8 @@
 #include <sys/epoll.h>
 #include <errno.h>
 
+#include <cstring>
+
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
@@ -88,7 +90,8 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
   int translated = translate_events_to_os(events);
 
   for (size_t i = 0 ; i < size ; ++i) {
-    ::epoll_event event = { 0 };
+    ::epoll_event event;
+    ::memset(&event, 0, sizeof(event));
     event.events = translated;
     event.data.fd = fds[i];
     int ret = ::epoll_ctl(epoll_fd, action, fds[i], &event);
@@ -236,7 +239,8 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
   // FIXME also set signal mask & handle it accordingly
 
   // Wait for events
-  ::epoll_event epoll_events[MAXEVENTS] = { 0 };
+  ::epoll_event epoll_events[MAXEVENTS];
+  ::memset(&epoll_events, 0, sizeof(epoll_events));
   int ready = ::epoll_pwait(m_epoll_fd, epoll_events, MAXEVENTS,
       timeout.as<twine::chrono::milliseconds>(), nullptr);
 

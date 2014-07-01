@@ -125,7 +125,7 @@ void
 io_poll::register_fds(int const * fds, size_t size,
     events_t const & events)
 {
-  for (int i = 0 ; i < size ; ++i) {
+  for (size_t i = 0 ; i < size ; ++i) {
     m_fds[fds[i]] |= events;
   }
 }
@@ -149,7 +149,7 @@ void
 io_poll::unregister_fds(int const * fds, size_t size,
     events_t const & events)
 {
-  for (int i = 0 ; i < size ; ++i) {
+  for (size_t i = 0 ; i < size ; ++i) {
     auto iter = m_fds.find(fds[i]);
     iter->second &= ~events;
     if (!iter->second) {
