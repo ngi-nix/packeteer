@@ -1,0 +1,59 @@
+#ifndef PACKETEER_PACKETEER_CONFIG_H
+#define PACKETEER_PACKETEER_CONFIG_H
+
+/*****************************************************************************
+ * Project metadata
+ **/
+// Name
+#define PACKETEER_PACKAGE_NAME "@CMAKE_PROJECT_NAME@"
+
+// Version
+#define PACKETEER_PACKAGE_MAJOR "@PACKETEER_PACKAGE_MAJOR@"
+#define PACKETEER_PACKAGE_MINOR "@PACKETEER_PACKAGE_MINOR@"
+#define PACKETEER_PACKAGE_VERSION "@PACKETEER_PACKAGE_MAJOR@.@PACKETEER_PACKAGE_MINOR@"
+
+// URL
+#define PACKETEER_PACKAGE_URL "@PACKETEER_PACKAGE_URL@"
+
+
+/*****************************************************************************
+ * Options
+ **/
+/**
+ * Defining the build mode for meta.
+ **/
+#define META_CXX_MODE @META_CXX_MODE@
+
+
+/*****************************************************************************
+ * Headers
+ **/
+#cmakedefine PACKETEER_HAVE_SYS_SELECT_H
+#cmakedefine PACKETEER_HAVE_SYS_TIME_H
+#cmakedefine PACKETEER_HAVE_SYS_EPOLL_H
+#cmakedefine PACKETEER_HAVE_POLL_H
+#cmakedefine PACKETEER_HAVE_ARPA_INET_H
+#cmakedefine PACKETEER_HAVE_NETINET_IN_H
+
+
+/*****************************************************************************
+ * Symbols
+ **/
+#cmakedefine PACKETEER_HAVE_EPOLL_CREATE1
+#cmakedefine PACKETEER_HAVE_SELECT
+#cmakedefine PACKETEER_HAVE_PSELECT
+#cmakedefine PACKETEER_HAVE_POLL
+#cmakedefine PACKETEER_HAVE_PPOLL
+#cmakedefine PACKETEER_HAVE_POLLRDHUP
+#cmakedefine PACKETEER_HAVE_POLLHUP
+
+
+/*****************************************************************************
+ * Platform checks
+ **/
+#define PACKETEER_BIGENDIAN @PACKETEER_BIGENDIAN@
+
+// FIXME
+#define PACKETEER_CACHE_LINE_SIZE 128
+
+#endif // guard
