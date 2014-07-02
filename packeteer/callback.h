@@ -26,6 +26,7 @@
 #endif
 
 #include <packeteer/packeteer.h>
+#include <packeteer/types.h>
 
 #include <typeinfo>
 #include <functional>
@@ -47,7 +48,8 @@ struct callback_helper_base
 {
   virtual ~callback_helper_base() {}
   virtual error_t invoke(events_t const & events, error_t error, int fd, void * baton) = 0;
-  virtual bool compare(callback_helper_base const * other) const = 0;
+  virtual bool equal_to(callback_helper_base const * other) const = 0;
+  virtual bool less_than(callback_helper_base const * other) const = 0;
   virtual size_t hash() const = 0;
   virtual callback_helper_base * clone() const = 0;
 };
@@ -235,7 +237,7 @@ public:
     {
       return false;
     }
-    return m_object_helper->compare(other.m_object_helper);
+    return m_object_helper->equal_to(other.m_object_helper);
   }
 
   inline bool operator!=(callback const & other) const
@@ -243,6 +245,20 @@ public:
     return !operator==(other);
   }
 
+
+  inline bool operator<(callback const & other) const
+  {
+    if (nullptr != m_free_function) {
+      return (m_free_function < other.m_free_function);
+    }
+
+    if (nullptr == other.m_object_helper
+        || nullptr == m_object_helper)
+    {
+      return m_object_helper < other.m_object_helper;
+    }
+    return m_object_helper->less_than(other.m_object_helper);
+  }
 
 
   /**
@@ -291,7 +307,7 @@ struct callback_helper : public callback_helper_base
 
 
 
-  virtual bool compare(callback_helper_base const * other) const
+  virtual bool equal_to(callback_helper_base const * other) const
   {
     if (typeid(*this) != typeid(*other)) {
       return false;
@@ -302,6 +318,26 @@ struct callback_helper : public callback_helper_base
 
     return (m_object == o->m_object && m_function == o->m_function);
   }
+
+
+
+  virtual bool less_than(callback_helper_base const * other) const
+  {
+    // This is a weird definition; we just need *some* ordering, and we know
+    // they're unique.
+    if (typeid(*this) != typeid(*other)) {
+      return (&typeid(*this) < &typeid(*other));
+    }
+
+    callback_helper<T> const * o
+      = reinterpret_cast<callback_helper<T> const *>(other);
+
+    if (m_object < o->m_object) {
+      return true;
+    }
+    return (m_function == o->m_function);
+  }
+
 
 
 
@@ -357,7 +393,7 @@ make_callback(T * object)
 /*******************************************************************************
  * std namespace specializations
  **/
-namespace std {
+PACKETEER_HASH_NAMESPACE_BEGIN
 
 template <> struct hash<packeteer::callback>
 {
@@ -367,14 +403,7 @@ template <> struct hash<packeteer::callback>
   }
 };
 
-template <> struct equal_to<packeteer::callback>
-{
-  bool operator()(packeteer::callback const & x, packeteer::callback const & y) const
-  {
-    return x.operator==(y);
-  }
-};
+PACKETEER_HASH_NAMESPACE_END
 
-} // namespace std
 
 #endif // guard

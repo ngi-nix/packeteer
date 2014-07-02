@@ -47,6 +47,15 @@
 #cmakedefine PACKETEER_HAVE_POLLRDHUP
 #cmakedefine PACKETEER_HAVE_POLLHUP
 
+#cmakedefine PACKETEER_HAVE_UNORDERED_MAP
+#cmakedefine PACKETEER_HAVE_TR1_UNORDERED_MAP
+#cmakedefine PACKETEER_HAVE_EXT_HASHMAP
+#cmakedefine PACKETEER_HAVE_GNUCXX_HASHMAP
+
+#cmakedefine PACKETEER_HAVE_UNORDERED_SET
+#cmakedefine PACKETEER_HAVE_TR1_UNORDERED_SET
+#cmakedefine PACKETEER_HAVE_GNUCXX_HASHSET
+
 
 /*****************************************************************************
  * Platform checks

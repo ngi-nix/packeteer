@@ -181,7 +181,7 @@ private:
 
   void testHash()
   {
-    std::hash<pk::callback> hasher;
+    PACKETEER_HASH_NAMESPACE ::hash<pk::callback> hasher;
 
     // Callbacks made from the same free function should have the same hash.
     pk::callback cb1 = &free_func1;
