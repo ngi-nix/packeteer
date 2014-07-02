@@ -168,8 +168,9 @@ private:
   // Setup/teardown - called from ctor/dtor, so thread-safe.
   void start_main_loop();
   void stop_main_loop();
-  void start_workers(size_t num_workers);
-  void stop_workers(size_t num_workers);
+
+  // Starts/stops works such that the number of workers specified is reached.
+  void adjust_workers(size_t num_workers);
 
   // Main loop
   void main_scheduler_loop(void * /* unused */);

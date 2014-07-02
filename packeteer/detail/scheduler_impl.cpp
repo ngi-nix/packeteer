@@ -136,14 +136,14 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
   m_io->init();
 
   start_main_loop();
-  start_workers(m_num_worker_threads);
+  adjust_workers(m_num_worker_threads);
 }
 
 
 
 scheduler::scheduler_impl::~scheduler_impl()
 {
-  stop_workers(m_num_worker_threads);
+  adjust_workers(0);
   stop_main_loop();
 
   m_io->deinit();
@@ -213,26 +213,32 @@ scheduler::scheduler_impl::stop_main_loop()
 
 
 void
-scheduler::scheduler_impl::start_workers(size_t num_workers)
+scheduler::scheduler_impl::adjust_workers(size_t num_workers)
 {
-  for (size_t i = m_workers.size() ; i < num_workers ; ++i) {
-    auto worker = new pdt::worker(m_worker_condition, m_worker_mutex, m_out_queue);
-    worker->start();
-    m_workers.push_back(worker);
+  size_t have = m_workers.size();
+
+  if (num_workers < have) {
+    LOG("Decreasing worker count from " << have << " to " << num_workers << ".");
+    size_t to_stop = have - num_workers;
+    size_t remain = have - to_stop;
+
+    for (size_t i = remain ; i < have ; ++i) {
+      m_workers[i]->stop();
+    }
+    for (size_t i = remain ; i < have ; ++i) {
+      m_workers[i]->wait();
+      delete m_workers[i];
+      m_workers[i] = nullptr;
+    }
+    m_workers.resize(remain);
   }
-}
-
-
-
-void
-scheduler::scheduler_impl::stop_workers(size_t num_workers)
-{
-  for (auto worker : m_workers) {
-    worker->stop();
-  }
-  for (auto worker : m_workers) {
-    worker->wait();
-    delete worker;
+  else if (num_workers > have) {
+    LOG("Increasing worker count from " << have << " to " << num_workers << ".");
+    for (size_t i = have ; i < num_workers ; ++i) {
+      auto worker = new pdt::worker(m_worker_condition, m_worker_mutex, m_out_queue);
+      worker->start();
+      m_workers.push_back(worker);
+    }
   }
 }
 
