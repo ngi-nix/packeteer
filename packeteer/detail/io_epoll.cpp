@@ -42,16 +42,16 @@ translate_events_to_os(events_t const & events)
 {
   int ret = 0;
 
-  if (events & EV_IO_READ) {
+  if (events & PEV_IO_READ) {
     ret |= EPOLLIN | EPOLLPRI;
   }
-  if (events & EV_IO_WRITE) {
+  if (events & PEV_IO_WRITE) {
     ret |= EPOLLOUT;
   }
-  if (events & EV_IO_CLOSE) {
+  if (events & PEV_IO_CLOSE) {
     ret |= EPOLLRDHUP | EPOLLHUP;
   }
-  if (events & EV_IO_ERROR) {
+  if (events & PEV_IO_ERROR) {
     ret |= EPOLLERR;
   }
 
@@ -66,16 +66,16 @@ translate_os_to_events(int os)
   events_t ret = 0;
 
   if ((os & EPOLLIN) || (os & EPOLLPRI)) {
-    ret |= EV_IO_READ;
+    ret |= PEV_IO_READ;
   }
   if (os & EPOLLOUT) {
-    ret |= EV_IO_WRITE;
+    ret |= PEV_IO_WRITE;
   }
   if ((os & EPOLLRDHUP) || (os & EPOLLHUP)) {
-    ret |= EV_IO_CLOSE;
+    ret |= PEV_IO_CLOSE;
   }
   if (os & EPOLLERR) {
-    ret |= EV_IO_ERROR;
+    ret |= PEV_IO_ERROR;
   }
 
   return ret;
