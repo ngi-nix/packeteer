@@ -288,7 +288,7 @@ set(LIB_SOURCES
     packeteer/connector.cpp
     packeteer/detail/worker.cpp
     packeteer/detail/scheduler_impl.cpp
-    packeteer/detail/connector_pipe.cpp
+    packeteer/detail/connector_anon.cpp
     packeteer/net/socket_address.cpp
     packeteer/net/network.cpp
     packeteer/net/detail/cidr.cpp
@@ -341,6 +341,10 @@ install(FILES
     packeteer/scheduler.h
     packeteer/connector.h
     DESTINATION include/packeteer)
+
+install(FILES
+    packeteer/detail/connector_anon.h
+    DESTINATION include/packeteer/detail)
 
 install(FILES
     packeteer/net/socket_address.h

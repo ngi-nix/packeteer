@@ -17,7 +17,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/detail/connector_pipe.h>
+#include <packeteer/detail/connector_anon.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -28,7 +28,7 @@
 namespace packeteer {
 namespace detail {
 
-connector_pipe::connector_pipe(bool block /* = false */)
+connector_anon::connector_anon(bool block /* = false */)
   : m_block(block)
 {
   m_fds[0] = m_fds[1] = -1;
@@ -36,7 +36,7 @@ connector_pipe::connector_pipe(bool block /* = false */)
 
 
 
-connector_pipe::~connector_pipe()
+connector_anon::~connector_anon()
 {
   close();
 }
@@ -44,7 +44,7 @@ connector_pipe::~connector_pipe()
 
 
 error_t
-connector_pipe::create_pipe()
+connector_anon::create_pipe()
 {
   if (connected()) {
     return ERR_INITIALIZATION;
@@ -105,7 +105,7 @@ connector_pipe::create_pipe()
 
 
 error_t
-connector_pipe::bind()
+connector_anon::bind()
 {
   return create_pipe();
 }
@@ -113,7 +113,7 @@ connector_pipe::bind()
 
 
 bool
-connector_pipe::bound() const
+connector_anon::bound() const
 {
   return connected();
 }
@@ -121,7 +121,7 @@ connector_pipe::bound() const
 
 
 error_t
-connector_pipe::connect()
+connector_anon::connect()
 {
   return create_pipe();
 }
@@ -129,7 +129,7 @@ connector_pipe::connect()
 
 
 bool
-connector_pipe::connected() const
+connector_anon::connected() const
 {
   return (m_fds[0] != -1 && m_fds[1] != -1);
 }
@@ -137,7 +137,7 @@ connector_pipe::connected() const
 
 
 int
-connector_pipe::get_read_fd() const
+connector_anon::get_read_fd() const
 {
   return m_fds[0];
 }
@@ -145,7 +145,7 @@ connector_pipe::get_read_fd() const
 
 
 int
-connector_pipe::get_write_fd() const
+connector_anon::get_write_fd() const
 {
   return m_fds[1];
 }
@@ -153,7 +153,7 @@ connector_pipe::get_write_fd() const
 
 
 error_t
-connector_pipe::read(void * buf, size_t bufsize, size_t & bytes_read)
+connector_anon::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
   if (!connected()) {
     return ERR_INITIALIZATION;
@@ -189,7 +189,7 @@ connector_pipe::read(void * buf, size_t bufsize, size_t & bytes_read)
 
 
 error_t
-connector_pipe::write(void const * buf, size_t bufsize, size_t & bytes_written)
+connector_anon::write(void const * buf, size_t bufsize, size_t & bytes_written)
 {
   if (!connected()) {
     return ERR_INITIALIZATION;
@@ -228,7 +228,7 @@ connector_pipe::write(void const * buf, size_t bufsize, size_t & bytes_written)
 
 
 error_t
-connector_pipe::close()
+connector_anon::close()
 {
   if (!connected()) {
     return ERR_INITIALIZATION;

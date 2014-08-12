@@ -17,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_CONNECTOR_PIPE_H
-#define PACKETEER_DETAIL_CONNECTOR_PIPE_H
+#ifndef PACKETEER_DETAIL_CONNECTOR_ANON_H
+#define PACKETEER_DETAIL_CONNECTOR_ANON_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -32,13 +32,13 @@ namespace packeteer {
 namespace detail {
 
 /**
- * Wrapper around the pipe class.
+ * Unidirectional pipe (UNIX)
  **/
-struct connector_pipe : public ::packeteer::detail::connector
+struct connector_anon : public ::packeteer::detail::connector
 {
 public:
-  connector_pipe(bool block = false);
-  ~connector_pipe();
+  connector_anon(bool block = false);
+  ~connector_anon();
 
   error_t bind();
   bool bound() const;
