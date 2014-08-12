@@ -26,14 +26,17 @@ namespace packeteer {
 
 struct context
 {
+  // FIXME
 };
 
 context create_context()
 {
+  // FIXME
 }
 
 void destroy_context(context & ctx)
 {
+  // FIXME
 }
 
 } // namespace packeteer
