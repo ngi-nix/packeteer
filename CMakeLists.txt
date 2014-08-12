@@ -20,6 +20,38 @@ endif (PACKETEER_USE_CXX11)
 
 
 ##############################################################################
+# Compiler flags #1
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  message("Selecting compiler flags for clang++")
+
+  set (CLANGXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast"
+      CACHE STRING "Default flags for clang++")
+  if (PACKETEER_USE_CXX11)
+    set (CLANGXX_CXX_FLAGS_STD "-std=c++0x -Wc++0x-compat")
+  else (PACKETEER_USE_CXX11)
+    set (CLANGXX_CXX_FLAGS_STD "-std=c++98")
+  endif (PACKETEER_USE_CXX11)
+  set (CMAKE_CXX_FLAGS "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD}")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD} -O0 -ggdb")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD} -O3 -ggdb")
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  message("Selecting compiler flags for GNU c++")
+
+  set (GNUCXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast -Wstrict-null-sentinel"
+      CACHE STRING "Default flags for G++")
+  if (PACKETEER_USE_CXX11)
+    set (GNUCXX_CXX_FLAGS_STD "-std=c++0x -Wc++0x-compat")
+  else (PACKETEER_USE_CXX11)
+    set (GNUCXX_CXX_FLAGS_STD "-std=c++98")
+  endif (PACKETEER_USE_CXX11)
+  set (CMAKE_CXX_FLAGS "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD}")
+  set (CMAKE_CXX_FLAGS_DEBUG "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD} -O0 -ggdb")
+  set (CMAKE_CXX_FLAGS_RELEASE "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD} -O3 -ggdb")
+endif ()
+
+##############################################################################
+
 # Dependencies
 find_package(Threads)
 
@@ -227,39 +259,7 @@ configure_file(
 
 
 ##############################################################################
-# Compiler flags
-
-# Set compiler specific flags
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  message("Selecting compiler flags for clang++")
-
-  set (CLANGXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast"
-      CACHE STRING "Default flags for clang++")
-  if (PACKETEER_USE_CXX11)
-    set (CLANGXX_CXX_FLAGS_STD "-std=c++0x -Wc++0x-compat")
-  else (PACKETEER_USE_CXX11)
-    set (CLANGXX_CXX_FLAGS_STD "-std=c++98")
-  endif (PACKETEER_USE_CXX11)
-  set (CMAKE_CXX_FLAGS "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD}")
-  set (CMAKE_CXX_FLAGS_DEBUG "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD} -O0 -ggdb -DDEBUG=1")
-  set (CMAKE_CXX_FLAGS_RELEASE "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD} -O3 -ggdb -DNDEBUG=1")
-  set (TESTSUITE_LINK_FLAGS "-static")
-
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  message("Selecting compiler flags for GNU c++")
-
-  set (GNUCXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast -Wstrict-null-sentinel"
-      CACHE STRING "Default flags for G++")
-  if (PACKETEER_USE_CXX11)
-    set (GNUCXX_CXX_FLAGS_STD "-std=c++0x -Wc++0x-compat")
-  else (PACKETEER_USE_CXX11)
-    set (GNUCXX_CXX_FLAGS_STD "-std=c++98")
-  endif (PACKETEER_USE_CXX11)
-  set (CMAKE_CXX_FLAGS "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD}")
-  set (CMAKE_CXX_FLAGS_DEBUG "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD} -O0 -ggdb -DDEBUG=1")
-  set (CMAKE_CXX_FLAGS_RELEASE "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD} -O3 -ggdb -DNDEBUG=1")
-  set (TESTSUITE_LINK_FLAGS "-static")
-endif ()
+# Compiler flags #2
 
 # Add include paths
 include_directories(
@@ -268,12 +268,7 @@ include_directories(
 )
 
 # Add library flags
-message(STATUS "current ${CMAKE_CXX_FLAGS}")
-message(STATUS "cppunit ${CPPUNIT_CFLAGS}")
-message(STATUS "meta ${META_CFLAGS}")
-message(STATUS "twine ${TWINE_CFLAGS}")
 set (CMAKE_CXX_FLAGS          "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS}")
-message(STATUS "combined ${CMAKE_CXX_FLAGS}")
 set (CMAKE_CXX_FLAGS_DEBUG    "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
 set (CMAKE_CXX_FLAGS_RELEASE  "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
 
