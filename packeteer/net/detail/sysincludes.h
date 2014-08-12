@@ -29,4 +29,11 @@
 #include <netinet/in.h>
 #endif
 
+#if defined(PACKETEER_HAVE_LINUX_UN_H)
+#  include <linux/un.h>
+#else
+#  include <sys/un.h>
+#  define UNIX_PATH_MAX 108
+#endif
+
 #endif // guard

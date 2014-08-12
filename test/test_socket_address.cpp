@@ -34,25 +34,28 @@ namespace {
 
 struct test_data
 {
-  int           type;
-  char const *  address;
-  char const *  expected;
-  uint16_t      port;
+  int                                       type;
+  pnet::socket_address::socket_address_type sa_type;
+  char const *                              address;
+  char const *                              expected;
+  uint16_t                                  port;
 } tests[] = {
-  { AF_INET,  "192.168.0.1", "192.168.0.1", 12344, },
-  { AF_INET,  "192.168.0.1", "192.168.0.1", 12345, },
-  { AF_INET6, "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+  { AF_INET,  pnet::socket_address::SAT_INET4, "192.168.0.1", "192.168.0.1", 12344, },
+  { AF_INET,  pnet::socket_address::SAT_INET4, "192.168.0.1", "192.168.0.1", 12345, },
+  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12345, },
-  { AF_INET6, "2001:db8:85a3:0:0:8a2e:370:7334",
+  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:db8:85a3:0:0:8a2e:370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12345, },
-  { AF_INET6, "2001:db8:85a3::8a2e:370:7334",
+  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:db8:85a3::8a2e:370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12344, },
-  { AF_INET6, "2001:db8:85a3::8a2e:370:7334",
+  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:db8:85a3::8a2e:370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12345, },
-  { AF_INET6, "0:0:0:0:0:0:0:1", "::1", 12345, },
-  { AF_INET6, "::1", "::1", 12345, },
-  { AF_INET6, "0:0:0:0:0:0:0:0", "::", 12345, },
-  { AF_INET6, "::", "::", 12345, },
+  { AF_INET6, pnet::socket_address::SAT_INET6, "0:0:0:0:0:0:0:1", "::1", 12345, },
+  { AF_INET6, pnet::socket_address::SAT_INET6, "::1", "::1", 12345, },
+  { AF_INET6, pnet::socket_address::SAT_INET6, "0:0:0:0:0:0:0:0", "::", 12345, },
+  { AF_INET6, pnet::socket_address::SAT_INET6, "::", "::", 12345, },
+  { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "/foo/bar", "/foo/bar", 0 },
+  { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "something else", "something else", 0 },
 };
 
 } // anonymous namespace
@@ -63,7 +66,7 @@ class SocketAddressTest
 public:
   CPPUNIT_TEST_SUITE(SocketAddressTest);
 
-    CPPUNIT_TEST(testVerifyAddress);
+    CPPUNIT_TEST(testVerifyCIDR);
     CPPUNIT_TEST(testRawConstruction);
     CPPUNIT_TEST(testStringConstruction);
     CPPUNIT_TEST(testHash);
@@ -88,23 +91,35 @@ private:
     }
 
     // IPv6
-    sockaddr_in6 addr;
-    addr.sin6_family = AF_INET6;
-    addr.sin6_port = htons(data.port);
-    inet_pton(AF_INET6, data.address, &addr.sin6_addr);
+    if (AF_INET6 == data.type) {
+      sockaddr_in6 addr;
+      addr.sin6_family = AF_INET6;
+      addr.sin6_port = htons(data.port);
+      inet_pton(AF_INET6, data.address, &addr.sin6_addr);
+
+      return socket_address(&addr, sizeof(addr));
+    }
+
+    // UNIX
+    sockaddr_un addr;
+    addr.sun_family = AF_LOCAL;
+    ::snprintf(addr.sun_path, UNIX_PATH_MAX, "%s", data.address);
 
     return socket_address(&addr, sizeof(addr));
   }
 
 
 
-  void testVerifyAddress()
+  void testVerifyCIDR()
   {
-    // Tests that the verify_address() function works as expected.
+    // Tests that the verify_cidr() function works as expected.
     using namespace pnet;
 
     for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      CPPUNIT_ASSERT(socket_address::verify_address(tests[i].address));
+      if (socket_address::SAT_LOCAL == tests[i].sa_type) {
+        continue;
+      }
+      CPPUNIT_ASSERT(socket_address::verify_cidr(tests[i].address));
     }
   }
 
@@ -119,14 +134,20 @@ private:
     for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
       socket_address address = create_address(tests[i]);
 
-      CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
+      CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
+      if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+        CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
+      }
       CPPUNIT_ASSERT_EQUAL(tests[i].port, address.port());
 
       std::stringstream s;
       s << address;
 
       std::stringstream s2;
-      s2 << tests[i].expected << ":" << tests[i].port;
+      s2 << tests[i].expected;
+      if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+        s2 << ":" << tests[i].port;
+      }
 
       CPPUNIT_ASSERT_EQUAL(s2.str(), s.str());
     }
@@ -145,52 +166,68 @@ private:
       {
         socket_address address(tests[i].address);
 
-        CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
+        CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
+        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+         CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
+        }
         CPPUNIT_ASSERT_EQUAL(uint16_t(0), address.port()); // No port in ctor
 
         std::stringstream s;
         s << address;
 
         std::stringstream s2;
-        s2 << tests[i].expected << ":0"; // No port in ctor
+        s2 << tests[i].expected;
+        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+          s2 << ":0"; // No port in ctor
+        }
 
         CPPUNIT_ASSERT_EQUAL(s2.str(), s.str());
 
         // Let's also test the verify_netmask() function.
-        size_t max = AF_INET == tests[i].type ? 32 : 128;
-        for (size_t j = 0 ; j <= max ; ++j) {
-          CPPUNIT_ASSERT(address.verify_netmask(j));
-        }
+        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+          size_t max = AF_INET == tests[i].type ? 32 : 128;
+          for (size_t j = 0 ; j <= max ; ++j) {
+            CPPUNIT_ASSERT(address.verify_netmask(j));
+          }
 
-        // +1 can't work.
-        ++max;
-        CPPUNIT_ASSERT(!address.verify_netmask(max));
+          // +1 can't work.
+          ++max;
+          CPPUNIT_ASSERT(!address.verify_netmask(max));
+        }
       }
 
       // *** With port in ctor
       {
         socket_address address(tests[i].address, tests[i].port);
 
-        CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
+        CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
+        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+          CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
+        }
         CPPUNIT_ASSERT_EQUAL(tests[i].port, address.port());
 
         std::stringstream s;
         s << address;
 
         std::stringstream s2;
-        s2 << tests[i].expected << ":" << tests[i].port;
+        s2 << tests[i].expected;
+        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+          s2 << ":" << tests[i].port;
+        }
 
         CPPUNIT_ASSERT_EQUAL(s2.str(), s.str());
 
         // Let's also test the verify_netmask() function.
-        size_t max = AF_INET == tests[i].type ? 32 : 128;
-        for (size_t j = 0 ; j <= max ; ++j) {
-          CPPUNIT_ASSERT(address.verify_netmask(j));
-        }
+        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
+          size_t max = AF_INET == tests[i].type ? 32 : 128;
+          for (size_t j = 0 ; j <= max ; ++j) {
+            CPPUNIT_ASSERT(address.verify_netmask(j));
+          }
 
-        // +1 can't work.
-        ++max;
-        CPPUNIT_ASSERT(!address.verify_netmask(max));
+          // +1 can't work.
+          ++max;
+          CPPUNIT_ASSERT(!address.verify_netmask(max));
+        }
       }
 
     }
@@ -211,8 +248,8 @@ private:
       hashes.insert(hasher(address));
     }
 
-    // We have only 6 unique addresses - two where only the port differs.
-    CPPUNIT_ASSERT_EQUAL(size_t(6), hashes.size());
+    // We have only 8 unique addresses - two where only the port differs.
+    CPPUNIT_ASSERT_EQUAL(size_t(8), hashes.size());
   }
 
 
@@ -320,6 +357,19 @@ private:
     CPPUNIT_ASSERT(!(socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321)
         <= socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234)));
 
+    // *** Unix paths
+    // Equality
+    CPPUNIT_ASSERT_EQUAL(socket_address("/foo/bar"), socket_address("/foo/bar"));
+    CPPUNIT_ASSERT(!(socket_address("/foo/bar") == socket_address("/foo/baz")));
+
+    // Less than
+    CPPUNIT_ASSERT(socket_address("/foo/bar") < socket_address("/foo/baz"));
+    CPPUNIT_ASSERT(!(socket_address("/foo/baz") < socket_address("/foo/bar")));
+
+    // Less equal
+    CPPUNIT_ASSERT(socket_address("/foo/bar") <= socket_address("/foo/bar"));
+    CPPUNIT_ASSERT(socket_address("/foo/bar") <= socket_address("/foo/baz"));
+    CPPUNIT_ASSERT(!(socket_address("/foo/baz") <= socket_address("/foo/bar")));
   }
 };
 

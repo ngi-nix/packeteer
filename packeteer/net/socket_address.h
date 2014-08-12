@@ -24,6 +24,7 @@
 // *** Config
 #include <packeteer/packeteer.h>
 #include <packeteer/net/detail/sysincludes.h>
+#include <packeteer/error.h>
 
 // *** C includes
 #include <sys/socket.h>
@@ -55,6 +56,7 @@ union address_type
   sockaddr          sa;
   sockaddr_in       sa_in;
   sockaddr_in6      sa_in6;
+  sockaddr_un       sa_un;
   sockaddr_storage  sa_storage;
 };
 
@@ -73,8 +75,10 @@ public:
   // Socket address type
   enum socket_address_type
   {
+    SAT_UNSPEC = -1,
     SAT_INET4 = 0,
-    SAT_INET6
+    SAT_INET6,
+    SAT_LOCAL,
   };
 
   /**
@@ -100,9 +104,9 @@ public:
 
 
   /**
-   * Verifies the given address string would create a valid socket address.
+   * Verifies the given address string would create a valid IP socket address.
    **/
-  static bool verify_address(std::string const & address);
+  static bool verify_cidr(std::string const & address);
 
 
   /**
@@ -115,12 +119,14 @@ public:
 
   /**
    * Return a CIDR-style string representation of this address (minus port).
+   * Only applicable to IP addresses.
    **/
   std::string cidr_str() const;
 
 
   /**
    * Returns the port part of this address.
+   * Only applicable to IP addresses.
    **/
   uint16_t port() const;
 
@@ -150,9 +156,11 @@ public:
 
 
   /**
-   * Sets/overwrites the port used for this socket address.
+   * Sets/overwrites the port used for this socket address. Returns
+   * Returns ERR_INVALID_OPTION if used on the wrong (SAT_LOCAL) socket
+   * address type.
    **/
-  void set_port(uint16_t port);
+  packeteer::error_t set_port(uint16_t port);
 
 
   /**

@@ -31,6 +31,47 @@
 
 namespace packeteer {
 namespace net {
+/*****************************************************************************
+ * Helper functions
+ **/
+namespace {
+
+template <typename T>
+char const * unwrap(T const & source)
+{
+  return source;
+}
+
+template<>
+char const * unwrap<std::string>(std::string const & source)
+{
+  return source.c_str();
+}
+
+
+template <typename T>
+void
+parse_address(detail::address_type & data, T const & source, uint16_t port)
+{
+  // Need to zero data.
+  ::memset(&data.sa_storage, 0, sizeof(data));
+
+  // Try parsing as a CIDR address.
+  sa_family_t proto = AF_UNSPEC;
+  ssize_t err = detail::parse_extended_cidr(source, true, data, proto,
+      port);
+  if (0 == err && AF_UNSPEC != proto) {
+    // All good.
+    return;
+  }
+
+  // If that didn't work, we assume the source specifies a path name.
+  ::memset(&data.sa_storage, 0, sizeof(data));
+  data.sa_un.sun_family = AF_LOCAL;
+  ::snprintf(data.sa_un.sun_path, UNIX_PATH_MAX, "%s", unwrap(source));
+}
+
+} // anonymous namespace
 
 /*****************************************************************************
  * Member functions
@@ -62,42 +103,26 @@ socket_address::socket_address(void const * buf, socklen_t len)
 socket_address::socket_address(std::string const & address,
     uint16_t port /* = 0 */)
 {
-  // Need to zero data.
-  ::memset(&data.sa_storage, 0, sizeof(data));
-
-  sa_family_t dummy_proto;
-  ssize_t err = detail::parse_extended_cidr(address, true, data, dummy_proto,
-      port);
-  if (-1 == err) {
-    throw exception(ERR_INVALID_VALUE, "socket_address: could not parse socket address.");
-  }
+  parse_address(data, address, port);
 }
 
 
 
 socket_address::socket_address(char const * address, uint16_t port /* = 0 */)
 {
-  // Need to zero data.
-  ::memset(&data.sa_storage, 0, sizeof(data));
-
-  sa_family_t dummy_proto;
-  ssize_t err = detail::parse_extended_cidr(address, true, data, dummy_proto,
-      port);
-  if (-1 == err) {
-    throw exception(ERR_INVALID_VALUE, "socket_address: could not parse socket address.");
-  }
+  parse_address(data, address, port);
 }
 
 
 
 bool
-socket_address::verify_address(std::string const & address)
+socket_address::verify_cidr(std::string const & address)
 {
   detail::address_type dummy_addr;
-  sa_family_t dummy_proto;
+  sa_family_t proto = AF_UNSPEC;
   size_t err = detail::parse_extended_cidr(address, true, dummy_addr,
-      dummy_proto);
-  return (0 == err);
+      proto);
+  return (0 == err && AF_UNSPEC != proto);
 }
 
 
@@ -108,8 +133,12 @@ socket_address::verify_netmask(size_t const & netmask) const
   if (AF_INET == data.sa_storage.ss_family) {
     return (netmask <= 32);
   }
-
-  return (netmask <= 128);
+  else if (AF_INET6 == data.sa_storage.ss_family) {
+    return (netmask <= 128);
+  }
+  else {
+    return false;
+  }
 }
 
 
@@ -119,11 +148,11 @@ socket_address::cidr_str() const
 {
   // Interpret data as sockaddr_storage, sockaddr_in and sockaddr_in6. Of the
   // latter two, only one is safe to use!
-  char buf[INET6_ADDRSTRLEN];
+  char buf[INET6_ADDRSTRLEN] = { '\0' };
   if (AF_INET == data.sa_storage.ss_family) {
     inet_ntop(data.sa_storage.ss_family, &(data.sa_in.sin_addr), buf, sizeof(buf));
   }
-  else {
+  else if (AF_INET6 == data.sa_storage.ss_family) {
     inet_ntop(data.sa_storage.ss_family, &(data.sa_in6.sin6_addr), buf, sizeof(buf));
   }
 
@@ -137,11 +166,15 @@ socket_address::port() const
 {
   // Interpret data as sockaddr_storage, sockaddr_in and sockaddr_in6. Of the
   // latter two, only one is safe to use!
-  if (AF_INET == data.sa_storage.ss_family) {
-    return ntohs(data.sa_in.sin_port);
-  }
-  else {
-    return ntohs(data.sa_in6.sin6_port);
+  switch (data.sa_storage.ss_family) {
+    case AF_INET:
+      return ntohs(data.sa_in.sin_port);
+
+    case AF_INET6:
+      return ntohs(data.sa_in6.sin6_port);
+
+    default:
+      return 0;
   }
 }
 
@@ -151,7 +184,21 @@ std::string
 socket_address::full_str() const
 {
   std::stringstream s;
-  s << cidr_str() << ":" << port();
+
+  switch (data.sa_storage.ss_family) {
+    case AF_INET:
+    case AF_INET6:
+      s << cidr_str() << ":" << port();
+      break;
+
+    case AF_LOCAL:
+      s << data.sa_un.sun_path;
+      break;
+
+    default:
+      break;
+  }
+
   return s.str();
 }
 
@@ -160,7 +207,18 @@ socket_address::full_str() const
 socklen_t
 socket_address::bufsize() const
 {
-  return sizeof(data);
+  switch (data.sa_storage.ss_family) {
+    case AF_INET:
+    case AF_INET6:
+      return sizeof(data);
+
+    case AF_LOCAL:
+      return ::strlen(data.sa_un.sun_path);
+
+    default:
+      break;
+  }
+  return 0;
 }
 
 
@@ -173,17 +231,25 @@ socket_address::buffer() const
 
 
 
-void
+error_t
 socket_address::set_port(uint16_t port)
 {
   // Interpret data as sockaddr_storage, sockaddr_in and sockaddr_in6. Of the
   // latter two, only one is safe to use!
-  if (AF_INET == data.sa_storage.ss_family) {
-    data.sa_in.sin_port = htons(port);
+  switch (data.sa_storage.ss_family) {
+    case AF_INET:
+      data.sa_in.sin_port = htons(port);
+      break;
+
+    case AF_INET6:
+      data.sa_in6.sin6_port = htons(port);
+      break;
+
+    default:
+      return ERR_INVALID_OPTION;
   }
-  else {
-    data.sa_in6.sin6_port = htons(port);
-  }
+
+  return ERR_SUCCESS;
 }
 
 
@@ -214,7 +280,7 @@ socket_address::operator==(socket_address const & other) const
   }
 
   // IPv6
-  else {
+  else if (AF_INET6 == data.sa_storage.ss_family) {
     if (data.sa_in6.sin6_port != other.data.sa_in6.sin6_port) {
       return false;
     }
@@ -222,6 +288,13 @@ socket_address::operator==(socket_address const & other) const
     compare_size = sizeof(in6_addr);
     compare_buf = &(data.sa_in6.sin6_addr);
     compare_buf_other = &(other.data.sa_in6.sin6_addr);
+  }
+
+  // UNIX
+  else {
+    compare_size = UNIX_PATH_MAX;
+    compare_buf = data.sa_un.sun_path;
+    compare_buf_other = other.data.sa_un.sun_path;
   }
 
   return 0 == ::memcmp(compare_buf, compare_buf_other, compare_size);
@@ -264,13 +337,20 @@ socket_address::operator<(socket_address const & other) const
   }
 
   // IPv6 is harder, but not too hard. We need to compare byte by byte.
-  for (ssize_t i = 0 ; i < 16 ; ++i) {
-    if (data.sa_in6.sin6_addr.s6_addr[i] < other.data.sa_in6.sin6_addr.s6_addr[i]) {
-      return true;
+  else if (AF_INET6 == data.sa_storage.ss_family) {
+    for (ssize_t i = 0 ; i < 16 ; ++i) {
+      if (data.sa_in6.sin6_addr.s6_addr[i] < other.data.sa_in6.sin6_addr.s6_addr[i]) {
+        return true;
+      }
     }
+
+    return (ntohs(data.sa_in6.sin6_port) < ntohs(other.data.sa_in6.sin6_port));
   }
 
-  return (ntohs(data.sa_in6.sin6_port) < ntohs(other.data.sa_in6.sin6_port));
+  // Unix paths are simple again.
+  else {
+    return 0 > ::memcmp(data.sa_un.sun_path, other.data.sa_un.sun_path, UNIX_PATH_MAX);
+  }
 }
 
 
@@ -283,7 +363,7 @@ socket_address::operator++()
     uint32_t ip = ntohl(data.sa_in.sin_addr.s_addr);
     data.sa_in.sin_addr.s_addr = htonl(++ip);
   }
-  else {
+  else if (AF_INET6) {
     // IPv6 is still simple enough, we just have to handle overflow from one
     // byte into the next.
     bool done = false;
@@ -294,6 +374,9 @@ socket_address::operator++()
       }
     }
   }
+  else {
+    throw exception(ERR_UNSUPPORTED_ACTION, "Don't know how to increment paths.");
+  }
 }
 
 
@@ -301,11 +384,18 @@ socket_address::operator++()
 socket_address::socket_address_type
 socket_address::type() const
 {
-  if (AF_INET == data.sa_storage.ss_family) {
-    return SAT_INET4;
-  }
-  else {
-    return SAT_INET6;
+  switch (data.sa_storage.ss_family) {
+    case AF_INET:
+      return SAT_INET4;
+
+    case AF_INET6:
+      return SAT_INET6;
+
+    case AF_LOCAL:
+      return SAT_LOCAL;
+
+    default:
+      return SAT_UNSPEC;
   }
 }
 
@@ -328,10 +418,17 @@ socket_address::hash() const
   }
 
   // IPv6
-  else {
+  else if (AF_INET6 == data.sa_storage.ss_family) {
     hash_size = sizeof(in6_addr);
     hash_buf = &(data.sa_in6.sin6_addr);
     port = data.sa_in6.sin6_port;
+  }
+
+  // UNIX
+  else {
+    hash_size = ::strlen(data.sa_un.sun_path);
+    hash_buf = data.sa_un.sun_path;
+    port = 0;
   }
 
   return meta::hash::multi_hash(
