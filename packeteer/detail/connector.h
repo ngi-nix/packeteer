@@ -28,6 +28,8 @@
 
 #include <packeteer/error.h>
 
+#include <packeteer/net/socket_address.h>
+
 namespace packeteer {
 namespace detail {
 
@@ -38,7 +40,10 @@ namespace detail {
 struct connector
 {
 public:
-  virtual ~connector() {}
+  /***************************************************************************
+   * Always to be implemented by child classes
+   **/
+  virtual ~connector() = 0; // Expected to close() the connector
 
   virtual error_t bind() = 0;
   virtual bool bound() const = 0;
@@ -49,10 +54,19 @@ public:
   virtual int get_read_fd() const = 0;
   virtual int get_write_fd() const = 0;
 
-  virtual error_t read(void * buf, size_t bufsize, size_t & bytes_read) = 0;
-  virtual error_t write(void const * buf, size_t bufsize, size_t & bytes_written) = 0;
-
   virtual error_t close() = 0;
+
+  /***************************************************************************
+   * Default (POSIX-oriented) implementations; may be subclassed if necessary.
+   **/
+  virtual error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
+      ::packeteer::net::socket_address & sender);
+  virtual error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
+      ::packeteer::net::socket_address const & recipient);
+
+  virtual error_t read(void * buf, size_t bufsize, size_t & bytes_read);
+  virtual error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
+
 };
 
 }} // namespace packeteer::detail

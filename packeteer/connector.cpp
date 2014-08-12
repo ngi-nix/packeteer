@@ -316,6 +316,30 @@ connector::get_write_fd() const
 
 
 error_t
+connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
+    ::packeteer::net::socket_address & sender)
+{
+  if (!m_impl->m_conn) {
+    return ERR_INITIALIZATION;
+  }
+  return m_impl->m_conn->receive(buf, bufsize, bytes_read, sender);
+}
+
+
+
+error_t
+connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
+    ::packeteer::net::socket_address const & recipient)
+{
+  if (!m_impl->m_conn) {
+    return ERR_INITIALIZATION;
+  }
+  return m_impl->m_conn->send(buf, bufsize, bytes_written, recipient);
+}
+
+
+
+error_t
 connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
   if (!m_impl->m_conn) {

@@ -49,9 +49,6 @@ public:
   int get_read_fd() const;
   int get_write_fd() const;
 
-  error_t read(void * buf, size_t bufsize, size_t & bytes_read);
-  error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
-
   error_t close();
 private:
   error_t create_pipe();

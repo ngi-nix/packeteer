@@ -284,6 +284,7 @@ set(LIB_SOURCES
     packeteer/connector.cpp
     packeteer/detail/worker.cpp
     packeteer/detail/scheduler_impl.cpp
+    packeteer/detail/connector.cpp
     packeteer/detail/connector_anon.cpp
     packeteer/detail/connector_local.cpp
     packeteer/net/socket_address.cpp

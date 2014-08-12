@@ -28,6 +28,8 @@
 
 #include <packeteer/error.h>
 
+#include <packeteer/net/socket_address.h>
+
 namespace packeteer {
 
 /**
@@ -153,6 +155,14 @@ public:
   int get_read_fd() const;
   int get_write_fd() const;
 
+  /**
+   * Read from and write messages to a given peer address on the connector. The
+   * semantics are effectively identical to the POSIX functions of similar name.
+   **/
+  error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
+      ::packeteer::net::socket_address & sender);
+  error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
+      ::packeteer::net::socket_address const & recipient);
 
   /**
    * Read from and write to the connector.
@@ -166,7 +176,6 @@ public:
    **/
   error_t read(void * buf, size_t bufsize, size_t & bytes_read);
   error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
-
 
   /**
    * Close the connector, making it neither bound nor connected. Subsequent
