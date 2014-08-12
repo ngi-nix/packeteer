@@ -35,7 +35,8 @@
 #include <packeteer/error.h>
 #include <packeteer/net/socket_address.h>
 
-#include <packeteer/detail/connector_pipe.h>
+#include <packeteer/detail/connector_anon.h>
+#include <packeteer/detail/connector_local.h>
 
 
 namespace packeteer {
@@ -58,10 +59,10 @@ match_scheme(std::string const & scheme)
     mapping["udp4"] = connector::CT_UDP4;
     mapping["udp6"] = connector::CT_UDP6;
     mapping["udp"] = connector::CT_UDP;
-    mapping["file"] = connector::CT_FILE;
-    mapping["ipc"] = connector::CT_IPC;
-    mapping["pipe"] = connector::CT_PIPE;
     mapping["anon"] = connector::CT_ANON;
+    mapping["file"] = connector::CT_FILE;
+    mapping["local"] = connector::CT_LOCAL;
+    mapping["pipe"] = connector::CT_PIPE;
   }
 
   // Find scheme type
@@ -148,7 +149,7 @@ struct connector::connector_impl
           throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
         }
       }
-      if (net::socket_address::SAT_INET6 == addr.type()) {
+      else if (net::socket_address::SAT_INET6 == addr.type()) {
         if (connector::CT_TCP6 != pre_parsed.first
             && connector::CT_TCP != pre_parsed.first
             && connector::CT_UDP6 != pre_parsed.first
@@ -156,6 +157,9 @@ struct connector::connector_impl
         {
           throw exception(ERR_FORMAT, "IPv6 address provided with IPv4 scheme.");
         }
+      }
+      else {
+        throw exception(ERR_FORMAT, "Invalid IPv4 or IPv6 address.");
       }
 
       // Looks good for TCP/UDP style connectors!
@@ -182,7 +186,7 @@ struct connector::connector_impl
         throw exception(ERR_FORMAT, "Invalid keyword in address string.");
       }
 
-      m_conn = new detail::connector_pipe(block);
+      m_conn = new detail::connector_anon(block);
     }
 
     else {
@@ -191,7 +195,25 @@ struct connector::connector_impl
       }
       // Looks good for non-TCP/UDP style connectors!
       m_type = pre_parsed.first;
+
+      // Instanciate the connector implementation
+      switch (m_type) {
+        case CT_LOCAL:
+          m_conn = new detail::connector_local(pre_parsed.second);
+          break;
+
+        case CT_PIPE:
       // TODO
+          break;
+
+        case CT_FILE:
+      // TODO
+          break;
+
+        default:
+          throw exception(ERR_UNEXPECTED, "This should not happen.");
+          break;
+      }
     }
   }
 

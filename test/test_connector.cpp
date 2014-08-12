@@ -130,7 +130,7 @@ struct test_data
   // All other types require path names. There's not much common
   // about path names, so our only requirement is that it exists.
   { "file://foo", true, connector::CT_FILE },
-  { "ipc://foo", true, connector::CT_IPC },
+  { "local://foo", true, connector::CT_LOCAL },
   { "pipe://foo", true, connector::CT_PIPE },
   { "anon://", true, connector::CT_ANON },
 
@@ -146,6 +146,8 @@ public:
 
     CPPUNIT_TEST(testAddressParsing);
     CPPUNIT_TEST(testAnonConnector);
+    CPPUNIT_TEST(testLocalConnector);
+    CPPUNIT_TEST(testPipeConnector);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -169,10 +171,69 @@ private:
 
 
 
+  void sendMessage(connector & sender, connector & receiver)
+  {
+    std::string msg = "hello, world!";
+    size_t amount = 0;
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
+    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
+
+    std::vector<char> result;
+    result.reserve(2 * msg.size());
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.read(&result[0], result.capacity(),
+          amount));
+    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
+
+    for (size_t i = 0 ; i < msg.size() ; ++i) {
+      CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
+    }
+  }
+
+
+
+  void testStreamConnector(connector::connector_type expected_type,
+      std::string const & addr)
+  {
+    // Tests for "stream" connectors, i.e. connectors that allow synchronous,
+    // reliable delivery.
+
+    // Server
+    connector server(addr);
+    CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
+
+    CPPUNIT_ASSERT(!server.bound());
+    CPPUNIT_ASSERT(!server.connected());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.bind());
+
+    CPPUNIT_ASSERT(server.bound());
+    CPPUNIT_ASSERT(!server.connected());
+
+    sleep(2);
+
+    // Client
+    connector client(addr);
+    CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
+
+    CPPUNIT_ASSERT(!client.bound());
+    CPPUNIT_ASSERT(!client.connected());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
+
+    CPPUNIT_ASSERT(!client.bound());
+    CPPUNIT_ASSERT(client.connected());
+
+    // Communications
+    sendMessage(client, server);
+    sendMessage(server, client);
+  }
+
+
+
   void testAnonConnector()
   {
-    // Anonymous pipes are essentially a wrapper around the pipe class, so this
-    // test and the pipe tests should be similar.
+    // Anonymous pipes are special in that they need only one connector for
+    // communications.
     connector conn("anon://");
     CPPUNIT_ASSERT_EQUAL(connector::CT_ANON, conn.type());
 
@@ -195,10 +256,27 @@ private:
           amount));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 
-    for (int i = 0 ; i < msg.size() ; ++i) {
+    for (size_t i = 0 ; i < msg.size() ; ++i) {
       CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
     }
   }
+
+
+
+  void testLocalConnector()
+  {
+    // Local sockets are "stream" connectors
+    testStreamConnector(connector::CT_LOCAL, "local:///tmp/test-connector");
+  }
+
+
+
+  void testPipeConnector()
+  {
+    // Named pipes are "stream" connectors
+    testStreamConnector(connector::CT_PIPE, "pipe:///tmp/test-connector");
+  }
+
 
 };
 

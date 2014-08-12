@@ -54,7 +54,7 @@ public:
     CT_UDP6,
     CT_UDP,
     CT_FILE,
-    CT_IPC,
+    CT_LOCAL,
     CT_PIPE,
     CT_ANON,
   };
@@ -78,9 +78,8 @@ public:
    *      IPC between processes that inherit the file descriptors. Anonymous
    *      pipes are unidirectional.
    *  - file: file system operations (limited usage)
-   *  - ipc: UNIX domain sockets/inter-process communication socket;
-   *      or named pipe on Windows.
-   *  - pipe: UNIX named pipe (unidirectional; not available on Windows)
+   *  - local: UNIX domain sockets (POSIX)
+   *  - pipe: UNIX named pipe or Windows named pipe
    *
    * Of these, the first six expect the address string to have the format:
    *    scheme://address[:port]
@@ -91,7 +90,7 @@ public:
    * a non-blocking pipe is created.
    *    anon://[blocking|nonblocking]
    *
-   * The last three expect the following format:
+   * The last few expect the following format:
    *    scheme://path
    *
    * The scheme part is not case sensitive. The address for IPv6 is not case
