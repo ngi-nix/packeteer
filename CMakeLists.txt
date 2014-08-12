@@ -38,6 +38,7 @@ check_include_file_cxx(sys/epoll.h PACKETEER_HAVE_SYS_EPOLL_H)
 check_include_file_cxx(poll.h PACKETEER_HAVE_POLL_H)
 check_include_file_cxx(arpa/inet.h PACKETEER_HAVE_ARPA_INET_H)
 check_include_file_cxx(netinet/in.h PACKETEER_HAVE_NETINET_IN_H)
+check_include_file_cxx(linux/un.h PACKETEER_HAVE_LINUX_UN_H)
 
 
 ##############################################################################

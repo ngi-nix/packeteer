@@ -34,6 +34,7 @@
 #cmakedefine PACKETEER_HAVE_POLL_H
 #cmakedefine PACKETEER_HAVE_ARPA_INET_H
 #cmakedefine PACKETEER_HAVE_NETINET_IN_H
+#cmakedefine PACKETEER_HAVE_LINUX_UN_H
 
 
 /*****************************************************************************
