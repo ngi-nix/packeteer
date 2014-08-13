@@ -209,11 +209,13 @@ socket_address::bufsize() const
 {
   switch (data.sa_storage.ss_family) {
     case AF_INET:
+      return sizeof(sockaddr_in);
+
     case AF_INET6:
-      return sizeof(data);
+      return sizeof(sockaddr_in6);
 
     case AF_LOCAL:
-      return ::strlen(data.sa_un.sun_path);
+      return sizeof(sockaddr_un);
 
     default:
       break;
