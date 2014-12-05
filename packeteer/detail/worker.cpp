@@ -62,7 +62,7 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
     LOG("worker woke up");
     detail::callback_entry * entry = nullptr;
     while (m_work_queue.pop(entry)) {
-      LOG("worker picked up entry of type: " << entry->m_type);
+      LOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this) << std::dec << "] picked up entry of type: " << entry->m_type);
       try {
         error_t err = execute_callback(entry);
         if (ERR_SUCCESS != err) {
