@@ -81,6 +81,9 @@ public:
 
   inline ~concurrent_queue()
   {
+    while (m_consumer_lock.exchange(true)) {}
+    while (m_producer_lock.exchange(true)) {}
+
     while (nullptr != m_first) {
       node * tmp = m_first;
       m_first = tmp->m_next;
