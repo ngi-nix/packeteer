@@ -22,6 +22,8 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 
+#include <unistd.h>
+
 #include <cstring>
 
 #include <stdexcept>

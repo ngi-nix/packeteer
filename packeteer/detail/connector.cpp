@@ -17,7 +17,10 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+
 #include <packeteer/detail/connector.h>
+
+#include <unistd.h>
 
 namespace packeteer {
 namespace detail {
