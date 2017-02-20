@@ -298,6 +298,7 @@ set(LIB_SOURCES
     packeteer/scheduler.cpp
     packeteer/connector.cpp
     packeteer/detail/worker.cpp
+    packeteer/detail/filedescriptors.cpp
     packeteer/detail/scheduler_impl.cpp
     packeteer/detail/connector.cpp
     packeteer/detail/connector_anon.cpp
