@@ -40,8 +40,8 @@ public:
   connector_anon(bool block = false);
   ~connector_anon();
 
-  error_t bind();
-  bool bound() const;
+  error_t listen();
+  bool listening() const;
 
   error_t connect();
   bool connected() const;

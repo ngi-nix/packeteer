@@ -112,20 +112,24 @@ public:
   connector_type type() const;
 
   /**
-   * In the spirit of socket-style APIs, a connector that is bound to its
-   * address can be used as the server side of a network communications
-   * channel. That is, once bound to the specified address, other parties
+   * In the spirit of socket-style APIs, a connector that is listening on
+   * its address can be used as the server side of a network communications
+   * channel. That is, once listening on the specified address, other parties
    * can connect to it.
    *
-   * Binding to a file-URI does not make sense, and will therefore be
+   * Listening on a file-URI does not make sense, and will therefore be
    * rejected.
    *
-   * Binding an anon-URI automatically also connects the connector.
+   * Listening to an anon-URI automatically also connects the connector.
    *
-   * Returns an error if binding fails.
+   * Returns an error if listening fails.
    **/
-  error_t bind();
-  bool bound() const;
+  error_t listen();
+  bool listening() const;
+
+  /**
+   * FIXME accept
+   **/
 
   /**
    * Similarly, connecting to the specified address creates a connector
@@ -135,7 +139,8 @@ public:
    * to other URIs establishes a connection to the endpoint specified in the
    * URI.
    *
-   * Connecting to an anon-URI automatically also binds the connector.
+   * Connecting to an anon-URI automatically also turns the connector to
+   * listening.
    *
    * Returns an error if connecting fails.
    **/
@@ -179,7 +184,7 @@ public:
 
   /**
    * Close the connector, making it neither bound nor connected. Subsequent
-   * calls to bind() or connect() should be valid again.
+   * calls to listen() or connect() should be valid again.
    **/
   error_t close();
 

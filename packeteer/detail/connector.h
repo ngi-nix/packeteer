@@ -45,8 +45,8 @@ public:
    **/
   virtual ~connector() = 0; // Expected to close() the connector
 
-  virtual error_t bind() = 0;
-  virtual bool bound() const = 0;
+  virtual error_t listen() = 0;
+  virtual bool listening() const = 0;
 
   virtual error_t connect() = 0;
   virtual bool connected() const = 0;

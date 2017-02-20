@@ -84,7 +84,7 @@ connector_anon::create_pipe()
 
 
 error_t
-connector_anon::bind()
+connector_anon::listen()
 {
   return create_pipe();
 }
@@ -92,7 +92,7 @@ connector_anon::bind()
 
 
 bool
-connector_anon::bound() const
+connector_anon::listening() const
 {
   return connected();
 }

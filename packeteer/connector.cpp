@@ -250,23 +250,23 @@ connector::type() const
 
 
 error_t
-connector::bind()
+connector::listen()
 {
   if (!m_impl->m_conn) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->bind();
+  return m_impl->m_conn->listen();
 }
 
 
 
 bool
-connector::bound() const
+connector::listening() const
 {
   if (!m_impl->m_conn) {
     return false;
   }
-  return m_impl->m_conn->bound();
+  return m_impl->m_conn->listening();
 }
 
 
