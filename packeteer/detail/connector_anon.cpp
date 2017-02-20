@@ -19,8 +19,9 @@
  **/
 #include <packeteer/detail/connector_anon.h>
 
+#include <packeteer/detail/filedescriptors.h>
+
 #include <unistd.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <string.h>
 
@@ -67,34 +68,12 @@ connector_anon::create_pipe()
     }
   }
 
-  // Optionally make the read end non-blocking
-  int val = ::fcntl(m_fds[0], F_GETFL, 0);
-  val |= O_CLOEXEC;
-  if (!m_block) {
-    val |= O_NONBLOCK;
-  }
-  else {
-    val &= ~O_NONBLOCK;
-  }
-  val = ::fcntl(m_fds[0], F_SETFL, val);
-  if (-1 == val) {
-    // Really all errors are unexpected here.
+  // Optionally make the read and write end non-blocking
+  if (ERR_SUCCESS != make_nonblocking(m_fds[0], m_block)) {
     close();
     return ERR_UNEXPECTED;
   }
-
-  // Optionally make the write end non-blocking
-  val = ::fcntl(m_fds[1], F_GETFL, 0);
-  val |= O_CLOEXEC;
-  if (!m_block) {
-    val |= O_NONBLOCK;
-  }
-  else {
-    val &= ~O_NONBLOCK;
-  }
-  val = ::fcntl(m_fds[1], F_SETFL, val);
-  if (-1 == val) {
-    // Really all errors are unexpected here.
+  if (ERR_SUCCESS != make_nonblocking(m_fds[1], m_block)) {
     close();
     return ERR_UNEXPECTED;
   }
