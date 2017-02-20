@@ -67,7 +67,6 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif ()
 
 ##############################################################################
-
 # Dependencies
 find_package(Threads)
 find_package(meta 1.1)
