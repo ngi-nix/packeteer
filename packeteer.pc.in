@@ -5,7 +5,7 @@ includedir=${prefix}/include
 
 Name: packeteer
 Description: Packeteer provides a simplified, asynchronous, event-based socket API.
-Requires: meta >= 0.1, twine >= 0.1
+Requires: meta >= 1.1, twine >= 1.0
 Version: @PACKETEER_PACKAGE_MAJOR@.@PACKETEER_PACKAGE_MINOR@
 Libs: -L${libdir} -lpacketeer
 Cflags: -I${includedir}
