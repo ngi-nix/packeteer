@@ -3,6 +3,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(packeteer)
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMakeModules)
+
 set (PACKETEER_PACKAGE_MAJOR 0)
 set (PACKETEER_PACKAGE_MINOR 1)
 set (PACKETEER_PACKAGE_URL https://github.com/jfinkhaeuser/packeteer)
@@ -31,9 +33,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   else (PACKETEER_USE_CXX11)
     set (CLANGXX_CXX_FLAGS_STD "-std=c++98")
   endif (PACKETEER_USE_CXX11)
-  set (CMAKE_CXX_FLAGS "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD}")
-  set (CMAKE_CXX_FLAGS_DEBUG "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD} -O0 -ggdb")
-  set (CMAKE_CXX_FLAGS_RELEASE "${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD} -O3 -ggdb")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD}")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -ggdb")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -ggdb")
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   message("Selecting compiler flags for GNU c++")
@@ -45,20 +47,32 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   else (PACKETEER_USE_CXX11)
     set (GNUCXX_CXX_FLAGS_STD "-std=c++98")
   endif (PACKETEER_USE_CXX11)
-  set (CMAKE_CXX_FLAGS "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD}")
-  set (CMAKE_CXX_FLAGS_DEBUG "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD} -O0 -ggdb")
-  set (CMAKE_CXX_FLAGS_RELEASE "${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD} -O3 -ggdb")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD}")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -ggdb")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -ggdb")
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  message("Selecting compiler flags for MSVC")
+
+  set (MSVC_CXX_FLAGS "/analyze /GR /sdl /W4"
+      CACHE STRING "Default flags for MSVC")
+  if (PACKETEER_USE_CXX11)
+    set (MSVC_CXX_FLAGS_STD "/std:c++latest")
+  else (PACKETEER_USE_CXX11)
+    set (MSVC_CXX_FLAGS_STD "/std:c++98")
+  endif (PACKETEER_USE_CXX11)
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_CXX_FLAGS} ${MSVC_CXX_FLAGS_STD}")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS}")
+  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} /GL /Ox")
 endif ()
 
 ##############################################################################
 
 # Dependencies
 find_package(Threads)
-
-include(FindPkgConfig)
-pkg_check_modules(META meta>=0.1)
-pkg_check_modules(TWINE twine>=0.1)
-pkg_check_modules(CPPUNIT cppunit>=1.12)
+find_package(meta 1.1)
+find_package(twine 1.0)
+find_package(cppunit 1.12.1)
 
 
 ##############################################################################
@@ -265,6 +279,8 @@ configure_file(
 include_directories(
     "${PROJECT_SOURCE_DIR}"
     "${PROJECT_BINARY_DIR}"
+    "${META_INCLUDEDIR}"
+    "${TWINE_INCLUDEDIR}"
 )
 
 # Add library flags
@@ -319,12 +335,15 @@ endif (PACKETEER_HAVE_KQUEUE)
 
 add_library(packeteer_static STATIC ${LIB_SOURCES})
 add_library(packeteer_shared SHARED ${LIB_SOURCES})
-set_target_properties(packeteer_static packeteer_shared PROPERTIES OUTPUT_NAME packeteer)
-
+set_target_properties(packeteer_static packeteer_shared PROPERTIES
+    OUTPUT_NAME packeteer)
 set_target_properties(packeteer_shared PROPERTIES
     SOVERSION "${PACKETEER_PACKAGE_MAJOR}"
     VERSION "${PACKETEER_PACKAGE_MAJOR}.${PACKETEER_PACKAGE_MINOR}.0"
 )
+
+
+include(GNUInstallDirs)
 
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/packeteer/packeteer-config.h
@@ -351,15 +370,13 @@ install(FILES
 
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/packeteer.pc
-    DESTINATION lib/pkgconfig)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 install(TARGETS
-    packeteer_static ARCHIVE
-    DESTINATION lib)
-install(TARGETS
-    packeteer_shared LIBRARY
-    DESTINATION lib)
-
+    packeteer_static packeteer_shared
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT library)
 
 ##############################################################################
 # Tests
@@ -379,13 +396,91 @@ if (CPPUNIT_FOUND)
   add_executable(testsuite
       ${TEST_SOURCES}
       test/testsuite.cpp)
+
+  if (CPPUNIT_LIBRARY_DEBUG)
+    target_link_libraries(testsuite
+        packeteer_static
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${DEP_LIBRARIES}
+        debug
+        ${TWINE_LIBRARY_DEBUG}
+        ${CPPUNIT_LIBRARY_DEBUG})
+  endif ()
   target_link_libraries(testsuite
       packeteer_static
       ${CMAKE_THREAD_LIBS_INIT}
       ${DEP_LIBRARIES}
-      ${TWINE_STATIC_LDFLAGS}
-      ${CPPUNIT_LDFLAGS})
+      optimized
+      ${TWINE_LIBRARY_RELEASE}
+      ${CPPUNIT_LIBRARY_RELEASE})
+
+  # Since some time after 2.8.9
+  if ("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
+    target_include_directories(testsuite PRIVATE ${CPPUNIT_INCLUDE_DIR})
+  else()
+    include_directories(testsuite PRIVATE ${CPPUNIT_INCLUDE_DIR})
+  endif()
+
   set_target_properties(testsuite PROPERTIES LINK_FLAGS "${TESTSUITE_LINK_FLAGS}")
 
   add_test(NAME "Testsuite" COMMAND testsuite)
+  set(PROJECT_TEST_NAME testsuite)
+
+  # Code coverage
+  if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_BUILD_TYPE STREQUAL "Coverage")
+    include(CodeCoverage)
+    setup_target_for_coverage(coverage ${PROJECT_TEST_NAME} coverage)
+    target_link_libraries(${PROJECT_TEST_NAME} gcov)
+  endif()
+
+  # May not work for older CMake versions
+  set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT testsuite)
 endif (CPPUNIT_FOUND)
+
+##############################################################################
+# CPack Section
+include(InstallRequiredSystemLibraries)
+
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Packeteer provides a simplified, asynchronous, event-based socket API.")
+set(CPACK_PACKAGE_VENDOR "finkhaeuser consulting")
+set(CPACK_PACKAGE_CONTACT "jens@finkhaeuser.de")
+set(CPACK_PACKAGE_VERSION_MAJOR "${PACKETEER_PACKAGE_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${PACKETEER_PACKAGE_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
+
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+# set(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+
+if(WIN32 AND NOT UNIX)
+  set(CPACK_GENERATOR "NSIS;NSIS64")
+  # There is a bug in NSI that does not handle full unix paths properly. Make
+  # sure there is at least one set of four (4) backlasshes.
+  set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}\\\\data\\\\tool-icon.bmp")
+  # set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\MyExecutable.exe")
+  set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_INSTALL_DIRECTORY} packeteer")
+  set(CPACK_NSIS_HELP_LINK "http://jfinkhaeuser.github.io/packeteer/")
+  set(CPACK_NSIS_URL_INFO_ABOUT "http://jfinkhaeuser.github.io/packeteer/")
+  set(CPACK_NSIS_CONTACT "jens@finkhaeuser.de")
+  set(CPACK_NSIS_MODIFY_PATH ON)
+else(WIN32 AND NOT UNIX)
+  set(CPACK_GENERATOR "STGZ;TGZ;TBZ2;DEB")
+  # set(CPACK_STRIP_FILES "bin/MyExecutable")
+  set(CPACK_SOURCE_STRIP_FILES "")
+
+  set(CPACK_SOURCE_IGNORE_FILES
+      "/deps/"
+      "/CMakeFiles/"
+      "/tmp/"
+      "/build/"
+      "/_package/"
+      "\\\\.git*"
+      "\\\\..*\\\\.sw."
+      "/\\\\.travis.yml"
+  )
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "packeteer-${PACKETEER_PACKAGE_MAJOR}.${PACKETEER_PACKAGE_MINOR}")
+endif(WIN32 AND NOT UNIX)
+
+# set(CPACK_PACKAGE_EXECUTABLES "MyExecutable" "My Executable")
+
+include(CPack)
