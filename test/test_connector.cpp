@@ -28,6 +28,9 @@
 
 #include <stdexcept>
 
+#include <twine/chrono.h>
+
+
 using namespace packeteer;
 
 namespace {
@@ -211,7 +214,7 @@ private:
     CPPUNIT_ASSERT(server.bound());
     CPPUNIT_ASSERT(!server.connected());
 
-    sleep(2);
+    twine::chrono::sleep(twine::chrono::seconds(2));
 
     // Client
     connector client(addr);
