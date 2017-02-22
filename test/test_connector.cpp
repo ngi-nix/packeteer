@@ -150,6 +150,7 @@ public:
   CPPUNIT_TEST_SUITE(ConnectorTest);
 
     CPPUNIT_TEST(testAddressParsing);
+    CPPUNIT_TEST(testCopySemantics);
     CPPUNIT_TEST(testAnonConnector);
     CPPUNIT_TEST(testLocalConnector);
     CPPUNIT_TEST(testPipeConnector);
@@ -176,12 +177,41 @@ private:
 
 
 
+  void testCopySemantics()
+  {
+    // We'll use an anon connector, because they're simplest.
+    connector original("anon://");
+    CPPUNIT_ASSERT_EQUAL(connector::CT_ANON, original.type());
+
+    connector copy = original;
+    CPPUNIT_ASSERT_EQUAL(original.type(), copy.type());
+    CPPUNIT_ASSERT_EQUAL(original.address(), copy.address());
+    CPPUNIT_ASSERT_EQUAL(original.get_read_fd(), copy.get_read_fd());
+    CPPUNIT_ASSERT_EQUAL(original.get_write_fd(), copy.get_write_fd());
+    CPPUNIT_ASSERT(original == copy);
+    CPPUNIT_ASSERT(!(original < copy));
+
+    original.swap(copy);
+    CPPUNIT_ASSERT(original == copy);
+
+    std::swap(original, copy);
+    CPPUNIT_ASSERT(original == copy);
+
+    CPPUNIT_ASSERT(std::equal_to<connector>()(original, copy));
+    CPPUNIT_ASSERT(!std::less<connector>()(original, copy));
+    CPPUNIT_ASSERT_EQUAL(std::hash<connector>()(original), copy.hash());
+  }
+
+
+
   void sendMessage(connector & sender, connector & receiver)
   {
     std::string msg = "hello, world!";
     size_t amount = 0;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
+
+    twine::chrono::sleep(twine::chrono::milliseconds(50));
 
     std::vector<char> result;
     result.reserve(2 * msg.size());
@@ -206,31 +236,35 @@ private:
     connector server(addr);
     CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
 
-    CPPUNIT_ASSERT(!server.bound());
+    CPPUNIT_ASSERT(!server.listening());
     CPPUNIT_ASSERT(!server.connected());
 
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.bind());
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.listen());
 
-    CPPUNIT_ASSERT(server.bound());
+    CPPUNIT_ASSERT(server.listening());
     CPPUNIT_ASSERT(!server.connected());
 
-    twine::chrono::sleep(twine::chrono::seconds(2));
+    twine::chrono::sleep(twine::chrono::milliseconds(50));
 
     // Client
     connector client(addr);
     CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
 
-    CPPUNIT_ASSERT(!client.bound());
+    CPPUNIT_ASSERT(!client.listening());
     CPPUNIT_ASSERT(!client.connected());
 
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
+    connector server_conn = server.accept();
 
-    CPPUNIT_ASSERT(!client.bound());
+    twine::chrono::sleep(twine::chrono::milliseconds(50));
+
+    CPPUNIT_ASSERT(!client.listening());
     CPPUNIT_ASSERT(client.connected());
+    CPPUNIT_ASSERT(server_conn.connected());
 
     // Communications
-    sendMessage(client, server);
-    sendMessage(server, client);
+    sendMessage(client, server_conn);
+    sendMessage(server_conn, client);
   }
 
 
@@ -242,12 +276,12 @@ private:
     connector conn("anon://");
     CPPUNIT_ASSERT_EQUAL(connector::CT_ANON, conn.type());
 
-    CPPUNIT_ASSERT(!conn.bound());
+    CPPUNIT_ASSERT(!conn.listening());
     CPPUNIT_ASSERT(!conn.connected());
 
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.bind());
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.listen());
 
-    CPPUNIT_ASSERT(conn.bound());
+    CPPUNIT_ASSERT(conn.listening());
     CPPUNIT_ASSERT(conn.connected());
 
     std::string msg = "hello, world!";
