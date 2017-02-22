@@ -43,17 +43,21 @@ public:
   connector_local(::packeteer::net::socket_address const & addr);
   ~connector_local();
 
-  error_t bind();
-  bool bound() const;
+  error_t listen();
+  bool listening() const;
 
   error_t connect();
   bool connected() const;
+
+  std::pair<net::socket_address, connector*> accept() const;
 
   int get_read_fd() const;
   int get_write_fd() const;
 
   error_t close();
 private:
+
+  connector_local();
 
   ::packeteer::net::socket_address  m_addr;
   bool                              m_server;

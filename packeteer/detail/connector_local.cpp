@@ -4,6 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
  *
  * Copyright (c) 2014 Unwesen Ltd.
+ * Copyright (c) 2015-2017 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -19,6 +20,11 @@
  **/
 #include <packeteer/detail/connector_local.h>
 
+#include <packeteer/detail/filedescriptors.h>
+#include <packeteer/net/socket_address.h>
+
+#include <packeteer/error.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -26,7 +32,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-
 
 
 namespace packeteer {
@@ -65,6 +70,11 @@ create_socket(error_t & err)
   else {
     err = ERR_SUCCESS;
   }
+
+  // Non-blocking
+  if (ERR_SUCCESS == fd) {
+    err = make_nonblocking(fd);
+  }
   return fd;
 }
 
@@ -89,6 +99,14 @@ connector_local::connector_local(net::socket_address const & addr)
 
 
 
+connector_local::connector_local()
+  : m_addr()
+  , m_server(false)
+  , m_fd(-1)
+{
+}
+
+
 
 connector_local::~connector_local()
 {
@@ -100,7 +118,7 @@ connector_local::~connector_local()
 error_t
 connector_local::connect()
 {
-  if (connected() || bound()) {
+  if (connected() || listening()) {
     return ERR_INITIALIZATION;
   }
 
@@ -114,11 +132,10 @@ connector_local::connect()
   // Now try to connect the socket with the path
   int ret = ::connect(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
       m_addr.bufsize());
-  std::cout << "connect returns: " << ret << std::endl;
   if (ret < 0) {
     ::close(fd);
 
-    std::cout << "errno: " << strerror(errno) << std::endl;
+    ERR_LOG("connector_local connect failed!");
     switch (errno) {
       case EACCES:
       case EPERM:
@@ -169,9 +186,9 @@ connector_local::connect()
 
 
 error_t
-connector_local::bind()
+connector_local::listen()
 {
-  if (connected() || bound()) {
+  if (connected() || listening()) {
     return ERR_INITIALIZATION;
   }
 
@@ -185,11 +202,10 @@ connector_local::bind()
   // Now try to bind the socket to the path
   int ret = ::bind(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
       m_addr.bufsize());
-  std::cout << "bind returns: " << ret << std::endl;
   if (ret < 0) {
     ::close(fd);
 
-    std::cout << "errno: " << strerror(errno) << std::endl;
+    ERR_LOG("connector_local bind failed!");
     switch (errno) {
       case EACCES:
         return ERR_ACCESS_VIOLATION;
@@ -229,6 +245,29 @@ connector_local::bind()
     }
   }
 
+  // Turn the socket into a listening socket.
+  ret = ::listen(fd, 128); // FIXME standard, possibly longer?
+  // FIXME used outside of this file?
+  if (ret < 0) {
+    ::close(fd);
+
+    ERR_LOG("connector_local listen failed!");
+    switch (errno) {
+      case EADDRINUSE:
+        return ERR_ADDRESS_IN_USE;
+
+      case EBADF:
+      case ENOTSOCK:
+        return ERR_INVALID_VALUE;
+
+      case EOPNOTSUPP:
+        return ERR_UNSUPPORTED_ACTION;
+
+      default:
+        return ERR_UNEXPECTED;
+    }
+  }
+
   // Finally, set the fd
   m_fd = fd;
   m_server = true;
@@ -239,7 +278,7 @@ connector_local::bind()
 
 
 bool
-connector_local::bound() const
+connector_local::listening() const
 {
   return m_fd != -1 && m_server;
 }
@@ -250,6 +289,77 @@ bool
 connector_local::connected() const
 {
   return m_fd != -1 && !m_server;
+}
+
+
+
+std::pair<net::socket_address, connector*>
+connector_local::accept() const
+{
+  if (!m_server) {
+    return std::make_pair<net::socket_address, connector*>(
+        net::socket_address(), nullptr);
+  }
+
+  net::detail::address_type buf;
+  ::socklen_t len = 0;
+  int ret = ::accept(m_fd, &buf.sa, &len);
+  if (ret < 0) {
+
+    ERR_LOG("connector_local accept failed!");
+    switch (errno) {
+      case EAGAIN: // EWOUlDBLOCK
+      case EINTR:
+        // Non-blocking server and no pending connections
+        return std::make_pair<net::socket_address, connector*>(
+            net::socket_address(), nullptr);
+
+      case EBADF:
+      case EINVAL:
+      case ENOTSOCK:
+        throw exception(ERR_INVALID_VALUE, "Server socket seems to be invalid!");
+
+      case EOPNOTSUPP:
+      case EPROTO:
+        throw exception(ERR_UNSUPPORTED_ACTION, "Accept not supported?");
+
+      case ECONNABORTED:
+        throw exception(ERR_CONNECTION_ABORTED);
+
+      case EFAULT:
+        throw exception(ERR_ACCESS_VIOLATION, "Cannot write peer address.");
+
+      case EMFILE:
+      case ENFILE:
+        throw exception(ERR_NUM_FILES);
+
+      case ENOBUFS:
+      case ENOMEM:
+        throw exception(ERR_OUT_OF_MEMORY);
+
+      case EPERM:
+        throw exception(ERR_CONNECTION_REFUSED, "This might be a firewall refusing the connection.");
+
+      case ETIMEDOUT:
+        throw exception(ERR_TIMEOUT);
+
+      case ENOSR:
+      case ESOCKTNOSUPPORT:
+      case EPROTONOSUPPORT:
+      default:
+        throw exception(ERR_UNEXPECTED, "Unexpected error from accept()");
+    }
+  }
+
+  // Create & return connector with accepted FD
+  connector_local * result = new connector_local();
+  result->m_addr = net::socket_address(&buf, len);
+  result->m_server = false;
+  result->m_fd = ret;
+
+  return std::make_pair<net::socket_address, connector*>(
+      net::socket_address(result->m_addr),
+      static_cast<connector *>(result));
 }
 
 
@@ -273,7 +383,7 @@ connector_local::get_write_fd() const
 error_t
 connector_local::close()
 {
-  if (!bound() && !connected()) {
+  if (!listening() && !connected()) {
     return ERR_INITIALIZATION;
   }
 
