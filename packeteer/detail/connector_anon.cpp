@@ -54,6 +54,7 @@ connector_anon::create_pipe()
   // Create pipe
   int ret = ::pipe(m_fds);
   if (-1 == ret) {
+    ERR_LOG("connector_anon pipe failed!");
     switch (errno) {
       case EMFILE:
       case ENFILE:
@@ -111,6 +112,20 @@ bool
 connector_anon::connected() const
 {
   return (m_fds[0] != -1 && m_fds[1] != -1);
+}
+
+
+
+std::pair<net::socket_address, connector*>
+connector_anon::accept() const
+{
+  // There is no need for accept(); we've already got the connection established.
+  if (!connected()) {
+    return std::make_pair<net::socket_address, connector*>(
+        net::socket_address(), nullptr);
+  }
+  return std::make_pair<net::socket_address, connector*>(
+      net::socket_address(), const_cast<connector_anon*>(this));
 }
 
 

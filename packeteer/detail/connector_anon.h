@@ -46,6 +46,8 @@ public:
   error_t connect();
   bool connected() const;
 
+  std::pair<net::socket_address, connector*> accept() const;
+
   int get_read_fd() const;
   int get_write_fd() const;
 

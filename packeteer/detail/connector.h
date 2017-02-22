@@ -51,6 +51,8 @@ public:
   virtual error_t connect() = 0;
   virtual bool connected() const = 0;
 
+  virtual std::pair<net::socket_address, connector*> accept() const = 0;
+
   virtual int get_read_fd() const = 0;
   virtual int get_write_fd() const = 0;
 
