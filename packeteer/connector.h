@@ -220,6 +220,8 @@ public:
   size_t hash() const;
 
 private:
+  connector();
+
   // pimpl
   struct connector_impl;
   connector_impl * m_impl;

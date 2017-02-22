@@ -123,14 +123,29 @@ struct connector::connector_impl
 {
   connector::connector_type     m_type;
   std::string                   m_address;
-  detail::connector **          m_conn;
-  size_t *                      m_refcount;
+  detail::connector *           m_conn;
+  volatile size_t               m_refcount;
+
+  connector_impl(std::string const & address, detail::connector * conn)
+    : m_type(CT_UNSPEC)
+    , m_address(address)
+    , m_conn(conn)
+    , m_refcount(1)
+  {
+    // We don't really need to validate the address here any further, because
+    // it's not set by an outside caller - it comes directly from this file, or
+    // any of the detail::connector implementations.
+    auto pre_parsed = split_address(address);
+    m_type = pre_parsed.first;
+  }
+
+
 
   connector_impl(std::string const & address)
     : m_type(CT_UNSPEC)
     , m_address(address)
-    , m_conn(new detail::connector*(nullptr))
-    , m_refcount(new size_t(0))
+    , m_conn(nullptr)
+    , m_refcount(1)
   {
     auto pre_parsed = split_address(address);
     if (pre_parsed.first >= connector::CT_TCP4
@@ -190,8 +205,8 @@ struct connector::connector_impl
         throw exception(ERR_FORMAT, "Invalid keyword in address string.");
       }
 
-      *m_conn = new detail::connector_anon(block);
-      ++(*m_refcount);
+      m_conn = new detail::connector_anon(block);
+      ++m_refcount;
     }
 
     else {
@@ -204,8 +219,8 @@ struct connector::connector_impl
       // Instanciate the connector implementation
       switch (m_type) {
         case CT_LOCAL:
-          *m_conn = new detail::connector_local(pre_parsed.second);
-          ++(*m_refcount);
+          m_conn = new detail::connector_local(pre_parsed.second);
+          ++m_refcount;
           break;
 
         case CT_PIPE:
@@ -224,54 +239,42 @@ struct connector::connector_impl
   }
 
 
-  connector_impl(connector_impl const & other)
-    : m_type(other.m_type)
-    , m_address(other.m_address)
-    , m_conn(other.m_conn)
-    , m_refcount(other.m_refcount)
-  {
-    ++(*m_refcount);
-  }
-
-
-  connector_impl(connector_impl &&) = default;
 
 
   ~connector_impl()
   {
-    if (--(*m_refcount) <= 0) {
-      delete *m_conn;
-      *m_conn = nullptr;
-    }
+    delete m_conn;
   }
 
 
   detail::connector & operator*()
   {
-    return **m_conn;
+    return *m_conn;
   }
 
 
   detail::connector* operator->()
   {
-    return *m_conn;
+    return m_conn;
   }
 
 
   operator bool() const
   {
-    return m_conn != nullptr && *m_conn != nullptr;
+    return m_conn != nullptr;
   }
 
 
   size_t hash() const
   {
-    return (
-          (std::hash<int>()(static_cast<int>(m_type)) << 0)
-        ^ (std::hash<std::string>()(m_address) << 1)
-        ^ (std::hash<int>()((*m_conn)->get_read_fd()) << 2)
-        ^ (std::hash<int>()((*m_conn)->get_write_fd()) << 3)
-    );
+    size_t value = (std::hash<int>()(static_cast<int>(m_type)) << 0)
+                 ^ (std::hash<std::string>()(m_address) << 1);
+    if (m_conn) {
+      value = value
+        ^ (std::hash<int>()(m_conn->get_read_fd()) << 2)
+        ^ (std::hash<int>()(m_conn->get_write_fd()) << 3);
+    }
+    return value;
   }
 };
 
@@ -286,7 +289,15 @@ connector::connector(std::string const & address)
 
 
 connector::connector(connector const & other)
-  : m_impl(new connector_impl(*other.m_impl))
+  : m_impl(other.m_impl)
+{
+  ++(m_impl->m_refcount);
+}
+
+
+
+connector::connector()
+  : m_impl(nullptr)
 {
 }
 
@@ -294,7 +305,10 @@ connector::connector(connector const & other)
 
 connector::~connector()
 {
-  delete m_impl;
+  if (--(m_impl->m_refcount) <= 0) {
+    delete m_impl;
+  }
+  m_impl = nullptr;
 }
 
 
@@ -362,12 +376,25 @@ connector::connected() const
 connector
 connector::accept() const
 {
-//  if (!*m_impl) {
-//    // FIXME throw
-//  }
-//  connector tmp;
-//  tmp.m_impl = (*m_impl)->accept();
-//  return tmp;
+  if (!*m_impl) {
+    // FIXME throw
+  }
+
+  auto accept_result = (*m_impl)->accept();
+
+  // If we have a socket address in the result, that'll be the best choice
+  // for the implementation's address. Otherwise pass this object's address
+  // (e.g. for anon connectors).
+  connector result;
+  if (net::socket_address::SAT_UNSPEC == accept_result.first.type()) {
+    result.m_impl = new connector_impl(m_impl->m_address, accept_result.second);
+  }
+  else {
+    result.m_impl = new connector_impl(accept_result.first.full_str(),
+        accept_result.second);
+  }
+
+  return result;
 }
 
 
