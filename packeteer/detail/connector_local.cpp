@@ -351,6 +351,15 @@ connector_local::accept() const
     }
   }
 
+  // Make new socket nonblocking
+  error_t err = make_nonblocking(ret);
+  if (ERR_SUCCESS != err) {
+    ::close(ret);
+
+    return std::make_pair<net::socket_address, connector*>(
+        net::socket_address(), nullptr);
+  }
+
   // Create & return connector with accepted FD
   connector_local * result = new connector_local();
   result->m_addr = net::socket_address(&buf, len);
