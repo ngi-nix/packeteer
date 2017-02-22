@@ -26,6 +26,10 @@
 
 #include <packeteer/packeteer.h>
 
+#include <algorithm>
+#include <utility>
+#include <functional>
+
 #include <packeteer/error.h>
 
 #include <packeteer/net/socket_address.h>
@@ -104,12 +108,18 @@ public:
    * specified by the connector is to be established.
    **/
   connector(std::string const & address);
+  // FIXME copy ctor, disable move ctor (shared ptr), assignment
   ~connector();
 
   /**
    * Returns the connector type.
    **/
   connector_type type() const;
+
+  /**
+   * Returns the connector's address.
+   **/
+  std::string address() const;
 
   /**
    * In the spirit of socket-style APIs, a connector that is listening on
@@ -128,10 +138,6 @@ public:
   bool listening() const;
 
   /**
-   * FIXME accept
-   **/
-
-  /**
    * Similarly, connecting to the specified address creates a connector
    * usable for the client side of a network communications channel.
    *
@@ -146,6 +152,18 @@ public:
    **/
   error_t connect();
   bool connected() const;
+
+  /**
+   * If a listening socket receives a connection request, you can accept this
+   * via the accept() function. The function returns a new connector of the
+   * same type with the connected() flag set (see above).
+   *
+   * Some types of connectors may return a shallow copy of themselves. The
+   * FIXME
+   *
+   **/
+  connector accept() const;
+
 
   /**
    * Connectors, once bound or connected, have one or more file descriptors
@@ -188,12 +206,51 @@ public:
    **/
   error_t close();
 
+
+  /**
+   * Behave like a value type.
+   **/
+  connector(connector const & other);
+  connector(connector &&) = default;
+
+  bool operator==(connector const & other) const;
+  bool operator<(connector const & other) const;
+
+  void swap(connector & other);
+  size_t hash() const;
+
 private:
   // pimpl
   struct connector_impl;
   connector_impl * m_impl;
 };
 
+
 } // namespace packeteer
+
+/**
+ * std specializations for connector
+ **/
+namespace std {
+
+template <> struct hash<::packeteer::connector>
+{
+  inline size_t operator()(::packeteer::connector const & conn)
+  {
+    return conn.hash();
+  }
+};
+
+
+template <>
+inline void
+swap<::packeteer::connector>(::packeteer::connector & first, ::packeteer::connector & second)
+{
+  return first.swap(second);
+}
+
+} // namespace std
+
+
 
 #endif // guard

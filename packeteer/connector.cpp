@@ -121,12 +121,16 @@ split_address(std::string const & address)
  **/
 struct connector::connector_impl
 {
-  connector::connector_type   m_type;
-  detail::connector *         m_conn;
+  connector::connector_type     m_type;
+  std::string                   m_address;
+  detail::connector **          m_conn;
+  size_t *                      m_refcount;
 
   connector_impl(std::string const & address)
     : m_type(CT_UNSPEC)
-    , m_conn(nullptr)
+    , m_address(address)
+    , m_conn(new detail::connector*(nullptr))
+    , m_refcount(new size_t(0))
   {
     auto pre_parsed = split_address(address);
     if (pre_parsed.first >= connector::CT_TCP4
@@ -186,7 +190,8 @@ struct connector::connector_impl
         throw exception(ERR_FORMAT, "Invalid keyword in address string.");
       }
 
-      m_conn = new detail::connector_anon(block);
+      *m_conn = new detail::connector_anon(block);
+      ++(*m_refcount);
     }
 
     else {
@@ -199,7 +204,8 @@ struct connector::connector_impl
       // Instanciate the connector implementation
       switch (m_type) {
         case CT_LOCAL:
-          m_conn = new detail::connector_local(pre_parsed.second);
+          *m_conn = new detail::connector_local(pre_parsed.second);
+          ++(*m_refcount);
           break;
 
         case CT_PIPE:
@@ -218,9 +224,54 @@ struct connector::connector_impl
   }
 
 
+  connector_impl(connector_impl const & other)
+    : m_type(other.m_type)
+    , m_address(other.m_address)
+    , m_conn(other.m_conn)
+    , m_refcount(other.m_refcount)
+  {
+    ++(*m_refcount);
+  }
+
+
+  connector_impl(connector_impl &&) = default;
+
+
   ~connector_impl()
   {
-    delete m_conn;
+    if (--(*m_refcount) <= 0) {
+      delete *m_conn;
+      *m_conn = nullptr;
+    }
+  }
+
+
+  detail::connector & operator*()
+  {
+    return **m_conn;
+  }
+
+
+  detail::connector* operator->()
+  {
+    return *m_conn;
+  }
+
+
+  operator bool() const
+  {
+    return m_conn != nullptr && *m_conn != nullptr;
+  }
+
+
+  size_t hash() const
+  {
+    return (
+          (std::hash<int>()(static_cast<int>(m_type)) << 0)
+        ^ (std::hash<std::string>()(m_address) << 1)
+        ^ (std::hash<int>()((*m_conn)->get_read_fd()) << 2)
+        ^ (std::hash<int>()((*m_conn)->get_write_fd()) << 3)
+    );
   }
 };
 
@@ -229,6 +280,13 @@ struct connector::connector_impl
  **/
 connector::connector(std::string const & address)
   : m_impl(new connector_impl(address))
+{
+}
+
+
+
+connector::connector(connector const & other)
+  : m_impl(new connector_impl(*other.m_impl))
 {
 }
 
@@ -249,13 +307,21 @@ connector::type() const
 
 
 
+std::string
+connector::address() const
+{
+  return m_impl->m_address;
+}
+
+
+
 error_t
 connector::listen()
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->listen();
+  return (*m_impl)->listen();
 }
 
 
@@ -263,10 +329,10 @@ connector::listen()
 bool
 connector::listening() const
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return false;
   }
-  return m_impl->m_conn->listening();
+  return (*m_impl)->listening();
 }
 
 
@@ -274,10 +340,10 @@ connector::listening() const
 error_t
 connector::connect()
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->connect();
+  return (*m_impl)->connect();
 }
 
 
@@ -285,21 +351,35 @@ connector::connect()
 bool
 connector::connected() const
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return false;
   }
-  return m_impl->m_conn->connected();
+  return (*m_impl)->connected();
 }
+
+
+
+connector
+connector::accept() const
+{
+//  if (!*m_impl) {
+//    // FIXME throw
+//  }
+//  connector tmp;
+//  tmp.m_impl = (*m_impl)->accept();
+//  return tmp;
+}
+
 
 
 
 int
 connector::get_read_fd() const
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return -1;
   }
-  return m_impl->m_conn->get_read_fd();
+  return (*m_impl)->get_read_fd();
 }
 
 
@@ -307,10 +387,10 @@ connector::get_read_fd() const
 int
 connector::get_write_fd() const
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return -1;
   }
-  return m_impl->m_conn->get_write_fd();
+  return (*m_impl)->get_write_fd();
 }
 
 
@@ -319,10 +399,10 @@ error_t
 connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
     ::packeteer::net::socket_address & sender)
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->receive(buf, bufsize, bytes_read, sender);
+  return (*m_impl)->receive(buf, bufsize, bytes_read, sender);
 }
 
 
@@ -331,10 +411,10 @@ error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
     ::packeteer::net::socket_address const & recipient)
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->send(buf, bufsize, bytes_written, recipient);
+  return (*m_impl)->send(buf, bufsize, bytes_written, recipient);
 }
 
 
@@ -342,10 +422,10 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
 error_t
 connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->read(buf, bufsize, bytes_read);
+  return (*m_impl)->read(buf, bufsize, bytes_read);
 }
 
 
@@ -353,10 +433,10 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 error_t
 connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->write(buf, bufsize, bytes_written);
+  return (*m_impl)->write(buf, bufsize, bytes_written);
 }
 
 
@@ -364,11 +444,61 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
 error_t
 connector::close()
 {
-  if (!m_impl->m_conn) {
+  if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return m_impl->m_conn->close();
+  return (*m_impl)->close();
 }
+
+
+
+bool
+connector::operator==(connector const & other) const
+{
+  return (
+      type() == other.type()
+      && get_read_fd() == other.get_read_fd()
+      && get_write_fd() == other.get_write_fd()
+      && address() == other.address()
+  );
+}
+
+
+
+bool
+connector::operator<(connector const & other) const
+{
+  if (type() < other.type()) {
+    return true;
+  }
+  if (get_read_fd() < other.get_read_fd()) {
+    return true;
+  }
+  if (get_write_fd() < other.get_write_fd()) {
+    return true;
+  }
+  return address() < other.address();
+}
+
+
+
+void
+connector::swap(connector & other)
+{
+  std::swap(m_impl, other.m_impl);
+}
+
+
+
+size_t
+connector::hash() const
+{
+  if (!*m_impl) {
+    return 0;
+  }
+  return m_impl->hash();
+}
+
 
 
 } // namespace packeteer
