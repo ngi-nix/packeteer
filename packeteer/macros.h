@@ -37,8 +37,11 @@
 #if defined(DEBUG) && !defined(NDEBUG)
 #include <iostream>
 #define LOG(msg) std::cerr << "DEBUG: " << msg << std::endl;
+#define ERR_LOG(msg) std::cerr << "DEBUG: " << msg << " // ERRNO: " \
+  << ::strerror(::errno) << std::endl;
 #else
 #define LOG(msg)
+#define ERR_LOG(msg)
 #endif
 
 /**
