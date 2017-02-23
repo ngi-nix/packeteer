@@ -1,10 +1,11 @@
 /**
  * This file is part of packeteer.
  *
- * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
+ * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
+ * Copyright (c) 2015-2017 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license

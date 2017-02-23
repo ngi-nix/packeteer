@@ -1,7 +1,7 @@
 /**
  * This file is part of packeteer.
  *
- * Author(s): Jens Finkhaeuser <jens@unwesen.co.uk>
+ * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2017 Jens Finkhaeuser.
  *
