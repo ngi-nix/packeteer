@@ -20,8 +20,10 @@
  **/
 #include <packeteer/detail/connector_local.h>
 
-#include <packeteer/detail/filedescriptors.h>
 #include <packeteer/net/socket_address.h>
+
+#include <packeteer/detail/filedescriptors.h>
+#include <packeteer/detail/globals.h>
 
 #include <packeteer/error.h>
 
@@ -246,8 +248,7 @@ connector_local::listen()
   }
 
   // Turn the socket into a listening socket.
-  ret = ::listen(fd, 128); // FIXME standard, possibly longer?
-  // FIXME used outside of this file?
+  ret = ::listen(fd, PACKETEER_LISTEN_BACKLOG);
   if (ret < 0) {
     ::close(fd);
 
