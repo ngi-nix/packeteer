@@ -116,16 +116,14 @@ connector_anon::connected() const
 
 
 
-std::pair<net::socket_address, connector*>
-connector_anon::accept() const
+connector *
+connector_anon::accept(net::socket_address & addr) const
 {
   // There is no need for accept(); we've already got the connection established.
   if (!connected()) {
-    return std::make_pair<net::socket_address, connector*>(
-        net::socket_address(), nullptr);
+    return nullptr;
   }
-  return std::make_pair<net::socket_address, connector*>(
-      net::socket_address(), const_cast<connector_anon*>(this));
+  return const_cast<connector_anon*>(this);
 }
 
 

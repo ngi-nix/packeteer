@@ -49,7 +49,7 @@ public:
   error_t connect();
   bool connected() const;
 
-  std::pair<net::socket_address, connector*> accept() const;
+  connector * accept(net::socket_address & addr) const;
 
   int get_read_fd() const;
   int get_write_fd() const;

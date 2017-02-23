@@ -380,18 +380,18 @@ connector::accept() const
     // FIXME throw
   }
 
-  auto accept_result = (*m_impl)->accept();
+  net::socket_address peer;
+  detail::connector * conn = (*m_impl)->accept(peer);
 
   // If we have a socket address in the result, that'll be the best choice
   // for the implementation's address. Otherwise pass this object's address
   // (e.g. for anon connectors).
   connector result;
-  if (net::socket_address::SAT_UNSPEC == accept_result.first.type()) {
-    result.m_impl = new connector_impl(m_impl->m_address, accept_result.second);
+  if (net::socket_address::SAT_UNSPEC == peer.type()) {
+    result.m_impl = new connector_impl(m_impl->m_address, conn);
   }
   else {
-    result.m_impl = new connector_impl(accept_result.first.full_str(),
-        accept_result.second);
+    result.m_impl = new connector_impl(peer.full_str(), conn);
   }
 
   return result;

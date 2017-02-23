@@ -293,12 +293,11 @@ connector_local::connected() const
 
 
 
-std::pair<net::socket_address, connector*>
-connector_local::accept() const
+connector *
+connector_local::accept(net::socket_address & addr) const
 {
   if (!m_server) {
-    return std::make_pair<net::socket_address, connector*>(
-        net::socket_address(), nullptr);
+    return nullptr;
   }
 
   net::detail::address_type buf;
@@ -311,8 +310,7 @@ connector_local::accept() const
       case EAGAIN: // EWOUlDBLOCK
       case EINTR:
         // Non-blocking server and no pending connections
-        return std::make_pair<net::socket_address, connector*>(
-            net::socket_address(), nullptr);
+        return nullptr;
 
       case EBADF:
       case EINVAL:
@@ -356,8 +354,7 @@ connector_local::accept() const
   if (ERR_SUCCESS != err) {
     ::close(ret);
 
-    return std::make_pair<net::socket_address, connector*>(
-        net::socket_address(), nullptr);
+    return nullptr;
   }
 
   // Create & return connector with accepted FD
@@ -366,9 +363,8 @@ connector_local::accept() const
   result->m_server = false;
   result->m_fd = ret;
 
-  return std::make_pair<net::socket_address, connector*>(
-      net::socket_address(result->m_addr),
-      static_cast<connector *>(result));
+  addr = result->m_addr;
+  return result;
 }
 
 
