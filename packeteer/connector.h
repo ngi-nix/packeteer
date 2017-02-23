@@ -109,7 +109,6 @@ public:
    * specified by the connector is to be established.
    **/
   connector(std::string const & address);
-  // FIXME copy ctor, disable move ctor (shared ptr), assignment
   ~connector();
 
   /**
@@ -159,12 +158,19 @@ public:
    * via the accept() function. The function returns a new connector of the
    * same type with the connected() flag set (see above).
    *
-   * Some types of connectors may return a shallow copy of themselves. The
-   * FIXME
+   * Some types of connectors may return a shallow copy of themselves. In that
+   * case, the read and write FDs are the same as the connector's whose accept()
+   * function was called, but this is intentional. Similarly, the return value
+   * of address(), etc. should be identical.
    *
+   * Other connectors may return a new connector, but still retain the same
+   * return value for address().
+   *
+   * The API favours a usage pattern where no matter the underlying connector
+   * implementation, a connector returned by accept() from a server connector
+   * is valid for I/O with a connected client connector.
    **/
   connector accept() const;
-
 
   /**
    * Connectors, once bound or connected, have one or more file descriptors
