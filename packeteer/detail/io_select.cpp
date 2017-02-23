@@ -105,13 +105,16 @@ void
 io_select::wait_for_events(std::vector<event_data> & events,
       twine::chrono::nanoseconds const & timeout)
 {
-  while (true) {
-    // FIXME also set signal mask & handle it accordingly
+  // FD sets
+  ::fd_set read_fds;
+  ::fd_set write_fds;
+  ::fd_set err_fds;
 
+  while (true) {
     // Prepare FD sets.
-    ::fd_set read_fds; FD_ZERO(&read_fds);
-    ::fd_set write_fds; FD_ZERO(&write_fds);
-    ::fd_set err_fds; FD_ZERO(&err_fds);
+    FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
+    FD_ZERO(&err_fds);
 
     // Populate FD sets.
     int max_fd = 0;
@@ -142,53 +145,48 @@ io_select::wait_for_events(std::vector<event_data> & events,
     int ret = ::select(max_fd + 1, &read_fds, &write_fds, &err_fds, &tv);
 #endif
 
+    if (ret >= 0) {
+      break;
+    }
+
     // Error handling
-    if (ret < 0) {
-      switch (errno) {
-        case EBADF:
-        case EINVAL:
-          throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in select set.");
-          break;
+    switch (errno) {
+      case EINTR: // signal interrupt handling
+        continue;
 
-        case EINTR:
-          // FIXME add proper signal handling; until then, try again.
-          continue;
+      case EBADF:
+      case EINVAL:
+        throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in select set.");
 
-        case ENOMEM:
-          throw exception(ERR_OUT_OF_MEMORY, errno, "OOM in select call.");
-          break;
+      case ENOMEM:
+        throw exception(ERR_OUT_OF_MEMORY, errno, "OOM in select call.");
 
-        default:
-          throw exception(ERR_UNEXPECTED, errno);
-          break;
-      }
+      default:
+        throw exception(ERR_UNEXPECTED, errno);
+    }
+  }
+
+  // Map events; we'll need to iterate over the available file descriptors again
+  // (conceivably, we could just use the subset in the FD sets, but that uses
+  // additional memory).
+  for (auto entry : m_fds) {
+    int mask = 0;
+    if (FD_ISSET(entry.first, &read_fds)) {
+      mask |= PEV_IO_READ;
+    }
+    if (FD_ISSET(entry.first, &write_fds)) {
+      mask |= PEV_IO_WRITE;
+    }
+    if (FD_ISSET(entry.first, &err_fds)) {
+      mask |= PEV_IO_ERROR;
     }
 
-    // Map events; we'll need to iterate over the available file descriptors again
-    // (conceivably, we could just use the subset in the FD sets, but that uses
-    // additional memory).
-    for (auto entry : m_fds) {
-      int mask = 0;
-      if (FD_ISSET(entry.first, &read_fds)) {
-        mask |= PEV_IO_READ;
-      }
-      if (FD_ISSET(entry.first, &write_fds)) {
-        mask |= PEV_IO_WRITE;
-      }
-      if (FD_ISSET(entry.first, &err_fds)) {
-        mask |= PEV_IO_ERROR;
-      }
-
-      if (mask) {
-        event_data ev;
-        ev.fd = entry.first;
-        ev.events = mask;
-        events.push_back(ev);
-      }
+    if (mask) {
+      event_data ev;
+      ev.fd = entry.first;
+      ev.events = mask;
+      events.push_back(ev);
     }
-
-    // Break out of the loop. We only continue in the EINTR case above.
-    break;
   }
 }
 

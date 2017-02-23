@@ -132,13 +132,24 @@ connector_local::connect()
   }
 
   // Now try to connect the socket with the path
-  int ret = ::connect(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
-      m_addr.bufsize());
-  if (ret < 0) {
+  while (true) {
+    int ret = ::connect(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
+        m_addr.bufsize());
+    if (ret >= 0) {
+      // Finally, set the fd
+      m_fd = fd;
+      m_server = false;
+
+      return ERR_SUCCESS;
+    }
+
     ::close(fd);
 
     ERRNO_LOG("connector_local connect failed!");
     switch (errno) {
+      case EINTR: // handle signal interrupts
+        continue;
+
       case EACCES:
       case EPERM:
         return ERR_ACCESS_VIOLATION;
@@ -171,18 +182,13 @@ connector_local::connect()
       case ETIMEDOUT:
         return ERR_TIMEOUT;
 
-      case EINTR:
       case EFAULT:
       default:
         return ERR_UNEXPECTED;
     }
   }
 
-  // Finally, set the fd
-  m_fd = fd;
-  m_server = false;
-
-  return ERR_SUCCESS;
+  PACKETEER_FLOW_CONTROL_GUARD;
 }
 
 
@@ -301,14 +307,22 @@ connector_local::accept(net::socket_address & addr) const
     return nullptr;
   }
 
+  int new_fd = -1;
   net::detail::address_type buf;
   ::socklen_t len = 0;
-  int ret = ::accept(m_fd, &buf.sa, &len);
-  if (ret < 0) {
+
+  while (true) {
+    new_fd = ::accept(m_fd, &buf.sa, &len);
+    if (new_fd >= 0) {
+      break;
+    }
+
     ERRNO_LOG("connector_local accept failed!");
     switch (errno) {
+      case EINTR: // signal interrupt handling
+        continue;
+
       case EAGAIN: // EWOUlDBLOCK
-      case EINTR:
         // Non-blocking server and no pending connections
         return nullptr;
 
@@ -350,9 +364,9 @@ connector_local::accept(net::socket_address & addr) const
   }
 
   // Make new socket nonblocking
-  error_t err = make_nonblocking(ret);
+  error_t err = make_nonblocking(new_fd);
   if (ERR_SUCCESS != err) {
-    ::close(ret);
+    ::close(new_fd);
 
     return nullptr;
   }
@@ -361,7 +375,7 @@ connector_local::accept(net::socket_address & addr) const
   connector_local * result = new connector_local();
   result->m_addr = net::socket_address(&buf, len);
   result->m_server = false;
-  result->m_fd = ret;
+  result->m_fd = new_fd;
 
   addr = result->m_addr;
   return result;

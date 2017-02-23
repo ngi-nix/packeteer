@@ -233,24 +233,27 @@ void
 io_epoll::wait_for_events(std::vector<event_data> & events,
       twine::chrono::nanoseconds const & timeout)
 {
-  // FIXME also set signal mask & handle it accordingly
-
   // Wait for events
   ::epoll_event epoll_events[PACKETEER_EPOLL_MAXEVENTS];
-  ::memset(&epoll_events, 0, sizeof(epoll_events));
-  int ready = ::epoll_pwait(m_epoll_fd, epoll_events, PACKETEER_EPOLL_MAXEVENTS,
-      timeout.as<twine::chrono::milliseconds>(), nullptr);
+  int ready = -1;
 
-  // Error handling
-  if (-1 == ready) {
+  while (true) {
+    ::memset(&epoll_events, 0, sizeof(epoll_events));
+    ready = ::epoll_pwait(m_epoll_fd, epoll_events, PACKETEER_EPOLL_MAXEVENTS,
+        timeout.as<twine::chrono::milliseconds>(), nullptr);
+    if (-1 != ready) {
+      break;
+    }
+
+    // Error handling
     switch (errno) {
+      case EINTR: // signal interrupt handling
+        continue;
+
       case EBADF:
       case EINVAL:
         throw exception(ERR_INVALID_VALUE, errno, "File descriptor for epoll was invalid.");
         break;
-
-      case EINTR:
-        // FIXME add signal handling
 
       default:
         throw exception(ERR_UNEXPECTED, errno);

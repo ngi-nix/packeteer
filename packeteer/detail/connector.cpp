@@ -57,12 +57,20 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
     return ERR_INITIALIZATION;
   }
 
-  ssize_t read = ::read(get_read_fd(), buf, bufsize);
-  bytes_read = read;
+  while (true) {
+    ssize_t read = ::read(get_read_fd(), buf, bufsize);
+    if (-1 != read) {
+      bytes_read = read;
+      return ERR_SUCCESS;
+    }
 
-  if (read == -1) {
+    bytes_read = 0;
+
     ERRNO_LOG("Error reading from file descriptor");
     switch (errno) {
+      case EINTR: // handle signal interrupts
+        continue;
+
       case EBADF:
       case EINVAL:
         // The file descriptor is invalid for some reason.
@@ -72,8 +80,6 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
         // Technically, OOM and out of disk space/file size.
         return ERR_OUT_OF_MEMORY;
 
-      case EINTR:
-        // FIXME signal handling?
       case EIO:
       case EISDIR:
       default:
@@ -81,7 +87,7 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
     }
   }
 
-  return ERR_SUCCESS;
+  PACKETEER_FLOW_CONTROL_GUARD;
 }
 
 
@@ -93,12 +99,20 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
     return ERR_INITIALIZATION;
   }
 
-  ssize_t written = ::write(get_write_fd(), buf, bufsize);
-  bytes_written = written;
+  while (true) {
+    ssize_t written = ::write(get_write_fd(), buf, bufsize);
+    if (-1 != written) {
+      bytes_written = written;
+      return ERR_SUCCESS;
+    }
 
-  if (-1 == written) {
+    bytes_written = 0;
+
     ERRNO_LOG("Error writing to file descriptor");
     switch (errno) {
+      case EINTR: // handle signal interrupts
+        continue;
+
       case EBADF:
       case EINVAL:
       case EDESTADDRREQ:
@@ -112,15 +126,13 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
         // Technically, OOM and out of disk space/file size.
         return ERR_OUT_OF_MEMORY;
 
-      case EINTR:
-        // FIXME signal handling?
       case EIO:
       default:
         return ERR_UNEXPECTED;
     }
   }
 
-  return ERR_SUCCESS;
+  PACKETEER_FLOW_CONTROL_GUARD;
 }
 
 

@@ -96,9 +96,16 @@ modify_kqueue(bool add, int queue, int const * fds, size_t amount,
   }
 
   // Now flush the events to the kqueue.
-  int res = kevent(queue, &pending[0], pending.size(), nullptr, 0, nullptr);
-  if (res < 0) {
+  while (true) {
+    int res = kevent(queue, &pending[0], pending.size(), nullptr, 0, nullptr);
+    if (res >= 0) {
+      break;
+    }
+
     switch (errno) {
+      case EINTR:  // signal interrupt handling
+        continue;
+
       case EACCES:
         throw exception(ERR_ACCESS_VIOLATION, errno);
 
@@ -107,12 +114,6 @@ modify_kqueue(bool add, int queue, int const * fds, size_t amount,
       case EBADF:
       case ENOENT:
         throw exception(ERR_INVALID_OPTION, errno);
-
-
-      // FIXME signal handling?
-//      case EINTR:            A signal was delivered before the timeout expired and
-//                         before any events were placed on the kqueue for
-//                         return.
 
       case ENOMEM:
         throw exception(ERR_OUT_OF_MEMORY, errno, "OOM trying to modify kqueue events");
@@ -215,12 +216,19 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
   timeout.as(ts);
 
   struct kevent kqueue_events[PACKETEER_KQUEUE_MAXEVENTS];
-  int ret = kevent(m_kqueue_fd, nullptr, 0, kqueue_events,
-      PACKETEER_KQUEUE_MAXEVENTS, &ts);
+  int ret = -1;
+  while (true) {
+    ret = kevent(m_kqueue_fd, nullptr, 0, kqueue_events,
+        PACKETEER_KQUEUE_MAXEVENTS, &ts);
+    if (ret >= 0) {
+      break;
+    }
 
-  // Error handling
-  if (ret < 0) {
+    // Error handling
     switch (errno) {
+      case EINTR: // signal interrupt handling
+        continue;
+
       case EACCES:
         throw exception(ERR_ACCESS_VIOLATION, errno);
 
@@ -229,11 +237,6 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
       case EBADF:
       case ENOENT:
         throw exception(ERR_INVALID_OPTION, errno);
-
-      // FIXME signal handling?
-//      case EINTR:            A signal was delivered before the timeout expired and
-//                         before any events were placed on the kqueue for
-//                         return.
 
       case ENOMEM:
         throw exception(ERR_OUT_OF_MEMORY, "OOM trying to modify kqueue events");

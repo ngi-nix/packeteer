@@ -157,8 +157,6 @@ void
 io_poll::wait_for_events(std::vector<event_data> & events,
       twine::chrono::nanoseconds const & timeout)
 {
-  // FIXME also set signal mask & handle it accordingly
-
   // Prepare FD set
   size_t size = m_fds.size();
   ::pollfd fds[size];
@@ -172,25 +170,28 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   }
 
   // Wait for events
+  while (true) {
 #if defined(PACKETEER_HAVE_PPOLL)
-  ::timespec ts;
-  timeout.as(ts);
+    ::timespec ts;
+    timeout.as(ts);
 
-  int ret = ::ppoll(fds, size, &ts, nullptr);
+    int ret = ::ppoll(fds, size, &ts, nullptr);
 #else
-  int ret = ::poll(fds, size, timeout.as<twine::chrono::milliseconds>());
+    int ret = ::poll(fds, size, timeout.as<twine::chrono::milliseconds>());
 #endif
 
-  // Error handling
-  if (ret < 0) {
+    if (ret >= 0) {
+      break;
+    }
+
+    // Error handling
     switch (errno) {
+      case EINTR: // signal interrupt handling
+        continue;
+
       case EFAULT:
       case EINVAL:
         throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in poll set.");
-        break;
-
-      case EINTR:
-        // FIXME add proper signal handling; until then, try again.
         break;
 
       case ENOMEM:

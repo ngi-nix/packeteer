@@ -26,6 +26,8 @@
 #error You are trying to include a C++ only header file
 #endif
 
+#include <sstream>
+
 /**
  * Stringify the symbol passed to PACKETEER_SPRINGIFY()
  **/
@@ -70,5 +72,16 @@
 
 #define PACKETEER_CACHE_LINE_PAD                                            \
   char PACKETEER_TOKEN_CAT(pad, __LINE__)[PACKETEER_CACHE_LINE_SIZE];
+
+/**
+ * Flow control guard; if this line is reached, an exception is thrown.
+ **/
+#define PACKETEER_FLOW_CONTROL_GUARD                                \
+  {                                                                 \
+    std::stringstream flowcontrol;                                  \
+    flowcontrol << "Control should never have reached this line: "  \
+      << __FILE__ << ":" << __LINE__;                               \
+    throw exception(ERR_UNEXPECTED, flowcontrol.str());             \
+  }
 
 #endif // guard
