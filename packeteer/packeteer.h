@@ -28,10 +28,11 @@
 
 #include <packeteer/packeteer-config.h>
 
-#define __STDC_LIMIT_MACROS
-#include <stdint.h>
+// We want standard int types across the board.
+#include <meta/inttypes.h>
 
 // Not all, but the very basic headers are always included.
+#include <packeteer/error.h>
 #include <packeteer/macros.h>
 
 
