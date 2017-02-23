@@ -207,7 +207,6 @@ struct connector::connector_impl
       }
 
       m_conn = new detail::connector_anon(block);
-      ++m_refcount;
     }
 
     else {
@@ -221,7 +220,6 @@ struct connector::connector_impl
       switch (m_type) {
         case CT_LOCAL:
           m_conn = new detail::connector_local(pre_parsed.second);
-          ++m_refcount;
           break;
 
         case CT_PIPE:
