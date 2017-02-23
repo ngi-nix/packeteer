@@ -118,7 +118,7 @@ connector_anon::connected() const
 
 
 connector *
-connector_anon::accept(net::socket_address & addr) const
+connector_anon::accept(net::socket_address & /* unused */) const
 {
   // There is no need for accept(); we've already got the connection established.
   if (!connected()) {
