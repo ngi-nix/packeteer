@@ -20,6 +20,7 @@
  * PARTICULAR PURPOSE.
  **/
 #include <packeteer/detail/io_kqueue.h>
+#include <packeteer/detail/globals.h>
 #include <packeteer/detail/scheduler_impl.h>
 
 // Posix
@@ -34,8 +35,6 @@
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
-
-#define MAXEVENTS 64 // FIXME good number?
 
 namespace packeteer {
 namespace detail {
@@ -215,8 +214,9 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
   ::timespec ts;
   timeout.as(ts);
 
-  struct kevent kqueue_events[MAXEVENTS];
-  int ret = kevent(m_kqueue_fd, nullptr, 0, kqueue_events, MAXEVENTS, &ts);
+  struct kevent kqueue_events[PACKETEER_KQUEUE_MAXEVENTS];
+  int ret = kevent(m_kqueue_fd, nullptr, 0, kqueue_events,
+      PACKETEER_KQUEUE_MAXEVENTS, &ts);
 
   // Error handling
   if (ret < 0) {

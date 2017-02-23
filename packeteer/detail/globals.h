@@ -35,4 +35,11 @@
  **/
 #define PACKETEER_LISTEN_BACKLOG  128
 
+
+/**
+ * Maximum number of events to read with Epoll/KQueue at a single call.
+ **/
+#define PACKETEER_EPOLL_MAXEVENTS   256
+#define PACKETEER_KQUEUE_MAXEVENTS  PACKETEER_EPOLL_MAXEVENTS
+
 #endif // guard

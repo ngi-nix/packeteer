@@ -20,6 +20,7 @@
  * PARTICULAR PURPOSE.
  **/
 #include <packeteer/detail/io_epoll.h>
+#include <packeteer/detail/globals.h>
 #include <packeteer/detail/scheduler_impl.h>
 
 #include <sys/epoll.h>
@@ -30,8 +31,6 @@
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
-
-#define MAXEVENTS 64 // FIXME good number?
 
 namespace packeteer {
 namespace detail {
@@ -237,9 +236,9 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
   // FIXME also set signal mask & handle it accordingly
 
   // Wait for events
-  ::epoll_event epoll_events[MAXEVENTS];
+  ::epoll_event epoll_events[PACKETEER_EPOLL_MAXEVENTS];
   ::memset(&epoll_events, 0, sizeof(epoll_events));
-  int ready = ::epoll_pwait(m_epoll_fd, epoll_events, MAXEVENTS,
+  int ready = ::epoll_pwait(m_epoll_fd, epoll_events, PACKETEER_EPOLL_MAXEVENTS,
       timeout.as<twine::chrono::milliseconds>(), nullptr);
 
   // Error handling
