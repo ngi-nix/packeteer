@@ -376,7 +376,11 @@ connector
 connector::accept() const
 {
   if (!*m_impl) {
-    // FIXME throw
+    throw exception(ERR_INITIALIZATION, "Can't accept() an uninitialized connector!");
+  }
+
+  if (!listening()) {
+    throw exception(ERR_UNSUPPORTED_ACTION, "Can't accept() on a non-server connector!");
   }
 
   net::socket_address peer;
