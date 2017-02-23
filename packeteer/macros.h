@@ -39,11 +39,15 @@
 #include <iostream>
 #include <string.h>
 #define LOG(msg) std::cerr << "DEBUG: " << msg << std::endl;
-#define ERR_LOG(msg) std::cerr << "DEBUG: " << msg << " // ERRNO: " \
+#define ERRNO_LOG(msg) std::cerr << "DEBUG: " << msg << " // " \
   << ::strerror(errno) << std::endl;
+#define ERR_LOG(msg, exc) std::cerr << "DEBUG: " << msg << " [" \
+  << error_name(ex.code()) << "] " << ex.what() << " - " \
+  << ex.details() << std::endl;
 #else
 #define LOG(msg)
-#define ERR_LOG(msg)
+#define ERRNO_LOG(msg)
+#define ERR_LOG(msg, exc)
 #endif
 
 /**

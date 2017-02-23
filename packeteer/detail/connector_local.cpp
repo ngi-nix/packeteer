@@ -137,7 +137,7 @@ connector_local::connect()
   if (ret < 0) {
     ::close(fd);
 
-    ERR_LOG("connector_local connect failed!");
+    ERRNO_LOG("connector_local connect failed!");
     switch (errno) {
       case EACCES:
       case EPERM:
@@ -207,7 +207,7 @@ connector_local::listen()
   if (ret < 0) {
     ::close(fd);
 
-    ERR_LOG("connector_local bind failed!");
+    ERRNO_LOG("connector_local bind failed!");
     switch (errno) {
       case EACCES:
         return ERR_ACCESS_VIOLATION;
@@ -252,7 +252,7 @@ connector_local::listen()
   if (ret < 0) {
     ::close(fd);
 
-    ERR_LOG("connector_local listen failed!");
+    ERRNO_LOG("connector_local listen failed!");
     switch (errno) {
       case EADDRINUSE:
         return ERR_ADDRESS_IN_USE;
@@ -305,8 +305,7 @@ connector_local::accept(net::socket_address & addr) const
   ::socklen_t len = 0;
   int ret = ::accept(m_fd, &buf.sa, &len);
   if (ret < 0) {
-
-    ERR_LOG("connector_local accept failed!");
+    ERRNO_LOG("connector_local accept failed!");
     switch (errno) {
       case EAGAIN: // EWOUlDBLOCK
       case EINTR:
@@ -316,37 +315,37 @@ connector_local::accept(net::socket_address & addr) const
       case EBADF:
       case EINVAL:
       case ENOTSOCK:
-        throw exception(ERR_INVALID_VALUE, "Server socket seems to be invalid!");
+        throw exception(ERR_INVALID_VALUE, errno, "Server socket seems to be invalid!");
 
       case EOPNOTSUPP:
       case EPROTO:
-        throw exception(ERR_UNSUPPORTED_ACTION, "Accept not supported?");
+        throw exception(ERR_UNSUPPORTED_ACTION, errno, "Accept not supported?");
 
       case ECONNABORTED:
-        throw exception(ERR_CONNECTION_ABORTED);
+        throw exception(ERR_CONNECTION_ABORTED, errno);
 
       case EFAULT:
-        throw exception(ERR_ACCESS_VIOLATION, "Cannot write peer address.");
+        throw exception(ERR_ACCESS_VIOLATION, errno, "Cannot write peer address.");
 
       case EMFILE:
       case ENFILE:
-        throw exception(ERR_NUM_FILES);
+        throw exception(ERR_NUM_FILES, errno);
 
       case ENOBUFS:
       case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY);
+        throw exception(ERR_OUT_OF_MEMORY, errno);
 
       case EPERM:
-        throw exception(ERR_CONNECTION_REFUSED, "This might be a firewall refusing the connection.");
+        throw exception(ERR_CONNECTION_REFUSED, errno, "This might be a firewall refusing the connection.");
 
       case ETIMEDOUT:
-        throw exception(ERR_TIMEOUT);
+        throw exception(ERR_TIMEOUT, errno);
 
       case ENOSR:
       case ESOCKTNOSUPPORT:
       case EPROTONOSUPPORT:
       default:
-        throw exception(ERR_UNEXPECTED, "Unexpected error from accept()");
+        throw exception(ERR_UNEXPECTED, errno, "Unexpected error from accept()");
     }
   }
 

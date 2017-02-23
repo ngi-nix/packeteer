@@ -28,8 +28,14 @@ namespace packeteer {
 /**
  * (Un-)define macros to ensure error defintions are being generated.
  **/
-#define PACKETEER_START_ERRORS namespace { static const struct { char const * const name; uint32_t code; char const * const message; } error_table[] = {
-#define PACKETEER_ERRDEF(name, code, desc) { PACKETEER_STRINGIFY(name), code, desc},
+#define PACKETEER_START_ERRORS namespace { \
+  static const struct { \
+    char const * const name; \
+    uint32_t code; \
+    char const * const message; \
+  } error_table[] = {
+#define PACKETEER_ERRDEF(name, code, desc) \
+  { PACKETEER_STRINGIFY(name), code, desc },
 #define PACKETEER_END_ERRORS { NULL, 0, NULL } }; }
 
 #undef PACKETEER_ERROR_H
@@ -95,10 +101,10 @@ exception::exception(error_t code, std::string const & details /* = "" */) throw
 
 
 
-exception::exception(error_t code, int errnum)
+exception::exception(error_t code, int errnum, std::string const & details /* = "" */) throw()
   : std::runtime_error("")
   , m_code(code)
-  , m_details(::strerror(errnum))
+  , m_details(details + " // " + ::strerror(errnum))
 {
 }
 

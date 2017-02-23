@@ -554,8 +554,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
       }
     }
   } catch (exception const & ex) {
-    LOG("Error in main loop: [" << ex.code() << "] " << ex.what()
-        << " - " << ex.details());
+    ERR_LOG("Error in main loop", ex);
   } catch (std::exception const & ex) {
     LOG("Error in main loop: " << ex.what());
   } catch (std::string const & str) {

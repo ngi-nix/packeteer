@@ -117,7 +117,7 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
           else if (EPOLL_CTL_MOD == action) {
             // Can only be reached via the modify_fd_set call above, so we are
             // safe to just bail out.
-            throw exception(ERR_INVALID_VALUE, "Cannot modify event mask for unknown file descriptor.");
+            throw exception(ERR_INVALID_VALUE, errno, "Cannot modify event mask for unknown file descriptor.");
           }
           else {
             throw exception(ERR_UNEXPECTED, errno);
@@ -125,17 +125,17 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
           break;
 
         case ENOMEM:
-          throw exception(ERR_OUT_OF_MEMORY, "No more memory for epoll.");
+          throw exception(ERR_OUT_OF_MEMORY, errno, "No more memory for epoll.");
           break;
 
         case ENOSPC:
-          throw exception(ERR_NUM_FILES, "Could not register new file descriptor.");
+          throw exception(ERR_NUM_FILES, errno, "Could not register new file descriptor.");
           break;
 
         case EBADF:
         case EINVAL:
         case EPERM:
-          throw exception(ERR_INVALID_VALUE, "Invalid file descriptor provided.");
+          throw exception(ERR_INVALID_VALUE, errno, "Invalid file descriptor provided.");
           break;
 
         default:
@@ -159,11 +159,11 @@ io_epoll::io_epoll()
     switch (errno) {
       case EMFILE:
       case ENFILE:
-        throw exception(ERR_NUM_FILES, "Could not create epoll file descriptor.");
+        throw exception(ERR_NUM_FILES, errno, "Could not create epoll file descriptor.");
         break;
 
       case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY, "Could not create epoll file descriptor.");
+        throw exception(ERR_OUT_OF_MEMORY, errno, "Could not create epoll file descriptor.");
         break;
 
       default:
@@ -247,7 +247,7 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
     switch (errno) {
       case EBADF:
       case EINVAL:
-        throw exception(ERR_INVALID_VALUE, "File descriptor for epoll was invalid.");
+        throw exception(ERR_INVALID_VALUE, errno, "File descriptor for epoll was invalid.");
         break;
 
       case EINTR:

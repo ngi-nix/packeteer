@@ -147,7 +147,7 @@ io_select::wait_for_events(std::vector<event_data> & events,
       switch (errno) {
         case EBADF:
         case EINVAL:
-          throw exception(ERR_INVALID_VALUE, "Bad file descriptor in select set.");
+          throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in select set.");
           break;
 
         case EINTR:
@@ -155,7 +155,7 @@ io_select::wait_for_events(std::vector<event_data> & events,
           continue;
 
         case ENOMEM:
-          throw exception(ERR_OUT_OF_MEMORY, "OOM in select call.");
+          throw exception(ERR_OUT_OF_MEMORY, errno, "OOM in select call.");
           break;
 
         default:

@@ -71,8 +71,7 @@ worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
         }
 
       } catch (exception const & ex) {
-        LOG("Error in callback: [" << error_name(ex.code()) << "] " << ex.what()
-            << " - " << ex.details());
+        ERR_LOG("Error in callback", ex);
       } catch (std::exception const & ex) {
         LOG("Error in callback: " << ex.what());
         delete entry;

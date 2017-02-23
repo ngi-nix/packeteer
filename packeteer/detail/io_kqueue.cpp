@@ -116,7 +116,7 @@ modify_kqueue(bool add, int queue, int const * fds, size_t amount,
 //                         return.
 
       case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY, "OOM trying to modify kqueue events");
+        throw exception(ERR_OUT_OF_MEMORY, errno, "OOM trying to modify kqueue events");
 
 
       case ESRCH:

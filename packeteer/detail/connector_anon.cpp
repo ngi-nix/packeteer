@@ -55,7 +55,7 @@ connector_anon::create_pipe()
   // Create pipe
   int ret = ::pipe(m_fds);
   if (-1 == ret) {
-    ERR_LOG("connector_anon pipe failed!");
+    ERRNO_LOG("connector_anon pipe failed!");
     switch (errno) {
       case EMFILE:
       case ENFILE:

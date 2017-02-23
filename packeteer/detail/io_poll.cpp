@@ -186,7 +186,7 @@ io_poll::wait_for_events(std::vector<event_data> & events,
     switch (errno) {
       case EFAULT:
       case EINVAL:
-        throw exception(ERR_INVALID_VALUE, "Bad file descriptor in poll set.");
+        throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in poll set.");
         break;
 
       case EINTR:
@@ -194,7 +194,7 @@ io_poll::wait_for_events(std::vector<event_data> & events,
         break;
 
       case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY, "OOM in poll call.");
+        throw exception(ERR_OUT_OF_MEMORY, errno, "OOM in poll call.");
         break;
 
       default:

@@ -61,7 +61,7 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
   bytes_read = read;
 
   if (read == -1) {
-    ERR_LOG("Error reading from file descriptor");
+    ERRNO_LOG("Error reading from file descriptor");
     switch (errno) {
       case EBADF:
       case EINVAL:
@@ -97,7 +97,7 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
   bytes_written = written;
 
   if (-1 == written) {
-    ERR_LOG("Error writing to file descriptor");
+    ERRNO_LOG("Error writing to file descriptor");
     switch (errno) {
       case EBADF:
       case EINVAL:
