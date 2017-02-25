@@ -374,7 +374,7 @@ connector_local::accept(net::socket_address & addr) const
   // Create & return connector with accepted FD
   connector_local * result = new connector_local();
   result->m_addr = net::socket_address(&buf, len);
-  result->m_server = false;
+  result->m_server = true;
   result->m_fd = new_fd;
 
   addr = result->m_addr;
