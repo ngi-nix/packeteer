@@ -91,6 +91,9 @@ public:
    * Of these, the first six expect the address string to have the format:
    *    scheme://address[:port]
    *
+   * FIXME this keyword scheme seems weird; instead, non-blocking should be the
+   * default, and blocking should be something that can be set on all connectors.
+   *
    * The anonymous pipe expects the scheme to be followed by nothing at all,
    * or one of the keywords "blocking" or "nonblocking", to specify whether
    * a blocking or non-blocking pipe is expected. If the keyword is left out,
