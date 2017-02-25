@@ -261,7 +261,7 @@ private:
 
     CPPUNIT_ASSERT(!client.listening());
     CPPUNIT_ASSERT(client.connected());
-    CPPUNIT_ASSERT(server_conn.connected());
+    CPPUNIT_ASSERT(server_conn.listening());
 
     // Communications
     sendMessage(client, server_conn);
@@ -306,7 +306,7 @@ private:
   void testLocalConnector()
   {
     // Local sockets are "stream" connectors
-    testStreamConnector(connector::CT_LOCAL, "local:///tmp/test-connector");
+    testStreamConnector(connector::CT_LOCAL, "local:///tmp/test-connector-local");
   }
 
 
@@ -314,7 +314,7 @@ private:
   void testPipeConnector()
   {
     // Named pipes are "stream" connectors
-    testStreamConnector(connector::CT_PIPE, "pipe:///tmp/test-connector");
+    testStreamConnector(connector::CT_PIPE, "pipe:///tmp/test-connector-pipe");
   }
 
 
