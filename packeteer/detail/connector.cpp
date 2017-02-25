@@ -53,7 +53,7 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
 error_t
 connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
-  if (!connected()) {
+  if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
   }
 
@@ -95,7 +95,7 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 error_t
 connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
 {
-  if (!connected()) {
+  if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
   }
 
