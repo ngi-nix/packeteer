@@ -35,6 +35,33 @@
 #include <packeteer/error.h>
 #include <packeteer/macros.h>
 
+/**
+ * Which platform are we on?
+ **/
+#if !defined(PACKETEER_PLATFORM_DEFINED)
+  #if defined(_WIN32) || defined(__WIN32__) || defined(__WINDOWS__)
+    #define PACKETEER_WIN32
+  #else
+    #define PACKETEER_POSIX
+  #endif
+  #define PACKETEER_PLATFORM_DEFINED
+#endif
+
+/**
+ * Decide what to include globally
+ **/
+#if defined(PACKETEER_WIN32)
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+    #define __UNDEF_LEAN_AND_MEAN
+  #endif
+  #include <windows.h>
+  #ifdef __UNDEF_LEAN_AND_MEAN
+    #undef WIN32_LEAN_AND_MEAN
+    #undef __UNDEF_LEAN_AND_MEAN
+  #endif
+#endif
+
 
 namespace packeteer {
 

@@ -58,6 +58,9 @@
 #cmakedefine PACKETEER_HAVE_TR1_UNORDERED_SET
 #cmakedefine PACKETEER_HAVE_GNUCXX_HASHSET
 
+#cmakedefine PACKETEER_HAVE_MKNOD
+#cmakedefine PACKETEER_HAVE_MKFIFO
+
 
 /*****************************************************************************
  * Platform checks

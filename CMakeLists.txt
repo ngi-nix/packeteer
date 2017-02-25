@@ -242,8 +242,29 @@ int main(int, char**)
 }
 " PACKETEER_HAVE_GNUCXX_HASHSET)
 
+check_cxx_source_compiles("
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 
+int main(int, char**)
+{
+  mknod(\"foo\", S_IFIFO, S_IRUSR);
+}
+" PACKETEER_HAVE_MKNOD)
 
+check_cxx_source_compiles("
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int main(int, char**)
+{
+  mkfifo(\"foo\", S_IRUSR);
+}
+" PACKETEER_HAVE_MKFIFO)
 
 
 ##############################################################################
@@ -331,6 +352,18 @@ if (PACKETEER_HAVE_KQUEUE)
       packeteer/detail/io_kqueue.cpp
   )
 endif (PACKETEER_HAVE_KQUEUE)
+
+if (UNIX)
+  set(LIB_SOURCES ${LIB_SOURCES}
+      packeteer/detail/posix/connector_pipe.cpp
+  )
+endif (UNIX)
+
+if (WIN32)
+  set(LIB_SOURCES ${LIB_SOURCES}
+      packeteer/detail/win32/connector_pipe.cpp
+  )
+endif (WIN32)
 
 
 add_library(packeteer_static STATIC ${LIB_SOURCES})
