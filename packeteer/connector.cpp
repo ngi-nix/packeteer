@@ -28,6 +28,12 @@
 #include <netinet/in.h>
 #endif
 
+#if defined(PACKETEER_POSIX)
+#  include <packeteer/detail/posix/connector_pipe.h>
+#elif defined(PACKETEER_WIN32)
+#  include <packeteer/detail/win32/connector_pipe.h>
+#endif
+
 #include <cctype>
 
 #include <algorithm>
@@ -223,7 +229,7 @@ struct connector::connector_impl
           break;
 
         case CT_PIPE:
-      // TODO
+          m_conn = new detail::connector_pipe(pre_parsed.second);
           break;
 
         case CT_FILE:
@@ -386,14 +392,33 @@ connector::accept() const
   net::socket_address peer;
   detail::connector * conn = (*m_impl)->accept(peer);
 
-  // If we have a socket address in the result, that'll be the best choice
-  // for the implementation's address. Otherwise pass this object's address
-  // (e.g. for anon connectors).
+  // 1. If we have a socket address in the result, that'll be the best choice
+  //    for the implementation's address. Otherwise pass this object's address
+  //    (e.g. for anon connectors).
+  // 2. Some connectors return themselves, in which case we want to use our own
+  //    m_impl and bump the ref count. However, if we have a different address
+  //    (see above), that won't work.
   connector result;
   if (net::socket_address::SAT_UNSPEC == peer.type()) {
-    result.m_impl = new connector_impl(m_impl->m_address, conn);
+    if (conn == m_impl->m_conn) {
+      // Connectors and address are identical
+      result.m_impl = m_impl;
+      ++(m_impl->m_refcount);
+    }
+    else {
+      // Address is identical, but connector is not
+      result.m_impl = new connector_impl(m_impl->m_address, conn);
+    }
   }
   else {
+    // We have a new address, so we always need a new impl object.
+    // This would lead to a double delete on the conn object, so we'll
+    // have to prevent that.
+    if (conn == m_impl->m_conn) {
+      delete conn;
+      conn = nullptr;
+      throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
+    }
     result.m_impl = new connector_impl(peer.full_str(), conn);
   }
 
@@ -453,6 +478,7 @@ error_t
 connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
   if (!*m_impl) {
+    std::cout << "no impl!" << std::endl;
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->read(buf, bufsize, bytes_read);
