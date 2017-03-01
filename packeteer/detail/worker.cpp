@@ -97,26 +97,26 @@ worker::execute_callback(detail::callback_entry * entry)
 
   switch (entry->m_type) {
     case detail::CB_ENTRY_SCHEDULED:
-      err = entry->m_callback(PEV_TIMEOUT, ERR_SUCCESS, -1, nullptr);
+      err = entry->m_callback(PEV_TIMEOUT, ERR_SUCCESS, handle(), nullptr);
       break;
 
     case detail::CB_ENTRY_USER:
       {
         auto user = reinterpret_cast<detail::user_callback_entry *>(entry);
-        err = user->m_callback(user->m_events, ERR_SUCCESS, -1, nullptr);
+        err = user->m_callback(user->m_events, ERR_SUCCESS, handle(), nullptr);
       }
       break;
 
     case detail::CB_ENTRY_IO:
       {
         auto io = reinterpret_cast<detail::io_callback_entry *>(entry);
-        err = io->m_callback(io->m_events, ERR_SUCCESS, io->m_fd, nullptr);
+        err = io->m_callback(io->m_events, ERR_SUCCESS, io->m_handle, nullptr);
       }
       break;
 
     default:
       // Unknown type. Signal an error on the callback.
-      err = entry->m_callback(PEV_ERROR, ERR_UNEXPECTED, -1, nullptr);
+      err = entry->m_callback(PEV_ERROR, ERR_UNEXPECTED, handle(), nullptr);
       break;
   }
 

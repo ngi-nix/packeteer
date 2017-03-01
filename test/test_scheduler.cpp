@@ -52,11 +52,11 @@ struct test_callback
 
 
   pk::error_t
-  func(uint64_t mask, pk::error_t error, int fd, void *)
+  func(uint64_t mask, pk::error_t error, pk::handle const & h, void *)
   {
     ++m_called;
     m_mask = mask;
-    LOG("callback called: " << error << " - " << fd << " - " << mask);
+    LOG("callback called: " << error << " - " << h.hash() << " - " << mask);
 
     return pk::error_t(0);
   }
@@ -75,7 +75,7 @@ struct thread_id_callback
 
 
   pk::error_t
-  func(uint64_t, pk::error_t, int, void *)
+  func(uint64_t, pk::error_t, pk::handle const &, void *)
   {
     m_tid = twine::this_thread::get_id();
 
@@ -418,15 +418,15 @@ public:
 
     test_callback source1;
     pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
-    sched.register_fd(pk::PEV_IO_READ, pipe.get_read_fd(), cb1);
+    sched.register_handle(pk::PEV_IO_READ, pipe.get_read_fd(), cb1);
 
     test_callback source2;
     pk::callback cb2 = pk::make_callback(&source2, &test_callback::func);
-    sched.register_fd(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
+    sched.register_handle(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
 
     tc::sleep(tc::milliseconds(50));
 
-    sched.unregister_fd(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
+    sched.unregister_handle(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
 
     tc::sleep(tc::milliseconds(50));
 

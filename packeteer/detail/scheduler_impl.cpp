@@ -195,9 +195,9 @@ scheduler::scheduler_impl::start_main_loop()
     throw exception(err, "Could not connect pipe.");
   }
 
-  m_io->register_fd(m_main_loop_pipe.get_read_fd(),
+  m_io->register_handle(m_main_loop_pipe.get_read_fd(),
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
-  // m_io->register_fd(m_main_loop_pipe.get_write_fd(),
+  // m_io->register_handle(m_main_loop_pipe.get_write_fd(),
   //     PEV_IO_WRITE | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_thread.set_func(
@@ -216,7 +216,7 @@ scheduler::scheduler_impl::stop_main_loop()
   detail::interrupt(m_main_loop_pipe);
   m_main_loop_thread.join();
 
-  m_io->unregister_fd(m_main_loop_pipe.get_read_fd(),
+  m_io->unregister_handle(m_main_loop_pipe.get_read_fd(),
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_pipe.close();
@@ -301,7 +301,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       {
         // Add the callback for the event mask
         m_io_callbacks.add(io);
-        m_io->register_fd(io->m_fd, io->m_events);
+        m_io->register_handle(io->m_handle, io->m_events);
       }
       break;
 
@@ -310,7 +310,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       {
         // Add the callback from the event mask
         m_io_callbacks.remove(io);
-        m_io->unregister_fd(io->m_fd, io->m_events);
+        m_io->unregister_handle(io->m_handle, io->m_events);
         delete io;
       }
       break;

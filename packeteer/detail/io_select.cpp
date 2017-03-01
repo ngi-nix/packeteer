@@ -55,19 +55,19 @@ io_select::~io_select()
 
 
 void
-io_select::register_fd(int fd, events_t const & events)
+io_select::register_handle(handle const & h, events_t const & events)
 {
-  m_fds[fd] |= events;
+  m_fds[h.sys_handle()] |= events;
 }
 
 
 
 void
-io_select::register_fds(int const * fds, size_t size,
+io_select::register_handles(handle const * handles, size_t size,
     events_t const & events)
 {
   for (size_t i = 0 ; i < size ; ++i) {
-    m_fds[fds[i]] |= events;
+    m_fds[handles[i].sys_handle()] |= events;
   }
 }
 
@@ -75,9 +75,9 @@ io_select::register_fds(int const * fds, size_t size,
 
 
 void
-io_select::unregister_fd(int fd, events_t const & events)
+io_select::unregister_handle(handle const & h, events_t const & events)
 {
-  auto iter = m_fds.find(fd);
+  auto iter = m_fds.find(h.sys_handle());
   iter->second &= ~events;
   if (!iter->second) {
     m_fds.erase(iter);
@@ -87,11 +87,11 @@ io_select::unregister_fd(int fd, events_t const & events)
 
 
 void
-io_select::unregister_fds(int const * fds, size_t size,
+io_select::unregister_handles(handle const * handles, size_t size,
     events_t const & events)
 {
   for (size_t i = 0 ; i < size ; ++i) {
-    auto iter = m_fds.find(fds[i]);
+    auto iter = m_fds.find(handles[i].sys_handle());
     iter->second &= ~events;
     if (!iter->second) {
       m_fds.erase(iter);

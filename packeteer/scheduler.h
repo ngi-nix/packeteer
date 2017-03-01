@@ -33,6 +33,7 @@
 #include <packeteer/callback.h>
 #include <packeteer/error.h>
 #include <packeteer/events.h>
+#include <packeteer/handle.h>
 
 namespace packeteer {
 
@@ -101,7 +102,8 @@ public:
    * and writing is not currently possible - then unregister the callback again
    * when it's called, and all data could be written.
    **/
-  error_t register_fd(events_t const & events, int fd, callback const & callback);
+  error_t register_handle(events_t const & events, handle const & h,
+      callback const & callback);
 
 
 
@@ -110,7 +112,8 @@ public:
    * more events are listened to, the file descriptor and callback will be
    * forgotten.
    **/
-  error_t unregister_fd(events_t const & events, int fd, callback const & callback);
+  error_t unregister_handle(events_t const & events, handle const & h,
+      callback const & callback);
 
 
 

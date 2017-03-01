@@ -28,6 +28,7 @@
 
 #include <packeteer/packeteer.h>
 #include <packeteer/types.h>
+#include <packeteer/handle.h>
 
 #include <typeinfo>
 #include <functional>
@@ -48,7 +49,7 @@ namespace detail {
 struct callback_helper_base
 {
   virtual ~callback_helper_base() {}
-  virtual error_t invoke(events_t const & events, error_t error, int fd, void * baton) = 0;
+  virtual error_t invoke(events_t const & events, error_t error, handle const & h, void * baton) = 0;
   virtual bool equal_to(callback_helper_base const * other) const = 0;
   virtual bool less_than(callback_helper_base const * other) const = 0;
   virtual size_t hash() const = 0;
@@ -68,7 +69,7 @@ struct callback_helper_base
  * Part of the simplification means that callback objects don't hold any type
  * of function, only those conforming to the following prototype:
  *
- *  error_t <name>(uint64_t events, error_t error, int fd, void * baton)
+ *  error_t <name>(uint64_t events, error_t error, handle const & h, void * baton)
  *
  * Much like std::function, however, callback classes can hold pointers to
  * free functions as well as pointers to object functions. Note that for the
@@ -87,7 +88,7 @@ public:
    * Types
    **/
   // Typedef for free functions.
-  typedef error_t (*free_function_type)(uint64_t, error_t, int, void *);
+  typedef error_t (*free_function_type)(uint64_t, error_t, handle const &, void *);
 
 
   /*****************************************************************************
@@ -210,13 +211,13 @@ public:
    **/
   inline
   error_t
-  operator()(uint64_t events, error_t error, int fd, void * baton)
+  operator()(uint64_t events, error_t error, handle const & h, void * baton)
   {
     if (nullptr != m_free_function) {
-      return (*m_free_function)(events, error, fd, baton);
+      return (*m_free_function)(events, error, h, baton);
     }
     else if (nullptr != m_object_helper) {
-      return m_object_helper->invoke(events, error, fd, baton);
+      return m_object_helper->invoke(events, error, h, baton);
     }
     else {
       throw exception(ERR_EMPTY_CALLBACK);
@@ -290,7 +291,8 @@ namespace detail {
 template <typename T>
 struct callback_helper : public callback_helper_base
 {
-  typedef error_t (T::*member_function_type)(uint64_t, error_t, int, void *);
+  typedef error_t (T::*member_function_type)(uint64_t, error_t, handle const &,
+      void *);
 
 
   callback_helper(T * object, member_function_type function)
@@ -301,9 +303,10 @@ struct callback_helper : public callback_helper_base
 
 
 
-  virtual error_t invoke(events_t const & events, error_t error, int fd, void * baton)
+  virtual error_t invoke(events_t const & events, error_t error, handle const & h,
+      void * baton)
   {
-    return (m_object->*m_function)(events, error, fd, baton);
+    return (m_object->*m_function)(events, error, h, baton);
   }
 
 

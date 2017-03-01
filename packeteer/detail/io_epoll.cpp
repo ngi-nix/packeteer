@@ -31,6 +31,7 @@
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
+#include <packeteer/handle.h>
 
 namespace packeteer {
 namespace detail {
@@ -191,9 +192,9 @@ io_epoll::~io_epoll()
 
 
 void
-io_epoll::register_fd(int fd, events_t const & events)
+io_epoll::register_handle(handle const & h, events_t const & events)
 {
-  int fds[] = { fd };
+  int fds[] = { h.sys_handle() };
   modify_fd_set(m_epoll_fd, EPOLL_CTL_ADD, fds, sizeof(fds) / sizeof(int),
       events);
 }
@@ -201,19 +202,23 @@ io_epoll::register_fd(int fd, events_t const & events)
 
 
 void
-io_epoll::register_fds(int const * fds, size_t size,
+io_epoll::register_handles(handle const * handles, size_t size,
     events_t const & events)
 {
-  modify_fd_set(m_epoll_fd, EPOLL_CTL_ADD, fds, size, events);
+  std::vector<int> fds(size);
+  for (size_t i = 0 ; i < size ; ++i) {
+    fds[i] = handles[i].sys_handle();
+  }
+  modify_fd_set(m_epoll_fd, EPOLL_CTL_ADD, &fds[0], size, events);
 }
 
 
 
 
 void
-io_epoll::unregister_fd(int fd, events_t const & events)
+io_epoll::unregister_handle(handle const & h, events_t const & events)
 {
-  int fds[] = { fd };
+  int fds[] = { h.sys_handle() };
   modify_fd_set(m_epoll_fd, EPOLL_CTL_DEL, fds, sizeof(fds) / sizeof(int),
       events);
 }
@@ -221,10 +226,14 @@ io_epoll::unregister_fd(int fd, events_t const & events)
 
 
 void
-io_epoll::unregister_fds(int const * fds, size_t size,
+io_epoll::unregister_handles(handle const * handles, size_t size,
     events_t const & events)
 {
-  modify_fd_set(m_epoll_fd, EPOLL_CTL_DEL, fds, size, events);
+  std::vector<int> fds(size);
+  for (size_t i = 0 ; i < size ; ++i) {
+    fds[i] = handles[i].sys_handle();
+  }
+  modify_fd_set(m_epoll_fd, EPOLL_CTL_DEL, &fds[0], size, events);
 }
 
 

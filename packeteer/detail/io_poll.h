@@ -48,11 +48,11 @@ public:
   io_poll();
   ~io_poll();
 
-  void register_fd(int fd, events_t const & events);
-  void register_fds(int const * fds, size_t amount, events_t const & events);
+  void register_handle(handle const & handle, events_t const & events);
+  void register_handles(handle const * handles, size_t amount, events_t const & events);
 
-  void unregister_fd(int fd, events_t const & events);
-  void unregister_fds(int const * fds, size_t amount, events_t const & events);
+  void unregister_handle(handle const & handle, events_t const & events);
+  void unregister_handles(handle const * handles, size_t amount, events_t const & events);
 
   virtual void wait_for_events(std::vector<event_data> & events,
       twine::chrono::nanoseconds const & timeout);

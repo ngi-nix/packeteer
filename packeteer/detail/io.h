@@ -33,6 +33,7 @@
 #include <twine/chrono.h>
 
 #include <packeteer/types.h>
+#include <packeteer/handle.h>
 
 namespace packeteer {
 namespace detail {
@@ -50,12 +51,12 @@ struct io
 public:
   virtual ~io() {};
 
-  virtual void register_fd(int fd, events_t const & events) = 0;
-  virtual void register_fds(int const * fds, size_t amount,
+  virtual void register_handle(handle const & handle, events_t const & events) = 0;
+  virtual void register_handles(handle const * handles, size_t amount,
       events_t const & events) = 0;
 
-  virtual void unregister_fd(int fd, events_t const & events) = 0;
-  virtual void unregister_fds(int const * fds, size_t amount,
+  virtual void unregister_handle(handle const & handle, events_t const & events) = 0;
+  virtual void unregister_handles(handle const * handles, size_t amount,
       events_t const & events) = 0;
 
   virtual void wait_for_events(std::vector<event_data> & events,

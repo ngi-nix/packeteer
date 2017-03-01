@@ -50,9 +50,10 @@ scheduler::~scheduler()
 
 
 error_t
-scheduler::register_fd(events_t const & events, int fd, callback const & callback)
+scheduler::register_handle(events_t const & events, handle const & h,
+    callback const & callback)
 {
-  auto entry = new detail::io_callback_entry(callback, fd, events);
+  auto entry = new detail::io_callback_entry(callback, h, events);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
   return ERR_SUCCESS;
 }
@@ -60,9 +61,10 @@ scheduler::register_fd(events_t const & events, int fd, callback const & callbac
 
 
 error_t
-scheduler::unregister_fd(events_t const & events, int fd, callback const & callback)
+scheduler::unregister_handle(events_t const & events, handle const & h,
+    callback const & callback)
 {
-  auto entry = new detail::io_callback_entry(callback, fd, events);
+  auto entry = new detail::io_callback_entry(callback, h, events);
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
   return ERR_SUCCESS;
 }

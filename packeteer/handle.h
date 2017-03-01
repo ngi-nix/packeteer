@@ -41,9 +41,10 @@ struct handle
 {
 #if defined(PACKETEER_WIN32)
   typedef HANDLE  sys_handle_t;
+#  define PACKETEER_INVALID_HANDLE_VALUE INVALID_HANDLE_VALUE
 #elif defined(PACKETEER_POSIX)
   typedef int     sys_handle_t;
-#  define INVALID_HANDLE_VALUE -1
+#  define PACKETEER_INVALID_HANDLE_VALUE -1
 #else
 #  error Handles are not supported on this platform!
 #endif
@@ -52,7 +53,7 @@ struct handle
    * Constructors and destructors
    **/
   handle()
-    : m_handle(INVALID_HANDLE_VALUE)
+    : m_handle(PACKETEER_INVALID_HANDLE_VALUE)
   {
   }
 
@@ -108,14 +109,14 @@ struct handle
   /**
    * Get underlying handle type
    **/
-  sys_handle_t & sys_handle()
+  sys_handle_t sys_handle() const
   {
     return m_handle;
   }
 
   bool valid() const
   {
-    return (m_handle != INVALID_HANDLE_VALUE);
+    return (m_handle != PACKETEER_INVALID_HANDLE_VALUE);
   }
 
 private:
