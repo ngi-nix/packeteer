@@ -135,7 +135,6 @@ struct test_data
 
   // All other types require path names. There's not much common
   // about path names, so our only requirement is that it exists.
-  { "file://foo", true, connector::CT_FILE },
   { "local://foo", true, connector::CT_LOCAL },
   { "pipe://foo", true, connector::CT_PIPE },
   { "anon://", true, connector::CT_ANON },

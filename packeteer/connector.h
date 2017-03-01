@@ -60,7 +60,6 @@ public:
     CT_UDP4,
     CT_UDP6,
     CT_UDP,
-    CT_FILE,
     CT_LOCAL,
     CT_PIPE,
     CT_ANON,
@@ -84,7 +83,6 @@ public:
    *  - anon: anonymous pipe, similar to the pipe class. Mostly usable for
    *      IPC between processes that inherit the file descriptors. Anonymous
    *      pipes are unidirectional.
-   *  - file: file system operations (limited usage)
    *  - local: UNIX domain sockets (POSIX)
    *  - pipe: UNIX named pipe or Windows named pipe
    *
@@ -130,9 +128,6 @@ public:
    * channel. That is, once listening on the specified address, other parties
    * can connect to it.
    *
-   * Listening on a file-URI does not make sense, and will therefore be
-   * rejected.
-   *
    * Listening to an anon-URI automatically also connects the connector.
    *
    * Returns an error if listening fails.
@@ -144,9 +139,8 @@ public:
    * Similarly, connecting to the specified address creates a connector
    * usable for the client side of a network communications channel.
    *
-   * Connecting to a file-URI effectively opens the file for I/O. Connecting
-   * to other URIs establishes a connection to the endpoint specified in the
-   * URI.
+   * Connecting to URIs establishes a connection to the endpoint specified in
+   * the URI.
    *
    * Connecting to an anon-URI automatically also turns the connector to
    * listening.

@@ -67,7 +67,6 @@ match_scheme(std::string const & scheme)
     mapping["udp6"] = connector::CT_UDP6;
     mapping["udp"] = connector::CT_UDP;
     mapping["anon"] = connector::CT_ANON;
-    mapping["file"] = connector::CT_FILE;
     mapping["local"] = connector::CT_LOCAL;
     mapping["pipe"] = connector::CT_PIPE;
   }
@@ -230,10 +229,6 @@ struct connector::connector_impl
 
         case CT_PIPE:
           m_conn = new detail::connector_pipe(pre_parsed.second);
-          break;
-
-        case CT_FILE:
-      // TODO
           break;
 
         default:
