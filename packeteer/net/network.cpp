@@ -21,7 +21,7 @@
 
 #include <packeteer/net/network.h>
 
-#include <stdint.h>
+#include <packeteer/types.h>
 
 #include <cstring>
 #include <cmath>
