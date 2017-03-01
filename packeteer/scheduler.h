@@ -49,7 +49,7 @@ namespace packeteer {
  * efficiency of the scheduler as a whole.
  *
  * For I/O events, callbacks will be invoked once per file descriptor for which
- * any I/O event occurred, e.g. once for (EV_IO_READ | EV_IO_WRITE).
+ * any I/O event occurred, e.g. once for (PEV_IO_READ | PEV_IO_WRITE).
  * For other events, callbacks will be invoked once per event that occurred.
  **/
 class scheduler
@@ -90,10 +90,10 @@ public:
   /**
    * Register a function for the given events on the given file descriptor.
    *
-   * You can pass non-I/O events here, but EV_TIMEOUT will be ignored as there
+   * You can pass non-I/O events here, but PEV_TIMEOUT will be ignored as there
    * is no timeout value specified.
    *
-   * It is not recommended that you register a callback for EV_IO_WRITE for a
+   * It is not recommended that you register a callback for PEV_IO_WRITE for a
    * long time. All non-blocking file descriptors will generally always be ready
    * for writing, which means these callbacks will be fired all the time.
    *
@@ -194,7 +194,7 @@ public:
    * event with one of the given event types is fired, the callback is invoked.
    *
    * User-defined events must be specified as 64 bit unsigned integer values
-   * >= EV_USER.
+   * >= PEV_USER.
    **/
   error_t register_event(events_t const & events, callback const & callback);
 
