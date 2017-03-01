@@ -51,8 +51,8 @@ public:
 
   connector * accept(net::socket_address & addr) const;
 
-  int get_read_fd() const;
-  int get_write_fd() const;
+  handle get_read_handle() const;
+  handle get_write_handle() const;
 
   error_t close();
 private:

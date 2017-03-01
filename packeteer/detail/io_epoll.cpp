@@ -273,7 +273,7 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
   // Translate events
   for (int i = 0 ; i < ready ; ++i) {
     event_data data = {
-      epoll_events[i].data.fd,
+      handle(epoll_events[i].data.fd),
       translate_os_to_events(epoll_events[i].events)
     };
     events.push_back(data);

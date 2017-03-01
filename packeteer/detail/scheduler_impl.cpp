@@ -195,9 +195,9 @@ scheduler::scheduler_impl::start_main_loop()
     throw exception(err, "Could not connect pipe.");
   }
 
-  m_io->register_handle(m_main_loop_pipe.get_read_fd(),
+  m_io->register_handle(m_main_loop_pipe.get_read_handle(),
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
-  // m_io->register_handle(m_main_loop_pipe.get_write_fd(),
+  // m_io->register_handle(m_main_loop_pipe.get_write_handle(),
   //     PEV_IO_WRITE | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_thread.set_func(
@@ -216,7 +216,7 @@ scheduler::scheduler_impl::stop_main_loop()
   detail::interrupt(m_main_loop_pipe);
   m_main_loop_thread.join();
 
-  m_io->unregister_handle(m_main_loop_pipe.get_read_fd(),
+  m_io->unregister_handle(m_main_loop_pipe.get_read_handle(),
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_pipe.close();
@@ -398,18 +398,18 @@ scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data>
       entry_list_t & to_schedule)
 {
   LOG("I/O callbacks");
-  int own_pipe = m_main_loop_pipe.get_read_fd();
+  handle own_pipe = m_main_loop_pipe.get_read_handle();
 
   // Process events, and try to find a callback for each of them.
   for (auto event : events) {
-    if (own_pipe == event.fd) {
+    if (own_pipe == event.m_handle) {
       // We just got interrupted; clear the interrupt
       detail::clear_interrupt(m_main_loop_pipe);
       continue;
     }
 
     // Find callback(s).
-    auto callbacks = m_io_callbacks.copy_matching(event.fd, event.events);
+    auto callbacks = m_io_callbacks.copy_matching(event.m_handle, event.m_events);
     to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
   }
 }
@@ -521,7 +521,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
       //   different resolution on different platforms.
       m_io->wait_for_events(events, tc::milliseconds(20));
       //for (auto event : events) {
-      //  LOG("got events " << event.events << " for " << event.fd);
+      //  LOG("got events " << event.m_events << " for " << event.m_handle);
       //}
 
       // Process all callbacks that want to be invoked now. Since we can't have

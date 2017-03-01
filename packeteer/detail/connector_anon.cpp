@@ -129,18 +129,18 @@ connector_anon::accept(net::socket_address & /* unused */) const
 
 
 
-int
-connector_anon::get_read_fd() const
+handle
+connector_anon::get_read_handle() const
 {
-  return m_fds[0];
+  return handle(m_fds[0]);
 }
 
 
 
-int
-connector_anon::get_write_fd() const
+handle
+connector_anon::get_write_handle() const
 {
-  return m_fds[1];
+  return handle(m_fds[1]);
 }
 
 

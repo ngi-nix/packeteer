@@ -281,18 +281,18 @@ connector_pipe::accept(net::socket_address & /* unused */) const
 
 
 
-int
-connector_pipe::get_read_fd() const
+handle
+connector_pipe::get_read_handle() const
 {
-  return m_fd;
+  return handle(m_fd);
 }
 
 
 
-int
-connector_pipe::get_write_fd() const
+handle
+connector_pipe::get_write_handle() const
 {
-  return m_fd;
+  return handle(m_fd);
 }
 
 

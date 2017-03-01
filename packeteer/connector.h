@@ -31,6 +31,7 @@
 #include <utility>
 #include <functional>
 
+#include <packeteer/handle.h>
 #include <packeteer/error.h>
 
 #include <packeteer/net/socket_address.h>
@@ -156,9 +157,9 @@ public:
    * same type with the connected() flag set (see above).
    *
    * Some types of connectors may return a shallow copy of themselves. In that
-   * case, the read and write FDs are the same as the connector's whose accept()
-   * function was called, but this is intentional. Similarly, the return value
-   * of address(), etc. should be identical.
+   * case, the read and write handles are the same as the connector's whose
+   * accept() function was called, but this is intentional. Similarly, the
+   * return value of address(), etc. should be identical.
    *
    * Other connectors may return a new connector, but still retain the same
    * return value for address().
@@ -177,10 +178,10 @@ public:
    * You typically want to use these file descriptors together with the
    * scheduler class.
    *
-   * Return -1 if the connector is neither bound nor connected.
+   * Return an invalid handle if the connector is neither bound nor connected.
    **/
-  int get_read_fd() const;
-  int get_write_fd() const;
+  handle get_read_handle() const;
+  handle get_write_handle() const;
 
   /**
    * Read from and write messages to a given peer address on the connector. The

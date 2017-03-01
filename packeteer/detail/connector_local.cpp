@@ -383,18 +383,18 @@ connector_local::accept(net::socket_address & addr) const
 
 
 
-int
-connector_local::get_read_fd() const
+handle
+connector_local::get_read_handle() const
 {
-  return m_fd;
+  return handle(m_fd);
 }
 
 
 
-int
-connector_local::get_write_fd() const
+handle
+connector_local::get_write_handle() const
 {
-  return m_fd;
+  return handle(m_fd);
 }
 
 

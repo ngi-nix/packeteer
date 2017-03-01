@@ -186,8 +186,8 @@ private:
     connector copy = original;
     CPPUNIT_ASSERT_EQUAL(original.type(), copy.type());
     CPPUNIT_ASSERT_EQUAL(original.address(), copy.address());
-    CPPUNIT_ASSERT_EQUAL(original.get_read_fd(), copy.get_read_fd());
-    CPPUNIT_ASSERT_EQUAL(original.get_write_fd(), copy.get_write_fd());
+    CPPUNIT_ASSERT_EQUAL(original.get_read_handle(), copy.get_read_handle());
+    CPPUNIT_ASSERT_EQUAL(original.get_write_handle(), copy.get_write_handle());
     CPPUNIT_ASSERT(original == copy);
     CPPUNIT_ASSERT(!(original < copy));
 

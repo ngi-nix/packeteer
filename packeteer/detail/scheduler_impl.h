@@ -38,6 +38,7 @@
 #include <packeteer/types.h>
 #include <packeteer/concurrent_queue.h>
 #include <packeteer/connector.h>
+#include <packeteer/handle.h>
 
 #include <packeteer/detail/io.h>
 
@@ -110,8 +111,8 @@ struct callback_entry
 // Events are reported with this structure.
 struct event_data
 {
-  int       fd;
-  events_t  events;
+  handle    m_handle;
+  events_t  m_events;
 };
 
 }} // namespace packeteer::detail

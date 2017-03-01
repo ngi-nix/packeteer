@@ -58,7 +58,7 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
   }
 
   while (true) {
-    ssize_t read = ::read(get_read_fd(), buf, bufsize);
+    ssize_t read = ::read(get_read_handle().sys_handle(), buf, bufsize);
     if (-1 != read) {
       bytes_read = read;
       return ERR_SUCCESS;
@@ -100,7 +100,7 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
   }
 
   while (true) {
-    ssize_t written = ::write(get_write_fd(), buf, bufsize);
+    ssize_t written = ::write(get_write_handle().sys_handle(), buf, bufsize);
     if (-1 != written) {
       bytes_written = written;
       return ERR_SUCCESS;

@@ -30,6 +30,7 @@
 #include <utility>
 #include <functional>
 #include <cstring>
+#include <iostream>
 
 
 namespace packeteer {
@@ -86,6 +87,12 @@ struct handle
     return (::memcmp(&m_handle, &(other.m_handle), sizeof(sys_handle_t)) < 0);
   }
 
+  handle & operator=(handle const & other)
+  {
+    m_handle = other.m_handle;
+    return *this;
+  }
+
   /**
    * Utility
    **/
@@ -119,9 +126,26 @@ struct handle
     return (m_handle != PACKETEER_INVALID_HANDLE_VALUE);
   }
 
+
+  /**
+   * I/O
+   **/
+  friend std::ostream & operator<<(std::ostream & os, handle const & h);
+
 private:
   sys_handle_t  m_handle;
 };
+
+
+/**
+ * I/O
+ **/
+inline std::ostream &
+operator<<(std::ostream & os, handle const & h)
+{
+  os << h.hash();
+  return os;
+}
 
 
 } // namespace packeteer

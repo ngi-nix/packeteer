@@ -27,6 +27,7 @@
 
 #include <packeteer/packeteer.h>
 
+#include <packeteer/handle.h>
 #include <packeteer/error.h>
 
 #include <packeteer/net/socket_address.h>
@@ -54,8 +55,8 @@ public:
 
   virtual connector* accept(net::socket_address & addr) const = 0;
 
-  virtual int get_read_fd() const = 0;
-  virtual int get_write_fd() const = 0;
+  virtual handle get_read_handle() const = 0;
+  virtual handle get_write_handle() const = 0;
 
   virtual error_t close() = 0;
 

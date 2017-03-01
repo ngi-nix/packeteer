@@ -211,8 +211,8 @@ io_poll::wait_for_events(std::vector<event_data> & events,
     int translated = translate_os_to_events(fds[i].revents);
     if (translated) {
       event_data ev;
-      ev.fd = fds[i].fd;
-      ev.events = translated;
+      ev.m_handle = handle(fds[i].fd);
+      ev.m_events = translated;
       events.push_back(ev);
     }
   }

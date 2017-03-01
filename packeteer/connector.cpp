@@ -271,8 +271,8 @@ struct connector::connector_impl
                  ^ (std::hash<std::string>()(m_address) << 1);
     if (m_conn) {
       value = value
-        ^ (std::hash<int>()(m_conn->get_read_fd()) << 2)
-        ^ (std::hash<int>()(m_conn->get_write_fd()) << 3);
+        ^ (std::hash<handle>()(m_conn->get_read_handle()) << 2)
+        ^ (std::hash<handle>()(m_conn->get_write_handle()) << 3);
     }
     return value;
   }
@@ -423,24 +423,24 @@ connector::accept() const
 
 
 
-int
-connector::get_read_fd() const
+handle
+connector::get_read_handle() const
 {
   if (!*m_impl) {
-    return -1;
+    return handle();
   }
-  return (*m_impl)->get_read_fd();
+  return (*m_impl)->get_read_handle();
 }
 
 
 
-int
-connector::get_write_fd() const
+handle
+connector::get_write_handle() const
 {
   if (!*m_impl) {
-    return -1;
+    return handle();
   }
-  return (*m_impl)->get_write_fd();
+  return (*m_impl)->get_write_handle();
 }
 
 
@@ -508,8 +508,8 @@ connector::operator==(connector const & other) const
 {
   return (
       type() == other.type()
-      && get_read_fd() == other.get_read_fd()
-      && get_write_fd() == other.get_write_fd()
+      && get_read_handle() == other.get_read_handle()
+      && get_write_handle() == other.get_write_handle()
       && address() == other.address()
   );
 }
@@ -522,10 +522,10 @@ connector::operator<(connector const & other) const
   if (type() < other.type()) {
     return true;
   }
-  if (get_read_fd() < other.get_read_fd()) {
+  if (get_read_handle() < other.get_read_handle()) {
     return true;
   }
-  if (get_write_fd() < other.get_write_fd()) {
+  if (get_write_handle() < other.get_write_handle()) {
     return true;
   }
   return address() < other.address();

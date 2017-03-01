@@ -56,7 +56,7 @@ struct test_callback
   {
     ++m_called;
     m_mask = mask;
-    LOG("callback called: " << error << " - " << h.hash() << " - " << mask);
+    LOG("callback called: " << error << " - " << h << " - " << mask);
 
     return pk::error_t(0);
   }
@@ -418,15 +418,15 @@ public:
 
     test_callback source1;
     pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
-    sched.register_handle(pk::PEV_IO_READ, pipe.get_read_fd(), cb1);
+    sched.register_handle(pk::PEV_IO_READ, pipe.get_read_handle(), cb1);
 
     test_callback source2;
     pk::callback cb2 = pk::make_callback(&source2, &test_callback::func);
-    sched.register_handle(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
+    sched.register_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb2);
 
     tc::sleep(tc::milliseconds(50));
 
-    sched.unregister_handle(pk::PEV_IO_WRITE, pipe.get_write_fd(), cb2);
+    sched.unregister_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb2);
 
     tc::sleep(tc::milliseconds(50));
 
