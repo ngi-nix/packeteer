@@ -28,6 +28,8 @@
 
 #include <packeteer/packeteer.h>
 
+#include <meta/inttypes.h>
+
 
 /*****************************************************************************
  * Some data types can come from multiple different sources and/or with
