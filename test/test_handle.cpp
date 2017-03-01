@@ -19,6 +19,8 @@
  **/
 #include <packeteer/handle.h>
 
+#include <sstream>
+
 #include <cppunit/extensions/HelperMacros.h>
 
 namespace pk = packeteer;
@@ -56,6 +58,14 @@ private:
     CPPUNIT_ASSERT(h1 == copy);
     CPPUNIT_ASSERT(!(h1 < copy));
     CPPUNIT_ASSERT(!(copy < h1));
+
+    // Outputting a handle should output its hash
+    std::stringstream s1;
+    s1 << h1;
+
+    std::stringstream s2;
+    s2 << h1.hash();
+    CPPUNIT_ASSERT_EQUAL(s1.str(), s2.str());
   }
 };
 

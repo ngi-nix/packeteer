@@ -417,6 +417,7 @@ install(TARGETS
 if (CPPUNIT_FOUND)
   # Tests compatible with all C++ versions
   set(TEST_SOURCES
+      test/test_error.cpp
       test/test_cidr.cpp
       test/test_handle.cpp
       test/test_socket_address.cpp
