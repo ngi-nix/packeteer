@@ -385,6 +385,7 @@ install(FILES
     packeteer/error.h
     packeteer/macros.h
     packeteer/types.h
+    packeteer/handle.h
     packeteer/concurrent_queue.h
     packeteer/callback.h
     packeteer/events.h
@@ -417,6 +418,7 @@ if (CPPUNIT_FOUND)
   # Tests compatible with all C++ versions
   set(TEST_SOURCES
       test/test_cidr.cpp
+      test/test_handle.cpp
       test/test_socket_address.cpp
       test/test_network.cpp
       test/test_callback.cpp
