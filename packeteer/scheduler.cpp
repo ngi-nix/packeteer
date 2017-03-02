@@ -24,6 +24,7 @@
 #include <stdexcept>
 
 #include <packeteer/detail/scheduler_impl.h>
+#include <packeteer/detail/worker.h>
 
 namespace tc = twine::chrono;
 
@@ -170,6 +171,45 @@ scheduler::fire_events(events_t const & events)
   return ERR_SUCCESS;
 }
 
+
+
+error_t
+scheduler::process_events(twine::chrono::milliseconds const & timeout,
+    bool exit_on_failure /* = false */)
+{
+  // First, get events to schedule to workers.
+  scheduler_impl::entry_list_t to_schedule;
+  m_impl->wait_for_events(timeout, to_schedule);
+
+  if (to_schedule.empty()) {
+    // No events
+    return ERR_TIMEOUT;
+  }
+
+  // Then handle these events on the worker's main function.
+  error_t err = ERR_SUCCESS;
+  bool delete_entries = false;
+  for (auto entry : to_schedule) {
+    // We're in cleanup mode; this happens when exit_on_failure is true and
+    // a previous entry errored out.
+    if (delete_entries) {
+      delete entry;
+      continue;
+    }
+
+    // Execute the callback. If we don't have a success and exit_on_failure is
+    // true, switch to cleanup mode.
+    err = detail::worker::execute_callback(entry);
+    if (ERR_SUCCESS != err && exit_on_failure) {
+      delete_entries = true;
+    }
+  }
+
+  // We don't have to delete entries in to_schedule: that either happened in
+  // cleanup mode or in execute_callback. Similarly, the return value is set
+  // appropriately at this point.
+  return err;
+}
 
 
 } // namespace packeteer

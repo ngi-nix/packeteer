@@ -80,6 +80,13 @@ public:
    * Constructor. Specify the number of worker threads to start. Note that the
    * scheduler starts an additional thread internally which dispatches events.
    *
+   * If the number of worker threads is zero, no threads will be started.
+   * Instead you have to call the process_events() function in your own main
+   * loop.
+   *
+   * The scheduler object can either run automatically with worker threads, or
+   * be called manually, but not both.
+   *
    * May throw if the specified type is not supported. Best leave it at
    * TYPE_AUTOMATIC.
    **/
@@ -220,6 +227,25 @@ public:
    **/
   error_t fire_events(events_t const & events);
 
+
+  /**
+   * Process events; waits for events until the timeout elapses, then calls any
+   * registered callbacks for events that were triggered. Use this in your own
+   * main loop without any worker threads.
+   *
+   * Returns ERR_TIMEOUT if no events occurred within the timeout value.
+   * Otherwise returns ERR_SUCCESS if all callbacks finished running
+   * successfully.
+   *
+   * If callbacks fail, you have two options. If exit_on_failure is true, the
+   * result of the first failing callback is returned. All subsequent callbacks
+   * will *not* be invoked.
+   *
+   * If exit_on_failure is false (the default), all callbacks will be invoked.
+   * The result is the result of the last failing callback.
+   **/
+  error_t process_events(twine::chrono::milliseconds const & timeout,
+      bool exit_on_failure = false);
 
 private:
   // pimpl
