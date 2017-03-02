@@ -3,8 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2017 Jens Finkhaeuser.
+ * Copyright (c) 2017 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -18,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_CONNECTOR_LOCAL_H
-#define PACKETEER_DETAIL_CONNECTOR_LOCAL_H
+#ifndef PACKETEER_DETAIL_CONNECTOR_PIPE_H
+#define PACKETEER_DETAIL_CONNECTOR_PIPE_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -29,9 +28,6 @@
 
 #include <packeteer/detail/connector.h>
 
-// FIXME this header should probably be in POSIX for inherting from connector_socket
-#include <packeteer/detail/posix/connector_socket.h>
-
 #include <packeteer/net/socket_address.h>
 
 namespace packeteer {
@@ -40,23 +36,32 @@ namespace detail {
 /**
  * Wrapper around the pipe class.
  **/
-struct connector_local : public ::packeteer::detail::connector_socket
+struct connector_pipe : public ::packeteer::detail::connector
 {
 public:
-  connector_local(std::string const & path);
-  connector_local(::packeteer::net::socket_address const & addr);
-  ~connector_local();
+  connector_pipe(std::string const & path);
+  connector_pipe(::packeteer::net::socket_address const & addr);
+  ~connector_pipe();
 
   error_t listen();
+  bool listening() const;
 
   error_t connect();
+  bool connected() const;
 
   connector * accept(net::socket_address & addr) const;
 
-  error_t close();
+  handle get_read_handle() const;
+  handle get_write_handle() const;
 
+  error_t close();
 private:
-  connector_local();
+
+  connector_pipe();
+
+  ::packeteer::net::socket_address  m_addr;
+  bool                              m_server;
+  int                               m_fd;
 };
 
 }} // namespace packeteer::detail

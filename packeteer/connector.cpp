@@ -28,12 +28,6 @@
 #include <netinet/in.h>
 #endif
 
-#if defined(PACKETEER_POSIX)
-#  include <packeteer/detail/posix/connector_pipe.h>
-#elif defined(PACKETEER_WIN32)
-#  include <packeteer/detail/win32/connector_pipe.h>
-#endif
-
 #include <cctype>
 
 #include <algorithm>
@@ -44,7 +38,8 @@
 
 #include <packeteer/detail/connector_anon.h>
 #include <packeteer/detail/connector_local.h>
-
+#include <packeteer/detail/connector_pipe.h>
+#include <packeteer/detail/connector_tcp.h>
 
 namespace packeteer {
 
@@ -189,7 +184,24 @@ struct connector::connector_impl
 
       // Looks good for TCP/UDP style connectors!
       m_type = pre_parsed.first;
-      // TODO
+
+      switch (m_type) {
+        case connector::CT_TCP:
+        case connector::CT_TCP4:
+        case connector::CT_TCP6:
+          m_conn = new detail::connector_tcp(pre_parsed.second);
+          break;
+
+        case connector::CT_UDP:
+        case connector::CT_UDP4:
+        case connector::CT_UDP6:
+          std::cout << "FIXME FIXME FIXME" << std::endl;
+          // TODO
+          break;
+
+        default:
+          PACKETEER_FLOW_CONTROL_GUARD;
+      }
     }
 
     else if (connector::CT_ANON == pre_parsed.first) {

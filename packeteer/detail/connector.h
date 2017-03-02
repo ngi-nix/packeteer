@@ -53,7 +53,7 @@ public:
   virtual error_t connect() = 0;
   virtual bool connected() const = 0;
 
-  virtual connector* accept(net::socket_address & addr) const = 0;
+  virtual connector * accept(net::socket_address & addr) const = 0;
 
   virtual handle get_read_handle() const = 0;
   virtual handle get_write_handle() const = 0;

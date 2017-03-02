@@ -322,8 +322,6 @@ set(LIB_SOURCES
     packeteer/detail/filedescriptors.cpp
     packeteer/detail/scheduler_impl.cpp
     packeteer/detail/connector.cpp
-    packeteer/detail/connector_anon.cpp
-    packeteer/detail/connector_local.cpp
     packeteer/net/socket_address.cpp
     packeteer/net/network.cpp
     packeteer/net/detail/cidr.cpp
@@ -355,13 +353,18 @@ endif (PACKETEER_HAVE_KQUEUE)
 
 if (UNIX)
   set(LIB_SOURCES ${LIB_SOURCES}
+      packeteer/detail/posix/connector_socket.cpp
       packeteer/detail/posix/connector_pipe.cpp
+      packeteer/detail/posix/connector_tcp.cpp
+      packeteer/detail/posix/connector_anon.cpp
+      packeteer/detail/posix/connector_local.cpp
   )
 endif (UNIX)
 
 if (WIN32)
   set(LIB_SOURCES ${LIB_SOURCES}
       packeteer/detail/win32/connector_pipe.cpp
+      packeteer/detail/win32/connector_tcp.cpp
   )
 endif (WIN32)
 

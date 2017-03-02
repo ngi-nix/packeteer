@@ -154,6 +154,7 @@ public:
     CPPUNIT_TEST(testAnonConnector);
     CPPUNIT_TEST(testLocalConnector);
     CPPUNIT_TEST(testPipeConnector);
+    CPPUNIT_TEST(testTCPv4Connector);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -314,6 +315,14 @@ private:
   {
     // Named pipes are "stream" connectors
     testStreamConnector(connector::CT_PIPE, "pipe:///tmp/test-connector-pipe");
+  }
+
+
+
+  void testTCPv4Connector()
+  {
+    // TCP over IPv4 to localhost
+    testStreamConnector(connector::CT_TCP4, "tcp4://127.0.0.1:54321");
   }
 
 

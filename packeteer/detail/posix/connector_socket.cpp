@@ -3,8 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2017 Jens Finkhaeuser.
+ * Copyright (c) 2017 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -18,7 +17,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/detail/connector_local.h>
+#include <packeteer/detail/posix/connector_socket.h>
 
 #include <packeteer/net/socket_address.h>
 
@@ -31,7 +30,6 @@
 #include <sys/socket.h>
 
 #include <unistd.h>
-#include <stdio.h>
 #include <errno.h>
 #include <string.h>
 
@@ -41,58 +39,77 @@ namespace detail {
 
 namespace {
 
-int
-create_socket(error_t & err)
+// FIXME 
+// utility namespace for this and filedescriptors.h?
+error_t
+create_socket(int domain, int type, int & fd)
 {
-  int fd = ::socket(PF_UNIX, SOCK_STREAM, 0);
+  fd = ::socket(domain, type, 0);
   if (fd < 0) {
     switch (errno) {
       case EACCES:
-        err = ERR_ACCESS_VIOLATION;
+        return ERR_ACCESS_VIOLATION;
 
       case EAFNOSUPPORT:
       case EPROTONOSUPPORT:
-        err = ERR_INVALID_OPTION;
+        return ERR_INVALID_OPTION;
 
       case EINVAL:
-        err = ERR_INVALID_VALUE;
+        return ERR_INVALID_VALUE;
 
       case EMFILE:
       case ENFILE:
-        err = ERR_NUM_FILES;
+        return ERR_NUM_FILES;
 
       case ENOBUFS:
       case ENOMEM:
-        err = ERR_OUT_OF_MEMORY;
+        return ERR_OUT_OF_MEMORY;
 
       default:
-        err = ERR_UNEXPECTED;
+        return ERR_UNEXPECTED;
     }
-  }
-  else {
-    err = ERR_SUCCESS;
   }
 
   // Non-blocking
-  if (ERR_SUCCESS == fd) {
-    err = make_nonblocking(fd);
+  error_t err = make_nonblocking(fd);
+  if (ERR_SUCCESS != err) {
+    ::close(fd);
+    fd = -1;
+    return err;
   }
-  return fd;
+
+  // Set socket to close forcibly.
+  ::linger option;
+  option.l_onoff = 1;
+  option.l_linger = 0;
+  int ret = ::setsockopt(fd, SOL_SOCKET, SO_LINGER, &option, sizeof(option));
+  if (ret < 0) {
+    ::close(fd);
+    fd = -1;
+
+    switch (errno) {
+      case EBADF:
+      case EFAULT:
+      case EINVAL:
+        return ERR_INVALID_VALUE;
+
+      case ENOPROTOOPT:
+      case ENOTSOCK:
+        return ERR_UNSUPPORTED_ACTION;
+
+      default:
+        return ERR_UNEXPECTED;
+    }
+  }
+  return ERR_SUCCESS;
 }
 
 
 } // anonymous namespace
 
-connector_local::connector_local(std::string const & path)
-  : m_addr(path)
-  , m_server(false)
-  , m_fd(-1)
-{
-}
 
 
-
-connector_local::connector_local(net::socket_address const & addr)
+connector_socket::connector_socket(net::socket_address const & addr)
   : m_addr(addr)
   , m_server(false)
   , m_fd(-1)
@@ -101,7 +118,7 @@ connector_local::connector_local(net::socket_address const & addr)
 
 
 
-connector_local::connector_local()
+connector_socket::connector_socket()
   : m_addr()
   , m_server(false)
   , m_fd(-1)
@@ -110,23 +127,16 @@ connector_local::connector_local()
 
 
 
-connector_local::~connector_local()
-{
-  close();
-}
-
-
-
 error_t
-connector_local::connect()
+connector_socket::connect(int domain, int type)
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
   }
 
   // First, create socket
-  error_t err = ERR_SUCCESS;
-  int fd = create_socket(err);
+  int fd = -1;
+  error_t err = create_socket(domain, type, fd);
   if (fd < 0) {
     return err;
   }
@@ -145,7 +155,7 @@ connector_local::connect()
 
     ::close(fd);
 
-    ERRNO_LOG("connector_local connect failed!");
+    ERRNO_LOG("connector_socket connect failed!");
     switch (errno) {
       case EINTR: // handle signal interrupts
         continue;
@@ -194,26 +204,26 @@ connector_local::connect()
 
 
 error_t
-connector_local::listen()
+connector_socket::listen(int domain, int type)
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
   }
 
   // First, create socket
-  error_t err = ERR_SUCCESS;
-  int fd = create_socket(err);
+  int fd = -1;
+  error_t err = create_socket(domain, type, fd);
   if (fd < 0) {
     return err;
   }
 
-  // Now try to bind the socket to the path
+  // Now try to bind the socket to the address
   int ret = ::bind(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
       m_addr.bufsize());
   if (ret < 0) {
     ::close(fd);
 
-    ERRNO_LOG("connector_local bind failed!");
+    ERRNO_LOG("connector_socket bind failed!");
     switch (errno) {
       case EACCES:
         return ERR_ACCESS_VIOLATION;
@@ -258,7 +268,7 @@ connector_local::listen()
   if (ret < 0) {
     ::close(fd);
 
-    ERRNO_LOG("connector_local listen failed!");
+    ERRNO_LOG("connector_socket listen failed!");
     switch (errno) {
       case EADDRINUSE:
         return ERR_ADDRESS_IN_USE;
@@ -285,7 +295,7 @@ connector_local::listen()
 
 
 bool
-connector_local::listening() const
+connector_socket::listening() const
 {
   return m_fd != -1 && m_server;
 }
@@ -293,21 +303,59 @@ connector_local::listening() const
 
 
 bool
-connector_local::connected() const
+connector_socket::connected() const
 {
   return m_fd != -1 && !m_server;
 }
 
 
 
-connector *
-connector_local::accept(net::socket_address & addr) const
+handle
+connector_socket::get_read_handle() const
 {
-  if (!m_server) {
-    return nullptr;
+  return handle(m_fd);
+}
+
+
+
+handle
+connector_socket::get_write_handle() const
+{
+  return handle(m_fd);
+}
+
+
+
+error_t
+connector_socket::close_socket()
+{
+  if (!listening() && !connected()) {
+    return ERR_INITIALIZATION;
   }
 
-  int new_fd = -1;
+  // We ignore errors from close() here.
+  // For local sockets, there is a problem with NFS as the man pages state, but
+  // it's the price of the abstraction.
+  ::close(m_fd);
+
+  m_fd = -1;
+  m_server = false;
+
+  return ERR_SUCCESS;
+}
+
+
+
+error_t
+connector_socket::accept(int & new_fd, net::socket_address & addr) const
+{
+  // There is no need for accept(); we've already got the connection established.
+  if (!listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  // Accept connection
+  new_fd = -1;
   net::detail::address_type buf;
   ::socklen_t len = 0;
 
@@ -317,14 +365,14 @@ connector_local::accept(net::socket_address & addr) const
       break;
     }
 
-    ERRNO_LOG("connector_local accept failed!");
+    ERRNO_LOG("connector_socket accept failed!");
     switch (errno) {
       case EINTR: // signal interrupt handling
         continue;
 
       case EAGAIN: // EWOUlDBLOCK
         // Non-blocking server and no pending connections
-        return nullptr;
+        return ERR_UNEXPECTED;
 
       case EBADF:
       case EINVAL:
@@ -367,56 +415,14 @@ connector_local::accept(net::socket_address & addr) const
   error_t err = make_nonblocking(new_fd);
   if (ERR_SUCCESS != err) {
     ::close(new_fd);
-
-    return nullptr;
+    new_fd = -1;
+  }
+  else {
+    addr = net::socket_address(&buf, len);
   }
 
-  // Create & return connector with accepted FD
-  connector_local * result = new connector_local();
-  result->m_addr = net::socket_address(&buf, len);
-  result->m_server = true;
-  result->m_fd = new_fd;
-
-  addr = result->m_addr;
-  return result;
+  return err;
 }
 
-
-
-handle
-connector_local::get_read_handle() const
-{
-  return handle(m_fd);
-}
-
-
-
-handle
-connector_local::get_write_handle() const
-{
-  return handle(m_fd);
-}
-
-
-
-error_t
-connector_local::close()
-{
-  if (!listening() && !connected()) {
-    return ERR_INITIALIZATION;
-  }
-
-  // We ignore errors from close() here. This is a problem with NFS, as the man
-  // pages state, but it's the price of the abstraction.
-  ::close(m_fd);
-  if (m_server) {
-    ::unlink(m_addr.full_str().c_str());
-  }
-
-  m_fd = -1;
-  m_server = false;
-
-  return ERR_SUCCESS;
-}
 
 }} // namespace packeteer::detail

@@ -17,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_POSIX_CONNECTOR_PIPE_H
-#define PACKETEER_DETAIL_POSIX_CONNECTOR_PIPE_H
+#ifndef PACKETEER_DETAIL_POSIX_CONNECTOR_SOCKET_H
+#define PACKETEER_DETAIL_POSIX_CONNECTOR_SOCKET_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -34,30 +34,28 @@ namespace packeteer {
 namespace detail {
 
 /**
- * Wrapper around the pipe class.
+ * Base for socket-style I/O on POSIX systems
  **/
-struct connector_pipe : public ::packeteer::detail::connector
+struct connector_socket : public ::packeteer::detail::connector
 {
 public:
-  connector_pipe(std::string const & path);
-  connector_pipe(::packeteer::net::socket_address const & addr);
-  ~connector_pipe();
+  connector_socket(::packeteer::net::socket_address const & addr);
 
-  error_t listen();
+  error_t listen(int domain, int type);
   bool listening() const;
 
-  error_t connect();
+  error_t connect(int domain, int type);
   bool connected() const;
 
-  connector * accept(net::socket_address & addr) const;
+  error_t accept(int & new_fd, net::socket_address & addr) const;
 
   handle get_read_handle() const;
   handle get_write_handle() const;
 
-  error_t close();
-private:
+  error_t close_socket();
 
-  connector_pipe();
+protected:
+  connector_socket();
 
   ::packeteer::net::socket_address  m_addr;
   bool                              m_server;
