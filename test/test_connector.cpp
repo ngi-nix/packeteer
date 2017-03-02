@@ -155,6 +155,7 @@ public:
     CPPUNIT_TEST(testLocalConnector);
     CPPUNIT_TEST(testPipeConnector);
     CPPUNIT_TEST(testTCPv4Connector);
+    CPPUNIT_TEST(testTCPv6Connector);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -323,6 +324,14 @@ private:
   {
     // TCP over IPv4 to localhost
     testStreamConnector(connector::CT_TCP4, "tcp4://127.0.0.1:54321");
+  }
+
+
+
+  void testTCPv6Connector()
+  {
+    // TCP over IPv6 to localhost
+    testStreamConnector(connector::CT_TCP6, "tcp6://[::1]:54321");
   }
 
 

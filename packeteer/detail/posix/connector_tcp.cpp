@@ -37,6 +37,26 @@
 namespace packeteer {
 namespace detail {
 
+namespace {
+
+inline
+int
+select_domain(::packeteer::net::socket_address const & addr)
+{
+  switch (addr.type()) {
+    case ::packeteer::net::socket_address::SAT_INET4:
+      return PF_INET;
+
+    case ::packeteer::net::socket_address::SAT_INET6:
+      return PF_INET6;
+
+    default:
+      throw exception(ERR_INVALID_VALUE, "Expected IPv4 or IPv6 address!");
+  }
+}
+
+} // anonymous namespace
+
 connector_tcp::connector_tcp(net::socket_address const & addr)
   : connector_socket(addr)
 {
@@ -61,7 +81,7 @@ connector_tcp::~connector_tcp()
 error_t
 connector_tcp::connect()
 {
-  return connector_socket::connect(PF_INET, SOCK_STREAM);
+  return connector_socket::connect(select_domain(m_addr), SOCK_STREAM);
 }
 
 
@@ -69,7 +89,7 @@ connector_tcp::connect()
 error_t
 connector_tcp::listen()
 {
-  return connector_socket::listen(PF_INET, SOCK_STREAM);
+  return connector_socket::listen(select_domain(m_addr), SOCK_STREAM);
 }
 
 
