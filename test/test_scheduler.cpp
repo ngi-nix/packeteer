@@ -463,6 +463,30 @@ public:
     current = source1.m_called - current;
     CPPUNIT_ASSERT_MESSAGE("Should not normally fail.", current < 3);
   }
+
+
+
+  void testSingleThreaded()
+  {
+    // We use a single user-triggered event here for simplicity.
+    enum user_events
+    {
+      EVENT_1 = 1 * pk::PEV_USER,
+    };
+
+    // Single-threaded scheduler
+    pk::scheduler sched(0, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
+
+    test_callback source1;
+    pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
+    sched.register_event(EVENT_1, cb1);
+
+    // EVENT_1
+    sched.fire_events(EVENT_1);
+    sched.process_events(tc::milliseconds(20));
+
+    ASSERT_CALLBACK(source1, 1, EVENT_1);
+  }
 };
 
 
@@ -487,6 +511,9 @@ public:
 
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
+
+    // Single-threaded operation
+    CPPUNIT_TEST(testSingleThreaded);
 
   CPPUNIT_TEST_SUITE_END();
 };
@@ -517,6 +544,9 @@ public:
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
 
+    // Single-threaded operation
+    CPPUNIT_TEST(testSingleThreaded);
+
   CPPUNIT_TEST_SUITE_END();
 };
 
@@ -546,6 +576,9 @@ public:
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
 
+    // Single-threaded operation
+    CPPUNIT_TEST(testSingleThreaded);
+
   CPPUNIT_TEST_SUITE_END();
 };
 
@@ -574,6 +607,9 @@ public:
 
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
+
+    // Single-threaded operation
+    CPPUNIT_TEST(testSingleThreaded);
 
   CPPUNIT_TEST_SUITE_END();
 };

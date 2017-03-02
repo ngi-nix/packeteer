@@ -148,16 +148,20 @@ scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
       throw exception(ERR_INVALID_OPTION, "unsupported scheduler type.");
   }
 
-  start_main_loop();
-  adjust_workers(m_num_worker_threads);
+  if (m_num_worker_threads > 0) {
+    start_main_loop();
+    adjust_workers(m_num_worker_threads);
+  }
 }
 
 
 
 scheduler::scheduler_impl::~scheduler_impl()
 {
-  adjust_workers(0);
-  stop_main_loop();
+  if (m_num_worker_threads > 0) {
+    adjust_workers(0);
+    stop_main_loop();
+  }
 
   delete m_io;
 
@@ -505,37 +509,13 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
 
   try {
     while (m_main_loop_continue) {
-      // While processing the in-queue, we will find triggers for user-defined
-      // events. We can't really execute them until we've processed the whole
-      // in-queue, so we'll store them temporarily and get back to them later.
-      entry_list_t triggered;
-      process_in_queue(triggered);
-
-      // Get I/O events from the subsystem
-      std::vector<detail::event_data> events;
-
       // Timeout is *fixed*, because:
       // - I/O events will interrupt this anyway.
       // - OSX has a minimum timeout of 20 msec for *select*
       // - It would not make sense for user/scheduled callbacks to be triggered at
       //   different resolution on different platforms.
-      m_io->wait_for_events(events, tc::milliseconds(20));
-      //for (auto event : events) {
-      //  LOG("got events " << event.m_events << " for " << event.m_handle);
-      //}
-
-      // Process all callbacks that want to be invoked now. Since we can't have
-      // workers access the same entries we may still have in our multi-index
-      // containers, we'll collect callbacks into a local vector first, and add
-      // those entries to the out queue later.
-      // The scheduler relinquishes ownership over entries in the to_schedule
-      // vector to workers.
-      tc::nanoseconds now = tc::now();
       entry_list_t to_schedule;
-
-      dispatch_io_callbacks(events, to_schedule);
-      dispatch_scheduled_callbacks(now, to_schedule);
-      dispatch_user_callbacks(triggered, to_schedule);
+      wait_for_events(tc::milliseconds(20), to_schedule);
 
       // After callbacks of all kinds have been added to to_schedule, we can push
       // those entries to the out queue and wake workers.
@@ -563,9 +543,41 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
     LOG("Error in main loop.");
   }
 
-
   LOG("scheduler main loop terminated.");
 }
+
+
+
+void
+scheduler::scheduler_impl::wait_for_events(tc::milliseconds const & timeout,
+    scheduler::scheduler_impl::entry_list_t & result)
+{
+  // While processing the in-queue, we will find triggers for user-defined
+  // events. We can't really execute them until we've processed the whole
+  // in-queue, so we'll store them temporarily and get back to them later.
+  entry_list_t triggered;
+  process_in_queue(triggered);
+
+  // Get I/O events from the subsystem
+  std::vector<detail::event_data> events;
+  m_io->wait_for_events(events, timeout);
+  //for (auto event : events) {
+  //  LOG("got events " << event.m_events << " for " << event.m_handle);
+  //}
+
+  // Process all callbacks that want to be invoked now. Since we can't have
+  // workers access the same entries we may still have in our multi-index
+  // containers, we'll collect callbacks into a local vector first, and add
+  // those entries to the out queue later.
+  // The scheduler relinquishes ownership over entries in the to_schedule
+  // vector to workers.
+  tc::nanoseconds now = tc::now();
+
+  dispatch_io_callbacks(events, result);
+  dispatch_scheduled_callbacks(now, result);
+  dispatch_user_callbacks(triggered, result);
+}
+
 
 
 } // namespace packeteer

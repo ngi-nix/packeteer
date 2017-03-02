@@ -139,6 +139,11 @@ struct scheduler::scheduler_impl
     ACTION_TRIGGER  = 2,
   };
 
+  /***************************************************************************
+   * Types
+   **/
+  // Type for temporary entry containers.
+  typedef std::vector<detail::callback_entry *>   entry_list_t;
 
 
   /***************************************************************************
@@ -154,15 +159,18 @@ struct scheduler::scheduler_impl
    **/
   void enqueue(action_type action, detail::callback_entry * entry);
 
+
+  /**
+   * Wait for events for the given timeout, storing them in the result list.
+   **/
+  void wait_for_events(twine::chrono::milliseconds const & timeout,
+      entry_list_t & result);
 private:
   /***************************************************************************
    * Types
    **/
   // Entries for the in-queue
   typedef std::pair<action_type, detail::callback_entry *> in_queue_entry_t;
-
-  // Type for temporary entry containers.
-  typedef std::vector<detail::callback_entry *>   entry_list_t;
 
   /***************************************************************************
    * Generic private functions

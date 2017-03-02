@@ -55,6 +55,11 @@ public:
       concurrent_queue<detail::callback_entry *> & work_queue);
   ~worker();
 
+  /**
+   * Run a callback
+   **/
+  static error_t execute_callback(detail::callback_entry * entry);
+
 
 private:
 
@@ -63,11 +68,6 @@ private:
    * sleeps again.
    **/
   void worker_loop(twine::tasklet & tasklet, void * /* unused */);
-
-  /**
-   * Run a callback
-   **/
-  error_t execute_callback(detail::callback_entry * entry);
 
   std::atomic<bool>                             m_alive;
   concurrent_queue<detail::callback_entry *> &  m_work_queue;
