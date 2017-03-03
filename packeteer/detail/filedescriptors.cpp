@@ -31,6 +31,7 @@ namespace {
 inline error_t
 translate_fcntl_errno()
 {
+  ERRNO_LOG("fcntl error");
   switch (errno) {
     case EBADF:
     case EINVAL:
@@ -49,6 +50,8 @@ translate_fcntl_errno()
     case ENOTDIR:
     case EPERM:
       // TODO this is probably correct for all of these cases. check again?
+      // EINTR and EAGAIN should possibly be looped?
+      // EACCESS might have to be returned?
     default:
       return ERR_UNEXPECTED;
   }
