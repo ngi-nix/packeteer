@@ -204,14 +204,14 @@ connector_socket::connect(int domain, int type)
 
 
 error_t
-connector_socket::listen(int domain, int type)
+connector_socket::bind(int domain, int type, int & fd)
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
   }
 
   // First, create socket
-  int fd = -1;
+  fd = -1;
   error_t err = create_socket(domain, type, fd);
   if (fd < 0) {
     return err;
@@ -263,8 +263,19 @@ connector_socket::listen(int domain, int type)
     }
   }
 
+  return ERR_SUCCESS;
+}
+
+
+error_t
+connector_socket::listen(int fd)
+{
+  if (connected() || listening()) {
+    return ERR_INITIALIZATION;
+  }
+
   // Turn the socket into a listening socket.
-  ret = ::listen(fd, PACKETEER_LISTEN_BACKLOG);
+  int ret = ::listen(fd, PACKETEER_LISTEN_BACKLOG);
   if (ret < 0) {
     ::close(fd);
 
@@ -284,13 +295,9 @@ connector_socket::listen(int domain, int type)
         return ERR_UNEXPECTED;
     }
   }
-
-  // Finally, set the fd
-  m_fd = fd;
-  m_server = true;
-
   return ERR_SUCCESS;
 }
+
 
 
 
@@ -377,37 +384,37 @@ connector_socket::accept(int & new_fd, net::socket_address & addr) const
       case EBADF:
       case EINVAL:
       case ENOTSOCK:
-        throw exception(ERR_INVALID_VALUE, errno, "Server socket seems to be invalid!");
+        return ERR_INVALID_VALUE;
 
       case EOPNOTSUPP:
       case EPROTO:
-        throw exception(ERR_UNSUPPORTED_ACTION, errno, "Accept not supported?");
+        return ERR_UNSUPPORTED_ACTION;
 
       case ECONNABORTED:
-        throw exception(ERR_CONNECTION_ABORTED, errno);
+        return ERR_CONNECTION_ABORTED;
 
       case EFAULT:
-        throw exception(ERR_ACCESS_VIOLATION, errno, "Cannot write peer address.");
+        return ERR_ACCESS_VIOLATION;
 
       case EMFILE:
       case ENFILE:
-        throw exception(ERR_NUM_FILES, errno);
+        return ERR_NUM_FILES;
 
       case ENOBUFS:
       case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY, errno);
+        return ERR_OUT_OF_MEMORY;
 
       case EPERM:
-        throw exception(ERR_CONNECTION_REFUSED, errno, "This might be a firewall refusing the connection.");
+        return ERR_CONNECTION_REFUSED;
 
       case ETIMEDOUT:
-        throw exception(ERR_TIMEOUT, errno);
+        return ERR_TIMEOUT;
 
       case ENOSR:
       case ESOCKTNOSUPPORT:
       case EPROTONOSUPPORT:
       default:
-        throw exception(ERR_UNEXPECTED, errno, "Unexpected error from accept()");
+        return ERR_UNEXPECTED;
     }
   }
 
