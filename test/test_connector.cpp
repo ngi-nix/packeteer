@@ -156,6 +156,8 @@ public:
     CPPUNIT_TEST(testPipeConnector);
     CPPUNIT_TEST(testTCPv4Connector);
     CPPUNIT_TEST(testTCPv6Connector);
+    CPPUNIT_TEST(testUDPv4Connector);
+    CPPUNIT_TEST(testUDPv6Connector);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -206,8 +208,32 @@ private:
 
 
 
-  void sendMessage(connector & sender, connector & receiver)
+  void sendMessageStream(connector & sender, connector & receiver)
   {
+    std::string msg = "hello, world!";
+    size_t amount = 0;
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
+    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
+
+    twine::chrono::sleep(twine::chrono::milliseconds(50));
+
+    std::vector<char> result;
+    result.reserve(2 * msg.size());
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.read(&result[0], result.capacity(),
+          amount));
+    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
+
+    for (size_t i = 0 ; i < msg.size() ; ++i) {
+      CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
+    }
+  }
+
+
+
+  void sendMessageDGram(connector & sender, connector & receiver)
+  {
+    // FIXME use send() and receive()
+    // for that, address needs to not return a string (grr)
     std::string msg = "hello, world!";
     size_t amount = 0;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
@@ -265,8 +291,53 @@ private:
     CPPUNIT_ASSERT(server_conn.listening());
 
     // Communications
-    sendMessage(client, server_conn);
-    sendMessage(server_conn, client);
+    sendMessageStream(client, server_conn);
+    sendMessageStream(server_conn, client);
+  }
+
+
+
+  void testDGramConnector(connector::connector_type expected_type,
+      std::string const & addr)
+  {
+    // Tests for "datagram" connectors, i.e. connectors that allow synchronous,
+    // un-reliable delivery.
+
+    // FIXME
+
+    // Server
+    connector server(addr);
+    CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
+
+    CPPUNIT_ASSERT(!server.listening());
+    CPPUNIT_ASSERT(!server.connected());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.listen());
+
+    CPPUNIT_ASSERT(server.listening());
+    CPPUNIT_ASSERT(!server.connected());
+
+    twine::chrono::sleep(twine::chrono::milliseconds(50));
+
+    // Client
+    connector client(addr);
+    CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
+
+    CPPUNIT_ASSERT(!client.listening());
+    CPPUNIT_ASSERT(!client.connected());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
+    connector server_conn = server.accept();
+
+    twine::chrono::sleep(twine::chrono::milliseconds(50));
+
+    CPPUNIT_ASSERT(!client.listening());
+    CPPUNIT_ASSERT(client.connected());
+    CPPUNIT_ASSERT(server_conn.listening());
+
+    // Communications
+    sendMessageDGram(client, server_conn);
+    sendMessageDGram(server_conn, client);
   }
 
 
@@ -335,6 +406,20 @@ private:
   }
 
 
+
+  void testUDPv4Connector()
+  {
+    // UDP over IPv4 to localhost
+    testDGramConnector(connector::CT_UDP4, "udp4://127.0.0.1:54321");
+  }
+
+
+
+  void testUDPv6Connector()
+  {
+    // UDP over IPv6 to localhost
+    testDGramConnector(connector::CT_UDP6, "udp6://[::1]:54321");
+  }
 };
 
 
