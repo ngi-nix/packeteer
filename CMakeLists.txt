@@ -356,6 +356,7 @@ if (UNIX)
       packeteer/detail/posix/connector_socket.cpp
       packeteer/detail/posix/connector_pipe.cpp
       packeteer/detail/posix/connector_tcp.cpp
+      packeteer/detail/posix/connector_udp.cpp
       packeteer/detail/posix/connector_anon.cpp
       packeteer/detail/posix/connector_local.cpp
   )
