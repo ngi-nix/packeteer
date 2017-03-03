@@ -66,6 +66,14 @@ public:
     CT_ANON,
   };
 
+  // Connector behaviour
+  enum connector_behaviour
+  {
+    CB_DEFAULT  = 0,  // typically the best pick
+    CB_STREAM   = 1,  // STREAM connector; use read()/write()
+    CB_DATAGRAM = 2,  // DATAGRAM connector; use receive()/send()
+  };
+
 
 
   /***************************************************************************
@@ -110,7 +118,8 @@ public:
    * paths will not be parsed immediately, but only when the connection
    * specified by the connector is to be established.
    **/
-  connector(std::string const & address);
+  connector(std::string const & address,
+      connector_behaviour const & behaviour = CB_DEFAULT);
   ~connector();
 
   /**
@@ -132,6 +141,11 @@ public:
    * Listening to an anon-URI automatically also connects the connector.
    *
    * Returns an error if listening fails.
+   *
+   * Note: This function is not a direct mapping to POSIX listen(). Instead
+   *       it is a combination of bind() and listen(), and it's exact
+   *       behaviour depends on the protocol chosen. For UDP, for example,
+   *       no POSIX listen() call is issued.
    **/
   error_t listen();
   bool listening() const;
@@ -186,11 +200,23 @@ public:
   /**
    * Read from and write messages to a given peer address on the connector. The
    * semantics are effectively identical to the POSIX functions of similar name.
+   *
+   * Note that receive() and send() are best used for CB_DATAGRAM connectors.
    **/
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
       ::packeteer::net::socket_address & sender);
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
       ::packeteer::net::socket_address const & recipient);
+
+  /**
+   * Peek how much data is available to receive(). This is best use for
+   * CB_DATAGRAM connectors, when you're unsure about the datagram size.
+   *
+   * Of course use of this function translates to another system call, so it's
+   * best used sparingly, e.g. for determining the best datagram size for a new
+   * connector.
+   **/
+  size_t peek() const;
 
   /**
    * Read from and write to the connector.
@@ -201,6 +227,8 @@ public:
    *    amount written in the bytes_written parameter.
    *
    * Return errors if the connector is neither bound nor connected.
+   *
+   * Note that read() and write() are best used for CB_STREAM connectors.
    **/
   error_t read(void * buf, size_t bufsize, size_t & bytes_read);
   error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
