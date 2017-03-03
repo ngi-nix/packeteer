@@ -78,7 +78,24 @@ connector_local::connect()
 error_t
 connector_local::listen()
 {
-  return connector_socket::listen(PF_LOCAL, SOCK_STREAM);
+  // Attempt to bind
+  int fd = -1;
+  error_t err = connector_socket::bind(PF_LOCAL, SOCK_STREAM, fd);
+  if (ERR_SUCCESS != err) {
+    return err;
+  }
+
+  // Attempt to listen
+  err = connector_socket::listen(fd);
+  if (ERR_SUCCESS != err) {
+    return err;
+  }
+
+  // Finally, set the fd
+  m_fd = fd;
+  m_server = true;
+
+  return ERR_SUCCESS;
 }
 
 
@@ -99,6 +116,7 @@ connector_local::close()
 connector *
 connector_local::accept(net::socket_address & addr) const
 {
+  // FIXME use accept for CB_DATAGRAM?
   int fd = -1;
   error_t err = connector_socket::accept(fd, addr);
   if (ERR_SUCCESS != err) {
