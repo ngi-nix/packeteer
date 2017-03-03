@@ -40,6 +40,7 @@
 #include <packeteer/detail/connector_local.h>
 #include <packeteer/detail/connector_pipe.h>
 #include <packeteer/detail/connector_tcp.h>
+#include <packeteer/detail/connector_udp.h>
 
 namespace packeteer {
 
@@ -210,14 +211,15 @@ struct connector::connector_impl
         case connector::CT_TCP:
         case connector::CT_TCP4:
         case connector::CT_TCP6:
+          // TODO pass m_behaviour
           m_conn = new detail::connector_tcp(pre_parsed.second);
           break;
 
         case connector::CT_UDP:
         case connector::CT_UDP4:
         case connector::CT_UDP6:
-          std::cout << "FIXME FIXME FIXME" << std::endl;
-          // TODO
+          // TODO pass/verify m_behaviour
+          m_conn = new detail::connector_udp(pre_parsed.second);
           break;
 
         default:
@@ -252,7 +254,7 @@ struct connector::connector_impl
       if (pre_parsed.second.empty()) {
         throw exception(ERR_FORMAT, "Require path in address string.");
       }
-      // TODO verify m_behaviour
+      // TODO verify m_behaviour. pass it on to CT_LOCAL
       // Looks good for non-TCP/UDP style connectors!
       m_type = ctype;
 
@@ -503,6 +505,17 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->send(buf, bufsize, bytes_written, recipient);
+}
+
+
+
+size_t
+connector::peek() const
+{
+  if (!*m_impl) {
+    throw exception(ERR_INITIALIZATION);
+  }
+  return (*m_impl)->peek();
 }
 
 

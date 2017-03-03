@@ -67,10 +67,10 @@ public:
       ::packeteer::net::socket_address & sender);
   virtual error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
       ::packeteer::net::socket_address const & recipient);
+  virtual size_t peek() const;
 
   virtual error_t read(void * buf, size_t bufsize, size_t & bytes_read);
   virtual error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
-
 };
 
 }} // namespace packeteer::detail

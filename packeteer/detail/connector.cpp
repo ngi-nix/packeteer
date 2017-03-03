@@ -31,12 +31,20 @@ connector::~connector()
 }
 
 
+// XXX how about handling multiple receive calls for different peers in one
+//     iovec style call?
 
 error_t
 connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
       ::packeteer::net::socket_address & sender)
 {
+//  ssize_t amount = ::recvfrom(get_read_handle().sys_handle(), buf, bufsize,
+//
   // FIXME
+//      ssize_t amount = ::recvfrom(net_fd, buf, sizeof(buf), 0,
+//          static_cast<sockaddr *>(static_cast<void *>(address)), &addr_size);
+// EAGAIN->EWOULDBLOCK should hand this back to caller
+// EINTR same
 }
 
 
@@ -46,6 +54,54 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
       ::packeteer::net::socket_address const & recipient)
 {
   // FIXME
+//        ssize_t amount = ::sendto(net_fd,
+//            envelope->serialized, envelope->serialized_size, MSG_DONTWAIT,
+//            static_cast<sockaddr const *>(dest->buffer()), dest->bufsize());
+// EAGAIN->EWOULDBLOCK should hand this back to caller
+// EINTR same
+}
+
+
+
+size_t
+connector::peek() const
+{
+  if (!connected() && !listening()) {
+    throw exception(ERR_INITIALIZATION, "Can't peek() without listening or being connected!");
+  }
+
+  // TODO might need to simply raise or return -1 (ssize_t then) if MSG_TRUNC
+  // does not exist on the target platform
+  ssize_t to_read = ::recv(get_read_handle().sys_handle(), nullptr, 0,
+      MSG_PEEK | MSG_TRUNC);
+  if (to_read < 0) {
+    switch (errno) {
+      case EAGAIN:
+      case EINTR:
+        // Essentially ask to try again
+        return 0;
+
+      case EBADF:
+      case ENOTSOCK:
+        throw exception(ERR_INVALID_VALUE, errno, "Attempting to peek failed!");
+
+      case ECONNREFUSED:
+        throw exception(ERR_CONNECTION_REFUSED, errno, "Attempting to peek failed!");
+
+      case ENOTCONN:
+        throw exception(ERR_NO_CONNECTION, errno, "Attempting to peek failed!");
+
+      case EFAULT:
+        throw exception(ERR_ACCESS_VIOLATION, errno, "Attempting to peek failed!");
+
+      case ENOMEM:
+        throw exception(ERR_OUT_OF_MEMORY, errno, "Attempting to peek failed!");
+
+      default:
+        throw exception(ERR_UNEXPECTED, errno, "Attempting to peek failed!");
+    }
+  }
+  return to_read;
 }
 
 
