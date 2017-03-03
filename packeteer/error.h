@@ -110,30 +110,37 @@ PACKETEER_ERRDEF(ERR_CONNECTION_ABORTED,
     13,
     "A connection was aborted.")
 
-PACKETEER_ERRDEF(ERR_NETWORK_UNREACHABLE,
+PACKETEER_ERRDEF(ERR_NO_CONNECTION,
     14,
+    "An operation was attempted that requires a connection, but no connection is established.")
+
+PACKETEER_ERRDEF(ERR_NETWORK_UNREACHABLE,
+    15,
     "Network is unreachable.")
 
 PACKETEER_ERRDEF(ERR_TIMEOUT,
-    15,
+    16,
     "A timeout occurred.")
 
 PACKETEER_ERRDEF(ERR_ADDRESS_IN_USE,
-    16,
+    17,
     "Address is already in use.")
 
 PACKETEER_ERRDEF(ERR_ADDRESS_NOT_AVAILABLE,
-    17,
+    18,
     "A nonexistent interface was requested or the requested address was not local.")
 
 PACKETEER_ERRDEF(ERR_FS_ERROR,
-    18,
+    19,
     "File system error; this could be a nonexistent file name or a read only file system.")
 
 PACKETEER_ERRDEF(ERR_UNSUPPORTED_ACTION,
-    19,
+    20,
     "The specified action was not supported for the object type.")
 
+PACKETEER_ERRDEF(ERR_REPEAT_ACTION,
+    21,
+    "The action would block or was interrupted and should be attempted again.")
 
 PACKETEER_END_ERRORS
 
