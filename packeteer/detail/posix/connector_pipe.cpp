@@ -276,7 +276,7 @@ connector_pipe::accept(net::socket_address & /* unused */) const
   if (!listening()) {
     return nullptr;
   }
-  return const_cast<connector_pipe*>(this);
+  return const_cast<connector_pipe *>(this);
 }
 
 
