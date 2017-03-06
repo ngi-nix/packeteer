@@ -35,6 +35,7 @@
 #include <packeteer/error.h>
 
 #include <packeteer/net/socket_address.h>
+#include <packeteer/detail/operators.h>
 
 namespace packeteer {
 
@@ -46,6 +47,7 @@ namespace packeteer {
  * However, the usage is fairly similar to how you'd use sockets.
  **/
 class connector
+  : public ::packeteer::detail::operators<connector>
 {
 public:
   /***************************************************************************
@@ -245,6 +247,7 @@ public:
    **/
   connector(connector const & other);
   connector(connector &&) = default;
+  connector & operator=(connector const & other);
 
   bool operator==(connector const & other) const;
   bool operator<(connector const & other) const;
