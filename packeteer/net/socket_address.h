@@ -26,6 +26,7 @@
 #include <packeteer/packeteer.h>
 #include <packeteer/net/detail/sysincludes.h>
 #include <packeteer/error.h>
+#include <packeteer/detail/operators.h>
 
 // *** C includes
 #include <sys/socket.h>
@@ -71,6 +72,7 @@ union address_type
  * Make it possible to use struct sockaddr as a map key.
  **/
 class socket_address
+  : public ::packeteer::detail::operators<socket_address>
 {
 public:
   // Socket address type
@@ -165,13 +167,17 @@ public:
 
 
   /**
-   * Comparison operator is required for map keys. We only overload what's
-   * used here, though.
+   * Behave like a value type.
    **/
+  socket_address(socket_address const &) = default;
+  socket_address(socket_address &&) = default;
+  socket_address & operator=(socket_address const &) = default;
+
   bool operator==(socket_address const & other) const;
   bool operator<(socket_address const & other) const;
-  bool operator<=(socket_address const & other) const;
-  bool operator!=(socket_address const & other) const;
+
+  void swap(socket_address const & other);
+  size_t hash() const;
 
   /**
    * Increment. Returns the address + 1, e.g. 192.168.0.2 if the address is
@@ -181,11 +187,6 @@ public:
    **/
   void operator++();
 
-
-  /**
-   * Return a unique hash of this socket address.
-   **/
-  size_t hash() const;
 
 private:
   detail::address_type data;
@@ -217,13 +218,12 @@ template <> struct hash<packeteer::net::socket_address>
   }
 };
 
-template <> struct equal_to<packeteer::net::socket_address>
+template <>
+inline void
+swap<::packeteer::net::socket_address>(::packeteer::net::socket_address & first, ::packeteer::net::socket_address & second)
 {
-  bool operator()(packeteer::net::socket_address const & x, packeteer::net::socket_address const & y) const
-  {
-    return x.operator==(y);
-  }
-};
+  return first.swap(second);
+}
 
 } // namespace std
 

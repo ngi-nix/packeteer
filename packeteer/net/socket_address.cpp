@@ -306,22 +306,6 @@ socket_address::operator==(socket_address const & other) const
 
 
 bool
-socket_address::operator<=(socket_address const & other) const
-{
-  return *this == other || *this < other;
-}
-
-
-
-bool
-socket_address::operator!=(socket_address const & other) const
-{
-  return !(*this == other);
-}
-
-
-
-bool
 socket_address::operator<(socket_address const & other) const
 {
   // First compare families. It's a bit hard to decide what to return if the
