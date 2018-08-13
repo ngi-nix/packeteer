@@ -26,49 +26,43 @@ set(TWINE_ROOT_DIR
   PATH
   "Directory to search for twine")
 
-if (TWINE_FOUND)
-  # We need to emulate find_library's _RELEASE and _DEBUG libraries, even on
-  # other platforms.
-  set(TWINE_LIBRARY_DEBUG "${TWINE_LIBRARIES}")
-  set(TWINE_LIBRARY_RELEASE "${TWINE_LIBRARIES}")
-else()
-  find_library(TWINE_LIBRARY_RELEASE
-    NAMES
-    twine
-    HINTS
-    "${TWINE_ROOT_DIR}/lib")
+if (NOT TWINE_FOUND)
+	find_path(TWINE_INCLUDE_DIR
+		NAMES
+		twine/twine.h
+		PATHS
+		"${TWINE_ROOT_DIR}"
+		PATH_SUFFIXES
+		include/)
 
-  find_library(TWINE_LIBRARY_DEBUG
-    NAMES
-    twined
-    HINTS
-    "${TWINE_ROOT_DIR}/lib")
+	include(FindPackageHandleStandardArgs)
+	find_package_handle_standard_args(twine
+		DEFAULT_MSG
+		TWINE_INCLUDE_DIR)
 
-  include(SelectLibraryConfigurations)
-  select_library_configurations(TWINE)
+	if(TWINE_FOUND)
+		find_library(TWINE_LIBRARY_RELEASE
+			NAMES
+			twine
+			HINTS
+			"${TWINE_ROOT_DIR}/lib")
+		if (NOT TWINE_LIBRARY_RELEASE)
+			set(TWINE_LIBRARY_RELEASE "")
+		endif()
 
-  # Might want to look close to the library first for the includes.
-  get_filename_component(_libdir "${TWINE_LIBRARY_RELEASE}" PATH)
+		find_library(TWINE_LIBRARY_DEBUG
+			NAMES
+			twined
+			HINTS
+			"${TWINE_ROOT_DIR}/lib")
+		if (NOT TWINE_LIBRARY_DEBUG)
+			set(TWINE_LIBRARY_DEBUG "")
+		endif()
 
-  find_path(TWINE_INCLUDE_DIR
-    NAMES
-    twine/twine.h
-    PATHS
-    "${TWINE_ROOT_DIR}"
-    PATH_SUFFIXES
-    include/)
+		set(TWINE_INCLUDE_DIRS "${TWINE_INCLUDE_DIR}")
+		set(TWINE_INCLUDEDIR "${TWINE_INCLUDE_DIR}")
+		mark_as_advanced(TWINE_LIBRARY)
+	endif()
 
-  include(FindPackageHandleStandardArgs)
-  find_package_handle_standard_args(twine
-    DEFAULT_MSG
-    TWINE_LIBRARY
-    TWINE_INCLUDE_DIR)
-
-  if(TWINE_FOUND)
-    set(TWINE_INCLUDE_DIRS "${TWINE_INCLUDE_DIR}")
-  endif()
-
-  mark_as_advanced(TWINE_INCLUDE_DIR
-    TWINE_LIBRARY_RELEASE
-    TWINE_LIBRARY_DEBUG)
+	mark_as_advanced(TWINE_INCLUDE_DIR)
 endif()

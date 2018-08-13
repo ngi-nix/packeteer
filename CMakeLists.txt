@@ -314,10 +314,10 @@ set (CMAKE_CXX_FLAGS_RELEASE  "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} 
 set(LIB_SOURCES
     packeteer/version.cpp
     packeteer/error.cpp
-    packeteer/
     packeteer/packeteer.cpp
     packeteer/scheduler.cpp
     packeteer/connector.cpp
+    packeteer/peer_address.cpp
     packeteer/detail/worker.cpp
     packeteer/detail/filedescriptors.cpp
     packeteer/detail/scheduler_impl.cpp
@@ -398,6 +398,10 @@ install(FILES
     DESTINATION include/packeteer)
 
 install(FILES
+    packeteer/detail/operators.h
+    DESTINATION include/packeteer/detail)
+
+install(FILES
     packeteer/net/socket_address.h
     packeteer/net/network.h
     DESTINATION include/packeteer/net)
@@ -430,6 +434,7 @@ if (CPPUNIT_FOUND)
       test/test_concurrent_queue.cpp
       test/test_scheduler_impl.cpp
       test/test_scheduler.cpp
+      test/test_peer_address.cpp
       test/test_connector.cpp
   )
 
@@ -437,19 +442,13 @@ if (CPPUNIT_FOUND)
       ${TEST_SOURCES}
       test/testsuite.cpp)
 
-  if (CPPUNIT_LIBRARY_DEBUG)
-    target_link_libraries(testsuite
-        packeteer_static
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${DEP_LIBRARIES}
-        debug
-        ${TWINE_LIBRARY_DEBUG}
-        ${CPPUNIT_LIBRARY_DEBUG})
-  endif ()
   target_link_libraries(testsuite
       packeteer_static
       ${CMAKE_THREAD_LIBS_INIT}
       ${DEP_LIBRARIES}
+      debug
+      ${TWINE_LIBRARY_DEBUG}
+      ${CPPUNIT_LIBRARY_DEBUG}
       optimized
       ${TWINE_LIBRARY_RELEASE}
       ${CPPUNIT_LIBRARY_RELEASE})
