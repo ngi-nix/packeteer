@@ -420,12 +420,31 @@ network::max_size() const
 
 
 bool
-network::operator==(network const & other) const
+network::is_equal_to(network const & other) const
 {
   return (m_impl->m_mask_size == other.m_impl->m_mask_size
       && m_impl->m_family == other.m_impl->m_family
       && m_impl->m_network == other.m_impl->m_network);
 }
+
+bool
+network::is_less_than(network const & other) const
+{
+  // See socket_address logic
+  if (m_impl->m_family != other.m_impl->m_family) {
+    return false;
+  }
+
+  // If one network is smaller than the other, it makes sense to return
+  // true.
+  if (m_impl->m_network < other.m_impl->m_network) {
+    return true;
+  }
+
+  // Compare masks
+  return (m_impl->m_mask_size < other.m_impl->m_mask_size);
+}
+
 
 
 
