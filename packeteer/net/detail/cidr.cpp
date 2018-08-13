@@ -29,31 +29,33 @@ namespace packeteer {
 namespace net {
 namespace detail {
 
-
-ssize_t
-parse_extended_cidr(std::string const & _cidr, bool no_mask,
-    address_type & address, sa_family_t & proto, uint16_t port /* = 0 */)
+packeteer::error_t
+parse_extended_cidr(std::string const & cidr, bool no_mask,
+    parse_result_t & result, uint16_t port /* = 0 */)
 {
-  // Initialize return value for proto
-  proto = AF_UNSPEC;
-
   // We need to copy the cidr string because we need to manipulate it during
   // this function (a little). Because of the memory management and layout
   // guarantees, we're copying into a vector<char>, though.
-  std::vector<char> cidr;
-  size_t cidr_size = _cidr.length();
-  cidr.reserve(cidr_size + 1);
-  ::memcpy(&cidr[0], _cidr.c_str(), cidr_size);
-  cidr[cidr_size] = '\0';
+  std::vector<char> cidr_vec;
+  size_t cidr_size = cidr.length();
+  cidr_vec.reserve(cidr_size + 1);
+  ::memcpy(&cidr_vec[0], cidr.c_str(), cidr_size);
+  cidr_vec[cidr_size] = '\0';
 
   // Locate the delimiter between the IP address and netmask, a '/'.
-  char * mask_ptr = ::strstr(&cidr[0], "/");
+  char * mask_ptr = ::strstr(&cidr_vec[0], "/");
+  char * cidr_start = &cidr_vec[0];
+  if (mask_ptr <= cidr_start) {
+    // Masks don't start at the beginning.
+    mask_ptr = nullptr;
+  }
 
   // We will not tolerate a mask if no_mask is set. Otherwise, we'll temporarily
   // end the cidr copy at the mask.
   if (nullptr != mask_ptr) {
     if (no_mask) {
-      return -1;
+      // std::cout << "have a mask, but don't want one" << std::endl;
+      return ERR_INVALID_VALUE;
     }
     *mask_ptr = '\0';
   }
@@ -68,18 +70,17 @@ parse_extended_cidr(std::string const & _cidr, bool no_mask,
   // The best strategy appears to be to check if there is a part enclosed
   // in square brackets. Then try to find a colon behind it (or from the start,
   // if no square brackets are found), and a port behind that.
-  char * cidr_start = &cidr[0];
   char * port_ptr = nullptr;
   bool skip_brace = false;
-  if ('[' == cidr[0]) {
-    port_ptr = ::strstr(&cidr[1], "]:");
+  if ('[' == cidr_vec[0]) {
+    port_ptr = ::strstr(&cidr_vec[1], "]:");
     if (nullptr != port_ptr) {
-      cidr_start = &cidr[1];
+      cidr_start = &cidr_vec[1];
       skip_brace = true;
     }
   }
   else {
-    port_ptr = ::strstr(&cidr[0], ":");
+    port_ptr = ::strstr(&cidr_vec[0], ":");
   }
   if (nullptr != port_ptr) {
     // Now if there are any non-numeric characters in the port part, we'll
@@ -98,7 +99,7 @@ parse_extended_cidr(std::string const & _cidr, bool no_mask,
   }
   if (nullptr != port_ptr) {
     if (nullptr != mask_ptr) {
-      return -1;
+      return ERR_INVALID_VALUE;
     }
     *port_ptr = '\0';
   }
@@ -116,43 +117,48 @@ parse_extended_cidr(std::string const & _cidr, bool no_mask,
   // Now try to parse the cidr as an IPv4 or IPv6 address. One of them will
   // succeed (hopefully). We'll use the buffer passed into this function for
   // that.
-  if (1 == inet_pton(AF_INET, cidr_start, &(address.sa_in.sin_addr))) {
+  if (1 == inet_pton(AF_INET, cidr_start, &(result.address.sa_in.sin_addr))) {
     // It's IPv4.
-    address.sa_in.sin_family = proto = AF_INET;
-    address.sa_in.sin_port = htons(detected_port);
+    result.address.sa_in.sin_family = result.proto = AF_INET;
+    result.address.sa_in.sin_port = htons(detected_port);
   }
-  else if (1 == inet_pton(AF_INET6, cidr_start, &(address.sa_in6.sin6_addr))) {
+  else if (1 == inet_pton(AF_INET6, cidr_start, &(result.address.sa_in6.sin6_addr))) {
     // It's IPv6.
-    address.sa_in6.sin6_family = proto = AF_INET6;
-    address.sa_in6.sin6_port = htons(detected_port);
+    result.address.sa_in6.sin6_family = result.proto = AF_INET6;
+    result.address.sa_in6.sin6_port = htons(detected_port);
   }
   else {
     // Invalid address
-    proto = AF_UNSPEC;
-    return -1;
+    return ERR_ABORTED;
   }
 
   // If we don't care about a mask, we're done.
   if (no_mask) {
-    return 0;
+    result.mask = 0;
+    return ERR_SUCCESS;
   }
 
   // If we do care, but don't have one, we're failing.
   if (nullptr == mask_ptr) {
-    return -1;
+    // std::cout << "no mask when we should have one" << std::endl;
+    return ERR_INVALID_VALUE;
   }
 
   // Now if we have a netmask, we want to parse it's value.
-  ssize_t mask = ::atoi(mask_ptr + 1);
-  if (mask <= 0) {
-    return -1; // Invalid mask.
+  result.mask = ::atoi(mask_ptr + 1);
+  if (result.mask <= 0) {
+    result.mask = -1;
+    // std::cout << "negative mask" << std::endl;
+    return ERR_INVALID_VALUE;
   }
-  if ((AF_INET == proto && mask > 32)
-      || (AF_INET6 == proto && mask > 128))
+  if ((AF_INET == result.proto && result.mask > 32)
+      || (AF_INET6 == result.proto && result.mask > 128))
   {
-    return -1; // Invalid mask.
+    // std::cout << "mask too large" << std::endl;
+    result.mask = -1;
+    return ERR_INVALID_VALUE;
   }
-  return mask;
+  return ERR_SUCCESS;
 }
 
 

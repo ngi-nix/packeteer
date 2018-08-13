@@ -29,6 +29,8 @@
 #include <string>
 #include <set>
 
+#include "value_tests.h"
+
 namespace pnet = packeteer::net;
 
 namespace {
@@ -58,6 +60,31 @@ struct test_data
   { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "/foo/bar", "/foo/bar", 0 },
   { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "something else", "something else", 0 },
 };
+
+
+inline std::string
+full_expected(test_data const & td, uint16_t port = 0)
+{
+  std::stringstream s;
+
+  if (pnet::socket_address::SAT_INET6 == td.sa_type) {
+    s << "[";
+  }
+
+  s << td.expected;
+
+  if (pnet::socket_address::SAT_INET6 == td.sa_type) {
+    s << "]";
+  }
+
+  if (pnet::socket_address::SAT_LOCAL != td.sa_type) {
+    s << ":" << port;
+  }
+
+  return s.str();
+}
+
+
 
 } // anonymous namespace
 
@@ -144,13 +171,9 @@ private:
       std::stringstream s;
       s << address;
 
-      std::stringstream s2;
-      s2 << tests[i].expected;
-      if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-        s2 << ":" << tests[i].port;
-      }
+      std::string s2 = full_expected(tests[i], tests[i].port);
 
-      CPPUNIT_ASSERT_EQUAL(s2.str(), s.str());
+      CPPUNIT_ASSERT_EQUAL(s2, s.str());
     }
   }
 
@@ -165,6 +188,7 @@ private:
     for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
       // *** Without port in ctor
       {
+        // std::cout << "=== " << tests[i].address << " without port" << std::endl;
         socket_address address(tests[i].address);
 
         CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
@@ -176,13 +200,9 @@ private:
         std::stringstream s;
         s << address;
 
-        std::stringstream s2;
-        s2 << tests[i].expected;
-        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-          s2 << ":0"; // No port in ctor
-        }
+        std::string s2 = full_expected(tests[i], 0); // No port in ctor
 
-        CPPUNIT_ASSERT_EQUAL(s2.str(), s.str());
+        CPPUNIT_ASSERT_EQUAL(s2, s.str());
 
         // Let's also test the verify_netmask() function.
         if (socket_address::SAT_LOCAL != tests[i].sa_type) {
@@ -199,6 +219,7 @@ private:
 
       // *** With port in ctor
       {
+        // std::cout << "=== " << tests[i].address << " with port " << tests[i].port << std::endl;
         socket_address address(tests[i].address, tests[i].port);
 
         CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
@@ -210,13 +231,9 @@ private:
         std::stringstream s;
         s << address;
 
-        std::stringstream s2;
-        s2 << tests[i].expected;
-        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-          s2 << ":" << tests[i].port;
-        }
+        std::string s2 = full_expected(tests[i], tests[i].port);
 
-        CPPUNIT_ASSERT_EQUAL(s2.str(), s.str());
+        CPPUNIT_ASSERT_EQUAL(s2, s.str());
 
         // Let's also test the verify_netmask() function.
         if (socket_address::SAT_LOCAL != tests[i].sa_type) {
@@ -260,26 +277,9 @@ private:
     using namespace pnet;
 
     // *** IPv4
-    // Equality
-    CPPUNIT_ASSERT_EQUAL(socket_address("192.168.0.1"),
-        socket_address("192.168.0.1"));
-    CPPUNIT_ASSERT(!(socket_address("192.168.0.1")
-        == socket_address("192.168.0.2")));
-
-    // Less than
-    CPPUNIT_ASSERT(socket_address("192.168.0.1")
-        < socket_address("192.168.0.2"));
-    CPPUNIT_ASSERT(!(socket_address("192.168.0.2")
-        < socket_address("192.168.0.1")));
-
-    // Less equal
-    CPPUNIT_ASSERT(socket_address("192.168.0.1")
-        <= socket_address("192.168.0.2"));
-    CPPUNIT_ASSERT(socket_address("192.168.0.1")
-        <= socket_address("192.168.0.1"));
-    CPPUNIT_ASSERT(!(socket_address("192.168.0.2")
-        <= socket_address("192.168.0.1")));
-
+    PACKETEER_VALUES_TEST(socket_address("192.168.0.1"),
+                          socket_address("192.168.0.2"),
+                          false);
     // Increment
     socket_address s4("192.168.0.1");
     CPPUNIT_ASSERT_EQUAL(socket_address("192.168.0.1"), s4);
@@ -288,89 +288,29 @@ private:
 
 
     // *** IPv6
-    // Equality
-    CPPUNIT_ASSERT_EQUAL(socket_address("2001:0db8:85a3::8a2e:0370:7334"),
-        socket_address("2001:0db8:85a3::8a2e:0370:7334"));
-    CPPUNIT_ASSERT(!(socket_address("2001:0db8:85a3::8a2e:0370:7334")
-        == socket_address("2001:0db8:85a3::8a2e:0370:7335")));
-
-    // Less than
-    CPPUNIT_ASSERT(socket_address("2001:0db8:85a3::8a2e:0370:7334")
-        < socket_address("2001:0db8:85a3::8a2e:0370:7335"));
-    CPPUNIT_ASSERT(!(socket_address("2001:0db8:85a3::8a2e:0370:7335")
-        < socket_address("2001:0db8:85a3::8a2e:0370:7334")));
-
-    // Less equal
-    CPPUNIT_ASSERT(socket_address("2001:0db8:85a3::8a2e:0370:7334")
-        <= socket_address("2001:0db8:85a3::8a2e:0370:7335"));
-    CPPUNIT_ASSERT(socket_address("2001:0db8:85a3::8a2e:0370:7334")
-        <= socket_address("2001:0db8:85a3::8a2e:0370:7334"));
-    CPPUNIT_ASSERT(!(socket_address("2001:0db8:85a3::8a2e:0370:7335")
-        <= socket_address("2001:0db8:85a3::8a2e:0370:7334")));
-
+    PACKETEER_VALUES_TEST(socket_address("2001:0db8:85a3::8a2e:0370:7334"),
+                          socket_address("2001:0db8:85a3::8a2e:0370:7335"),
+                          false);
     // Increment
     socket_address s6("2001:0db8:85a3::8a2e:0370:7334");
     CPPUNIT_ASSERT_EQUAL(socket_address("2001:0db8:85a3::8a2e:0370:7334"), s6);
     ++s6;
     CPPUNIT_ASSERT_EQUAL(socket_address("2001:0db8:85a3::8a2e:0370:7335"), s6);
 
-
     // *** IPv4 with port
-    // Equality
-    CPPUNIT_ASSERT_EQUAL(socket_address("192.168.0.1", 1234),
-        socket_address("192.168.0.1", 1234));
-    CPPUNIT_ASSERT(!(socket_address("192.168.0.1", 1234)
-        == socket_address("192.168.0.1", 4321)));
-
-    // Less than
-    CPPUNIT_ASSERT(socket_address("192.168.0.1", 1234)
-        < socket_address("192.168.0.1", 4321));
-    CPPUNIT_ASSERT(!(socket_address("192.168.0.1", 4321)
-        < socket_address("192.168.0.1", 1234)));
-
-    // Less equal
-    CPPUNIT_ASSERT(socket_address("192.168.0.1", 1234)
-        <= socket_address("192.168.0.1", 4321));
-    CPPUNIT_ASSERT(socket_address("192.168.0.1", 1234)
-        <= socket_address("192.168.0.1", 1234));
-    CPPUNIT_ASSERT(!(socket_address("192.168.0.1", 4321)
-        <= socket_address("192.168.0.1", 1234)));
-
+    PACKETEER_VALUES_TEST(socket_address("192.168.0.1", 1234),
+                          socket_address("192.168.0.1", 4321),
+                          false);
 
     // *** IPv6 with port
-    // Equality
-    CPPUNIT_ASSERT_EQUAL(socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234),
-        socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234));
-    CPPUNIT_ASSERT(!(socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234)
-        == socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321)));
-
-    // Less than
-    CPPUNIT_ASSERT(socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234)
-        < socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321));
-    CPPUNIT_ASSERT(!(socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321)
-        < socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234)));
-
-    // Less equal
-    CPPUNIT_ASSERT(socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234)
-        <= socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321));
-    CPPUNIT_ASSERT(socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234)
-        <= socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234));
-    CPPUNIT_ASSERT(!(socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321)
-        <= socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234)));
+    PACKETEER_VALUES_TEST(socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234),
+                          socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321),
+                          false);
 
     // *** Unix paths
-    // Equality
-    CPPUNIT_ASSERT_EQUAL(socket_address("/foo/bar"), socket_address("/foo/bar"));
-    CPPUNIT_ASSERT(!(socket_address("/foo/bar") == socket_address("/foo/baz")));
-
-    // Less than
-    CPPUNIT_ASSERT(socket_address("/foo/bar") < socket_address("/foo/baz"));
-    CPPUNIT_ASSERT(!(socket_address("/foo/baz") < socket_address("/foo/bar")));
-
-    // Less equal
-    CPPUNIT_ASSERT(socket_address("/foo/bar") <= socket_address("/foo/bar"));
-    CPPUNIT_ASSERT(socket_address("/foo/bar") <= socket_address("/foo/baz"));
-    CPPUNIT_ASSERT(!(socket_address("/foo/baz") <= socket_address("/foo/bar")));
+    PACKETEER_VALUES_TEST(socket_address("/foo/bar"),
+                          socket_address("/foo/baz"),
+                          false);
   }
 };
 

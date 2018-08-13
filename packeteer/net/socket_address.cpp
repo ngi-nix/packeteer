@@ -58,17 +58,16 @@ parse_address(detail::address_type & data, T const & source, uint16_t port)
   ::memset(&data.sa_storage, 0, sizeof(data));
 
   // Try parsing as a CIDR address.
-  sa_family_t proto = AF_UNSPEC;
-  ssize_t err = detail::parse_extended_cidr(source, true, data, proto,
-      port);
-  if (0 == err && AF_UNSPEC != proto) {
-    // All good.
+  detail::parse_result_t result(data);
+  error_t err = detail::parse_extended_cidr(source, true, result, port);
+  if (ERR_ABORTED != err) {
     return;
   }
 
-  // If that didn't work, we assume the source specifies a path name.
+  // If parsing got aborted, we either have AF_LOCAL or AF_UNSPEC as the
+  // actual socket type.
   ::memset(&data.sa_storage, 0, sizeof(data));
-  data.sa_un.sun_family = AF_LOCAL;
+  data.sa_un.sun_family = ::strlen(unwrap(source)) > 0 ? AF_LOCAL : AF_UNSPEC;
   ::snprintf(data.sa_un.sun_path, UNIX_PATH_MAX, "%s", unwrap(source));
 }
 
@@ -120,10 +119,9 @@ bool
 socket_address::verify_cidr(std::string const & address)
 {
   detail::address_type dummy_addr;
-  sa_family_t proto = AF_UNSPEC;
-  size_t err = detail::parse_extended_cidr(address, true, dummy_addr,
-      proto);
-  return (0 == err && AF_UNSPEC != proto);
+  detail::parse_result_t result(dummy_addr);
+  error_t err = detail::parse_extended_cidr(address, true, result);
+  return (ERR_SUCCESS == err);
 }
 
 

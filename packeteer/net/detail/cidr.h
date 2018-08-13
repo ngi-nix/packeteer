@@ -24,6 +24,7 @@
 
 // *** Config
 #include <packeteer/packeteer.h>
+#include <packeteer/error.h>
 #include <packeteer/net/detail/sysincludes.h>
 #include <packeteer/net/socket_address.h>
 
@@ -61,8 +62,24 @@ namespace detail {
  * square brackets. Note that if a port is specified, a netmask cannot be and
  * vice versa.
  **/
-ssize_t parse_extended_cidr(std::string const & cidr, bool no_mask,
-    address_type & address, sa_family_t & proto, uint16_t port = 0);
+
+struct parse_result_t
+{
+  inline parse_result_t(address_type & data)
+    : proto(AF_UNSPEC)
+    , address(data)
+    , mask(-1)
+  {
+  }
+
+  sa_family_t     proto;    // Protocol detection.
+  address_type &  address;  // The address.
+  ssize_t         mask;     // For AF_INET*
+};
+
+packeteer::error_t
+parse_extended_cidr(std::string const & cidr, bool no_mask,
+    parse_result_t & result, uint16_t port = 0);
 
 }}} // namespace packeteer::net::detail
 
