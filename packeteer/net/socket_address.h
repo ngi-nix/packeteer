@@ -90,6 +90,11 @@ public:
   socket_address();
 
   /**
+   * Destructor
+   **/
+  virtual ~socket_address() = default;
+
+  /**
    * Constructor. The 'buf' parameter is expected to be a struct sockaddr of
    * the given length.
    **/
@@ -102,8 +107,8 @@ public:
    *
    * Throws exception if parsing fails.
    **/
-  socket_address(std::string const & address, uint16_t port = 0);
-  socket_address(char const * address, uint16_t port = 0);
+  explicit socket_address(std::string const & address, uint16_t port = 0);
+  explicit socket_address(char const * address, uint16_t port = 0);
 
 
   /**
@@ -173,10 +178,7 @@ public:
   socket_address(socket_address &&) = default;
   socket_address & operator=(socket_address const &) = default;
 
-  bool operator==(socket_address const & other) const;
-  bool operator<(socket_address const & other) const;
-
-  void swap(socket_address const & other);
+  void swap(socket_address & other);
   size_t hash() const;
 
   /**
@@ -186,6 +188,15 @@ public:
    * This function does not care about overflows.
    **/
   void operator++();
+
+protected:
+  /**
+   * Used by detail::operators
+   **/
+  friend class packeteer::detail::operators<socket_address>;
+
+  virtual bool is_equal_to(socket_address const & other) const;
+  virtual bool is_less_than(socket_address const & other) const;
 
 
 private:

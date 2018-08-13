@@ -30,13 +30,25 @@ namespace packeteer {
 namespace detail {
 
 /**
- * Supplement comparison operators when == and < are defined.
+ * Supplement comparison operators when is_equal_to and is_less_than are
+ * defined. Make sure to provide them as protected functions to allow class
+ * hierarchies where every member uses this template.
  *
  * XXX These should go into the meta library at some point.
  **/
 template <typename T>
 struct operators
 {
+  inline bool operator==(T const & other) const
+  {
+    return static_cast<T const *>(this)->T::is_equal_to(other);
+  }
+
+  inline bool operator<(T const & other) const
+  {
+    return static_cast<T const *>(this)->T::is_less_than(other);
+  }
+
   inline bool operator!=(T const & other) const
   {
     return !(*static_cast<T const *>(this) == other);

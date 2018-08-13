@@ -188,8 +188,11 @@ socket_address::full_str() const
 
   switch (data.sa_storage.ss_family) {
     case AF_INET:
-    case AF_INET6:
       s << cidr_str() << ":" << port();
+      break;
+
+    case AF_INET6:
+      s << "[" << cidr_str() << "]:" << port();
       break;
 
     case AF_LOCAL:
@@ -258,7 +261,7 @@ socket_address::set_port(uint16_t port)
 
 
 bool
-socket_address::operator==(socket_address const & other) const
+socket_address::is_equal_to(socket_address const & other) const
 {
   // First compare families. It's a bit hard to decide what to return if the
   // families mismatch, but 'false' seems sensible.
@@ -306,7 +309,7 @@ socket_address::operator==(socket_address const & other) const
 
 
 bool
-socket_address::operator<(socket_address const & other) const
+socket_address::is_less_than(socket_address const & other) const
 {
   // First compare families. It's a bit hard to decide what to return if the
   // families mismatch, but 'false' seems sensible.
@@ -421,6 +424,33 @@ socket_address::hash() const
   return meta::hash::multi_hash(
       std::string(static_cast<char const *>(hash_buf), hash_size),
       port);
+}
+
+
+
+void
+socket_address::swap(socket_address & other)
+{
+  void * buf1 = &(data.sa_storage);
+  void * buf2 = &(other.data.sa_storage);
+
+  // Use int wise XOR, because int should be most optimized.
+  size_t offset = 0;
+  size_t max_offset = sizeof(data.sa_storage) / sizeof(int);
+  for ( ; offset < max_offset ; ++offset) {
+    static_cast<int *>(buf1)[offset] ^= static_cast<int *>(buf2)[offset];
+    static_cast<int *>(buf2)[offset] ^= static_cast<int *>(buf1)[offset];
+    static_cast<int *>(buf1)[offset] ^= static_cast<int *>(buf2)[offset];
+  }
+
+  // Now char-wise until the end of the buffer
+  max_offset = sizeof(data.sa_storage) - max_offset;
+  offset *= sizeof(int);
+  for ( ; offset < max_offset ; ++offset) {
+    static_cast<char *>(buf1)[offset] ^= static_cast<char *>(buf2)[offset];
+    static_cast<char *>(buf2)[offset] ^= static_cast<char *>(buf1)[offset];
+    static_cast<char *>(buf1)[offset] ^= static_cast<char *>(buf2)[offset];
+  }
 }
 
 
