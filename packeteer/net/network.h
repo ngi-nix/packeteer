@@ -25,6 +25,7 @@
 // *** Config
 #include <packeteer/packeteer.h>
 #include <packeteer/net/detail/sysincludes.h>
+#include <packeteer/detail/operators.h>
 
 // *** C++ includes
 #include <string>
@@ -48,6 +49,7 @@ class socket_address;
  * within a network.
  **/
 class network
+  : public ::packeteer::detail::operators<socket_address>
 {
 public:
   /**
@@ -59,7 +61,7 @@ public:
    * all possible IPv6 in a large network. As such, we artificially limit the
    * number of addresses you can manage with this class to 2^64.
    **/
-  network(std::string const & netspec);
+  explicit network(std::string const & netspec);
   ~network();
 
 
@@ -139,11 +141,15 @@ public:
    **/
   bool release_address(socket_address const & addr);
 
-
+protected:
   /**
-   * Comparison operator is required for map keys.
+   * Used by detail::operators
    **/
-  bool operator==(network const & other) const;
+  friend class packeteer::detail::operators<network>;
+  // FIXME revisit this
+
+  virtual bool is_equal_to(network const & other) const;
+  virtual bool is_less_than(network const & other) const;
 
 private:
   // Pointer to implementation
