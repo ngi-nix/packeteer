@@ -161,6 +161,7 @@ public:
    * Returns the raw address buffer.
    **/
   void const * buffer() const;
+  void * buffer();
 
 
   /**

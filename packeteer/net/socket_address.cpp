@@ -235,6 +235,14 @@ socket_address::buffer() const
 
 
 
+void *
+socket_address::buffer()
+{
+  return &(data.sa_storage);
+}
+
+
+
 error_t
 socket_address::set_port(uint16_t port)
 {
