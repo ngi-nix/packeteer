@@ -156,6 +156,11 @@ public:
    **/
   socklen_t bufsize() const;
 
+  /**
+   * Returns the available size of the raw address buffer.
+   **/
+  socklen_t bufsize_available() const;
+
 
   /**
    * Returns the raw address buffer.

@@ -227,6 +227,14 @@ socket_address::bufsize() const
 
 
 
+socklen_t
+socket_address::bufsize_available() const
+{
+  return sizeof(data);
+}
+
+
+
 void const *
 socket_address::buffer() const
 {
