@@ -39,19 +39,22 @@ namespace detail {
  * Parses a CIDR-notation network specification into a socketaddr_storage
  * sized buffer (setting the port part to 0), and a bitmask length.
  *
- * Returns the bitmask length. The sockaddr_storage is filled in by this
- * function.
+ * The results are stored in parse_result_t. It will contain the detected
+ * protocol type, parsed address, and mask size (if applicable).
  *
- * Returns -1 if the network specification could not be parsed.
+ * The return value is an error_t, with ERR_SUCCESS indicating absolute
+ * parse success.
+ *
+ * ERR_INVALID_VALUE is returned if something about the address specification
+ * does not meet the requirements, e.g. a CIDR address with a port *and*
+ * netmask specification (with port is valid, with netmask is valid, but not
+ * both).
+ *
+ * ERR_ABORTED is returned if no CIDR format could be detected. It's possible
+ * that the address is of non-CIDR type, such as a local path.
  *
  * If the no_mask flag is set, this function expects *no* netmask part to
- * the string, and can be used to parse IPv4 and IPv6 host addresses. On
- * success, it will return 0.
- *
- * However, the function will then return an error (-1) if the mask is
- * present after all.
- *
- * Also returns the protocol type in the proto value.
+ * the string, and can be used to parse IPv4 and IPv6 host addresses.
  *
  * The CIDR specification is extended in that we also parse ports, if specified.
  * Note that any argument to the port parameter will override the port
