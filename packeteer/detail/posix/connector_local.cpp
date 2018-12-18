@@ -40,7 +40,7 @@ namespace packeteer {
 namespace detail {
 
 connector_local::connector_local(std::string const & path)
-  : connector_socket(path)
+  : connector_socket(net::socket_address(path))
 {
 }
 
