@@ -45,10 +45,10 @@ select_domain(::packeteer::net::socket_address const & addr)
 {
   switch (addr.type()) {
     case ::packeteer::net::socket_address::SAT_INET4:
-      return PF_INET;
+      return AF_INET;
 
     case ::packeteer::net::socket_address::SAT_INET6:
-      return PF_INET6;
+      return AF_INET6;
 
     default:
       throw exception(ERR_INVALID_VALUE, "Expected IPv4 or IPv6 address!");
