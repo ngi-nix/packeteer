@@ -217,7 +217,10 @@ socket_address::bufsize() const
       return sizeof(sockaddr_in6);
 
     case AF_LOCAL:
-      return sizeof(sockaddr_un);
+      {
+        socklen_t size = offsetof(sockaddr_un, sun_path) + ::strlen(data.sa_un.sun_path) + 1;
+        return size;
+      }
 
     default:
       break;
