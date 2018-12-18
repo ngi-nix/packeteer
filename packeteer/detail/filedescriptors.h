@@ -32,7 +32,7 @@ namespace packeteer {
 namespace detail {
 
 error_t
-make_nonblocking(int fd, bool blocking = false);
+set_blocking_mode(int fd, bool blocking = false);
 
 
 }} // namespace packeteer::detail
