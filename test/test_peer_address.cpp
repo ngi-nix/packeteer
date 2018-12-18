@@ -38,26 +38,26 @@ struct test_data
 {
   std::string                               scheme;
   std::string                               address;
-  packeteer::connector::connector_type      type;
+  packeteer::connector_type                 type;
   pnet::socket_address::socket_address_type sa_type;
   std::string                               expected;
 } tests[] = {
   // All schemes, simple.
-  { "tcp4",  "tcp4://192.168.0.1", packeteer::connector::CT_TCP4,  pnet::socket_address::SAT_INET4,  "tcp4://192.168.0.1:0", },
-  { "tcp4",  "tcp://192.168.0.1",  packeteer::connector::CT_TCP4,  pnet::socket_address::SAT_INET4,  "tcp4://192.168.0.1:0", },
-  { "tcp6",  "tcp6://::1",         packeteer::connector::CT_TCP6,  pnet::socket_address::SAT_INET6,  "tcp6://[::1]:0",       },
-  { "tcp6",  "tcp://::1",          packeteer::connector::CT_TCP6,  pnet::socket_address::SAT_INET6,  "tcp6://[::1]:0",       },
-  { "udp4",  "udp4://192.168.0.1", packeteer::connector::CT_UDP4,  pnet::socket_address::SAT_INET4,  "udp4://192.168.0.1:0", },
-  { "udp4",  "udp://192.168.0.1",  packeteer::connector::CT_UDP4,  pnet::socket_address::SAT_INET4,  "udp4://192.168.0.1:0", },
-  { "udp6",  "udp6://::1",         packeteer::connector::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:0",       },
-  { "udp6",  "udp://::1",          packeteer::connector::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:0",       },
-  { "anon",  "anon://",            packeteer::connector::CT_ANON,  pnet::socket_address::SAT_UNSPEC, "anon://",              },
-  { "local", "local://foo",        packeteer::connector::CT_LOCAL, pnet::socket_address::SAT_LOCAL,  "local://foo",          },
-  { "pipe",  "pipe://foo",         packeteer::connector::CT_PIPE,  pnet::socket_address::SAT_LOCAL,  "pipe://foo",           },
+  { "tcp4",  "tcp4://192.168.0.1", packeteer::CT_TCP4,  pnet::socket_address::SAT_INET4,  "tcp4://192.168.0.1:0", },
+  { "tcp4",  "tcp://192.168.0.1",  packeteer::CT_TCP4,  pnet::socket_address::SAT_INET4,  "tcp4://192.168.0.1:0", },
+  { "tcp6",  "tcp6://::1",         packeteer::CT_TCP6,  pnet::socket_address::SAT_INET6,  "tcp6://[::1]:0",       },
+  { "tcp6",  "tcp://::1",          packeteer::CT_TCP6,  pnet::socket_address::SAT_INET6,  "tcp6://[::1]:0",       },
+  { "udp4",  "udp4://192.168.0.1", packeteer::CT_UDP4,  pnet::socket_address::SAT_INET4,  "udp4://192.168.0.1:0", },
+  { "udp4",  "udp://192.168.0.1",  packeteer::CT_UDP4,  pnet::socket_address::SAT_INET4,  "udp4://192.168.0.1:0", },
+  { "udp6",  "udp6://::1",         packeteer::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:0",       },
+  { "udp6",  "udp://::1",          packeteer::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:0",       },
+  { "anon",  "anon://",            packeteer::CT_ANON,  pnet::socket_address::SAT_UNSPEC, "anon://",              },
+  { "local", "local://foo",        packeteer::CT_LOCAL, pnet::socket_address::SAT_LOCAL,  "local://foo",          },
+  { "pipe",  "pipe://foo",         packeteer::CT_PIPE,  pnet::socket_address::SAT_LOCAL,  "pipe://foo",           },
 
   // ports
-  { "tcp4",  "tcp://192.168.0.1:1234", packeteer::connector::CT_TCP4,  pnet::socket_address::SAT_INET4,  "tcp4://192.168.0.1:1234", },
-  { "udp6",  "udp6://[::1]:4321",      packeteer::connector::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:4321",       },
+  { "tcp4",  "tcp://192.168.0.1:1234", packeteer::CT_TCP4,  pnet::socket_address::SAT_INET4,  "tcp4://192.168.0.1:1234", },
+  { "udp6",  "udp6://[::1]:4321",      packeteer::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:4321",       },
 };
 
 } // anonymous namespace
@@ -87,7 +87,7 @@ private:
 
       CPPUNIT_ASSERT_EQUAL(tests[i].scheme,  address.scheme());
       CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
-      CPPUNIT_ASSERT_EQUAL(tests[i].type, address.connector_type());
+      CPPUNIT_ASSERT_EQUAL(tests[i].type, address.conn_type());
       CPPUNIT_ASSERT_EQUAL(tests[i].expected, address.str());
     }
   }
