@@ -77,11 +77,24 @@ connector_udp::~connector_udp()
 }
 
 
+// FIXME nothing wrong with this implementation (it works),
+// but it isn't the same as a connected UDP socket.
 
 error_t
 connector_udp::connect()
 {
   return connector_socket::connect(select_domain(m_addr), SOCK_DGRAM);
+  /* FIXME
+  int fd = -1;
+  error_t err = connector_socket::create(select_domain(m_addr), SOCK_DGRAM, fd);
+  if (ERR_SUCCESS != err) {
+    return err;
+  }
+
+  m_fd = fd;
+  m_server = false;
+
+  return ERR_SUCCESS; */
 }
 
 
@@ -91,7 +104,7 @@ connector_udp::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::bind(select_domain(m_addr), SOCK_STREAM, fd);
+  error_t err = connector_socket::bind(select_domain(m_addr), SOCK_DGRAM, fd);
   if (ERR_SUCCESS != err) {
     return err;
   }
