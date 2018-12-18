@@ -516,6 +516,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
       //   different resolution on different platforms.
       entry_list_t to_schedule;
       wait_for_events(tc::milliseconds(20), to_schedule);
+      LOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
       // After callbacks of all kinds have been added to to_schedule, we can push
       // those entries to the out queue and wake workers.

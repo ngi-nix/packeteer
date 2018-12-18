@@ -88,6 +88,40 @@ struct thread_id_callback
 };
 
 
+struct reading_callback : public test_callback
+{
+  pk::connector & m_conn;
+  size_t m_read;
+  int m_called_before_read;
+
+  reading_callback(pk::connector & conn)
+    : test_callback()
+    , m_conn(conn)
+    , m_read(0)
+    , m_called_before_read(-1)
+  {
+  }
+
+  pk::error_t
+  func(uint64_t mask, pk::error_t error, pk::handle const & h, void *)
+  {
+    pk::error_t err = test_callback::func(mask, error, h, nullptr);
+    if (err != 0) {
+      return err;
+    }
+
+    if (m_called_before_read < 0) {
+      m_called_before_read = m_called;
+      char buf[200];
+      err = m_conn.read(buf, sizeof(buf), m_read);
+    }
+    return err;
+  }
+};
+
+
+
+
 /**
  * Help verify callback expectations.
  **/
@@ -437,6 +471,11 @@ public:
     // On the other hand, without writing to the pipe, we should not have any
     // callbacks for reading.
     ASSERT_CALLBACK(source1, 0, 0);
+    sched.unregister_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb1);
+
+    reading_callback reading(pipe);
+    pk::callback rd = pk::make_callback(&reading, &reading_callback::func);
+    sched.register_handle(pk::PEV_IO_READ, pipe.get_read_handle(), rd);
 
     // So let's write something to the pipe. This will trigger the read callback
     // until we're reading from the pipe again.
@@ -447,21 +486,19 @@ public:
 
     tc::sleep(tc::milliseconds(50));
 
-    ASSERT_CALLBACK_GREATER(source1, 0, pk::PEV_IO_READ);
+    // After writing, there must be a callback
+    ASSERT_CALLBACK_GREATER(reading, 0, pk::PEV_IO_READ);
 
-    int current = source1.m_called;
+    // We may have been called multiple times, but we should only have been
+    // called once before reading from the pipe.
+    CPPUNIT_ASSERT_MESSAGE("Should never be called more than once before reading.",
+        reading.m_called_before_read == 1);
 
-    pipe.read(buf, sizeof(buf), amount);
-    CPPUNIT_ASSERT_EQUAL(sizeof(buf), amount);
-
-    // Now the callbacks should stop again - we'll check by ensuring we don't
-    // have more than 'current' invocations even after a delay. However, timing
-    // being a bit of a bitch, we'll have to make some allowances.
-    tc::sleep(tc::milliseconds(100));
-
-    ASSERT_CALLBACK_GREATER(source1, current, pk::PEV_IO_READ);
-    current = source1.m_called - current;
-    CPPUNIT_ASSERT_MESSAGE("Should not normally fail.", current < 3);
+    // After reading, we might be called more often, but it shouldn't be that
+    // much - this is difficult to bound, because it's the thread scheduling
+    // and I/O scheduling properties of the kernel that determine this.
+    CPPUNIT_ASSERT_MESSAGE("Should not fail",
+        (reading.m_called > 1 && reading.m_called < 50));
   }
 
 
