@@ -378,6 +378,8 @@ set_target_properties(packeteer_shared PROPERTIES
     SOVERSION "${PACKETEER_PACKAGE_MAJOR}"
     VERSION "${PACKETEER_PACKAGE_MAJOR}.${PACKETEER_PACKAGE_MINOR}.0"
 )
+set_target_properties(packeteer_static PROPERTIES DEBUG_POSTFIX d)
+set_target_properties(packeteer_shared PROPERTIES DEBUG_POSTFIX d)
 
 
 include(GNUInstallDirs)
@@ -395,6 +397,7 @@ install(FILES
     packeteer/events.h
     packeteer/scheduler.h
     packeteer/connector.h
+    packeteer/connector_specs.h
     DESTINATION include/packeteer)
 
 install(FILES
@@ -441,6 +444,13 @@ if (CPPUNIT_FOUND)
   add_executable(testsuite
       ${TEST_SOURCES}
       test/testsuite.cpp)
+
+  message(STATUS CPPUNIT_DEBUG=${CPPUNIT_LIBRARY_DEBUG})
+  message(STATUS CPPUNIT_RELEASE=${CPPUNIT_LIBRARY_RELEASE})
+  message(STATUS TWINE_DEBUG=${TWINE_LIBRARY_DEBUG})
+  message(STATUS TWINE_RELEASE=${TWINE_LIBRARY_RELEASE})
+  message(STATUS META_DEBUG=${META_LIBRARY_DEBUG})
+  message(STATUS META_RELEASE=${META_LIBRARY_RELEASE})
 
   target_link_libraries(testsuite
       packeteer_static
