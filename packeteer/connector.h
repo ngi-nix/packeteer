@@ -33,9 +33,11 @@
 
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
+#include <packeteer/connector_specs.h>
+#include <packeteer/peer_address.h>
 
-#include <packeteer/net/socket_address.h>
 #include <packeteer/detail/operators.h>
+#include <packeteer/net/socket_address.h>
 
 namespace packeteer {
 
@@ -50,34 +52,6 @@ class connector
   : public ::packeteer::detail::operators<connector>
 {
 public:
-  /***************************************************************************
-   * Types
-   **/
-  // Types of connectors
-  enum connector_type
-  {
-    CT_UNSPEC = -1, // Never returned
-    CT_TCP4 = 0,
-    CT_TCP6,
-    CT_TCP,
-    CT_UDP4,
-    CT_UDP6,
-    CT_UDP,
-    CT_LOCAL,
-    CT_PIPE,
-    CT_ANON,
-  };
-
-  // Connector behaviour
-  enum connector_behaviour
-  {
-    CB_DEFAULT  = 0,  // typically the best pick
-    CB_STREAM   = 1,  // STREAM connector; use read()/write()
-    CB_DATAGRAM = 2,  // DATAGRAM connector; use receive()/send()
-  };
-
-
-
   /***************************************************************************
    * Interface
    **/
@@ -133,6 +107,8 @@ public:
    * Returns the connector's address.
    **/
   std::string address() const;
+  net::socket_address socket_address() const;
+  peer_address peer_addr() const;
 
   /**
    * In the spirit of socket-style APIs, a connector that is listening on
@@ -209,6 +185,12 @@ public:
       ::packeteer::net::socket_address & sender);
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
       ::packeteer::net::socket_address const & recipient);
+  // FIXME peer_address
+
+  error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
+      std::string & sender);
+  error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
+      std::string const & recipient);
 
   /**
    * Peek how much data is available to receive(). This is best use for

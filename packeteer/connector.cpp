@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <map>
 
+#include <meta/hash.h>
+
 #include <packeteer/error.h>
 #include <packeteer/net/socket_address.h>
 
@@ -50,7 +52,7 @@ namespace packeteer {
 
 namespace {
 
-typedef std::pair<connector::connector_type, connector::connector_behaviour> conn_spec_t;
+typedef std::pair<connector_type, connector_behaviour> conn_spec_t;
 
 inline conn_spec_t
 match_scheme(std::string const & scheme)
@@ -58,15 +60,15 @@ match_scheme(std::string const & scheme)
   // Initialize mapping, if not yet done
   static std::map<std::string, conn_spec_t> mapping;
   if (mapping.empty()) {
-    mapping["tcp4"]  = std::make_pair(connector::CT_TCP4, connector::CB_STREAM);
-    mapping["tcp6"]  = std::make_pair(connector::CT_TCP6, connector::CB_STREAM);
-    mapping["tcp"]   = std::make_pair(connector::CT_TCP, connector::CB_STREAM);
-    mapping["udp4"]  = std::make_pair(connector::CT_UDP4, connector::CB_DATAGRAM);
-    mapping["udp6"]  = std::make_pair(connector::CT_UDP6, connector::CB_DATAGRAM);
-    mapping["udp"]   = std::make_pair(connector::CT_UDP, connector::CB_DATAGRAM);
-    mapping["anon"]  = std::make_pair(connector::CT_ANON, connector::CB_STREAM);
-    mapping["local"] = std::make_pair(connector::CT_LOCAL, connector::CB_STREAM);
-    mapping["pipe"]  = std::make_pair(connector::CT_PIPE, connector::CB_STREAM);
+    mapping["tcp4"]  = std::make_pair(CT_TCP4, CB_STREAM);
+    mapping["tcp6"]  = std::make_pair(CT_TCP6, CB_STREAM);
+    mapping["tcp"]   = std::make_pair(CT_TCP, CB_STREAM);
+    mapping["udp4"]  = std::make_pair(CT_UDP4, CB_DATAGRAM);
+    mapping["udp6"]  = std::make_pair(CT_UDP6, CB_DATAGRAM);
+    mapping["udp"]   = std::make_pair(CT_UDP, CB_DATAGRAM);
+    mapping["anon"]  = std::make_pair(CT_ANON, CB_STREAM);
+    mapping["local"] = std::make_pair(CT_LOCAL, CB_STREAM);
+    mapping["pipe"]  = std::make_pair(CT_PIPE, CB_STREAM);
   }
 
   // Find scheme type
@@ -125,18 +127,18 @@ split_address(std::string const & address)
  **/
 struct connector::connector_impl
 {
-  connector::connector_type       m_type;
-  connector::connector_behaviour  m_behaviour;
-  connector::connector_behaviour  m_default_behaviour;
-  std::string                     m_address;
-  detail::connector *             m_conn;
-  volatile size_t                 m_refcount;
+  connector_type        m_type;
+  connector_behaviour   m_behaviour;
+  connector_behaviour   m_default_behaviour;
+  std::string           m_address;
+  detail::connector *   m_conn;
+  volatile size_t       m_refcount;
 
   connector_impl(std::string const & address, detail::connector * conn,
-      connector::connector_behaviour const & behaviour)
+      connector_behaviour const & behaviour)
     : m_type(CT_UNSPEC)
     , m_behaviour(behaviour)
-    , m_default_behaviour(connector::CB_DEFAULT)
+    , m_default_behaviour(CB_DEFAULT)
     , m_address(address)
     , m_conn(conn)
     , m_refcount(1)
@@ -152,10 +154,10 @@ struct connector::connector_impl
 
 
   connector_impl(std::string const & address,
-      connector::connector_behaviour const & behaviour)
+      connector_behaviour const & behaviour)
     : m_type(CT_UNSPEC)
     , m_behaviour(behaviour)
-    , m_default_behaviour(connector::CB_DEFAULT)
+    , m_default_behaviour(CB_DEFAULT)
     , m_address(address)
     , m_conn(nullptr)
     , m_refcount(1)
@@ -163,16 +165,16 @@ struct connector::connector_impl
     // Split address
     auto pre_parsed = split_address(address);
 
-    connector::connector_type ctype = pre_parsed.first.first;
+    connector_type ctype = pre_parsed.first.first;
     m_default_behaviour = pre_parsed.first.second;
 
     // Set behaviour
-    if (connector::CB_DEFAULT == m_behaviour) {
+    if (CB_DEFAULT == m_behaviour) {
       m_behaviour = m_default_behaviour;
     }
 
     // Check connector type
-    if (ctype >= connector::CT_TCP4 && ctype <= connector::CT_UDP)
+    if (ctype >= CT_TCP4 && ctype <= CT_UDP)
     {
       if (pre_parsed.second.empty()) {
         throw exception(ERR_FORMAT, "Require address part in address string.");
@@ -183,19 +185,19 @@ struct connector::connector_impl
 
       // Make sure the parsed address type matches the protocol.
       if (net::socket_address::SAT_INET4 == addr.type()) {
-        if (connector::CT_TCP4 != ctype
-            && connector::CT_TCP != ctype
-            && connector::CT_UDP4 != ctype
-            && connector::CT_UDP != ctype)
+        if (CT_TCP4 != ctype
+            && CT_TCP != ctype
+            && CT_UDP4 != ctype
+            && CT_UDP != ctype)
         {
           throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
         }
       }
       else if (net::socket_address::SAT_INET6 == addr.type()) {
-        if (connector::CT_TCP6 != ctype
-            && connector::CT_TCP != ctype
-            && connector::CT_UDP6 != ctype
-            && connector::CT_UDP != ctype)
+        if (CT_TCP6 != ctype
+            && CT_TCP != ctype
+            && CT_UDP6 != ctype
+            && CT_UDP != ctype)
         {
           throw exception(ERR_FORMAT, "IPv6 address provided with IPv4 scheme.");
         }
@@ -208,18 +210,18 @@ struct connector::connector_impl
       m_type = ctype;
 
       switch (m_type) {
-        case connector::CT_TCP:
-        case connector::CT_TCP4:
-        case connector::CT_TCP6:
+        case CT_TCP:
+        case CT_TCP4:
+        case CT_TCP6:
           // TODO pass m_behaviour
-          m_conn = new detail::connector_tcp(pre_parsed.second);
+          m_conn = new detail::connector_tcp(net::socket_address(pre_parsed.second));
           break;
 
-        case connector::CT_UDP:
-        case connector::CT_UDP4:
-        case connector::CT_UDP6:
+        case CT_UDP:
+        case CT_UDP4:
+        case CT_UDP6:
           // TODO pass/verify m_behaviour
-          m_conn = new detail::connector_udp(pre_parsed.second);
+          m_conn = new detail::connector_udp(net::socket_address(pre_parsed.second));
           break;
 
         default:
@@ -227,7 +229,7 @@ struct connector::connector_impl
       }
     }
 
-    else if (connector::CT_ANON == ctype) {
+    else if (CT_ANON == ctype) {
       // TODO verify m_behaviour
       // Looks good for anonymous connectors
       m_type = ctype;
@@ -304,12 +306,10 @@ struct connector::connector_impl
 
   size_t hash() const
   {
-    size_t value = (std::hash<int>()(static_cast<int>(m_type)) << 0)
-                 ^ (std::hash<std::string>()(m_address) << 1);
+    size_t value = meta::hash::multi_hash(static_cast<int>(m_type), m_address);
     if (m_conn) {
-      value = value
-        ^ (std::hash<handle>()(m_conn->get_read_handle()) << 2)
-        ^ (std::hash<handle>()(m_conn->get_write_handle()) << 3);
+      value += meta::hash::multi_hash(m_conn->get_read_handle(),
+                                      m_conn->get_write_handle());
     }
     return value;
   }
@@ -319,7 +319,7 @@ struct connector::connector_impl
  * Implementation
  **/
 connector::connector(std::string const & address,
-    connector::connector_behaviour const & behaviour /*= CB_DEFAULT */)
+    connector_behaviour const & behaviour /*= CB_DEFAULT */)
   : m_impl(new connector_impl(address, behaviour))
 {
 }
@@ -351,7 +351,7 @@ connector::~connector()
 
 
 
-connector::connector_type
+connector_type
 connector::type() const
 {
   return m_impl->m_type;
@@ -363,6 +363,15 @@ std::string
 connector::address() const
 {
   return m_impl->m_address;
+}
+
+
+net::socket_address
+connector::socket_address() const
+{
+  // FIXME so wrong
+  auto pre_parsed = split_address(m_impl->m_address);
+  return net::socket_address(pre_parsed.second);
 }
 
 
@@ -487,7 +496,7 @@ connector::get_write_handle() const
 
 error_t
 connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
-    ::packeteer::net::socket_address & sender)
+    net::socket_address & sender)
 {
   if (!*m_impl) {
     return ERR_INITIALIZATION;
@@ -498,13 +507,40 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
 
 error_t
+connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
+    std::string & sender)
+{
+  net::socket_address addr;
+  error_t result = receive(buf, bufsize, bytes_read, addr);
+  sender = addr.full_str();
+  return result;
+}
+
+
+
+error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
-    ::packeteer::net::socket_address const & recipient)
+    net::socket_address const & recipient)
 {
   if (!*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->send(buf, bufsize, bytes_written, recipient);
+}
+
+
+
+error_t
+connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
+   std::string const & recipient)
+{
+  auto pre_parsed = split_address(recipient);
+  if (pre_parsed.first.first != m_impl->m_type) {
+    return ERR_INVALID_OPTION;
+  }
+
+  auto addr = net::socket_address(pre_parsed.second);
+  return send(buf, bufsize, bytes_written, addr);
 }
 
 
@@ -579,6 +615,23 @@ connector::operator<(connector const & other) const
     return true;
   }
   return address() < other.address();
+}
+
+
+
+connector &
+connector::operator=(connector const & other)
+{
+  // First decrease the refcount on our existing implementation
+  if (--(m_impl->m_refcount) <= 0) {
+    delete m_impl;
+  }
+
+  // Then acept the other's implementation
+  m_impl = other.m_impl;
+  ++(m_impl->m_refcount);
+
+  return *this;
 }
 
 
