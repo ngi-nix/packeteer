@@ -146,8 +146,7 @@ connector_socket::connect(int domain, int type)
   // Now try to connect the socket with the path
   while (true) {
     int ret = ::connect(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
-        m_addr.bufsize_available());
-    std::cout << "m_addr.full_str(): " << m_addr.full_str() << std::endl;
+        m_addr.bufsize());
     if (ret >= 0) {
       // Finally, set the fd
       m_fd = fd;
