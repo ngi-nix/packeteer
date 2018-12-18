@@ -46,6 +46,7 @@ create_socket(int domain, int type, int & fd)
 {
   fd = ::socket(domain, type, 0);
   if (fd < 0) {
+    ERRNO_LOG("create_socket socket failed!");
     switch (errno) {
       case EACCES:
         return ERR_ACCESS_VIOLATION;
@@ -87,6 +88,7 @@ create_socket(int domain, int type, int & fd)
     ::close(fd);
     fd = -1;
 
+    ERRNO_LOG("create_socket setsockopt failed!");
     switch (errno) {
       case EBADF:
       case EFAULT:
@@ -144,7 +146,8 @@ connector_socket::connect(int domain, int type)
   // Now try to connect the socket with the path
   while (true) {
     int ret = ::connect(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
-        m_addr.bufsize());
+        m_addr.bufsize_available());
+    std::cout << "m_addr.full_str(): " << m_addr.full_str() << std::endl;
     if (ret >= 0) {
       // Finally, set the fd
       m_fd = fd;
@@ -199,6 +202,22 @@ connector_socket::connect(int domain, int type)
   }
 
   PACKETEER_FLOW_CONTROL_GUARD;
+}
+
+
+error_t
+connector_socket::create(int domain, int type, int & fd)
+{
+  if (connected() || listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  fd = -1;
+  error_t err = create_socket(domain, type, fd);
+  if (fd < 0) {
+    return err;
+  }
+  return ERR_SUCCESS;
 }
 
 

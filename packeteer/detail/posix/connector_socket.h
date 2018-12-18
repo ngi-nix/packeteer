@@ -41,6 +41,7 @@ struct connector_socket : public ::packeteer::detail::connector
 public:
   connector_socket(::packeteer::net::socket_address const & addr);
 
+  error_t create(int domain, int type, int & fd);
   error_t bind(int domain, int type, int & fd);
   error_t listen(int fd);
   bool listening() const;
