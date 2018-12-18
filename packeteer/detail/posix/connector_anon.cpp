@@ -71,11 +71,11 @@ connector_anon::create_pipe()
   }
 
   // Optionally make the read and write end non-blocking
-  if (ERR_SUCCESS != make_nonblocking(m_fds[0], m_block)) {
+  if (ERR_SUCCESS != set_blocking_mode(m_fds[0], m_block)) {
     close();
     return ERR_UNEXPECTED;
   }
-  if (ERR_SUCCESS != make_nonblocking(m_fds[1], m_block)) {
+  if (ERR_SUCCESS != set_blocking_mode(m_fds[1], m_block)) {
     close();
     return ERR_UNEXPECTED;
   }
