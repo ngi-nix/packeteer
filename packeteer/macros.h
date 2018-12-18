@@ -36,6 +36,10 @@
 
 /**
  * Define logging symbols if -DDEBUG is specified (or -DNDEBUG isn't).
+ *
+ * Note: We can't use strerror_r() here because g++ turns on _GNU_SOURCE,
+ *       which results in us getting the GNU version of the function rather
+ *       than the POSIX version.
  **/
 #if defined(DEBUG) && !defined(NDEBUG)
 #include <iostream>
