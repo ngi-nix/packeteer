@@ -60,7 +60,7 @@ translate_fcntl_errno()
 } // anonymous namespace
 
 error_t
-make_nonblocking(int fd, bool blocking /* = false */)
+set_blocking_mode(int fd, bool blocking /* = false */)
 {
   int val = ::fcntl(fd, F_GETFL, 0);
   if (-1 == val) {
@@ -69,10 +69,10 @@ make_nonblocking(int fd, bool blocking /* = false */)
 
   val |= O_CLOEXEC;
   if (blocking) {
-    val |= O_NONBLOCK;
+    val &= ~O_NONBLOCK;
   }
   else {
-    val &= ~O_NONBLOCK;
+    val |= O_NONBLOCK;
   }
   val = ::fcntl(fd, F_SETFL, val);
   if (-1 == val) {
