@@ -26,6 +26,7 @@
 #endif
 
 #include <packeteer/packeteer.h>
+#include <packeteer/connector_specs.h>
 
 #include <packeteer/detail/connector.h>
 
@@ -43,8 +44,10 @@ namespace detail {
 struct connector_local : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_local(std::string const & path);
-  connector_local(::packeteer::net::socket_address const & addr);
+  connector_local(std::string const & path,
+      ::packeteer::connector_behaviour const & behaviour = ::packeteer::CB_DEFAULT);
+  connector_local(::packeteer::net::socket_address const & addr,
+      ::packeteer::connector_behaviour const & behaviour = ::packeteer::CB_DEFAULT);
   ~connector_local();
 
   error_t listen();
@@ -57,6 +60,10 @@ public:
 
 private:
   connector_local();
+
+  ::packeteer::connector_behaviour m_behaviour;
+
+  int sock_type(::packeteer::connector_behaviour const & behaviour) const;
 };
 
 }} // namespace packeteer::detail

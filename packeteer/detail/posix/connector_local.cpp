@@ -39,15 +39,19 @@
 namespace packeteer {
 namespace detail {
 
-connector_local::connector_local(std::string const & path)
+connector_local::connector_local(std::string const & path,
+    ::packeteer::connector_behaviour const & behaviour /* = CB_DEFAULT */)
   : connector_socket(net::socket_address(path))
+  , m_behaviour(behaviour)
 {
 }
 
 
 
-connector_local::connector_local(net::socket_address const & addr)
+connector_local::connector_local(net::socket_address const & addr,
+    ::packeteer::connector_behaviour const & behaviour /* = CB_DEFAULT */)
   : connector_socket(addr)
+  , m_behaviour(behaviour)
 {
 }
 
@@ -55,6 +59,7 @@ connector_local::connector_local(net::socket_address const & addr)
 
 connector_local::connector_local()
   : connector_socket()
+  , m_behaviour(CB_DEFAULT)
 {
 }
 
@@ -70,7 +75,7 @@ connector_local::~connector_local()
 error_t
 connector_local::connect()
 {
-  return connector_socket::connect(PF_LOCAL, SOCK_STREAM);
+  return connector_socket::connect(AF_LOCAL, sock_type(m_behaviour));
 }
 
 
@@ -80,7 +85,7 @@ connector_local::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::bind(PF_LOCAL, SOCK_STREAM, fd);
+  error_t err = connector_socket::bind(AF_LOCAL, sock_type(m_behaviour), fd);
   if (ERR_SUCCESS != err) {
     return err;
   }
@@ -116,7 +121,6 @@ connector_local::close()
 connector *
 connector_local::accept(net::socket_address & addr) const
 {
-  // FIXME use accept for CB_DATAGRAM?
   int fd = -1;
   error_t err = connector_socket::accept(fd, addr);
   if (ERR_SUCCESS != err) {
@@ -128,8 +132,22 @@ connector_local::accept(net::socket_address & addr) const
   result->m_addr = addr;
   result->m_server = true;
   result->m_fd = fd;
+  result->m_behaviour = m_behaviour;
 
   return result;
+}
+
+
+int
+connector_local::sock_type(::packeteer::connector_behaviour const & behaviour) const
+{
+  switch (behaviour) {
+    case CB_DATAGRAM:
+      return SOCK_DGRAM;
+    case CB_STREAM:
+    default:
+      return SOCK_STREAM;
+  }
 }
 
 
