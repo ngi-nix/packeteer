@@ -72,7 +72,7 @@ create_socket(int domain, int type, int & fd)
   }
 
   // Non-blocking
-  error_t err = make_nonblocking(fd);
+  error_t err = set_blocking_mode(fd, false);
   if (ERR_SUCCESS != err) {
     ::close(fd);
     fd = -1;
@@ -438,7 +438,7 @@ connector_socket::accept(int & new_fd, net::socket_address & addr) const
   }
 
   // Make new socket nonblocking
-  error_t err = make_nonblocking(new_fd);
+  error_t err = set_blocking_mode(new_fd, false);
   if (ERR_SUCCESS != err) {
     ::close(new_fd);
     new_fd = -1;
