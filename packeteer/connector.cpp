@@ -263,7 +263,7 @@ struct connector::connector_impl
       // Instanciate the connector implementation
       switch (m_type) {
         case CT_LOCAL:
-          m_conn = new detail::connector_local(pre_parsed.second);
+          m_conn = new detail::connector_local(pre_parsed.second, m_behaviour);
           break;
 
         case CT_PIPE:
