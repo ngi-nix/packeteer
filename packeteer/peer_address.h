@@ -26,7 +26,7 @@
 
 #include <packeteer/packeteer.h>
 
-#include <packeteer/connector.h>
+#include <packeteer/connector_specs.h>
 #include <packeteer/net/socket_address.h>
 
 namespace packeteer {
@@ -45,7 +45,7 @@ public:
   /**
    * Default constructor. The resulting socket address does not point anywhere.
    **/
-  peer_address(connector::connector_type const & type = connector::CT_UNSPEC);
+  peer_address(connector_type const & type = CT_UNSPEC);
 
   /**
    * Destructor
@@ -56,7 +56,7 @@ public:
    * Constructor. The 'buf' parameter is expected to be a struct sockaddr of
    * the given length.
    **/
-  peer_address(connector::connector_type const & type, void const * buf, socklen_t len);
+  peer_address(connector_type const & type, void const * buf, socklen_t len);
 
 
   /**
@@ -65,11 +65,11 @@ public:
    *
    * Throws exception if parsing fails.
    **/
-  peer_address(connector::connector_type const & type, std::string const & address,
+  peer_address(connector_type const & type, std::string const & address,
       uint16_t port = 0);
-  peer_address(connector::connector_type const & type, char const * address,
+  peer_address(connector_type const & type, char const * address,
       uint16_t port = 0);
-  peer_address(connector::connector_type const & type,
+  peer_address(connector_type const & type,
       ::packeteer::net::socket_address const & address);
 
 
@@ -84,7 +84,7 @@ public:
   /**
    * Return the address' connector type.
    **/
-  connector::connector_type connector_type() const;
+  connector_type conn_type() const;
 
 
   /**
@@ -121,7 +121,7 @@ protected:
   virtual bool is_less_than(peer_address const & other) const;
 
 private:
-  connector::connector_type m_connector_type;
+  connector_type m_connector_type;
 };
 
 } // namespace packeteer
