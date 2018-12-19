@@ -191,7 +191,7 @@ private:
 
     connector copy = original;
     CPPUNIT_ASSERT_EQUAL(original.type(), copy.type());
-    CPPUNIT_ASSERT_EQUAL(original.address(), copy.address());
+    CPPUNIT_ASSERT_EQUAL(original.connect_url(), copy.connect_url());
     CPPUNIT_ASSERT_EQUAL(original.get_read_handle(), copy.get_read_handle());
     CPPUNIT_ASSERT_EQUAL(original.get_write_handle(), copy.get_write_handle());
     CPPUNIT_ASSERT(original == copy);
@@ -230,9 +230,9 @@ private:
     // for that, address needs to not return a string (grr)
     std::string msg = "hello, world!";
     size_t amount = 0;
-    std::cout << "from " << sender.address() << " to " << receiver.address() << std::endl;
+    std::cout << "from " << sender.connect_url() << " to " << receiver.connect_url() << std::endl;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.send(msg.c_str(), msg.size(), amount,
-        receiver.address()));
+        receiver.connect_url()));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 
     twine::chrono::sleep(twine::chrono::milliseconds(50));
@@ -258,6 +258,9 @@ private:
   {
     // Tests for "stream" connectors, i.e. connectors that allow synchronous,
     // reliable delivery.
+
+    // FIXME must be able to pass dgram/stream explicitly if necessary
+    //  AF_LOCAL requires this
 
     // Server
     connector server(addr);
@@ -337,7 +340,7 @@ private:
     std::cout << "send(client, server)" << std::endl;
     sendMessageDGram(client, server);
     std::cout << "send(server, client)" << std::endl;
-    std::cout << "client address " << client.address() << std::endl;
+    std::cout << "client address " << client.connect_url() << std::endl;
     sendMessageDGram(server, client);
   }
 
@@ -379,7 +382,8 @@ private:
   void testLocalConnector()
   {
     // Local sockets are "stream" connectors
-    testStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local");
+    testStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream");
+    // FIXME testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram");
   }
 
 

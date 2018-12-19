@@ -38,6 +38,7 @@
 
 #include <packeteer/detail/operators.h>
 #include <packeteer/net/socket_address.h>
+#include <packeteer/util/url.h>
 
 namespace packeteer {
 
@@ -74,17 +75,21 @@ public:
    * Of these, the first six expect the address string to have the format:
    *    scheme://address[:port]
    *
-   * FIXME this keyword scheme seems weird; instead, non-blocking should be the
-   * default, and blocking should be something that can be set on all connectors.
+   * All connectors are blocking by default. To switch them to non-blocking
+   * mode, set the "blocking" query parameter to "no", "false" or "0". Note
+   * that when you use connectors with the scheduler, they get turned non-
+   * blocking automatically.
    *
-   * The anonymous pipe expects the scheme to be followed by nothing at all,
-   * or one of the keywords "blocking" or "nonblocking", to specify whether
-   * a blocking or non-blocking pipe is expected. If the keyword is left out,
-   * a non-blocking pipe is created.
-   *    anon://[blocking|nonblocking]
+   * Some connectors can be used with datagram or stream behaviour. The default
+   * is usually the most optimal setting. If you want to specify the behaviour
+   * explicitly, provide the "behaviour" parameter with either the "datagram"
+   * or "stream" value.
+   *
+   * The anonymous pipe expects the scheme to be followed by nothing at all.
+   *    anon://[optional parameters]
    *
    * The last few expect the following format:
-   *    scheme://path
+   *    scheme://path[optional parameters]
    *
    * The scheme part is not case sensitive. The address for IPv6 is not case
    * sensitive. Path names are case sensitive on operating systems where path
@@ -94,8 +99,8 @@ public:
    * paths will not be parsed immediately, but only when the connection
    * specified by the connector is to be established.
    **/
-  connector(std::string const & address,
-      connector_behaviour const & behaviour = CB_DEFAULT);
+  connector(std::string const & connect_url);
+  connector(util::url const & connect_url);
   ~connector();
 
   /**
@@ -106,7 +111,7 @@ public:
   /**
    * Returns the connector's address.
    **/
-  std::string address() const;
+  util::url connect_url() const;
   net::socket_address socket_address() const;
   peer_address peer_addr() const;
 
@@ -191,6 +196,8 @@ public:
       std::string & sender);
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
       std::string const & recipient);
+  error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
+      util::url const & recipient);
 
   /**
    * Peek how much data is available to receive(). This is best use for
