@@ -325,6 +325,7 @@ set(LIB_SOURCES
     packeteer/net/socket_address.cpp
     packeteer/net/network.cpp
     packeteer/net/detail/cidr.cpp
+    packeteer/util/url.cpp
 )
 
 if (PACKETEER_HAVE_EPOLL_CREATE1)
@@ -407,6 +408,7 @@ install(FILES
 install(FILES
     packeteer/net/socket_address.h
     packeteer/net/network.h
+    packeteer/util/url.h
     DESTINATION include/packeteer/net)
 
 install(FILES
@@ -431,6 +433,7 @@ if (CPPUNIT_FOUND)
       test/test_error.cpp
       test/test_cidr.cpp
       test/test_handle.cpp
+      test/test_url.cpp
       test/test_socket_address.cpp
       test/test_network.cpp
       test/test_callback.cpp
@@ -444,13 +447,6 @@ if (CPPUNIT_FOUND)
   add_executable(testsuite
       ${TEST_SOURCES}
       test/testsuite.cpp)
-
-  message(STATUS CPPUNIT_DEBUG=${CPPUNIT_LIBRARY_DEBUG})
-  message(STATUS CPPUNIT_RELEASE=${CPPUNIT_LIBRARY_RELEASE})
-  message(STATUS TWINE_DEBUG=${TWINE_LIBRARY_DEBUG})
-  message(STATUS TWINE_RELEASE=${TWINE_LIBRARY_RELEASE})
-  message(STATUS META_DEBUG=${META_LIBRARY_DEBUG})
-  message(STATUS META_RELEASE=${META_LIBRARY_RELEASE})
 
   target_link_libraries(testsuite
       packeteer_static
