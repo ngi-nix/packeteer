@@ -48,9 +48,9 @@ enum connector_type
 // Connector behaviour
 enum connector_behaviour
 {
-  CB_DEFAULT  = 0,  // typically the best pick
-  CB_STREAM   = 1,  // STREAM connector; use read()/write()
-  CB_DATAGRAM = 2,  // DATAGRAM connector; use receive()/send()
+  CB_DEFAULT  = 0,         // typically the best pick
+  CB_STREAM   = (1 << 0),  // STREAM connector; use read()/write()
+  CB_DATAGRAM = (1 << 2),  // DATAGRAM connector; use receive()/send()
 };
 
 
