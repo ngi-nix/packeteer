@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2017 Jens Finkhaeuser.
+ * Copyright (c) 2017-2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -50,14 +50,17 @@ translate_fcntl_errno()
     case ENOTDIR:
     case EPERM:
       // TODO this is probably correct for all of these cases. check again?
-      // EINTR and EAGAIN should possibly be looped?
-      // EACCESS might have to be returned?
+      // EINTR should not occur for F_GETFL/F_SETFL; check this
+      // function if it's used differently in future.
+      // EACCESS/EAGAIN means the file descriptor is locked; we'll
+      // ignore special treatment for the moment.
     default:
       return ERR_UNEXPECTED;
   }
 }
 
 } // anonymous namespace
+
 
 error_t
 set_blocking_mode(int fd, bool blocking /* = false */)
