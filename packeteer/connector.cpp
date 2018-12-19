@@ -532,10 +532,6 @@ error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
    std::string const & recipient)
 {
-  if (!*m_impl) {
-    return ERR_INITIALIZATION;
-  }
-
   return send(buf, bufsize, bytes_written, util::url::parse(recipient));
 }
 
@@ -545,10 +541,6 @@ error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
    util::url const & recipient)
 {
-  if (!*m_impl) {
-    return ERR_INITIALIZATION;
-  }
-
   auto spec = match_scheme(recipient.scheme);
   if (spec.first != m_impl->m_type) {
     return ERR_INVALID_OPTION;
