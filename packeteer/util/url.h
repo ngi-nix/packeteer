@@ -25,6 +25,7 @@
 #endif
 
 #include <packeteer/packeteer.h>
+#include <packeteer/detail/operators.h>
 
 #include <string>
 #include <map>
@@ -56,20 +57,58 @@ namespace util {
  * boolean values to simple "0" and "1" (e.g. "true", "yes", etc.).
  */
 struct url
+  : public ::packeteer::detail::operators<url>
 {
 public:
+  // Data members
   std::string                         scheme;
   std::string                         authority;
   std::string                         path;
   std::map<std::string, std::string>  query;
   std::string                         fragment;
 
+  // Static parse functions
   static url parse(char const * url_string);
   static url parse(std::string const & url_string);
+
+  // Convert back to string
+  std::string str() const;
+
+  // Calculate hash
+  size_t hash() const;
+
+private:
+  friend class packeteer::detail::operators<url>;
+
+  bool is_less_than(url const & other) const;
+  bool is_equal_to(url const & other) const;
+
+  friend std::ostream & operator<<(std::ostream & os, url const & data);
 };
 
 
+/**
+ * Formats a url into human-readable form.
+ **/
+std::ostream & operator<<(std::ostream & os, url const & data);
+
 
 }} // namespace packeteer::util
+
+/*******************************************************************************
+ * std namespace specializations
+ **/
+namespace std {
+
+template <> struct hash<::packeteer::util::url>
+{
+  size_t operator()(::packeteer::util::url const & x) const
+  {
+    return x.hash();
+  }
+};
+
+} // namespace std
+
 
 #endif // guard

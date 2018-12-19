@@ -20,7 +20,10 @@
 
 #include <packeteer/util/url.h>
 
+#include <iostream>
 #include <algorithm>
+
+#include <meta/hash.h>
 
 namespace packeteer {
 namespace util {
@@ -188,6 +191,80 @@ url::parse(std::string const & url_string)
   }
 
   return ret;
+}
+
+
+
+bool
+url::is_equal_to(url const & other) const
+{
+  return scheme == other.scheme
+    && authority == other.authority
+    && path == other.path
+    && query == other.query
+    && fragment == other.fragment;
+}
+
+
+bool
+url::is_less_than(url const & other) const
+{
+  return scheme < other.scheme
+    || authority < other.authority
+    || path < other.path
+    || query < other.query
+    || fragment < other.fragment;
+}
+
+
+
+std::string
+url::str() const
+{
+  std::string ret = scheme + "://";
+  ret += authority;
+  ret += path;
+
+  if (!query.empty()) {
+    ret += "?";
+    for (auto elem : query) {
+      ret += elem.first + "=" + elem.second + "&";
+    }
+    ret.resize(ret.length() - 1);
+  }
+
+  if (!fragment.empty()) {
+    ret += "#" + fragment;
+  }
+
+  return ret;
+}
+
+
+
+size_t
+url::hash() const
+{
+  size_t base = meta::hash::multi_hash(
+      scheme, authority, path, fragment);
+
+  for (auto elem : query) {
+    base = meta::hash::hash_combine(base,
+        meta::hash::multi_hash(elem.first, elem.second));
+  }
+
+  return base;
+}
+
+
+/*****************************************************************************
+ * Friend functions
+ **/
+std::ostream &
+operator<<(std::ostream & os, url const & data)
+{
+  os << data.str();
+  return os;
 }
 
 }} // namespace packeteer::util
