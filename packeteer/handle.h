@@ -76,6 +76,7 @@ struct handle
 
   /**
    * Operators
+   * FIXME operators
    **/
   bool operator==(handle const & other) const
   {
@@ -105,6 +106,7 @@ struct handle
 
   size_t hash() const
   {
+    // FIXME meta hash?
     char const * p = reinterpret_cast<char const *>(&m_handle);
     size_t state = 2166136261;
     for (size_t i = 0 ; i < sizeof(sys_handle_t) ; ++i) {
