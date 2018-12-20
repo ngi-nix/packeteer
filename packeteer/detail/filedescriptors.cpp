@@ -95,7 +95,7 @@ get_blocking_mode(int fd, bool & state)
     return translate_fcntl_errno();
   }
 
-  state = bool(val & O_NONBLOCK);
+  state = !bool(val & O_NONBLOCK);
   return ERR_SUCCESS;
 }
 
