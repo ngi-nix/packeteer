@@ -17,7 +17,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/detail/posix/connector_socket.h>
+#include <packeteer/posix/detail/connector_socket.h>
 
 #include <packeteer/net/socket_address.h>
 

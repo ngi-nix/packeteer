@@ -354,20 +354,20 @@ endif (PACKETEER_HAVE_KQUEUE)
 if (UNIX)
   set(LIB_SOURCES ${LIB_SOURCES}
       packeteer/posix/handle.cpp
-      packeteer/detail/posix/connector_socket.cpp
-      packeteer/detail/posix/connector_pipe.cpp
-      packeteer/detail/posix/connector_tcp.cpp
-      packeteer/detail/posix/connector_udp.cpp
-      packeteer/detail/posix/connector_anon.cpp
-      packeteer/detail/posix/connector_local.cpp
+      packeteer/posix/detail/connector_socket.cpp
+      packeteer/posix/detail/connector_pipe.cpp
+      packeteer/posix/detail/connector_tcp.cpp
+      packeteer/posix/detail/connector_udp.cpp
+      packeteer/posix/detail/connector_anon.cpp
+      packeteer/posix/detail/connector_local.cpp
   )
 endif (UNIX)
 
 if (WIN32)
   set(LIB_SOURCES ${LIB_SOURCES}
       packeteer/win32/handle.cpp
-      packeteer/detail/win32/connector_pipe.cpp
-      packeteer/detail/win32/connector_tcp.cpp
+      packeteer/win32/detail/connector_pipe.cpp
+      packeteer/win32/detail/connector_tcp.cpp
   )
 endif (WIN32)
 

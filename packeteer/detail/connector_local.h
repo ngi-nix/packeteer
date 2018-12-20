@@ -31,7 +31,7 @@
 #include <packeteer/detail/connector.h>
 
 // FIXME this header should probably be in POSIX for inherting from connector_socket
-#include <packeteer/detail/posix/connector_socket.h>
+#include <packeteer/posix/detail/connector_socket.h>
 
 #include <packeteer/net/socket_address.h>
 
