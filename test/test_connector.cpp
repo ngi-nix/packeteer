@@ -259,11 +259,11 @@ private:
     // Tests for "stream" connectors, i.e. connectors that allow synchronous,
     // reliable delivery.
 
-    // FIXME must be able to pass dgram/stream explicitly if necessary
-    //  AF_LOCAL requires this
+    auto url = ::packeteer::util::url::parse(addr);
+    url.query["behaviour"] = "stream";
 
     // Server
-    connector server(addr);
+    connector server(url);
     CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
 
     CPPUNIT_ASSERT(!server.listening());
@@ -282,7 +282,7 @@ private:
     twine::chrono::sleep(twine::chrono::milliseconds(50));
 
     // Client
-    connector client(addr);
+    connector client(url);
     CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
 
     CPPUNIT_ASSERT(!client.listening());
@@ -317,10 +317,11 @@ private:
     // Tests for "datagram" connectors, i.e. connectors that allow synchronous,
     // un-reliable delivery.
 
-    // FIXME
+    auto url = ::packeteer::util::url::parse(addr);
+    url.query["behaviour"] = "datagram";
 
     // Server
-    connector server(addr);
+    connector server(url);
     CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
 
     CPPUNIT_ASSERT(!server.listening());
@@ -335,7 +336,7 @@ private:
     twine::chrono::sleep(twine::chrono::milliseconds(50));
 
     // Client
-    connector client(addr);
+    connector client(url);
     CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
 
     CPPUNIT_ASSERT(!client.listening());
