@@ -25,7 +25,7 @@
 // *** Config
 #include <packeteer/packeteer.h>
 #include <packeteer/net/detail/sysincludes.h>
-#include <packeteer/detail/operators.h>
+#include <packeteer/util/operators.h>
 
 // *** C++ includes
 #include <string>
@@ -49,7 +49,7 @@ class socket_address;
  * within a network.
  **/
 class network
-  : public ::packeteer::detail::operators<socket_address>
+  : public ::packeteer::util::operators<socket_address>
 {
 public:
   /**
@@ -143,10 +143,9 @@ public:
 
 protected:
   /**
-   * Used by detail::operators
+   * Used by util::operators
    **/
-  friend class packeteer::detail::operators<network>;
-  // FIXME revisit this
+  friend class packeteer::util::operators<network>;
 
   virtual bool is_equal_to(network const & other) const;
   virtual bool is_less_than(network const & other) const;

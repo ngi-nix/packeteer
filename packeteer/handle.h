@@ -32,13 +32,15 @@
 #include <cstring>
 #include <iostream>
 
+#include <packeteer/util/operators.h>
+
 
 namespace packeteer {
 
 /**
  * The handle class wraps I/O handles in a platform-independent fashion.
  **/
-struct handle
+struct handle : public ::packeteer::util::operators<handle>
 {
 #if defined(PACKETEER_WIN32)
   typedef HANDLE  sys_handle_t;
@@ -76,18 +78,7 @@ struct handle
 
   /**
    * Operators
-   * FIXME operators
    **/
-  bool operator==(handle const & other) const
-  {
-    return (0 == ::memcmp(&m_handle, &(other.m_handle), sizeof(sys_handle_t)));
-  }
-
-  bool operator<(handle const & other) const
-  {
-    return (::memcmp(&m_handle, &(other.m_handle), sizeof(sys_handle_t)) < 0);
-  }
-
   handle & operator=(handle const & other)
   {
     m_handle = other.m_handle;
@@ -135,6 +126,18 @@ struct handle
   friend std::ostream & operator<<(std::ostream & os, handle const & h);
 
 private:
+  friend class ::packeteer::util::operators<handle>;
+
+  inline bool is_equal_to(handle const & other) const
+  {
+    return (0 == ::memcmp(&m_handle, &(other.m_handle), sizeof(sys_handle_t)));
+  }
+
+  inline bool is_less_than(handle const & other) const
+  {
+    return (::memcmp(&m_handle, &(other.m_handle), sizeof(sys_handle_t)) < 0);
+  }
+
   sys_handle_t  m_handle;
 };
 

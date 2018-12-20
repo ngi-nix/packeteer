@@ -624,7 +624,7 @@ connector::get_behaviour() const
 
 
 bool
-connector::operator==(connector const & other) const
+connector::is_equal_to(connector const & other) const
 {
   return (
       type() == other.type()
@@ -637,7 +637,7 @@ connector::operator==(connector const & other) const
 
 
 bool
-connector::operator<(connector const & other) const
+connector::is_less_than(connector const & other) const
 {
   if (type() < other.type()) {
     return true;

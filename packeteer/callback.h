@@ -27,16 +27,17 @@
 #endif
 
 #include <packeteer/packeteer.h>
-#include <packeteer/types.h>
-#include <packeteer/handle.h>
 
 #include <typeinfo>
 #include <functional>
 
 #include <meta/hash.h>
 
+#include <packeteer/types.h>
+#include <packeteer/handle.h>
 #include <packeteer/error.h>
 #include <packeteer/events.h>
+#include <packeteer/util/operators.h>
 
 namespace packeteer {
 
@@ -81,7 +82,7 @@ struct callback_helper_base
  *  callback cb = make_callback(&obj, &Object::function);
  *  callback cb = make_callback(&obj); // assumes operator() to be the function
  **/
-class callback
+class callback : public ::packeteer::util::operators<callback>
 {
 public:
   /*****************************************************************************
@@ -227,43 +228,6 @@ public:
 
 
   /**
-   * Equality-compare two callback objects.
-   **/
-  inline bool operator==(callback const & other) const
-  {
-    if (nullptr != m_free_function) {
-      return m_free_function == other.m_free_function;
-    }
-    if (nullptr == other.m_object_helper
-        || nullptr == m_object_helper)
-    {
-      return false;
-    }
-    return m_object_helper->equal_to(other.m_object_helper);
-  }
-
-  inline bool operator!=(callback const & other) const
-  {
-    return !operator==(other);
-  }
-
-
-  inline bool operator<(callback const & other) const
-  {
-    if (nullptr != m_free_function) {
-      return (m_free_function < other.m_free_function);
-    }
-
-    if (nullptr == other.m_object_helper
-        || nullptr == m_object_helper)
-    {
-      return m_object_helper < other.m_object_helper;
-    }
-    return m_object_helper->less_than(other.m_object_helper);
-  }
-
-
-  /**
    * Hash values
    **/
   inline size_t hash() const
@@ -278,6 +242,38 @@ public:
   }
 
 private:
+  friend class ::packeteer::util::operators<callback>;
+
+  inline bool is_equal_to(callback const & other) const
+  {
+    if (nullptr != m_free_function) {
+      return m_free_function == other.m_free_function;
+    }
+    if (nullptr == other.m_object_helper
+        || nullptr == m_object_helper)
+    {
+      return false;
+    }
+    return m_object_helper->equal_to(other.m_object_helper);
+  }
+
+
+
+  inline bool is_less_than(callback const & other) const
+  {
+    if (nullptr != m_free_function) {
+      return (m_free_function < other.m_free_function);
+    }
+
+    if (nullptr == other.m_object_helper
+        || nullptr == m_object_helper)
+    {
+      return m_object_helper < other.m_object_helper;
+    }
+    return m_object_helper->less_than(other.m_object_helper);
+  }
+
+
   free_function_type              m_free_function;
   detail::callback_helper_base *  m_object_helper;
 };

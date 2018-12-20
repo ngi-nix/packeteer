@@ -402,14 +402,14 @@ install(FILES
     DESTINATION include/packeteer)
 
 install(FILES
-    packeteer/detail/operators.h
-    DESTINATION include/packeteer/detail)
-
-install(FILES
     packeteer/net/socket_address.h
     packeteer/net/network.h
-    packeteer/util/url.h
     DESTINATION include/packeteer/net)
+
+install(FILES
+    packeteer/util/url.h
+    packeteer/util/operators.h
+    DESTINATION include/packeteer/util)
 
 install(FILES
     packeteer/net/detail/sysincludes.h

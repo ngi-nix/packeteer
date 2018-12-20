@@ -21,14 +21,13 @@
 
 #include <packeteer/net/network.h>
 
-#include <packeteer/types.h>
-
 #include <cstring>
 #include <cmath>
 
 #include <functional>
 #include <set>
 
+#include <packeteer/types.h>
 #include <packeteer/error.h>
 
 #include <packeteer/net/socket_address.h>

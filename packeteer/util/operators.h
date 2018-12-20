@@ -17,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_OPERATORS_H
-#define PACKETEER_DETAIL_OPERATORS_H
+#ifndef PACKETEER_UTIL_OPERATORS_H
+#define PACKETEER_UTIL_OPERATORS_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -27,7 +27,7 @@
 #include <packeteer/packeteer.h>
 
 namespace packeteer {
-namespace detail {
+namespace util {
 
 /**
  * Supplement comparison operators when is_equal_to and is_less_than are
@@ -71,6 +71,6 @@ struct operators
 };
 
 
-}} // namespace packeteer::detail
+}} // namespace packeteer::util
 
 #endif // guard

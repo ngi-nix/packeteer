@@ -26,7 +26,7 @@
 #include <packeteer/packeteer.h>
 #include <packeteer/net/detail/sysincludes.h>
 #include <packeteer/error.h>
-#include <packeteer/detail/operators.h>
+#include <packeteer/util/operators.h>
 
 // *** C includes
 #include <sys/socket.h>
@@ -72,7 +72,7 @@ union address_type
  * Make it possible to use struct sockaddr as a map key.
  **/
 class socket_address
-  : public ::packeteer::detail::operators<socket_address>
+  : public ::packeteer::util::operators<socket_address>
 {
 public:
   // Socket address type
@@ -199,7 +199,7 @@ protected:
   /**
    * Used by detail::operators
    **/
-  friend class packeteer::detail::operators<socket_address>;
+  friend class packeteer::util::operators<socket_address>;
 
   virtual bool is_equal_to(socket_address const & other) const;
   virtual bool is_less_than(socket_address const & other) const;

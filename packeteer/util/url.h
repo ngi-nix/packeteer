@@ -25,12 +25,12 @@
 #endif
 
 #include <packeteer/packeteer.h>
-#include <packeteer/detail/operators.h>
 
 #include <string>
 #include <map>
 
 #include <packeteer/error.h>
+#include <packeteer/util/operators.h>
 
 namespace packeteer {
 namespace util {
@@ -57,7 +57,7 @@ namespace util {
  * boolean values to simple "0" and "1" (e.g. "true", "yes", etc.).
  */
 struct url
-  : public ::packeteer::detail::operators<url>
+  : public ::packeteer::util::operators<url>
 {
 public:
   // Data members
@@ -78,7 +78,7 @@ public:
   size_t hash() const;
 
 private:
-  friend class packeteer::detail::operators<url>;
+  friend class packeteer::util::operators<url>;
 
   bool is_less_than(url const & other) const;
   bool is_equal_to(url const & other) const;

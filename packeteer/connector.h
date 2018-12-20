@@ -36,9 +36,9 @@
 #include <packeteer/connector_specs.h>
 #include <packeteer/peer_address.h>
 
-#include <packeteer/detail/operators.h>
-#include <packeteer/net/socket_address.h>
+#include <packeteer/util/operators.h>
 #include <packeteer/util/url.h>
+#include <packeteer/net/socket_address.h>
 
 namespace packeteer {
 
@@ -50,7 +50,7 @@ namespace packeteer {
  * However, the usage is fairly similar to how you'd use sockets.
  **/
 class connector
-  : public ::packeteer::detail::operators<connector>
+  : public ::packeteer::util::operators<connector>
 {
 public:
   /***************************************************************************
@@ -250,14 +250,13 @@ public:
 
   /**
    * Behave like a value type.
-   * FIXME use operators
    **/
   connector(connector const & other);
   connector(connector &&) = default;
   connector & operator=(connector const & other);
 
-  bool operator==(connector const & other) const;
-  bool operator<(connector const & other) const;
+  bool is_equal_to(connector const & other) const;
+  bool is_less_than(connector const & other) const;
 
   void swap(connector & other);
   size_t hash() const;
