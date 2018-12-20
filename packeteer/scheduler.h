@@ -42,16 +42,15 @@ namespace packeteer {
  *
  * It's a cross between an efficient I/O poller and a (statically sized)
  * thread pool implementation. Functions can be scheduled to run on one of the
- * worker threads at a specified time, or when a file descriptor becomes ready
- * for I/O.
+ * worker threads at a specified time, or when a handle becomes ready for I/O.
  *
  * As with other thread pool implementations, you must take care to avoid
  * performing blocking or long-running tasks in callbacks or risk reducing the
  * efficiency of the scheduler as a whole.
  *
- * For I/O events, callbacks will be invoked once per file descriptor for which
- * any I/O event occurred, e.g. once for (PEV_IO_READ | PEV_IO_WRITE).
- * For other events, callbacks will be invoked once per event that occurred.
+ * For I/O events, callbacks will be invoked once per handle for which any I/O
+ * event occurred, e.g. once for (PEV_IO_READ | PEV_IO_WRITE). For other events,
+ * callbacks will be invoked once per event that occurred.
  **/
 class scheduler
 {
