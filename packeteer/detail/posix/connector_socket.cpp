@@ -21,7 +21,7 @@
 
 #include <packeteer/net/socket_address.h>
 
-#include <packeteer/detail/filedescriptors.h>
+#include <packeteer/handle.h>
 #include <packeteer/detail/globals.h>
 
 #include <packeteer/error.h>
@@ -450,7 +450,7 @@ connector_socket::accept(int & new_fd, net::socket_address & addr) const
   }
 
   // Make new socket nonblocking
-  error_t err = ::packeteer::detail::set_blocking_mode(new_fd, m_blocking);
+  error_t err = ::packeteer::set_blocking_mode(new_fd, m_blocking);
   if (ERR_SUCCESS != err) {
     ::close(new_fd);
     new_fd = -1;
@@ -465,7 +465,7 @@ connector_socket::accept(int & new_fd, net::socket_address & addr) const
 error_t
 connector_socket::set_blocking_mode(bool state)
 {
-  return ::packeteer::detail::set_blocking_mode(m_fd, state);
+  return ::packeteer::set_blocking_mode(m_fd, state);
 }
 
 
@@ -473,7 +473,7 @@ connector_socket::set_blocking_mode(bool state)
 error_t
 connector_socket::get_blocking_mode(bool & state) const
 {
-  return ::packeteer::detail::get_blocking_mode(m_fd, state);
+  return ::packeteer::get_blocking_mode(m_fd, state);
 }
 
 

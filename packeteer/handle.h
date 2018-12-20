@@ -154,6 +154,16 @@ operator<<(std::ostream & os, handle const & h)
 }
 
 
+/**
+ * Set/get the blocking mode of the file descriptor (on or off).
+ */
+error_t
+set_blocking_mode(handle::sys_handle_t const & h, bool state);
+
+error_t
+get_blocking_mode(handle::sys_handle_t const & h, bool & state);
+
+
 } // namespace packeteer
 
 /**

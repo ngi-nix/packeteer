@@ -18,13 +18,12 @@
  * PARTICULAR PURPOSE.
  **/
 
-#include <packeteer/detail/filedescriptors.h>
+#include <packeteer/handle.h>
 
 #include <fcntl.h>
 #include <unistd.h>
 
 namespace packeteer {
-namespace detail {
 
 namespace {
 
@@ -63,7 +62,7 @@ translate_fcntl_errno()
 
 
 error_t
-set_blocking_mode(int fd, bool state /* = false */)
+set_blocking_mode(handle::sys_handle_t const & fd, bool state /* = false */)
 {
   int val = ::fcntl(fd, F_GETFL, 0);
   if (-1 == val) {
@@ -88,7 +87,7 @@ set_blocking_mode(int fd, bool state /* = false */)
 
 
 error_t
-get_blocking_mode(int fd, bool & state)
+get_blocking_mode(handle::sys_handle_t const & fd, bool & state)
 {
   int val = ::fcntl(fd, F_GETFL, 0);
   if (-1 == val) {
@@ -101,4 +100,4 @@ get_blocking_mode(int fd, bool & state)
 
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer

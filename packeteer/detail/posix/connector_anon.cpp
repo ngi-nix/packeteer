@@ -20,7 +20,7 @@
  **/
 #include <packeteer/detail/connector_anon.h>
 
-#include <packeteer/detail/filedescriptors.h>
+#include <packeteer/handle.h>
 
 #include <unistd.h>
 #include <errno.h>
@@ -71,11 +71,11 @@ connector_anon::create_pipe()
   }
 
   // Optionally make the read and write end non-blocking
-  if (ERR_SUCCESS != ::packeteer::detail::set_blocking_mode(m_fds[0], m_blocking)) {
+  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[0], m_blocking)) {
     close();
     return ERR_UNEXPECTED;
   }
-  if (ERR_SUCCESS != ::packeteer::detail::set_blocking_mode(m_fds[1], m_blocking)) {
+  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[1], m_blocking)) {
     close();
     return ERR_UNEXPECTED;
   }
@@ -167,11 +167,11 @@ connector_anon::close()
 error_t
 connector_anon::set_blocking_mode(bool state)
 {
-  error_t err = ::packeteer::detail::set_blocking_mode(m_fds[0], state);
+  error_t err = ::packeteer::set_blocking_mode(m_fds[0], state);
   if (err != ERR_SUCCESS) {
     return err;
   }
-  return ::packeteer::detail::set_blocking_mode(m_fds[1], state);
+  return ::packeteer::set_blocking_mode(m_fds[1], state);
 }
 
 
@@ -180,11 +180,11 @@ error_t
 connector_anon::get_blocking_mode(bool & state) const
 {
   bool states[2] = { false, false };
-  error_t err = ::packeteer::detail::get_blocking_mode(m_fds[0], states[0]);
+  error_t err = ::packeteer::get_blocking_mode(m_fds[0], states[0]);
   if (err != ERR_SUCCESS) {
     return err;
   }
-  err = ::packeteer::detail::get_blocking_mode(m_fds[1], states[1]);
+  err = ::packeteer::get_blocking_mode(m_fds[1], states[1]);
   if (err != ERR_SUCCESS) {
     return err;
   }

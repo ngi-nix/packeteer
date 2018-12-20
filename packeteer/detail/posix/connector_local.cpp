@@ -22,7 +22,6 @@
 
 #include <packeteer/net/socket_address.h>
 
-#include <packeteer/detail/filedescriptors.h>
 #include <packeteer/detail/globals.h>
 
 #include <packeteer/error.h>

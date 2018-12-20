@@ -19,12 +19,12 @@
  **/
 #include <packeteer/detail/connector_pipe.h>
 
+#include <packeteer/handle.h>
+#include <packeteer/error.h>
+
 #include <packeteer/net/socket_address.h>
 
-#include <packeteer/detail/filedescriptors.h>
 #include <packeteer/detail/globals.h>
-
-#include <packeteer/error.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -329,7 +329,7 @@ connector_pipe::close()
 error_t
 connector_pipe::set_blocking_mode(bool state)
 {
-  return ::packeteer::detail::set_blocking_mode(m_fd, state);
+  return ::packeteer::set_blocking_mode(m_fd, state);
 }
 
 
@@ -337,7 +337,7 @@ connector_pipe::set_blocking_mode(bool state)
 error_t
 connector_pipe::get_blocking_mode(bool & state) const
 {
-  return ::packeteer::detail::get_blocking_mode(m_fd, state);
+  return ::packeteer::get_blocking_mode(m_fd, state);
 }
 
 
