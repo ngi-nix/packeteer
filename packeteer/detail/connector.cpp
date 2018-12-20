@@ -26,6 +26,16 @@
 namespace packeteer {
 namespace detail {
 
+
+connector::connector(bool blocking /*= true */,
+    connector_behaviour const & behaviour /* = CB_DEFAULT */)
+  : m_behaviour(behaviour)
+  , m_blocking(blocking)
+{
+}
+
+
+
 connector::~connector()
 {
 }
@@ -213,6 +223,12 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
   PACKETEER_FLOW_CONTROL_GUARD;
 }
 
+
+connector_behaviour
+connector::get_behaviour() const
+{
+  return m_behaviour;
+}
 
 
 }} // namespace packeteer::detail

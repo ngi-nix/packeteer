@@ -29,6 +29,7 @@
 
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
+#include <packeteer/connector_specs.h>
 
 #include <packeteer/net/socket_address.h>
 
@@ -45,6 +46,8 @@ public:
   /***************************************************************************
    * Always to be implemented by child classes
    **/
+  connector(bool blocking = true, connector_behaviour const & behaviour = CB_DEFAULT);
+
   virtual ~connector() = 0; // Expected to close() the connector
 
   virtual error_t listen() = 0;
@@ -61,6 +64,14 @@ public:
   virtual error_t close() = 0;
 
   /***************************************************************************
+   * Abstract setting accessors
+   **/
+  virtual error_t get_blocking_mode(bool & state) const = 0;
+  virtual error_t set_blocking_mode(bool state) = 0;
+
+  virtual connector_behaviour get_behaviour() const;
+
+  /***************************************************************************
    * Default (POSIX-oriented) implementations; may be subclassed if necessary.
    **/
   virtual error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
@@ -71,6 +82,18 @@ public:
 
   virtual error_t read(void * buf, size_t bufsize, size_t & bytes_read);
   virtual error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
+
+protected:
+  // The connector behaviour is stored here as a reference for derived classes;
+  // they can use it to determine how to initialize themselves.
+  // It's set during construction, and can afterwards only be read.
+  connector_behaviour m_behaviour;
+
+  // The blocking mode is used like the behaviour - however, it will not be
+  // modified unless derived classes do so. Derived classes should set and get
+  // the blocking mode directly from their underlying handles after
+  // construction is complete.
+  bool                m_blocking;
 };
 
 }} // namespace packeteer::detail
