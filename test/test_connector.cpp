@@ -137,8 +137,8 @@ struct test_data
 
   // All other types require path names. There's not much common
   // about path names, so our only requirement is that it exists.
-  { "local://foo", true, CT_LOCAL },
-  { "pipe://foo", true, CT_PIPE },
+  { "local:///foo", true, CT_LOCAL },
+  { "pipe:///foo", true, CT_PIPE },
   { "anon://", true, CT_ANON },
 
 };
