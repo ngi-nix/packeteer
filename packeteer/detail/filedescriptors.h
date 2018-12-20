@@ -31,11 +31,15 @@
 namespace packeteer {
 namespace detail {
 
+// FIXME maybe make this for handles, and have a posix and a windows implementation
 /**
- * Set the blocking mode of the file descriptor (on or off).
+ * Set/get the blocking mode of the file descriptor (on or off).
  */
 error_t
-set_blocking_mode(int fd, bool blocking = false);
+set_blocking_mode(int fd, bool state);
+
+error_t
+get_blocking_mode(int fd, bool & state);
 
 
 }} // namespace packeteer::detail

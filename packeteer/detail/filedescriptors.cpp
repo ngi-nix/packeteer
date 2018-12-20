@@ -63,7 +63,7 @@ translate_fcntl_errno()
 
 
 error_t
-set_blocking_mode(int fd, bool blocking /* = false */)
+set_blocking_mode(int fd, bool state /* = false */)
 {
   int val = ::fcntl(fd, F_GETFL, 0);
   if (-1 == val) {
@@ -71,7 +71,7 @@ set_blocking_mode(int fd, bool blocking /* = false */)
   }
 
   val |= O_CLOEXEC;
-  if (blocking) {
+  if (state) {
     val &= ~O_NONBLOCK;
   }
   else {
@@ -85,6 +85,20 @@ set_blocking_mode(int fd, bool blocking /* = false */)
 
   return ERR_SUCCESS;
 }
+
+
+error_t
+get_blocking_mode(int fd, bool & state)
+{
+  int val = ::fcntl(fd, F_GETFL, 0);
+  if (-1 == val) {
+    return translate_fcntl_errno();
+  }
+
+  state = bool(val & O_NONBLOCK);
+  return ERR_SUCCESS;
+}
+
 
 
 }} // namespace packeteer::detail
