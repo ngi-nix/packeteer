@@ -39,8 +39,8 @@ namespace detail {
 struct connector_pipe : public ::packeteer::detail::connector
 {
 public:
-  connector_pipe(std::string const & path);
-  connector_pipe(::packeteer::net::socket_address const & addr);
+  connector_pipe(std::string const & path, bool blocking);
+  connector_pipe(::packeteer::net::socket_address const & addr, bool blocking);
   ~connector_pipe();
 
   error_t listen();
@@ -55,8 +55,11 @@ public:
   handle get_write_handle() const;
 
   error_t close();
-private:
 
+  error_t set_blocking_mode(bool state);
+  error_t get_blocking_mode(bool & state) const;
+
+private:
   connector_pipe();
 
   ::packeteer::net::socket_address  m_addr;

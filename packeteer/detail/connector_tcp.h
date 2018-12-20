@@ -42,7 +42,7 @@ namespace detail {
 struct connector_tcp : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_tcp(::packeteer::net::socket_address const & addr);
+  connector_tcp(::packeteer::net::socket_address const & addr, bool blocking);
   ~connector_tcp();
 
   error_t listen();

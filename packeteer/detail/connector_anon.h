@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2017 Jens Finkhaeuser.
+ * Copyright (c) 2015-2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -38,7 +38,7 @@ namespace detail {
 struct connector_anon : public ::packeteer::detail::connector
 {
 public:
-  connector_anon(bool block = false);
+  connector_anon(bool blocking);
   ~connector_anon();
 
   error_t listen();
@@ -53,10 +53,13 @@ public:
   handle get_write_handle() const;
 
   error_t close();
+
+  error_t set_blocking_mode(bool state);
+  error_t get_blocking_mode(bool & state) const;
+
 private:
   error_t create_pipe();
 
-  bool  m_block;
   int   m_fds[2];
 };
 

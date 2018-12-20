@@ -42,7 +42,7 @@ namespace detail {
 struct connector_udp : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_udp(::packeteer::net::socket_address const & addr);
+  connector_udp(::packeteer::net::socket_address const & addr, bool blocking);
   ~connector_udp();
 
   error_t listen();
