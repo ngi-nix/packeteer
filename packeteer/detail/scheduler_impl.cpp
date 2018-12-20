@@ -305,6 +305,9 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       {
         // Add the callback for the event mask
         m_io_callbacks.add(io);
+        // Ensure the handle is in non-blocking mode.
+        // TODO: this may introduce syscalls we don't need.
+        set_blocking_mode(io->m_handle.sys_handle(), false);
         m_io->register_handle(io->m_handle, io->m_events);
       }
       break;
