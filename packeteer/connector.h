@@ -199,6 +199,23 @@ public:
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
       util::url const & recipient);
 
+  // TODO peer_address
+  //      - check out; sort of binary version of parsed URL?
+  //      - if so, converters?
+  //        -> type and mode? or just type?
+  //      blocking_mode
+  //      -> set to false in scheduler
+  //      -> default to true
+  //      -> getter as well
+
+  /**
+   * FIXME move? document!
+   */
+  error_t set_blocking_mode(bool state);
+  error_t get_blocking_mode(bool & state);
+
+  ::packeteer::connector_behaviour get_behaviour() const;
+
   /**
    * Peek how much data is available to receive(). This is best use for
    * CB_DATAGRAM connectors, when you're unsure about the datagram size.
@@ -233,6 +250,7 @@ public:
 
   /**
    * Behave like a value type.
+   * FIXME use operators
    **/
   connector(connector const & other);
   connector(connector &&) = default;

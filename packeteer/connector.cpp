@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2017 Jens Finkhaeuser.
+ * Copyright (c) 2015-2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -94,17 +94,15 @@ match_scheme(std::string const & scheme)
 struct connector::connector_impl
 {
   connector_type        m_type;
-  connector_behaviour   m_behaviour;
   connector_behaviour   m_default_behaviour;
   int                   m_possible_behaviours;
   util::url             m_url;
+  bool                  m_blocking;
   detail::connector *   m_conn;
   volatile size_t       m_refcount;
 
-  connector_impl(util::url const & connect_url, detail::connector * conn,
-      connector_behaviour const & behaviour)
+  connector_impl(util::url const & connect_url, detail::connector * conn)
     : m_type(CT_UNSPEC)
-    , m_behaviour(behaviour)
     , m_default_behaviour(CB_DEFAULT)
     , m_possible_behaviours(CB_DEFAULT)
     , m_url(connect_url)
@@ -124,7 +122,6 @@ struct connector::connector_impl
 
   connector_impl(util::url const & connect_url)
     : m_type(CT_UNSPEC)
-    , m_behaviour(CB_DEFAULT)
     , m_default_behaviour(CB_DEFAULT)
     , m_possible_behaviours(CB_DEFAULT)
     , m_url(connect_url)
@@ -138,9 +135,7 @@ struct connector::connector_impl
     m_possible_behaviours = spec.second.second;
 
     // Set behaviour - this may be overridden.
-    if (CB_DEFAULT == m_behaviour) {
-      m_behaviour = m_default_behaviour;
-    }
+    auto behaviour = m_default_behaviour;
 
     // Check if there is a "behaviour" parameter in the url.
     auto iter = m_url.query.find("behaviour");
@@ -159,6 +154,7 @@ struct connector::connector_impl
       if (!(m_possible_behaviours & requested)) {
         throw exception(ERR_FORMAT, "The requested behaviour is not supported by the connector type!");
       }
+      behaviour = requested;
     }
 
     // Check if there is a blocking mode specified.
@@ -214,15 +210,13 @@ struct connector::connector_impl
         case CT_TCP:
         case CT_TCP4:
         case CT_TCP6:
-          // TODO pass blocking mode
-          m_conn = new detail::connector_tcp(addr);
+          m_conn = new detail::connector_tcp(addr, blocking);
           break;
 
         case CT_UDP:
         case CT_UDP4:
         case CT_UDP6:
-          // TODO pass blocking mode
-          m_conn = new detail::connector_udp(addr);
+          m_conn = new detail::connector_udp(addr, blocking);
           break;
 
         default:
@@ -232,6 +226,9 @@ struct connector::connector_impl
 
     else if (CT_ANON == ctype) {
       // Looks good for anonymous connectors
+      if (!m_url.path.empty()) {
+        throw exception(ERR_FORMAT, "Path component makes no sense for anon:// connectors.");
+      }
       m_type = ctype;
       m_conn = new detail::connector_anon(blocking);
     }
@@ -248,11 +245,11 @@ struct connector::connector_impl
       // Instanciate the connector implementation
       switch (m_type) {
         case CT_LOCAL:
-          m_conn = new detail::connector_local(m_url.path, m_behaviour);
+          m_conn = new detail::connector_local(m_url.path, blocking, behaviour);
           break;
 
         case CT_PIPE:
-          m_conn = new detail::connector_pipe(m_url.path);
+          m_conn = new detail::connector_pipe(m_url.path, blocking);
           break;
 
         default:
@@ -261,7 +258,6 @@ struct connector::connector_impl
       }
     }
   }
-
 
 
 
@@ -447,8 +443,7 @@ connector::accept() const
     }
     else {
       // Address is identical, but connector is not
-      result.m_impl = new connector_impl(m_impl->m_url, conn,
-          m_impl->m_behaviour);
+      result.m_impl = new connector_impl(m_impl->m_url, conn);
     }
   }
   else {
@@ -460,8 +455,7 @@ connector::accept() const
       conn = nullptr;
       throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
     }
-    result.m_impl = new connector_impl(util::url::parse(peer.full_str()), conn,
-        m_impl->m_behaviour);
+    result.m_impl = new connector_impl(util::url::parse(peer.full_str()), conn);
   }
 
   return result;
@@ -592,6 +586,39 @@ connector::close()
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->close();
+}
+
+
+
+error_t
+connector::set_blocking_mode(bool state)
+{
+  if (!*m_impl) {
+    return ERR_INITIALIZATION;
+  }
+  return (*m_impl)->set_blocking_mode(state);
+}
+
+
+
+error_t
+connector::get_blocking_mode(bool & state)
+{
+  if (!*m_impl) {
+    return ERR_INITIALIZATION;
+  }
+  return (*m_impl)->get_blocking_mode(state);
+}
+
+
+
+connector_behaviour
+connector::get_behaviour() const
+{
+  if (!*m_impl) {
+    throw exception(ERR_INITIALIZATION, "Error retrieving behaviour.");
+  }
+  return (*m_impl)->get_behaviour();
 }
 
 
