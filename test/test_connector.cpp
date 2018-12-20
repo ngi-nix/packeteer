@@ -274,6 +274,11 @@ private:
     CPPUNIT_ASSERT(server.listening());
     CPPUNIT_ASSERT(!server.connected());
 
+    bool mode = false;
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.get_blocking_mode(mode));
+    CPPUNIT_ASSERT_EQUAL(true, mode);
+    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server.get_behaviour());
+
     twine::chrono::sleep(twine::chrono::milliseconds(50));
 
     // Client
@@ -291,6 +296,14 @@ private:
     CPPUNIT_ASSERT(!client.listening());
     CPPUNIT_ASSERT(client.connected());
     CPPUNIT_ASSERT(server_conn.listening());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
+    CPPUNIT_ASSERT_EQUAL(true, mode);
+    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server_conn.get_behaviour());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.get_blocking_mode(mode));
+    CPPUNIT_ASSERT_EQUAL(true, mode);
+    CPPUNIT_ASSERT_EQUAL(CB_STREAM, client.get_behaviour());
 
     // Communications
     sendMessageStream(client, server_conn);
