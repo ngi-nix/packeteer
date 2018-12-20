@@ -60,8 +60,6 @@ public:
 
 private:
   connector_local();
-
-  int sock_type(::packeteer::connector_behaviour const & behaviour) const;
 };
 
 }} // namespace packeteer::detail

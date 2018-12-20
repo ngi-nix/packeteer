@@ -42,7 +42,7 @@ namespace {
 // FIXME 
 // utility namespace for this and filedescriptors.h?
 error_t
-create_socket(int domain, int type, int & fd)
+create_socket(int domain, int type, int & fd, bool blocking)
 {
   fd = ::socket(domain, type, 0);
   if (fd < 0) {
@@ -72,7 +72,7 @@ create_socket(int domain, int type, int & fd)
   }
 
   // Non-blocking
-  error_t err = set_blocking_mode(fd, false);
+  error_t err = set_blocking_mode(fd, blocking);
   if (ERR_SUCCESS != err) {
     ::close(fd);
     fd = -1;
@@ -111,8 +111,10 @@ create_socket(int domain, int type, int & fd)
 
 
 
-connector_socket::connector_socket(net::socket_address const & addr)
-  : m_addr(addr)
+connector_socket::connector_socket(net::socket_address const & addr,
+    bool blocking, connector_behaviour const & behaviour)
+  : connector(blocking, behaviour)
+  , m_addr(addr)
   , m_server(false)
   , m_fd(-1)
 {
@@ -121,7 +123,8 @@ connector_socket::connector_socket(net::socket_address const & addr)
 
 
 connector_socket::connector_socket()
-  : m_addr()
+  : connector(true, CB_STREAM)
+  , m_addr()
   , m_server(false)
   , m_fd(-1)
 {
@@ -138,7 +141,7 @@ connector_socket::connect(int domain, int type)
 
   // First, create socket
   int fd = -1;
-  error_t err = create_socket(domain, type, fd);
+  error_t err = create_socket(domain, type, fd, m_blocking);
   if (fd < 0) {
     return err;
   }
@@ -154,6 +157,9 @@ connector_socket::connect(int domain, int type)
 
       return ERR_SUCCESS;
     }
+
+    // TODO if EINPROGRESS or EALREADY, we need to poll/select/etc.
+    //      for the FD to become writeable.
 
     ::close(fd);
 
@@ -175,14 +181,21 @@ connector_socket::connect(int domain, int type)
       case EAGAIN:
         return ERR_NUM_FILES; // technically, ports.
 
+      // TODO
+      // EADDRNOTAVAIL
+
       case EBADF:
       case ENOTSOCK:
-      case EALREADY:
       case EISCONN:
         return ERR_INITIALIZATION;
 
       case EINPROGRESS:
+      case EALREADY:
         // We'll treat this as success.
+        std::cout << "GOT EALREADY" << std::endl;
+        // FIXME should use select to determine whether the socket
+        // is usable
+        // remove this part here, see above!
         break;
 
       case ECONNREFUSED:
@@ -212,7 +225,7 @@ connector_socket::create(int domain, int type, int & fd)
   }
 
   fd = -1;
-  error_t err = create_socket(domain, type, fd);
+  error_t err = create_socket(domain, type, fd, m_blocking);
   if (fd < 0) {
     return err;
   }
@@ -230,7 +243,7 @@ connector_socket::bind(int domain, int type, int & fd)
 
   // First, create socket
   fd = -1;
-  error_t err = create_socket(domain, type, fd);
+  error_t err = create_socket(domain, type, fd, m_blocking);
   if (fd < 0) {
     return err;
   }
@@ -437,7 +450,7 @@ connector_socket::accept(int & new_fd, net::socket_address & addr) const
   }
 
   // Make new socket nonblocking
-  error_t err = set_blocking_mode(new_fd, false);
+  error_t err = ::packeteer::detail::set_blocking_mode(new_fd, m_blocking);
   if (ERR_SUCCESS != err) {
     ::close(new_fd);
     new_fd = -1;
@@ -445,8 +458,22 @@ connector_socket::accept(int & new_fd, net::socket_address & addr) const
   else {
     addr = net::socket_address(&buf, len);
   }
+  return ERR_SUCCESS;
+}
 
-  return err;
+
+error_t
+connector_socket::set_blocking_mode(bool state)
+{
+  return ::packeteer::detail::set_blocking_mode(m_fd, state);
+}
+
+
+
+error_t
+connector_socket::get_blocking_mode(bool & state) const
+{
+  return ::packeteer::detail::get_blocking_mode(m_fd, state);
 }
 
 

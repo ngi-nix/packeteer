@@ -39,7 +39,8 @@ namespace detail {
 struct connector_socket : public ::packeteer::detail::connector
 {
 public:
-  connector_socket(::packeteer::net::socket_address const & addr);
+  connector_socket(::packeteer::net::socket_address const & addr,
+      bool blocking, connector_behaviour const & behaviour);
 
   error_t create(int domain, int type, int & fd);
   error_t bind(int domain, int type, int & fd);
@@ -55,6 +56,9 @@ public:
   handle get_write_handle() const;
 
   error_t close_socket();
+
+  error_t set_blocking_mode(bool state);
+  error_t get_blocking_mode(bool & state) const;
 
 protected:
   connector_socket();

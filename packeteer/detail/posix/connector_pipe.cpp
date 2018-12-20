@@ -154,8 +154,9 @@ translate_open_error()
 
 } // anonymous namespace
 
-connector_pipe::connector_pipe(std::string const & path)
-  : m_addr(path)
+connector_pipe::connector_pipe(std::string const & path, bool blocking)
+  : connector(blocking, CB_STREAM)
+  , m_addr(path)
   , m_server(false)
   , m_fd(-1)
 {
@@ -163,8 +164,9 @@ connector_pipe::connector_pipe(std::string const & path)
 
 
 
-connector_pipe::connector_pipe(net::socket_address const & addr)
-  : m_addr(addr)
+connector_pipe::connector_pipe(net::socket_address const & addr, bool blocking)
+  : connector(blocking, CB_STREAM)
+  , m_addr(addr)
   , m_server(false)
   , m_fd(-1)
 {
@@ -187,7 +189,10 @@ connector_pipe::connect()
   }
 
   // If the file exists, open it.
-  mode_t mode = O_RDWR | O_CLOEXEC | O_ASYNC | O_NONBLOCK;
+  mode_t mode = O_RDWR | O_CLOEXEC | O_ASYNC;
+  if (!m_blocking) {
+    mode |= O_NONBLOCK;
+  }
   int fd = -1;
   while (true) {
     fd = ::open(m_addr.full_str().c_str(), mode);
@@ -227,7 +232,10 @@ connector_pipe::listen()
   }
 
   // If the file exists, open it.
-  mode_t mode = O_RDWR | O_CLOEXEC | O_ASYNC | O_NONBLOCK;
+  mode_t mode = O_RDWR | O_CLOEXEC | O_ASYNC;
+  if (!m_blocking) {
+    mode |= O_NONBLOCK;
+  }
   int fd = -1;
   while (true) {
     fd = ::open(m_addr.full_str().c_str(), mode);
@@ -316,5 +324,21 @@ connector_pipe::close()
 
   return ERR_SUCCESS;
 }
+
+
+error_t
+connector_pipe::set_blocking_mode(bool state)
+{
+  return ::packeteer::detail::set_blocking_mode(m_fd, state);
+}
+
+
+
+error_t
+connector_pipe::get_blocking_mode(bool & state) const
+{
+  return ::packeteer::detail::get_blocking_mode(m_fd, state);
+}
+
 
 }} // namespace packeteer::detail

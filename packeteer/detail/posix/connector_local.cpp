@@ -39,19 +39,36 @@
 namespace packeteer {
 namespace detail {
 
-connector_local::connector_local(std::string const & path,
-    ::packeteer::connector_behaviour const & behaviour /* = CB_DEFAULT */)
-  : connector_socket(net::socket_address(path))
-  , m_behaviour(behaviour)
+namespace {
+
+inline int
+sock_type(connector_behaviour const & behaviour)
+{
+  switch (behaviour) {
+    case CB_DATAGRAM:
+      return SOCK_DGRAM;
+    case CB_STREAM:
+    default:
+      return SOCK_STREAM;
+  }
+}
+
+} // anonymous namespace
+
+
+
+
+connector_local::connector_local(std::string const & path, bool blocking,
+    connector_behaviour const & behaviour)
+  : connector_socket(net::socket_address(path), blocking, behaviour)
 {
 }
 
 
 
-connector_local::connector_local(net::socket_address const & addr,
-    ::packeteer::connector_behaviour const & behaviour /* = CB_DEFAULT */)
-  : connector_socket(addr)
-  , m_behaviour(behaviour)
+connector_local::connector_local(net::socket_address const & addr, bool blocking,
+    connector_behaviour const & behaviour)
+  : connector_socket(addr, blocking, behaviour)
 {
 }
 
@@ -59,7 +76,6 @@ connector_local::connector_local(net::socket_address const & addr,
 
 connector_local::connector_local()
   : connector_socket()
-  , m_behaviour(CB_DEFAULT)
 {
 }
 
@@ -135,19 +151,6 @@ connector_local::accept(net::socket_address & addr) const
   result->m_behaviour = m_behaviour;
 
   return result;
-}
-
-
-int
-connector_local::sock_type(::packeteer::connector_behaviour const & behaviour) const
-{
-  switch (behaviour) {
-    case CB_DATAGRAM:
-      return SOCK_DGRAM;
-    case CB_STREAM:
-    default:
-      return SOCK_STREAM;
-  }
 }
 
 

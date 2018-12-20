@@ -57,8 +57,8 @@ select_domain(::packeteer::net::socket_address const & addr)
 
 } // anonymous namespace
 
-connector_udp::connector_udp(net::socket_address const & addr)
-  : connector_socket(addr)
+connector_udp::connector_udp(net::socket_address const & addr, bool blocking)
+  : connector_socket(addr, blocking, CB_DATAGRAM)
 {
 }
 

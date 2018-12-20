@@ -30,8 +30,8 @@
 namespace packeteer {
 namespace detail {
 
-connector_anon::connector_anon(bool block /* = false */)
-  : m_block(block)
+connector_anon::connector_anon(bool blocking)
+  : connector(blocking, CB_STREAM)
 {
   m_fds[0] = m_fds[1] = -1;
 }
@@ -71,11 +71,11 @@ connector_anon::create_pipe()
   }
 
   // Optionally make the read and write end non-blocking
-  if (ERR_SUCCESS != set_blocking_mode(m_fds[0], m_block)) {
+  if (ERR_SUCCESS != ::packeteer::detail::set_blocking_mode(m_fds[0], m_blocking)) {
     close();
     return ERR_UNEXPECTED;
   }
-  if (ERR_SUCCESS != set_blocking_mode(m_fds[1], m_block)) {
+  if (ERR_SUCCESS != ::packeteer::detail::set_blocking_mode(m_fds[1], m_blocking)) {
     close();
     return ERR_UNEXPECTED;
   }
@@ -161,5 +161,42 @@ connector_anon::close()
 
   return ERR_SUCCESS;
 }
+
+
+
+error_t
+connector_anon::set_blocking_mode(bool state)
+{
+  error_t err = ::packeteer::detail::set_blocking_mode(m_fds[0], state);
+  if (err != ERR_SUCCESS) {
+    return err;
+  }
+  return ::packeteer::detail::set_blocking_mode(m_fds[1], state);
+}
+
+
+
+error_t
+connector_anon::get_blocking_mode(bool & state) const
+{
+  bool states[2] = { false, false };
+  error_t err = ::packeteer::detail::get_blocking_mode(m_fds[0], states[0]);
+  if (err != ERR_SUCCESS) {
+    return err;
+  }
+  err = ::packeteer::detail::get_blocking_mode(m_fds[1], states[1]);
+  if (err != ERR_SUCCESS) {
+    return err;
+  }
+
+  if (states[0] != states[1]) {
+    LOG("The two file descriptors had differing blocking modes.");
+    return ERR_UNEXPECTED;
+  }
+
+  state = states[0];
+  return ERR_SUCCESS;
+}
+
 
 }} // namespace packeteer::detail
