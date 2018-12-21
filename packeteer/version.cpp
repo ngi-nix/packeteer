@@ -41,7 +41,7 @@ char const * copyright_string()
     PACKETEER_PACKAGE_NAME " " PACKETEER_PACKAGE_VERSION " " PACKETEER_PACKAGE_URL "\n"
     "Copyright (c) 2011 Jens Finkhaeuser.\n"
     "Copyright (c) 2012-2014 Unwesen Ltd.\n"
-    "Copyright (c) 2015-2017 Jens Finkhaeuser.\n"
+    "Copyright (c) 2015-2019 Jens Finkhaeuser.\n"
     "Licensed under the the GPLv3 for personal, educational or non-profit use.\n"
     "Other licensing options available; please contact the copyright holder for\n"
     "information."

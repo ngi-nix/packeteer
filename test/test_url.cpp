@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2018-2017 Jens Finkhaeuser.
+ * Copyright (c) 2018-2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -21,14 +21,6 @@
 #include <packeteer/util/url.h>
 
 #include <cppunit/extensions/HelperMacros.h>
-
-// FIXME #include <cstring>
-// FIXME 
-// FIXME #include <sstream>
-// FIXME #include <string>
-// FIXME #include <set>
-// FIXME 
-// FIXME #include "value_tests.h"
 
 namespace util = packeteer::util;
 
