@@ -232,20 +232,20 @@ private:
     size_t amount = 0;
     std::cout << "from " << sender.connect_url() << " to " << receiver.connect_url() << std::endl;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.send(msg.c_str(), msg.size(), amount,
-        receiver.connect_url()));
+        receiver.peer_addr()));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 
     twine::chrono::sleep(twine::chrono::milliseconds(50));
 
     std::vector<char> result;
     result.reserve(2 * msg.size());
-    packeteer::net::socket_address sendaddr;
+    packeteer::peer_address sendaddr;
     std::cout << "receiving..." << std::endl;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.receive(&result[0], result.capacity(),
           amount, sendaddr));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-    std::cout << "sender socket address: " << sender.socket_address().cidr_str() << std::endl;
-    CPPUNIT_ASSERT_EQUAL(sender.socket_address().cidr_str(), sendaddr.cidr_str());
+    std::cout << "sender socket address: " << sender.peer_addr() << " <> " << sendaddr << std::endl;
+    CPPUNIT_ASSERT_EQUAL(sender.peer_addr(), sendaddr);
 
     for (size_t i = 0 ; i < msg.size() ; ++i) {
       CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
@@ -312,16 +312,18 @@ private:
 
 
 
-  void testDGramConnector(connector_type expected_type, std::string const & addr)
+  void testDGramConnector(connector_type expected_type, std::string const & saddr, std::string const & caddr)
   {
     // Tests for "datagram" connectors, i.e. connectors that allow synchronous,
     // un-reliable delivery.
 
-    auto url = ::packeteer::util::url::parse(addr);
-    url.query["behaviour"] = "datagram";
+    auto surl = ::packeteer::util::url::parse(saddr);
+    surl.query["behaviour"] = "datagram";
+    auto curl = ::packeteer::util::url::parse(caddr);
+    curl.query["behaviour"] = "datagram";
 
     // Server
-    connector server(url);
+    connector server(surl);
     CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
 
     CPPUNIT_ASSERT(!server.listening());
@@ -336,17 +338,18 @@ private:
     twine::chrono::sleep(twine::chrono::milliseconds(50));
 
     // Client
-    connector client(url);
+    connector client(curl);
     CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
 
     CPPUNIT_ASSERT(!client.listening());
     CPPUNIT_ASSERT(!client.connected());
 
-//    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.listen());
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
+    // FIXME not sure?
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.listen());
+//    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
 
-    CPPUNIT_ASSERT(!client.listening());
-    CPPUNIT_ASSERT(client.connected());
+    CPPUNIT_ASSERT(client.listening());
+    CPPUNIT_ASSERT(!client.connected());
 
     twine::chrono::sleep(twine::chrono::milliseconds(50));
 
@@ -429,7 +432,12 @@ private:
   void testUDPv4Connector()
   {
     // UDP over IPv4 to localhost
-    testDGramConnector(CT_UDP4, "udp4://127.0.0.1:54321");
+    // TODO
+    // * listening sockets can send/receive as expected
+    // * connected sockets can send/receive to one peer
+    // * unconnected, non-listening sockets can receive, but the sender port will be transient
+    // * check how this gets transferred to local://
+    testDGramConnector(CT_UDP4, "udp4://127.0.0.1:54321", "udp4://127.0.0.1:54322");
   }
 
 
@@ -437,7 +445,7 @@ private:
   void testUDPv6Connector()
   {
     // UDP over IPv6 to localhost
-    testDGramConnector(CT_UDP6, "udp6://[::1]:54321");
+    testDGramConnector(CT_UDP6, "udp6://[::1]:54321", "udp6://[::1]:54322");
   }
 };
 
