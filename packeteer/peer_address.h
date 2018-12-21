@@ -28,6 +28,8 @@
 
 #include <packeteer/connector_specs.h>
 #include <packeteer/net/socket_address.h>
+#include <packeteer/util/url.h>
+#include <packeteer/util/operators.h>
 
 namespace packeteer {
 
@@ -38,8 +40,7 @@ namespace packeteer {
  **/
 
 class peer_address
-  : public ::packeteer::net::socket_address
-  //, public ::packeteer::detail::operators<peer_address>
+  : public ::packeteer::util::operators<peer_address>
 {
 public:
   /**
@@ -74,11 +75,12 @@ public:
 
 
   /**
-   * Constructor from connection string; no separate type or port is necessary
-   * as both are included. See the connector class for a description of the
-   * string format.
+   * Constructor from connection string or url; no separate type or port is
+   * necessary as both are included. See the connector class for a description
+   * of the string format.
    **/
   explicit peer_address(std::string const & address);
+  explicit peer_address(::packeteer::util::url const & url);
 
 
   /**
@@ -100,6 +102,11 @@ public:
    **/
   std::string str() const;
 
+  /**
+   * Expose the socket address, too.
+   **/
+  net::socket_address & socket_address();
+  net::socket_address const & socket_address() const;
 
   /**
    * Behave like a value type.
@@ -111,17 +118,16 @@ public:
   void swap(peer_address & other);
   size_t hash() const;
 
-protected:
   /**
-   * Used by detail::operators
+   * Used by util::operators
    **/
-  //friend class packeteer::detail::operators<peer_address>;
 
-  virtual bool is_equal_to(peer_address const & other) const;
-  virtual bool is_less_than(peer_address const & other) const;
+  bool is_equal_to(peer_address const & other) const;
+  bool is_less_than(peer_address const & other) const;
 
 private:
-  connector_type m_connector_type;
+  net::socket_address m_sockaddr;
+  connector_type      m_connector_type;
 };
 
 } // namespace packeteer

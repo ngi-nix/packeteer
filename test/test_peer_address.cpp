@@ -52,8 +52,8 @@ struct test_data
   { "udp6",  "udp6://::1",         packeteer::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:0",       },
   { "udp6",  "udp://::1",          packeteer::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:0",       },
   { "anon",  "anon://",            packeteer::CT_ANON,  pnet::socket_address::SAT_UNSPEC, "anon://",              },
-  { "local", "local://foo",        packeteer::CT_LOCAL, pnet::socket_address::SAT_LOCAL,  "local://foo",          },
-  { "pipe",  "pipe://foo",         packeteer::CT_PIPE,  pnet::socket_address::SAT_LOCAL,  "pipe://foo",           },
+  { "local", "local:///foo",       packeteer::CT_LOCAL, pnet::socket_address::SAT_LOCAL,  "local:///foo",         },
+  { "pipe",  "pipe:///foo",        packeteer::CT_PIPE,  pnet::socket_address::SAT_LOCAL,  "pipe:///foo",          },
 
   // ports
   { "tcp4",  "tcp://192.168.0.1:1234", packeteer::CT_TCP4,  pnet::socket_address::SAT_INET4,  "tcp4://192.168.0.1:1234", },
@@ -86,7 +86,7 @@ private:
       peer_address address(tests[i].address);
 
       CPPUNIT_ASSERT_EQUAL(tests[i].scheme,  address.scheme());
-      CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
+      CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.socket_address().type());
       CPPUNIT_ASSERT_EQUAL(tests[i].type, address.conn_type());
       CPPUNIT_ASSERT_EQUAL(tests[i].expected, address.str());
     }
@@ -104,6 +104,11 @@ private:
     // However, different IPs should be non-equal
     PACKETEER_VALUES_TEST(peer_address("tcp4://192.168.0.1"),
                           peer_address("tcp4://192.168.0.2"),
+                          false);
+
+    // And so should the same IP with different protocols
+    PACKETEER_VALUES_TEST(peer_address("tcp4://192.168.0.1"),
+                          peer_address("udp4://192.168.0.1"),
                           false);
   }
 };

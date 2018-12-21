@@ -44,40 +44,6 @@ static const schemes_map_t sc_schemes =
 };
 
 
-inline std::pair<connector_type, std::string>
-split_address(std::string const & address)
-{
-  // We'll find the first occurrence of a colon; that *should* delimit the scheme.
-  auto pos = address.find_first_of(':');
-  if (std::string::npos == pos) {
-    throw exception(ERR_FORMAT, "No scheme separator found in connector address.");
-  }
-
-  // We'll then try to see if the characters immediately following are two
-  // slashes.
-  if (pos + 3 > address.size()) {
-    throw exception(ERR_FORMAT, "Bad scheme separator found in connector address.");
-  }
-  if (!('/' == address[pos + 1] && '/' == address[pos + 2])) {
-    throw exception(ERR_FORMAT, "Bad scheme separator found in connector address.");
-  }
-
-  // Ok, we seem to have a scheme part. Lower-case it.
-  std::string scheme = address.substr(0, pos);
-  std::transform(scheme.begin(), scheme.end(), scheme.begin(),
-      std::bind2nd(std::ptr_fun(&std::tolower<char>), std::locale("")));
-
-  // Now check if we know the scheme.
-  auto iter = std::find_if(sc_schemes.begin(), sc_schemes.end(),
-      [&scheme] (schemes_map_t::value_type const & v) {
-        return v.second == scheme;
-      });
-
-  // That's it, return success!
-  auto addrspec = address.substr(pos + 3);
-  return std::make_pair(iter->first, addrspec);
-}
-
 
 inline connector_type
 best_match(connector_type const & ct_type,
@@ -164,70 +130,103 @@ verify_best(connector_type const & ct_type,
 }
 
 
+inline void
+initialize(util::url const & url, net::socket_address & sockaddr, connector_type & ctype)
+{
+  ctype = CT_UNSPEC;
+  for (auto entry : sc_schemes) {
+    if (entry.second == url.scheme) {
+      ctype = entry.first;
+      break;
+    }
+  }
+
+  // Assign address
+  switch (ctype) {
+    case CT_TCP4:
+    case CT_TCP6:
+    case CT_TCP:
+    case CT_UDP4:
+    case CT_UDP6:
+    case CT_UDP:
+      sockaddr = net::socket_address(url.authority);
+      break;
+
+    default:
+      sockaddr = net::socket_address(url.path);
+  }
+
+  // Verify
+  ctype = verify_best(ctype, sockaddr.type());
+}
+
+
 } // anonymous namespace
 
 peer_address::peer_address(
     connector_type const & type /* = CT_UNSPEC */)
-  : net::socket_address()
+  : m_sockaddr()
   , m_connector_type(type)
 {
-  m_connector_type = verify_best(type, net::socket_address::type());
+  m_connector_type = verify_best(type, m_sockaddr.type());
 }
 
 
 
 peer_address::peer_address(connector_type const & type,
     void const * buf, socklen_t len)
-  : net::socket_address(buf, len)
+  : m_sockaddr(buf, len)
   , m_connector_type(type)
 {
-  m_connector_type = verify_best(type, net::socket_address::type());
+  m_connector_type = verify_best(type, m_sockaddr.type());
 }
 
 
 
 peer_address::peer_address(connector_type const & type,
     std::string const & address, uint16_t port /* = 0 */)
-  : net::socket_address(address, port)
+  : m_sockaddr(address, port)
   , m_connector_type(type)
 {
-  m_connector_type = verify_best(type, net::socket_address::type());
+  m_connector_type = verify_best(type, m_sockaddr.type());
 }
 
 
 
 peer_address::peer_address(connector_type const & type,
     char const * address, uint16_t port /* = 0 */)
-  : net::socket_address(address, port)
+  : m_sockaddr(address, port)
   , m_connector_type(type)
 {
-  m_connector_type = verify_best(type, net::socket_address::type());
+  m_connector_type = verify_best(type, m_sockaddr.type());
 }
 
 
 
 peer_address::peer_address(connector_type const & type,
       ::packeteer::net::socket_address const & address)
-  : net::socket_address(address)
+  : m_sockaddr(address)
   , m_connector_type(type)
 {
-  m_connector_type = verify_best(type, net::socket_address::type());
+  m_connector_type = verify_best(type, m_sockaddr.type());
 }
 
 
 
 peer_address::peer_address(std::string const & address)
-  : net::socket_address()
+  : m_sockaddr()
   , m_connector_type(CT_UNSPEC)
 {
-  // Split address and determine type
-  auto pre_parsed = split_address(address);
+  auto url = ::packeteer::util::url::parse(address);
+  initialize(url, m_sockaddr, m_connector_type);
+}
 
-  // Assign address
-  net::socket_address::operator=(net::socket_address(pre_parsed.second));
 
-  // Verify
-  m_connector_type = verify_best(pre_parsed.first, net::socket_address::type());
+peer_address::peer_address(::packeteer::util::url const & url)
+  : m_sockaddr()
+  , m_connector_type(CT_UNSPEC)
+{
+  initialize(url, m_sockaddr, m_connector_type);
 }
 
 
@@ -261,7 +260,23 @@ peer_address::str() const
     return "";
   }
 
-  return iter->second + "://" + this->net::socket_address::full_str();
+  return iter->second + "://" + m_sockaddr.full_str();
+}
+
+
+
+net::socket_address &
+peer_address::socket_address()
+{
+  return m_sockaddr;
+}
+
+
+
+net::socket_address const &
+peer_address::socket_address() const
+{
+  return m_sockaddr;
 }
 
 
@@ -270,7 +285,7 @@ size_t
 peer_address::hash() const
 {
   return meta::hash::multi_hash(static_cast<int>(m_connector_type),
-      *static_cast<net::socket_address const *>(this));
+      m_sockaddr.hash());
 }
 
 
@@ -278,7 +293,7 @@ peer_address::hash() const
 void
 peer_address::swap(peer_address & other)
 {
-  net::socket_address::swap(other);
+  m_sockaddr.swap(other.m_sockaddr);
 
   connector_type tmp = other.m_connector_type;
   other.m_connector_type = m_connector_type;
@@ -290,11 +305,7 @@ peer_address::swap(peer_address & other)
 bool
 peer_address::is_equal_to(peer_address const & other) const
 {
-  if (typeid(this) != typeid(other)) {
-    return false;
-  }
-
-  if (!net::socket_address::is_equal_to(other)) {
+  if (!m_sockaddr.is_equal_to(other.m_sockaddr)) {
     return false;
   }
 
@@ -306,7 +317,7 @@ peer_address::is_equal_to(peer_address const & other) const
 bool
 peer_address::is_less_than(peer_address const & other) const
 {
-  if (net::socket_address::is_less_than(other)) {
+  if (m_sockaddr.is_less_than(other.m_sockaddr)) {
     return true;
   }
 
