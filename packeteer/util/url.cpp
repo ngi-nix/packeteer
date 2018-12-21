@@ -249,7 +249,7 @@ url::hash() const
       scheme, authority, path, fragment);
 
   for (auto elem : query) {
-    base = meta::hash::hash_combine(base,
+    meta::hash::hash_combine(base,
         meta::hash::multi_hash(elem.first, elem.second));
   }
 

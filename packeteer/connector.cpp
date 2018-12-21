@@ -292,8 +292,7 @@ struct connector::connector_impl
         m_url);
 
     if (m_conn) {
-      value = meta::hash::hash_combine(
-          value,
+      meta::hash::hash_combine(value,
           meta::hash::multi_hash(m_conn->get_read_handle(),
                                  m_conn->get_write_handle()));
     }
