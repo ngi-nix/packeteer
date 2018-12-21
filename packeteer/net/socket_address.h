@@ -195,14 +195,11 @@ public:
    **/
   void operator++();
 
-protected:
   /**
-   * Used by detail::operators
+   * Used by util::operators
    **/
-  friend class packeteer::util::operators<socket_address>;
-
-  virtual bool is_equal_to(socket_address const & other) const;
-  virtual bool is_less_than(socket_address const & other) const;
+  bool is_equal_to(socket_address const & other) const;
+  bool is_less_than(socket_address const & other) const;
 
 
 private:
