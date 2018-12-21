@@ -231,7 +231,15 @@ peer_address::peer_address(::packeteer::util::url const & url)
 
 
 
-connector_type
+connector_type &
+peer_address::conn_type()
+{
+  return m_connector_type;
+}
+
+
+
+connector_type const &
 peer_address::conn_type() const
 {
   return m_connector_type;
@@ -324,6 +332,16 @@ peer_address::is_less_than(peer_address const & other) const
   return m_connector_type < other.m_connector_type;
 }
 
+
+/*****************************************************************************
+ * Friend functions
+ **/
+std::ostream &
+operator<<(std::ostream & os, peer_address const & addr)
+{
+  os << addr.str();
+  return os;
+}
 
 
 } // namespace packeteer
