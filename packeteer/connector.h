@@ -190,23 +190,11 @@ public:
       ::packeteer::net::socket_address & sender);
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
       ::packeteer::net::socket_address const & recipient);
-  // FIXME peer_address
 
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      std::string & sender);
+      peer_address & sender);
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      std::string const & recipient);
-  error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      util::url const & recipient);
-
-  // TODO peer_address
-  //      - check out; sort of binary version of parsed URL?
-  //      - if so, converters?
-  //        -> type and mode? or just type?
-  //      blocking_mode
-  //      -> set to false in scheduler
-  //      -> default to true
-  //      -> getter as well
+      peer_address const & recipient);
 
   /**
    * FIXME move? document!

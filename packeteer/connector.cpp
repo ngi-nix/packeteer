@@ -97,6 +97,7 @@ struct connector::connector_impl
   connector_behaviour   m_default_behaviour;
   int                   m_possible_behaviours;
   util::url             m_url;
+  peer_address          m_address;
   bool                  m_blocking;
   detail::connector *   m_conn;
   volatile size_t       m_refcount;
@@ -106,6 +107,7 @@ struct connector::connector_impl
     , m_default_behaviour(CB_DEFAULT)
     , m_possible_behaviours(CB_DEFAULT)
     , m_url(connect_url)
+    , m_address(m_url)
     , m_conn(conn)
     , m_refcount(1)
   {
@@ -125,6 +127,7 @@ struct connector::connector_impl
     , m_default_behaviour(CB_DEFAULT)
     , m_possible_behaviours(CB_DEFAULT)
     , m_url(connect_url)
+    , m_address(m_url)
     , m_conn(nullptr)
     , m_refcount(1)
   {
@@ -361,10 +364,15 @@ connector::connect_url() const
 net::socket_address
 connector::socket_address() const
 {
-  // PLEASE FIXME
-//  // FIXME so wrong
-//  auto pre_parsed = split_address(m_impl->m_address);
-//  return net::socket_address(pre_parsed.second);
+  return m_impl->m_address.socket_address();
+}
+
+
+
+peer_address
+connector::peer_addr() const
+{
+  return m_impl->m_address;
 }
 
 
@@ -498,18 +506,6 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
 
 error_t
-connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
-    std::string & sender)
-{
-  net::socket_address addr;
-  error_t result = receive(buf, bufsize, bytes_read, addr);
-  sender = addr.full_str();
-  return result;
-}
-
-
-
-error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
     net::socket_address const & recipient)
 {
@@ -522,25 +518,28 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
 
 
 error_t
-connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
-   std::string const & recipient)
+connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
+    peer_address & sender)
 {
-  return send(buf, bufsize, bytes_written, util::url::parse(recipient));
+  if (!*m_impl) {
+    return ERR_INITIALIZATION;
+  }
+
+  error_t err = (*m_impl)->receive(buf, bufsize, bytes_read, sender.socket_address());
+  sender.conn_type() = m_impl->m_address.conn_type();
+  return err;
 }
 
 
 
 error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
-   util::url const & recipient)
+    peer_address const & recipient)
 {
-  auto spec = match_scheme(recipient.scheme);
-  if (spec.first != m_impl->m_type) {
-    return ERR_INVALID_OPTION;
+  if (!*m_impl) {
+    return ERR_INITIALIZATION;
   }
-
-  auto addr = net::socket_address(recipient.authority);
-  return send(buf, bufsize, bytes_written, addr);
+  return (*m_impl)->send(buf, bufsize, bytes_written, recipient.socket_address());
 }
 
 
