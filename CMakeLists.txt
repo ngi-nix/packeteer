@@ -11,15 +11,6 @@ set (PACKETEER_PACKAGE_URL https://github.com/jfinkhaeuser/packeteer)
 
 ##############################################################################
 # Options
-option(PACKETEER_USE_CXX11
-    "Forces meta to use C++11 features." ON)
-
-if (PACKETEER_USE_CXX11)
-  set (META_CXX_MODE META_CXX_MODE_CXX0X)
-else (PACKETEER_USE_CXX11)
-  set (META_CXX_MODE META_CXX_MODE_CXX98)
-endif (PACKETEER_USE_CXX11)
-
 
 ##############################################################################
 # Compiler flags #1
@@ -69,7 +60,6 @@ endif ()
 ##############################################################################
 # Dependencies
 find_package(Threads)
-find_package(meta 1.1)
 find_package(twine 1.0)
 find_package(cppunit 1.12.1)
 
@@ -299,14 +289,13 @@ configure_file(
 include_directories(
     "${PROJECT_SOURCE_DIR}"
     "${PROJECT_BINARY_DIR}"
-    "${META_INCLUDEDIR}"
     "${TWINE_INCLUDEDIR}"
 )
 
 # Add library flags
-set (CMAKE_CXX_FLAGS          "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS}")
-set (CMAKE_CXX_FLAGS_DEBUG    "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
-set (CMAKE_CXX_FLAGS_RELEASE  "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
+set (CMAKE_CXX_FLAGS          "${TWINE_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_DEBUG    "${TWINE_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
+set (CMAKE_CXX_FLAGS_RELEASE  "${TWINE_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
 
 
 ##############################################################################

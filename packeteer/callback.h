@@ -31,12 +31,11 @@
 #include <typeinfo>
 #include <functional>
 
-#include <meta/hash.h>
-
 #include <packeteer/types.h>
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
 #include <packeteer/events.h>
+#include <packeteer/util/hash.h>
 #include <packeteer/util/operators.h>
 
 namespace packeteer {
@@ -343,7 +342,7 @@ struct callback_helper : public callback_helper_base
 
   virtual size_t hash() const
   {
-    return meta::hash::multi_hash(
+    return packeteer::util::multi_hash(
         reinterpret_cast<size_t>(m_object),
         reinterpret_cast<size_t>(&typeid(T)));
   }

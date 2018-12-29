@@ -29,7 +29,7 @@
 #include <packeteer/packeteer-config.h>
 
 // We want standard int types across the board.
-#include <meta/inttypes.h>
+#include <packeteer/types.h>
 
 // Not all, but the very basic headers are always included.
 #include <packeteer/error.h>

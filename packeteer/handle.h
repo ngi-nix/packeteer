@@ -32,8 +32,7 @@
 #include <cstring>
 #include <iostream>
 
-#include <meta/hash.h>
-
+#include <packeteer/util/hash.h>
 #include <packeteer/util/operators.h>
 
 
@@ -102,7 +101,7 @@ struct handle : public ::packeteer::util::operators<handle>
     char const * p = reinterpret_cast<char const *>(&m_handle);
     size_t state = std::hash<char>()(p[0]);
     for (size_t i = 1 ; i < sizeof(sys_handle_t) ; ++i) {
-      meta::hash::hash_combine(state, p[i]);
+      packeteer::util::hash_combine(state, p[i]);
     }
     return state;
   }

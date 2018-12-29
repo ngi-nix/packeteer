@@ -22,7 +22,7 @@
 #include <map>
 #include <algorithm>
 
-#include <meta/hash.h>
+#include <packeteer/util/hash.h>
 
 namespace packeteer {
 
@@ -292,7 +292,8 @@ peer_address::socket_address() const
 size_t
 peer_address::hash() const
 {
-  return meta::hash::multi_hash(static_cast<int>(m_connector_type),
+  return packeteer::util::multi_hash(
+      static_cast<int>(m_connector_type),
       m_sockaddr.hash());
 }
 

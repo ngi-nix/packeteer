@@ -24,11 +24,9 @@
 #include <cstring>
 #include <sstream>
 
-#include <meta/hash.h>
-
 #include <packeteer/error.h>
-
 #include <packeteer/net/detail/cidr.h>
+#include <packeteer/util/hash.h>
 
 namespace packeteer {
 namespace net {
@@ -438,7 +436,7 @@ socket_address::hash() const
     port = 0;
   }
 
-  return meta::hash::multi_hash(
+  return packeteer::util::multi_hash(
       std::string(static_cast<char const *>(hash_buf), hash_size),
       port);
 }

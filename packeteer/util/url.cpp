@@ -23,7 +23,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include <meta/hash.h>
+#include <packeteer/util/hash.h>
 
 namespace packeteer {
 namespace util {
@@ -245,12 +245,12 @@ url::str() const
 size_t
 url::hash() const
 {
-  size_t base = meta::hash::multi_hash(
+  size_t base = packeteer::util::multi_hash(
       scheme, authority, path, fragment);
 
   for (auto elem : query) {
-    meta::hash::hash_combine(base,
-        meta::hash::multi_hash(elem.first, elem.second));
+    packeteer::util::hash_combine(base,
+        packeteer::util::multi_hash(elem.first, elem.second));
   }
 
   return base;
