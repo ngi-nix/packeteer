@@ -26,7 +26,7 @@
 #error You are trying to include a C++ only header file
 #endif
 
-#include <packeteer/packeteer-config.h>
+#include <packeteer-config.h>
 
 // We want standard int types across the board.
 #include <meta/inttypes.h>

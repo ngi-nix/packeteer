@@ -19,7 +19,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/packeteer-config.h>
+#include <packeteer-config.h>
 
 #include <packeteer/version.h>
 #include <packeteer/macros.h>

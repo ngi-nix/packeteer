@@ -1,0 +1,65 @@
+#ifndef PACKETEER_CONFIG_H
+#define PACKETEER_CONFIG_H
+
+/*****************************************************************************
+ * Project metadata
+ **/
+// Name
+#define PACKETEER_PACKAGE_NAME "@PACKETEER_PACKAGE_NAME@"
+
+// Version
+#define PACKETEER_PACKAGE_MAJOR "@PACKETEER_PACKAGE_MAJOR@"
+#define PACKETEER_PACKAGE_MINOR "@PACKETEER_PACKAGE_MINOR@"
+#define PACKETEER_PACKAGE_VERSION "@PACKETEER_PACKAGE_MAJOR@.@PACKETEER_PACKAGE_MINOR@"
+
+// URL
+#define PACKETEER_PACKAGE_URL "@PACKETEER_PACKAGE_URL@"
+
+
+/*****************************************************************************
+ * Options
+ **/
+/**
+ * Defining the build mode for meta.
+ **/
+// FIXME remove later
+#define META_CXX_MODE @META_CXX_MODE@
+
+
+/*****************************************************************************
+ * Headers
+ **/
+#mesondefine PACKETEER_HAVE_SYS_SELECT_H
+#mesondefine PACKETEER_HAVE_SYS_TIME_H
+#mesondefine PACKETEER_HAVE_SYS_EPOLL_H
+#mesondefine PACKETEER_HAVE_POLL_H
+#mesondefine PACKETEER_HAVE_ARPA_INET_H
+#mesondefine PACKETEER_HAVE_NETINET_IN_H
+#mesondefine PACKETEER_HAVE_LINUX_UN_H
+
+
+/*****************************************************************************
+ * Symbols
+ **/
+#mesondefine PACKETEER_HAVE_EPOLL_CREATE1
+#mesondefine PACKETEER_HAVE_SELECT
+#mesondefine PACKETEER_HAVE_PSELECT
+#mesondefine PACKETEER_HAVE_POLL
+#mesondefine PACKETEER_HAVE_PPOLL
+#mesondefine PACKETEER_HAVE_POLLRDHUP
+#mesondefine PACKETEER_HAVE_POLLHUP
+#mesondefine PACKETEER_HAVE_KQUEUE
+
+#mesondefine PACKETEER_HAVE_MKNOD
+#mesondefine PACKETEER_HAVE_MKFIFO
+
+
+/*****************************************************************************
+ * Platform checks
+ **/
+#mesondefine PACKETEER_BIGENDIAN
+
+// FIXME detect, ideally
+#define PACKETEER_CACHE_LINE_SIZE 128
+
+#endif // guard
