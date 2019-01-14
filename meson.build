@@ -12,6 +12,16 @@ project('packeteer', 'cpp',
 conf_data = configuration_data()
 compiler = meson.get_compiler('cpp')
 
+### Compiler flags
+compiler_id = compiler.get_id()
+
+if compiler_id == 'clang'
+  extra_args = ['-Wall', '-Wextra', '-Wabi', '-Wold-style-cast']
+elif compiler_id == 'gcc'
+  extra_args = ['-Wall', '-Wextra', '-Wabi', '-Wold-style-cast', '-Wstrict-null-sentinel']
+endif
+
+
 ### Version and package information
 ver = meson.project_version()
 splitver = ver.split('.')
@@ -271,6 +281,7 @@ endif
 lib = both_libraries('packeteer', libsrc,
     include_directories: [],
     dependencies: [thread_dep],
+    cpp_args: extra_args,
     install: true)
 
 # TODO soversion, version, darwin_versions
@@ -298,6 +309,7 @@ if cppunit_dep.found()
   testsuite = executable('testsuite', testsrc,
       include_directories: [],
       dependencies: [cppunit_dep],
+      cpp_args: extra_args,
       link_with: lib.get_static_lib())
   test('testsuite', testsuite)
 
