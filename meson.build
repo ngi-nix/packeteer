@@ -23,7 +23,6 @@ conf_data.set('PACKETEER_PACKAGE_URL', 'https://github.com/jfinkhaeuser/packetee
 
 ### Host platform details
 conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
-conf_data.set('META_CXX_MODE', '0x2011')  # TODO remove with meta inclusion
 
 ### Headers
 if compiler.has_header('sys/select.h')
@@ -34,6 +33,9 @@ if compiler.has_header('sys/time.h')
 endif
 if compiler.has_header('sys/epoll.h')
   conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H', true)
+endif
+if compiler.has_header('time.h')
+  conf_data.set('PACKETEER_HAVE_TIME_H', true)
 endif
 if compiler.has_header('poll.h')
   conf_data.set('PACKETEER_HAVE_POLL_H', true)
@@ -207,7 +209,7 @@ endif
 
 thread_dep = dependency('threads', required: true)
 
-meta_dep = dependency('meta', required: true)
+cppunit_dep = dependency('cppunit', required: false)
 
 configure_file(
   input: 'packeteer-config.h.in',
@@ -232,43 +234,71 @@ libsrc = [
   'packeteer/net/socket_address.cpp',
   'packeteer/net/network.cpp',
   'packeteer/net/detail/cidr.cpp',
+  'packeteer/thread/tasklet.cpp',
   'packeteer/util/url.cpp',
 ]
 
-meta_include = include_directories(meta_dep.get_pkgconfig_variable('includedir'))
+if have_epoll_create
+  libsrc += ['packeteer/detail/io_epoll.cpp']
+endif
+
+if have_select
+  libsrc += ['packeteer/detail/io_select.cpp']
+endif
+
+if have_poll
+  libsrc +=  ['packeteer/detail/io_poll.cpp']
+endif
+
+if have_kqueue
+  libsrc +=  ['packeteer/detail/io_kqueue.cpp']
+endif
+
+posixsrc = [
+  'packeteer/posix/handle.cpp',
+  'packeteer/posix/detail/connector_socket.cpp',
+  'packeteer/posix/detail/connector_pipe.cpp',
+  'packeteer/posix/detail/connector_tcp.cpp',
+  'packeteer/posix/detail/connector_udp.cpp',
+  'packeteer/posix/detail/connector_anon.cpp',
+  'packeteer/posix/detail/connector_local.cpp',
+]
+
+if host_machine.system() == 'linux'
+  libsrc += posixsrc
+endif
+
 lib = both_libraries('packeteer', libsrc,
-    include_directories: [
-      meta_include,
-    ],
-    dependencies: [
-      meta_dep,
-    ],
+    include_directories: [],
+    dependencies: [thread_dep],
     install: true)
 
 # TODO soversion, version, darwin_versions
 
-testsrc = [
-  'test/test_error.cpp',
-  'test/test_cidr.cpp',
-  'test/test_handle.cpp',
-  'test/test_url.cpp',
-  'test/test_socket_address.cpp',
-  'test/test_network.cpp',
-  'test/test_callback.cpp',
-  'test/test_concurrent_queue.cpp',
-  'test/test_scheduler_impl.cpp',
-  'test/test_scheduler.cpp',
-  'test/test_peer_address.cpp',
-  'test/test_connector.cpp',
-  'test/testsuite.cpp',
-]
+if cppunit_dep.found()
 
-testsuite = executable('testsuite', testsrc,
-    include_directories: [
-      meta_include,
-    ],
-    dependencies: [
-      meta_dep,
-    ],
-    link_with: lib.get_static_lib())
-test('testsuite', testsuite)
+  testsrc = [
+    'test/test_error.cpp',
+    'test/test_cidr.cpp',
+    'test/test_handle.cpp',
+    'test/test_url.cpp',
+    'test/test_socket_address.cpp',
+    'test/test_network.cpp',
+    'test/test_callback.cpp',
+    'test/test_concurrent_queue.cpp',
+    'test/test_scheduler_impl.cpp',
+    'test/test_scheduler.cpp',
+    'test/test_peer_address.cpp',
+    'test/test_connector.cpp',
+    'test/test_binder.cpp',
+    'test/test_tasklet.cpp',
+    'test/testsuite.cpp',
+  ]
+
+  testsuite = executable('testsuite', testsrc,
+      include_directories: [],
+      dependencies: [cppunit_dep],
+      link_with: lib.get_static_lib())
+  test('testsuite', testsuite)
+
+endif
