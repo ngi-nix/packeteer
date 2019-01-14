@@ -38,9 +38,9 @@
 namespace packeteer {
 namespace detail {
 
-worker::worker(twine::condition & condition, twine::recursive_mutex & mutex,
+worker::worker(std::condition_variable_any & condition, std::recursive_mutex & mutex,
     concurrent_queue<detail::callback_entry *> & work_queue)
-  : twine::tasklet(&condition, &mutex, twine::tasklet::binder<worker, &worker::worker_loop>::function, this)
+  : packeteer::thread::tasklet(&condition, &mutex, packeteer::thread::binder(this, &worker::worker_loop))
   , m_alive(true)
   , m_work_queue(work_queue)
 {
@@ -56,7 +56,7 @@ worker::~worker()
 
 
 void
-worker::worker_loop(twine::tasklet & tasklet, void * /* unused */)
+worker::worker_loop(packeteer::thread::tasklet & tasklet, void * /* unused */)
 {
   LOG("worker started");
   do {

@@ -27,10 +27,15 @@
 
 #include <errno.h>
 
+#include <chrono>
+
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
 
+#include <packeteer/thread/chrono.h>
+
+namespace sc = std::chrono;
 
 namespace packeteer {
 namespace detail {
@@ -155,7 +160,7 @@ io_poll::unregister_handles(handle const * handles, size_t size,
 
 void
 io_poll::wait_for_events(std::vector<event_data> & events,
-      twine::chrono::nanoseconds const & timeout)
+      duration const & timeout)
 {
   // Prepare FD set
   size_t size = m_fds.size();
@@ -173,11 +178,11 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   while (true) {
 #if defined(PACKETEER_HAVE_PPOLL)
     ::timespec ts;
-    timeout.as(ts);
+    ::packeteer::thread::chrono::convert(timeout, ts);
 
     int ret = ::ppoll(fds, size, &ts, nullptr);
 #else
-    int ret = ::poll(fds, size, timeout.as<twine::chrono::milliseconds>());
+    int ret = ::poll(fds, size, sc::duration_cast<sc::milliseconds>(timeout).count());
 #endif
 
     if (ret >= 0) {

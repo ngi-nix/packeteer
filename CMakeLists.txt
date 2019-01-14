@@ -367,6 +367,7 @@ install(FILES
     packeteer/error.h
     packeteer/macros.h
     packeteer/types.h
+    packeteer/scheduler_types.h
     packeteer/handle.h
     packeteer/concurrent_queue.h
     packeteer/callback.h

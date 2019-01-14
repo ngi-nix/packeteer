@@ -29,11 +29,11 @@
 #include <packeteer/packeteer.h>
 
 #include <vector>
-
-#include <twine/chrono.h>
+#include <chrono>
 
 #include <packeteer/types.h>
 #include <packeteer/handle.h>
+#include <packeteer/scheduler_types.h>
 
 namespace packeteer {
 namespace detail {
@@ -60,7 +60,7 @@ public:
       events_t const & events) = 0;
 
   virtual void wait_for_events(std::vector<event_data> & events,
-      twine::chrono::nanoseconds const & timeout) = 0;
+      packeteer::duration const & timeout) = 0;
 };
 
 

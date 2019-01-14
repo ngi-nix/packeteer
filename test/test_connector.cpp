@@ -29,7 +29,8 @@
 
 #include <stdexcept>
 
-#include <twine/chrono.h>
+#include <chrono>
+#include <thread>
 
 #include "value_tests.h"
 
@@ -209,7 +210,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 
-    twine::chrono::sleep(twine::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     std::vector<char> result;
     result.reserve(2 * msg.size());
@@ -235,7 +236,7 @@ private:
         receiver.peer_addr()));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 
-    twine::chrono::sleep(twine::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     std::vector<char> result;
     result.reserve(2 * msg.size());
@@ -279,7 +280,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(true, mode);
     CPPUNIT_ASSERT_EQUAL(CB_STREAM, server.get_behaviour());
 
-    twine::chrono::sleep(twine::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // Client
     connector client(url);
@@ -291,7 +292,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
     connector server_conn = server.accept();
 
-    twine::chrono::sleep(twine::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     CPPUNIT_ASSERT(!client.listening());
     CPPUNIT_ASSERT(client.connected());
@@ -335,7 +336,7 @@ private:
     CPPUNIT_ASSERT(server.listening());
     CPPUNIT_ASSERT(!server.connected());
 
-    twine::chrono::sleep(twine::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // Client
     connector client(curl);
@@ -351,7 +352,7 @@ private:
     CPPUNIT_ASSERT(client.listening());
     CPPUNIT_ASSERT(!client.connected());
 
-    twine::chrono::sleep(twine::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // Communications
     std::cout << "send(client, server)" << std::endl;

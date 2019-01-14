@@ -32,10 +32,14 @@
 
 #include <errno.h>
 
+#include <chrono>
+
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
+#include <packeteer/thread/chrono.h>
 
+namespace sc = std::chrono;
 
 namespace packeteer {
 namespace detail {
@@ -103,7 +107,7 @@ io_select::unregister_handles(handle const * handles, size_t size,
 
 void
 io_select::wait_for_events(std::vector<event_data> & events,
-      twine::chrono::nanoseconds const & timeout)
+      duration const & timeout)
 {
   // FD sets
   ::fd_set read_fds;
@@ -135,12 +139,12 @@ io_select::wait_for_events(std::vector<event_data> & events,
     // Wait for events
 #if defined(PACKETEER_HAVE_PSELECT)
     ::timespec ts;
-    timeout.as(ts);
+    ::packeteer::thread::chrono::convert(timeout, ts);
 
     int ret = ::pselect(max_fd + 1, &read_fds, &write_fds, &err_fds, &ts, nullptr);
 #else
     ::timeval tv;
-    timeout.as(tv);
+    ::packeteer::thread::chrono::convert(timeout, tv);
 
     int ret = ::select(max_fd + 1, &read_fds, &write_fds, &err_fds, &tv);
 #endif

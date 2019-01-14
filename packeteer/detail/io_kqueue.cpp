@@ -35,6 +35,9 @@
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
+#include <packeteer/thread/chrono.h>
+
+namespace sc = std::chrono;
 
 namespace packeteer {
 namespace detail {
@@ -208,12 +211,12 @@ io_kqueue::unregister_fds(int const * fds, size_t size,
 
 void
 io_kqueue::wait_for_events(std::vector<event_data> & events,
-      twine::chrono::nanoseconds const & timeout)
+      duration const & timeout)
 {
   // The entire event queue is already in the kernel, all we need to do is check
   // if events have occurred.
   ::timespec ts;
-  timeout.as(ts);
+  ::packeteer::thread::chrono::convert(timeout, ts);
 
   struct kevent kqueue_events[PACKETEER_KQUEUE_MAXEVENTS];
   int ret = -1;
