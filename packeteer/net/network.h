@@ -62,7 +62,7 @@ public:
    * number of addresses you can manage with this class to 2^64.
    **/
   explicit network(std::string const & netspec);
-  ~network();
+  virtual ~network();
 
 
   /**
