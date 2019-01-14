@@ -392,7 +392,8 @@ make_callback(T * object)
 /*******************************************************************************
  * std namespace specializations
  **/
-PACKETEER_HASH_NAMESPACE_BEGIN
+
+namespace std {
 
 template <> struct hash<packeteer::callback>
 {
@@ -402,7 +403,7 @@ template <> struct hash<packeteer::callback>
   }
 };
 
-PACKETEER_HASH_NAMESPACE_END
+}
 
 
 #endif // guard
