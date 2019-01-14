@@ -34,11 +34,7 @@ See the COPYING file.
 # Requirements #
 
 - Packeteer is implemented in C++, and requires some compiler support for
-  the new C++11 standard. If you're using GCC 4.6 and above, things should work
-  for you.
-- Packeteer uses [twine](https://github.com/jfinkhaeuser/twine) for threading,
-  and [meta](https://github.com/jfinkhaeuser/meta) for some meta-programming
-  constructs.
+  the C++17 standard.
 - Depending on which scheduler implementation you want to use, packeteer may
   require specific OS and kernel versions, e.g. Linux 2.6.9+ for the epoll
   scheduler, etc.

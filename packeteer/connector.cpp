@@ -33,7 +33,7 @@
 #include <algorithm>
 #include <map>
 
-#include <meta/hash.h>
+#include <packeteer/util/hash.h>
 
 #include <packeteer/error.h>
 #include <packeteer/net/socket_address.h>
@@ -290,14 +290,15 @@ struct connector::connector_impl
 
   size_t hash() const
   {
-    size_t value = meta::hash::multi_hash(
+    size_t value = packeteer::util::multi_hash(
         static_cast<int>(m_type),
         m_url);
 
     if (m_conn) {
-      meta::hash::hash_combine(value,
-          meta::hash::multi_hash(m_conn->get_read_handle(),
-                                 m_conn->get_write_handle()));
+      packeteer::util::hash_combine(value,
+          packeteer::util::multi_hash(
+            m_conn->get_read_handle(),
+            m_conn->get_write_handle()));
     }
     return value;
   }

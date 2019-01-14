@@ -53,7 +53,7 @@ public:
   void unregister_handles(handle const * handles, size_t amount, events_t const & events);
 
   virtual void wait_for_events(std::vector<event_data> & events,
-      twine::chrono::nanoseconds const & timeout);
+      duration const & timeout);
 
 private:
   /***************************************************************************

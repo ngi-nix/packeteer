@@ -30,12 +30,13 @@
 
 #include <atomic>
 #include <vector>
-
-#include <twine/thread.h>
-#include <twine/chrono.h>
-#include <twine/condition.h>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 
 #include <packeteer/types.h>
+#include <packeteer/scheduler_types.h>
 #include <packeteer/concurrent_queue.h>
 #include <packeteer/connector.h>
 #include <packeteer/handle.h>
@@ -163,7 +164,7 @@ struct scheduler::scheduler_impl
   /**
    * Wait for events for the given timeout, storing them in the result list.
    **/
-  void wait_for_events(twine::chrono::milliseconds const & timeout,
+  void wait_for_events(duration const & timeout,
       entry_list_t & result);
 private:
   /***************************************************************************
@@ -183,7 +184,7 @@ private:
   void adjust_workers(size_t num_workers);
 
   // Main loop
-  void main_scheduler_loop(void * /* unused */);
+  void main_scheduler_loop();
 
   inline void process_in_queue(entry_list_t & triggered);
   inline void process_in_queue_io(action_type action,
@@ -195,8 +196,8 @@ private:
 
   inline void dispatch_io_callbacks(std::vector<detail::event_data> const & events,
       entry_list_t & to_schedule);
-  inline void dispatch_scheduled_callbacks(twine::chrono::nanoseconds const & now,
-      entry_list_t & to_schedule);
+  inline void dispatch_scheduled_callbacks(
+      time_point const & now, entry_list_t & to_schedule);
   inline void dispatch_user_callbacks(entry_list_t const & triggered,
       entry_list_t & to_schedule);
 
@@ -214,12 +215,12 @@ private:
   // Workers
   std::atomic<size_t>             m_num_worker_threads;
   std::vector<detail::worker *>   m_workers;
-  twine::condition                m_worker_condition;
-  twine::recursive_mutex          m_worker_mutex;
+  std::condition_variable_any     m_worker_condition;
+  std::recursive_mutex            m_worker_mutex;
 
   // Main loop state.
   std::atomic<bool>               m_main_loop_continue;
-  twine::thread                   m_main_loop_thread;
+  std::thread                     m_main_loop_thread;
   connector                       m_main_loop_pipe;
 
   // We use a weird scheme for moving things to/from the internal containers

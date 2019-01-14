@@ -26,9 +26,10 @@
 #include <cppunit/extensions/HelperMacros.h>
 
 #include <utility>
+#include <chrono>
 
 namespace pk = packeteer;
-namespace tc = twine::chrono;
+namespace sc = std::chrono;
 
 namespace {
 
@@ -147,43 +148,45 @@ private:
     // iteration.
     pk::detail::scheduled_callbacks_t container;
 
+    auto now = pk::clock::now();
+
     pk::detail::scheduled_callback_entry * entry = new pk::detail::scheduled_callback_entry(&foo,
-        tc::microseconds(2));
+        now + sc::microseconds(2));
     container.add(entry);
 
-    entry = new pk::detail::scheduled_callback_entry(&bar, tc::microseconds(3));
+    entry = new pk::detail::scheduled_callback_entry(&bar, now + sc::microseconds(3));
     container.add(entry);
 
-    entry = new pk::detail::scheduled_callback_entry(&foo, tc::microseconds(1));
+    entry = new pk::detail::scheduled_callback_entry(&foo, now + sc::microseconds(1));
     container.add(entry);
 
-    entry = new pk::detail::scheduled_callback_entry(&baz, tc::microseconds(3));
+    entry = new pk::detail::scheduled_callback_entry(&baz, now + sc::microseconds(3));
     container.add(entry);
 
-    auto timeout_index = container.get_timed_out(twine::chrono::microseconds(0));
+    auto timeout_index = container.get_timed_out(now);
     CPPUNIT_ASSERT_EQUAL(size_t(0), timeout_index.size());
-    timeout_index = container.get_timed_out(twine::chrono::microseconds(2));
+    timeout_index = container.get_timed_out(now + sc::microseconds(2));
     CPPUNIT_ASSERT_EQUAL(size_t(2), timeout_index.size());
-    timeout_index = container.get_timed_out(twine::chrono::microseconds(3));
+    timeout_index = container.get_timed_out(now + sc::microseconds(3));
     CPPUNIT_ASSERT_EQUAL(size_t(4), timeout_index.size());
 
-    tc::microseconds prev = tc::microseconds(0);
+    auto prev = now;
     for (auto value : timeout_index) {
       CPPUNIT_ASSERT(prev <= value->m_timeout);
       prev = value->m_timeout;
     }
 
     // Ensure that when we remove an entry, that's reflected in the timeout index
-    entry = new pk::detail::scheduled_callback_entry(&foo, tc::microseconds(2));
+    entry = new pk::detail::scheduled_callback_entry(&foo, now + sc::microseconds(2));
     container.remove(entry);
     delete entry;
 
-    timeout_index = container.get_timed_out(twine::chrono::microseconds(0));
+    timeout_index = container.get_timed_out(now);
     CPPUNIT_ASSERT_EQUAL(size_t(0), timeout_index.size());
-    timeout_index = container.get_timed_out(twine::chrono::microseconds(3));
+    timeout_index = container.get_timed_out(now + sc::microseconds(3));
     CPPUNIT_ASSERT_EQUAL(size_t(2), timeout_index.size());
 
-    prev = tc::microseconds(0);
+    prev = now;
     for (auto value : timeout_index) {
       CPPUNIT_ASSERT(prev <= value->m_timeout);
       prev = value->m_timeout;

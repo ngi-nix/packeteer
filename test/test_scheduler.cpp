@@ -26,12 +26,13 @@
 #include <utility>
 #include <atomic>
 
-#include <twine/thread.h>
+#include <thread>
+#include <chrono>
 
 #include <packeteer/connector.h>
 
 namespace pk = packeteer;
-namespace tc = twine::chrono;
+namespace sc = std::chrono;
 
 namespace {
 
@@ -66,7 +67,7 @@ struct test_callback
 
 struct thread_id_callback
 {
-  twine::thread::id  m_tid;
+  std::thread::id  m_tid;
 
   thread_id_callback()
     : m_tid()
@@ -77,10 +78,10 @@ struct thread_id_callback
   pk::error_t
   func(uint64_t, pk::error_t, pk::handle const &, void *)
   {
-    m_tid = twine::this_thread::get_id();
+    m_tid = std::this_thread::get_id();
 
     LOG("callback started");
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
     LOG("callback ended");
 
     return pk::error_t(0);
@@ -161,9 +162,9 @@ public:
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
 
-    sched.schedule_once(tc::milliseconds(50), cb);
+    sched.schedule_once(sc::milliseconds(50), cb);
 
-    tc::sleep(tc::milliseconds(100));
+    std::this_thread::sleep_for(sc::milliseconds(100));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(1, called);
@@ -182,9 +183,9 @@ public:
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
 
-    sched.schedule_at(tc::now() + tc::milliseconds(50), cb);
+    sched.schedule_at(pk::clock::now() + sc::milliseconds(50), cb);
 
-    tc::sleep(tc::milliseconds(100));
+    std::this_thread::sleep_for(sc::milliseconds(100));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(1, called);
@@ -203,10 +204,10 @@ public:
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
 
-    sched.schedule(tc::milliseconds(0), tc::milliseconds(50),
+    sched.schedule(pk::clock::now(), sc::milliseconds(50),
         3, cb);
 
-    tc::sleep(tc::milliseconds(200));
+    std::this_thread::sleep_for(sc::milliseconds(200));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(3, called);
@@ -229,11 +230,13 @@ public:
     test_callback source;
     pk::callback cb = pk::make_callback(&source, &test_callback::func);
 
-    sched.schedule(tc::milliseconds(0), tc::milliseconds(50), cb);
+    auto now = pk::clock::now();
+
+    sched.schedule(now, sc::milliseconds(50), cb);
 
     // Since the first invocation happens immediately, we want to sleep <
     // 3 * 50 msec
-    tc::sleep(tc::milliseconds(125));
+    std::this_thread::sleep_for(sc::milliseconds(125));
 
     int called = source.m_called;
     CPPUNIT_ASSERT_EQUAL(3, called);
@@ -243,7 +246,7 @@ public:
 
     sched.unschedule(cb);
 
-    tc::sleep(tc::milliseconds(100));
+    std::this_thread::sleep_for(sc::milliseconds(100));
 
     // The amount of invocations may not have changed after the unschedule()
     // call above, even though we waited longer.
@@ -264,11 +267,11 @@ public:
     // with the delay.
     // That means the repeat interval needs to be just under half of the wait
     // time.
-    tc::milliseconds wait = tc::milliseconds(200);
-    tc::milliseconds interval = tc::milliseconds(80);
+    sc::milliseconds wait = sc::milliseconds(200);
+    sc::milliseconds interval = sc::milliseconds(80);
     // Now the initial delay needs to be just higher than the difference between
     // the wait time and two intervals, i.e. delay > wait - 2 * interval
-    tc::milliseconds delay = tc::milliseconds(60);
+    auto delay = pk::clock::now() + sc::milliseconds(60);
 
     // We only need one thread for this.
     pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
@@ -278,7 +281,7 @@ public:
 
     sched.schedule(delay, interval, -1, cb);
 
-    tc::sleep(wait);
+    std::this_thread::sleep_for(wait);
 
     // If called is 3 or more, the initial delay wasn't honored.
     int called = source.m_called;
@@ -307,13 +310,13 @@ public:
     thread_id_callback source2;
     pk::callback cb2 = pk::make_callback(&source2, &thread_id_callback::func);
 
-    sched.schedule_once(tc::milliseconds(50), cb1);
-    sched.schedule_once(tc::milliseconds(50), cb2);
+    sched.schedule_once(sc::milliseconds(50), cb1);
+    sched.schedule_once(sc::milliseconds(50), cb2);
 
-    tc::sleep(tc::milliseconds(150));
+    std::this_thread::sleep_for(sc::milliseconds(150));
 
-    twine::thread::id id1 = source1.m_tid;
-    twine::thread::id id2 = source2.m_tid;
+    std::thread::id id1 = source1.m_tid;
+    std::thread::id id2 = source2.m_tid;
     CPPUNIT_ASSERT(id1 != id2);
   }
 
@@ -348,42 +351,42 @@ public:
 
     // EVENT_1
     sched.fire_events(EVENT_1);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 1, EVENT_1);
     ASSERT_CALLBACK(source2, 0, 0);
 
     // EVENT_2
     sched.fire_events(EVENT_2);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 2, EVENT_2);
     ASSERT_CALLBACK(source2, 1, EVENT_2);
 
     // EVENT_3
     sched.fire_events(EVENT_3);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 3, EVENT_3);
     ASSERT_CALLBACK(source2, 2, EVENT_3);
 
     // EVENT_1 | EVENT_2
     sched.fire_events(EVENT_1 | EVENT_2);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 4, EVENT_1 | EVENT_2);
     ASSERT_CALLBACK(source2, 3, EVENT_2);
 
     // EVENT_2 | EVENT_3
     sched.fire_events(EVENT_2 | EVENT_3);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 5, EVENT_2 | EVENT_3);
     ASSERT_CALLBACK(source2, 4, EVENT_2 | EVENT_3);
 
     // EVENT_1 | EVENT_3
     sched.fire_events(EVENT_1 | EVENT_3);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 6, EVENT_1 | EVENT_3);
     ASSERT_CALLBACK(source2, 5, EVENT_3);
@@ -393,42 +396,42 @@ public:
 
     // EVENT_1
     sched.fire_events(EVENT_1);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 7, EVENT_1);
     ASSERT_CALLBACK(source2, 5, 0); // mask reset; not called
 
     // EVENT_3
     sched.fire_events(EVENT_2);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 7, 0); // mask reset; not called
     ASSERT_CALLBACK(source2, 6, EVENT_2);
 
     // EVENT_3
     sched.fire_events(EVENT_3);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 8, EVENT_3);
     ASSERT_CALLBACK(source2, 7, EVENT_3);
 
     // EVENT_1 | EVENT_2
     sched.fire_events(EVENT_1 | EVENT_2);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 9, EVENT_1);
     ASSERT_CALLBACK(source2, 8, EVENT_2);
 
     // EVENT_2 | EVENT_3
     sched.fire_events(EVENT_2 | EVENT_3);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 10, EVENT_3);
     ASSERT_CALLBACK(source2, 9, EVENT_2 | EVENT_3);
 
     // EVENT_1 | EVENT_3
     sched.fire_events(EVENT_1 | EVENT_3);
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     ASSERT_CALLBACK(source1, 11, EVENT_1 | EVENT_3);
     ASSERT_CALLBACK(source2, 10, EVENT_3);
@@ -458,11 +461,11 @@ public:
     pk::callback cb2 = pk::make_callback(&source2, &test_callback::func);
     sched.register_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb2);
 
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     sched.unregister_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb2);
 
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     // The second callback must have been invoked multiple times, because the
     // pipe is always (at this level of I/O load) writeable.
@@ -484,7 +487,7 @@ public:
     pipe.write(buf, sizeof(buf), amount);
     CPPUNIT_ASSERT_EQUAL(sizeof(buf), amount);
 
-    tc::sleep(tc::milliseconds(50));
+    std::this_thread::sleep_for(sc::milliseconds(50));
 
     // After writing, there must be a callback
     ASSERT_CALLBACK_GREATER(reading, 0, pk::PEV_IO_READ);
@@ -520,7 +523,7 @@ public:
 
     // EVENT_1
     sched.fire_events(EVENT_1);
-    sched.process_events(tc::milliseconds(20));
+    sched.process_events(sc::milliseconds(20));
 
     ASSERT_CALLBACK(source1, 1, EVENT_1);
   }

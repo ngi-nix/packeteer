@@ -3,9 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -19,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_TYPES_H
-#define PACKETEER_TYPES_H
+#ifndef PACKETEER_SCHEDULER_TYPES_H
+#define PACKETEER_SCHEDULER_TYPES_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -28,13 +26,22 @@
 
 #include <packeteer/packeteer.h>
 
+#include <chrono>
+
+namespace packeteer {
+
 /**
- * We assume C++17, so these includes must work.
+ * Types used in the scheduler, that may be of use elsewhere.
  **/
-#include <cstdint>
-#include <cinttypes>
-#include <climits>
-#include <unordered_map>
-#include <unordered_set>
+using duration = std::chrono::nanoseconds;
+using clock    = std::chrono::steady_clock;
+
+template <typename durationT = duration>
+using clock_time_point = std::chrono::time_point<clock, durationT>;
+
+using time_point = clock_time_point<duration>;
+
+
+} // namespace packeteer
 
 #endif // guard

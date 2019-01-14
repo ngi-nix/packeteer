@@ -178,7 +178,7 @@ public:
 
 private:
   // The fastest way to find a callback is by a hash.
-  packeteer_hash_map<callback, user_callback_entry *> m_callback_map;
+  std::unordered_map<callback, user_callback_entry *> m_callback_map;
 };
 
 

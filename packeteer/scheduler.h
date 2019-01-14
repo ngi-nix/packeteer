@@ -28,8 +28,7 @@
 
 #include <packeteer/packeteer.h>
 
-#include <twine/chrono.h>
-
+#include <packeteer/scheduler_types.h>
 #include <packeteer/callback.h>
 #include <packeteer/error.h>
 #include <packeteer/events.h>
@@ -125,11 +124,11 @@ public:
 
   /**
    * Schedule a callback:
-   * - schedule_once: run the callback once after delay microseconds.
+   * - schedule_once: run the callback once after delay.
    * - schedule_at: run the callback once when time::now() reaches the given
    *    time.
-   * - schedule: run the callback after first microseconds, then keep running
-   *    it every interval microseconds after the first invocation.
+   * - schedule: run the callback after first delays, then keep running
+   *    it every interval after the first invocation.
    *    If count is zero, the effect is the same as schedule_once() or
    *    schedule_at(). If count is negative, the effect is the same as if
    *    schedule() without the count parameter is called. If count is positive,
@@ -139,53 +138,56 @@ public:
   inline error_t schedule_once(durationT const & delay,
       callback const & callback)
   {
-    return schedule_once(delay.template convert<twine::chrono::nanoseconds>(),
+    return schedule_once(std::chrono::duration_cast<duration>(delay),
         callback);
   }
 
-  error_t schedule_once(twine::chrono::nanoseconds const & delay,
+  error_t schedule_once(duration const & delay,
       callback const & callback);
 
 
 
-  template <typename durationT>
-  inline error_t schedule_at(durationT const & time,
+  template <typename time_durationT>
+  inline error_t schedule_at(clock_time_point<time_durationT> const & time,
       callback const & callback)
   {
-    return schedule_at(time.template convert<twine::chrono::nanoseconds>(),
+    return schedule_at(
+        std::chrono::time_point_cast<duration, clock, time_durationT>(time),
         callback);
   }
 
-  error_t schedule_at(twine::chrono::nanoseconds const & time,
+  error_t schedule_at(time_point const & time, callback const & callback);
+
+
+
+  template <typename time_durationT, typename durationT>
+  inline error_t schedule_at(clock_time_point<time_durationT> const & first,
+      durationT const & interval, callback const & callback)
+  {
+    return schedule_at(
+        std::chrono::time_point_cast<duration, clock, time_durationT>(first),
+        std::chrono::duration_cast<duration>(interval),
+        callback);
+  }
+
+  error_t schedule(time_point const & first, duration const & interval,
       callback const & callback);
 
 
 
-  template <typename durationT0, typename durationT1>
-  inline error_t schedule_at(durationT0 const & first,
-      durationT1 const & interval, callback const & callback)
-  {
-    return schedule_at(first.template convert<twine::chrono::nanoseconds>(),
-        interval.template convert<twine::chrono::nanoseconds>(), callback);
-  }
-
-  error_t schedule(twine::chrono::nanoseconds const & first,
-      twine::chrono::nanoseconds const & interval, callback const & callback);
-
-
-
-  template <typename durationT0, typename durationT1>
-  inline error_t schedule_at(durationT0 const & first,
-      durationT1 const & interval, ssize_t const & count,
+  template <typename time_durationT, typename durationT>
+  inline error_t schedule(clock_time_point<time_durationT> const & first,
+      durationT const & interval, ssize_t const & count,
       callback const & callback)
   {
-    return schedule_at(first.template convert<twine::chrono::nanoseconds>(),
-        interval.template convert<twine::chrono::nanoseconds>(), count, callback);
+    return schedule(
+        std::chrono::time_point_cast<duration, clock, time_durationT>(first),
+        std::chrono::duration_cast<duration>(interval),
+        count, callback);
   }
 
-  error_t schedule(twine::chrono::nanoseconds const & first,
-      twine::chrono::nanoseconds const & interval, ssize_t const & count,
-      callback const & callback);
+  error_t schedule(time_point const & first, duration const & interval,
+      ssize_t const & count, callback const & callback);
 
 
 
@@ -243,7 +245,7 @@ public:
    * If exit_on_failure is false (the default), all callbacks will be invoked.
    * The result is the result of the last failing callback.
    **/
-  error_t process_events(twine::chrono::milliseconds const & timeout,
+  error_t process_events(duration const & timeout,
       bool exit_on_failure = false);
 
 private:

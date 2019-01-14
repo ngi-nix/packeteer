@@ -28,9 +28,10 @@
 
 #include <packeteer/packeteer.h>
 
-#include <twine/tasklet.h>
+#include <thread>
 
 #include <packeteer/concurrent_queue.h>
+#include <packeteer/thread/tasklet.h>
 
 #include <packeteer/detail/scheduler_impl.h>
 
@@ -41,7 +42,7 @@ namespace detail {
  * Implements a worker thread for the scheduler implementation.
  **/
 class worker
-  : public twine::tasklet
+  : public packeteer::thread::tasklet
 {
 public:
   /*****************************************************************************
@@ -51,7 +52,7 @@ public:
    * The worker thread sleeps waiting for an event on the condition, and wakes
    * up to check the work queue for work to execute.
    **/
-  worker(twine::condition & condition, twine::recursive_mutex & mutex,
+  worker(std::condition_variable_any & condition, std::recursive_mutex & mutex,
       concurrent_queue<detail::callback_entry *> & work_queue);
   ~worker();
 
@@ -67,7 +68,7 @@ private:
    * Sleep()s, grabs entries from the work queue, execute_callback()s them,
    * sleeps again.
    **/
-  void worker_loop(twine::tasklet & tasklet, void * /* unused */);
+  void worker_loop(packeteer::thread::tasklet & tasklet, void * /* unused */);
 
   std::atomic<bool>                             m_alive;
   concurrent_queue<detail::callback_entry *> &  m_work_queue;

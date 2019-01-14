@@ -43,7 +43,7 @@
 #endif
 
 namespace pdt = packeteer::detail;
-namespace tc = twine::chrono;
+namespace sc = std::chrono;
 
 namespace packeteer {
 
@@ -204,10 +204,7 @@ scheduler::scheduler_impl::start_main_loop()
   // m_io->register_handle(m_main_loop_pipe.get_write_handle(),
   //     PEV_IO_WRITE | PEV_IO_ERROR | PEV_IO_CLOSE);
 
-  m_main_loop_thread.set_func(
-      twine::thread::binder<scheduler_impl, &scheduler_impl::main_scheduler_loop>::function,
-      this);
-  m_main_loop_thread.start();
+  m_main_loop_thread = std::thread(&scheduler_impl::main_scheduler_loop, this);
 }
 
 
@@ -218,7 +215,9 @@ scheduler::scheduler_impl::stop_main_loop()
   m_main_loop_continue = false;
 
   detail::interrupt(m_main_loop_pipe);
-  m_main_loop_thread.join();
+  if (m_main_loop_thread.joinable()) {
+    m_main_loop_thread.join();
+  }
 
   m_io->unregister_handle(m_main_loop_pipe.get_read_handle(),
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
@@ -424,10 +423,10 @@ scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data>
 
 
 void
-scheduler::scheduler_impl::dispatch_scheduled_callbacks(tc::nanoseconds const & now,
-    entry_list_t & to_schedule)
+scheduler::scheduler_impl::dispatch_scheduled_callbacks(
+    time_point const & now, entry_list_t & to_schedule)
 {
-  LOG("scheduled callbacks at: " << now);
+  LOG("scheduled callbacks at: " << now.time_since_epoch().count());
 
   // Scheduled callbacks are due if their timeout is older than now(). That's
   // the simplest way to deal with them.
@@ -436,8 +435,8 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(tc::nanoseconds const & 
   detail::scheduled_callbacks_t::list_t to_update;
 
   for (auto entry : range) {
-    LOG("scheduled callback expired at " << now);
-    if (tc::nanoseconds(0) == entry->m_interval) {
+    LOG("scheduled callback expired at " << now.time_since_epoch().count());
+    if (duration(0) == entry->m_interval) {
       // If it's a one shot event, we want to *move* it into the to_schedule
       // vector thereby granting ownership to the worker that picks it up.
       LOG("one-shot callback, handing over to worker");
@@ -506,9 +505,9 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
 
 
 void
-scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
+scheduler::scheduler_impl::main_scheduler_loop()
 {
-  LOG("CPUS: " << twine::thread::hardware_concurrency());
+  LOG("CPUS: " << std::thread::hardware_concurrency());
 
   try {
     while (m_main_loop_continue) {
@@ -518,7 +517,8 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
       // - It would not make sense for user/scheduled callbacks to be triggered at
       //   different resolution on different platforms.
       entry_list_t to_schedule;
-      wait_for_events(tc::milliseconds(20), to_schedule);
+      // FIXME magic constant
+      wait_for_events(sc::milliseconds(20), to_schedule);
       LOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
       // After callbacks of all kinds have been added to to_schedule, we can push
@@ -529,7 +529,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
         // We need to interrupt the worker pipe more than once, in order to wake
         // up multiple workers. But we don't want to interrupt the pipe more than
         // there are workers or jobs, either, to avoid needless lock contention.
-        twine::scoped_lock<twine::recursive_mutex> lock(m_worker_mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_worker_mutex);
         size_t interrupts = std::min(to_schedule.size(), m_workers.size());
         while (interrupts--) {
           LOG("interrupting worker pipe");
@@ -553,7 +553,7 @@ scheduler::scheduler_impl::main_scheduler_loop(void * /* ignored */)
 
 
 void
-scheduler::scheduler_impl::wait_for_events(tc::milliseconds const & timeout,
+scheduler::scheduler_impl::wait_for_events(duration const & timeout,
     scheduler::scheduler_impl::entry_list_t & result)
 {
   // While processing the in-queue, we will find triggers for user-defined
@@ -575,7 +575,7 @@ scheduler::scheduler_impl::wait_for_events(tc::milliseconds const & timeout,
   // those entries to the out queue later.
   // The scheduler relinquishes ownership over entries in the to_schedule
   // vector to workers.
-  tc::nanoseconds now = tc::now();
+  time_point now = clock::now();
 
   dispatch_io_callbacks(events, result);
   dispatch_scheduled_callbacks(now, result);

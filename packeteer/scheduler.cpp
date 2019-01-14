@@ -26,7 +26,7 @@
 #include <packeteer/detail/scheduler_impl.h>
 #include <packeteer/detail/worker.h>
 
-namespace tc = twine::chrono;
+namespace sc = std::chrono;
 
 namespace packeteer {
 
@@ -73,9 +73,9 @@ scheduler::unregister_handle(events_t const & events, handle const & h,
 
 
 error_t
-scheduler::schedule_once(tc::nanoseconds const & delay, callback const & callback)
+scheduler::schedule_once(duration const & delay, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, tc::now() + delay);
+  auto entry = new detail::scheduled_callback_entry(callback, clock::now() + delay);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -84,7 +84,7 @@ scheduler::schedule_once(tc::nanoseconds const & delay, callback const & callbac
 
 
 error_t
-scheduler::schedule_at(tc::nanoseconds const & time, callback const & callback)
+scheduler::schedule_at(time_point const & time, callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback, time);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
@@ -95,11 +95,11 @@ scheduler::schedule_at(tc::nanoseconds const & time, callback const & callback)
 
 
 error_t
-scheduler::schedule(tc::nanoseconds const & first, tc::nanoseconds const & interval,
+scheduler::schedule(time_point const & first, duration const & interval,
     callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback,
-      tc::now() + first, -1, interval);
+  auto entry = new detail::scheduled_callback_entry(callback, first, -1,
+      interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -108,11 +108,11 @@ scheduler::schedule(tc::nanoseconds const & first, tc::nanoseconds const & inter
 
 
 error_t
-scheduler::schedule(tc::nanoseconds const & first, tc::nanoseconds const & interval,
+scheduler::schedule(time_point const & first, duration const & interval,
     ssize_t const & count, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, tc::now() + first,
-      count, interval);
+  auto entry = new detail::scheduled_callback_entry(callback, first, count,
+      interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -124,7 +124,7 @@ scheduler::schedule(tc::nanoseconds const & first, tc::nanoseconds const & inter
 error_t
 scheduler::unschedule(callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, tc::nanoseconds(0));
+  auto entry = new detail::scheduled_callback_entry(callback, time_point());
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
 
   return ERR_SUCCESS;
@@ -174,7 +174,7 @@ scheduler::fire_events(events_t const & events)
 
 
 error_t
-scheduler::process_events(twine::chrono::milliseconds const & timeout,
+scheduler::process_events(duration const & timeout,
     bool exit_on_failure /* = false */)
 {
   // First, get events to schedule to workers.

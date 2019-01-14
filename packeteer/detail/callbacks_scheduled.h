@@ -29,6 +29,7 @@
 #include <packeteer/packeteer.h>
 
 #include <packeteer/types.h>
+#include <packeteer/scheduler_types.h>
 
 #include <map>
 
@@ -52,18 +53,18 @@ namespace detail {
 struct scheduled_callback_entry : public callback_entry
 {
   // Invocation time for the callback.
-  twine::chrono::nanoseconds  m_timeout;
+  ::packeteer::time_point   m_timeout;
   // Zero if callback is one-shot.
   // Negative if callback is to be repeated until cancelled.
   // A positive number gives the number of repeats.
-  ssize_t                     m_count;
+  ssize_t                   m_count;
   // If non-zero, re-schedule the callback
-  twine::chrono::nanoseconds  m_interval;
+  ::packeteer::duration     m_interval;
 
 
   scheduled_callback_entry(callback const & cb,
-      twine::chrono::nanoseconds const & timeout, ssize_t count = 0,
-      twine::chrono::nanoseconds const & interval = twine::chrono::nanoseconds(0))
+      ::packeteer::time_point const & timeout, ssize_t count = 0,
+      ::packeteer::duration const & interval = ::packeteer::duration(0))
     : callback_entry(CB_ENTRY_SCHEDULED, cb)
     , m_timeout(timeout)
     , m_count(count)
@@ -121,7 +122,7 @@ public:
 
 
   list_t
-  get_timed_out(twine::chrono::nanoseconds const & now) const
+  get_timed_out(::packeteer::time_point const & now) const
   {
     auto end = m_timeout_map.upper_bound(now);
     list_t ret;
@@ -181,7 +182,7 @@ private:
 
 
   typedef std::multimap<
-    twine::chrono::nanoseconds,
+    ::packeteer::time_point,
     scheduled_callback_entry *
   > timeout_map_t;
 

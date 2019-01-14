@@ -11,28 +11,14 @@ set (PACKETEER_PACKAGE_URL https://github.com/jfinkhaeuser/packeteer)
 
 ##############################################################################
 # Options
-option(PACKETEER_USE_CXX11
-    "Forces meta to use C++11 features." ON)
-
-if (PACKETEER_USE_CXX11)
-  set (META_CXX_MODE META_CXX_MODE_CXX0X)
-else (PACKETEER_USE_CXX11)
-  set (META_CXX_MODE META_CXX_MODE_CXX98)
-endif (PACKETEER_USE_CXX11)
-
 
 ##############################################################################
 # Compiler flags #1
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   message("Selecting compiler flags for clang++")
 
-  set (CLANGXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast"
+  set (CLANGXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast -std=c++17"
       CACHE STRING "Default flags for clang++")
-  if (PACKETEER_USE_CXX11)
-    set (CLANGXX_CXX_FLAGS_STD "-std=c++0x -Wc++0x-compat")
-  else (PACKETEER_USE_CXX11)
-    set (CLANGXX_CXX_FLAGS_STD "-std=c++98")
-  endif (PACKETEER_USE_CXX11)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANGXX_CXX_FLAGS} ${CLANGXX_CXX_FLAGS_STD}")
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -ggdb -DDEBUG")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -ggdb -DNDEBUG")
@@ -40,13 +26,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   message("Selecting compiler flags for GNU c++")
 
-  set (GNUCXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast -Wstrict-null-sentinel"
+  set (GNUCXX_CXX_FLAGS "-Wall -Wextra -Wabi -Wold-style-cast -Wstrict-null-sentinel -std=c++17"
       CACHE STRING "Default flags for G++")
-  if (PACKETEER_USE_CXX11)
-    set (GNUCXX_CXX_FLAGS_STD "-std=c++0x -Wc++0x-compat")
-  else (PACKETEER_USE_CXX11)
-    set (GNUCXX_CXX_FLAGS_STD "-std=c++98")
-  endif (PACKETEER_USE_CXX11)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GNUCXX_CXX_FLAGS} ${GNUCXX_CXX_FLAGS_STD}")
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -ggdb -DDEBUG")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -ggdb -DNDEBUG")
@@ -54,13 +35,8 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   message("Selecting compiler flags for MSVC")
 
-  set (MSVC_CXX_FLAGS "/analyze /GR /sdl /W4"
+  set (MSVC_CXX_FLAGS "/analyze /GR /sdl /W4 /std:c++latest"
       CACHE STRING "Default flags for MSVC")
-  if (PACKETEER_USE_CXX11)
-    set (MSVC_CXX_FLAGS_STD "/std:c++latest")
-  else (PACKETEER_USE_CXX11)
-    set (MSVC_CXX_FLAGS_STD "/std:c++98")
-  endif (PACKETEER_USE_CXX11)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_CXX_FLAGS} ${MSVC_CXX_FLAGS_STD}")
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS}")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} /GL /Ox")
@@ -69,8 +45,6 @@ endif ()
 ##############################################################################
 # Dependencies
 find_package(Threads)
-find_package(meta 1.1)
-find_package(twine 1.0)
 find_package(cppunit 1.12.1)
 
 
@@ -80,6 +54,7 @@ include(CheckIncludeFileCXX)
 check_include_file_cxx(sys/select.h PACKETEER_HAVE_SYS_SELECT_H)
 check_include_file_cxx(sys/time.h PACKETEER_HAVE_SYS_TIME_H)
 check_include_file_cxx(sys/epoll.h PACKETEER_HAVE_SYS_EPOLL_H)
+check_include_file_cxx(time.h PACKETEER_HAVE_TIME_H)
 check_include_file_cxx(poll.h PACKETEER_HAVE_POLL_H)
 check_include_file_cxx(arpa/inet.h PACKETEER_HAVE_ARPA_INET_H)
 check_include_file_cxx(netinet/in.h PACKETEER_HAVE_NETINET_IN_H)
@@ -299,19 +274,22 @@ configure_file(
 include_directories(
     "${PROJECT_SOURCE_DIR}"
     "${PROJECT_BINARY_DIR}"
-    "${META_INCLUDEDIR}"
-    "${TWINE_INCLUDEDIR}"
 )
 
 # Add library flags
-set (CMAKE_CXX_FLAGS          "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS}")
-set (CMAKE_CXX_FLAGS_DEBUG    "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
-set (CMAKE_CXX_FLAGS_RELEASE  "${TWINE_CFLAGS} ${META_CFLAGS} ${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
+set (CMAKE_CXX_FLAGS          "${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_DEBUG    "${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
+set (CMAKE_CXX_FLAGS_RELEASE  "${CPPUNIT_CFLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
 
 
 ##############################################################################
 # Build artefacts
 set(LIB_SOURCES
+    packeteer/net/socket_address.cpp
+    packeteer/net/network.cpp
+    packeteer/net/detail/cidr.cpp
+    packeteer/util/url.cpp
+    packeteer/thread/tasklet.cpp
     packeteer/version.cpp
     packeteer/error.cpp
     packeteer/packeteer.cpp
@@ -321,10 +299,6 @@ set(LIB_SOURCES
     packeteer/detail/worker.cpp
     packeteer/detail/scheduler_impl.cpp
     packeteer/detail/connector.cpp
-    packeteer/net/socket_address.cpp
-    packeteer/net/network.cpp
-    packeteer/net/detail/cidr.cpp
-    packeteer/util/url.cpp
 )
 
 if (PACKETEER_HAVE_EPOLL_CREATE1)
@@ -393,6 +367,7 @@ install(FILES
     packeteer/error.h
     packeteer/macros.h
     packeteer/types.h
+    packeteer/scheduler_types.h
     packeteer/handle.h
     packeteer/concurrent_queue.h
     packeteer/callback.h
@@ -411,6 +386,13 @@ install(FILES
     packeteer/util/url.h
     packeteer/util/operators.h
     DESTINATION include/packeteer/util)
+
+install(FILES
+    packeteer/thread/binder.h
+    packeteer/thread/tasklet.h
+    packeteer/thread/chrono.h
+    DESTINATION include/packeteer/thread)
+
 
 install(FILES
     packeteer/net/detail/sysincludes.h
@@ -435,6 +417,8 @@ if (CPPUNIT_FOUND)
       test/test_cidr.cpp
       test/test_handle.cpp
       test/test_url.cpp
+      test/test_binder.cpp
+      test/test_tasklet.cpp
       test/test_socket_address.cpp
       test/test_network.cpp
       test/test_callback.cpp
@@ -454,10 +438,8 @@ if (CPPUNIT_FOUND)
       ${CMAKE_THREAD_LIBS_INIT}
       ${DEP_LIBRARIES}
       debug
-      ${TWINE_LIBRARY_DEBUG}
       ${CPPUNIT_LIBRARY_DEBUG}
       optimized
-      ${TWINE_LIBRARY_RELEASE}
       ${CPPUNIT_LIBRARY_RELEASE})
 
   # Since some time after 2.8.9

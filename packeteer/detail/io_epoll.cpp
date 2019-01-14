@@ -23,15 +23,19 @@
 #include <packeteer/detail/globals.h>
 #include <packeteer/detail/scheduler_impl.h>
 
+#include <unistd.h>
 #include <sys/epoll.h>
 #include <errno.h>
 
 #include <cstring>
+#include <chrono>
 
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 #include <packeteer/events.h>
 #include <packeteer/handle.h>
+
+namespace sc = std::chrono;
 
 namespace packeteer {
 namespace detail {
@@ -240,7 +244,7 @@ io_epoll::unregister_handles(handle const * handles, size_t size,
 
 void
 io_epoll::wait_for_events(std::vector<event_data> & events,
-      twine::chrono::nanoseconds const & timeout)
+      duration const & timeout)
 {
   // Wait for events
   ::epoll_event epoll_events[PACKETEER_EPOLL_MAXEVENTS];
@@ -249,7 +253,7 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
   while (true) {
     ::memset(&epoll_events, 0, sizeof(epoll_events));
     ready = ::epoll_pwait(m_epoll_fd, epoll_events, PACKETEER_EPOLL_MAXEVENTS,
-        timeout.as<twine::chrono::milliseconds>(), nullptr);
+        sc::duration_cast<sc::milliseconds>(timeout).count(), nullptr);
     if (-1 != ready) {
       break;
     }
