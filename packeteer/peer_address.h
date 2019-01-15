@@ -158,6 +158,10 @@ template <> struct hash<packeteer::peer_address>
 template <>
 inline void
 swap<::packeteer::peer_address>(::packeteer::peer_address & first, ::packeteer::peer_address & second)
+  noexcept(
+      is_nothrow_move_constructible<::packeteer::peer_address>::value
+      && is_nothrow_move_assignable<::packeteer::peer_address>::value
+  )
 {
   return first.swap(second);
 }

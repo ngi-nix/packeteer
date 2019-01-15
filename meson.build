@@ -18,7 +18,7 @@ compiler_id = compiler.get_id()
 if compiler_id == 'clang'
   extra_args = ['-Wall', '-Wextra', '-Wabi', '-Wold-style-cast']
 elif compiler_id == 'gcc'
-  extra_args = ['-Wall', '-Wextra', '-Wabi', '-Wold-style-cast', '-Wstrict-null-sentinel']
+  extra_args = ['-Wall', '-Wextra', '-Wold-style-cast', '-Wstrict-null-sentinel']
 endif
 
 
@@ -274,8 +274,12 @@ posixsrc = [
   'packeteer/posix/detail/connector_local.cpp',
 ]
 
-if host_machine.system() == 'linux'
+winsrc = []
+
+if host_machine.system() in [ 'cygwin', 'darwin', 'dragonfly', 'freebsd', 'gnu', 'linux', 'netbsd' ]
   libsrc += posixsrc
+elif host_machine.system() == 'windows'
+  libsrc + winsrc
 endif
 
 lib = both_libraries('packeteer', libsrc,

@@ -82,7 +82,7 @@ connector_udp::~connector_udp()
 error_t
 connector_udp::connect()
 {
-  return connector_socket::connect(select_domain(m_addr), SOCK_DGRAM);
+  return connector_socket::socket_connect(select_domain(m_addr), SOCK_DGRAM);
   /* FIXME
   int fd = -1;
   error_t err = connector_socket::create(select_domain(m_addr), SOCK_DGRAM, fd);
@@ -103,7 +103,7 @@ connector_udp::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::bind(select_domain(m_addr), SOCK_DGRAM, fd);
+  error_t err = connector_socket::socket_bind(select_domain(m_addr), SOCK_DGRAM, fd);
   if (ERR_SUCCESS != err) {
     return err;
   }

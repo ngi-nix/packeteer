@@ -49,14 +49,16 @@ public:
   void init();
   void deinit();
 
-  void register_fd(int fd, events_t const & events);
-  void register_fds(int const * fds, size_t amount, events_t const & events);
+  virtual void register_handle(handle const & handle, events_t const & events);
+  virtual void register_handles(handle const * handles, size_t amount,
+      events_t const & events);
 
-  void unregister_fd(int fd, events_t const & events);
-  void unregister_fds(int const * fds, size_t amount, events_t const & events);
+  virtual void unregister_handle(handle const & handle, events_t const & events);
+  virtual void unregister_handles(handle const * handles, size_t amount,
+      events_t const & events);
 
   virtual void wait_for_events(std::vector<event_data> & events,
-      duration const & timeout);
+      packeteer::duration const & timeout);
 
 private:
   /***************************************************************************

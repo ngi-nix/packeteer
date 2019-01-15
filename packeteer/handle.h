@@ -126,7 +126,7 @@ struct handle : public ::packeteer::util::operators<handle>
   friend std::ostream & operator<<(std::ostream & os, handle const & h);
 
 private:
-  friend class ::packeteer::util::operators<handle>;
+  friend struct ::packeteer::util::operators<handle>;
 
   inline bool is_equal_to(handle const & other) const
   {

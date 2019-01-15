@@ -78,7 +78,7 @@ public:
   size_t hash() const;
 
 private:
-  friend class packeteer::util::operators<url>;
+  friend struct packeteer::util::operators<url>;
 
   bool is_less_than(url const & other) const;
   bool is_equal_to(url const & other) const;

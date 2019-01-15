@@ -133,7 +133,7 @@ connector_socket::connector_socket()
 
 
 error_t
-connector_socket::connect(int domain, int type)
+connector_socket::socket_connect(int domain, int type)
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
@@ -218,7 +218,7 @@ connector_socket::connect(int domain, int type)
 
 
 error_t
-connector_socket::create(int domain, int type, int & fd)
+connector_socket::socket_create(int domain, int type, int & fd)
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
@@ -235,7 +235,7 @@ connector_socket::create(int domain, int type, int & fd)
 
 
 error_t
-connector_socket::bind(int domain, int type, int & fd)
+connector_socket::socket_bind(int domain, int type, int & fd)
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
@@ -299,7 +299,7 @@ connector_socket::bind(int domain, int type, int & fd)
 
 
 error_t
-connector_socket::listen(int fd)
+connector_socket::socket_listen(int fd)
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
@@ -385,7 +385,7 @@ connector_socket::close_socket()
 
 
 error_t
-connector_socket::accept(int & new_fd, net::socket_address & addr) const
+connector_socket::socket_accept(int & new_fd, net::socket_address & addr) const
 {
   // There is no need for accept(); we've already got the connection established.
   if (!listening()) {
@@ -441,7 +441,7 @@ connector_socket::accept(int & new_fd, net::socket_address & addr) const
       case ETIMEDOUT:
         return ERR_TIMEOUT;
 
-      case ENOSR:
+      // FIXME Linux only case ENOSR:
       case ESOCKTNOSUPPORT:
       case EPROTONOSUPPORT:
       default:

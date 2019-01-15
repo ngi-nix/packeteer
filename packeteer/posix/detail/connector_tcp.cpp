@@ -80,7 +80,7 @@ connector_tcp::~connector_tcp()
 error_t
 connector_tcp::connect()
 {
-  return connector_socket::connect(select_domain(m_addr), SOCK_STREAM);
+  return connector_socket::socket_connect(select_domain(m_addr), SOCK_STREAM);
 }
 
 
@@ -90,13 +90,13 @@ connector_tcp::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::bind(select_domain(m_addr), SOCK_STREAM, fd);
+  error_t err = connector_socket::socket_bind(select_domain(m_addr), SOCK_STREAM, fd);
   if (ERR_SUCCESS != err) {
     return err;
   }
 
   // Attempt to listen
-  err = connector_socket::listen(fd);
+  err = connector_socket::socket_listen(fd);
   if (ERR_SUCCESS != err) {
     return err;
   }
@@ -122,7 +122,7 @@ connector_tcp::accept(net::socket_address & addr) const
 {
   // FIXME use accept for CB_DATAGRAM?
   int fd = -1;
-  error_t err = connector_socket::accept(fd, addr);
+  error_t err = connector_socket::socket_accept(fd, addr);
   if (ERR_SUCCESS != err) {
     return nullptr;
   }

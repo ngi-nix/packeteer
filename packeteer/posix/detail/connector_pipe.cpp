@@ -46,7 +46,7 @@ create_pipe(std::string const & path)
   // Common to mkfifo and mknod
 #if defined(PACKETEER_HAVE_MKFIFO) || defined(PACKETEER_HAVE_MKNOD)
   int ret = -1;
-  mode_t mode = S_IFIFO | S_IRUSR | S_IWUSR;
+  int mode = S_IFIFO | S_IRUSR | S_IWUSR;
 #endif
 
   // Availability dependent
@@ -189,7 +189,7 @@ connector_pipe::connect()
   }
 
   // If the file exists, open it.
-  mode_t mode = O_RDWR | O_CLOEXEC | O_ASYNC;
+  int mode = O_RDWR | O_CLOEXEC | O_ASYNC;
   if (!m_blocking) {
     mode |= O_NONBLOCK;
   }
@@ -232,7 +232,7 @@ connector_pipe::listen()
   }
 
   // If the file exists, open it.
-  mode_t mode = O_RDWR | O_CLOEXEC | O_ASYNC;
+  int mode = O_RDWR | O_CLOEXEC | O_ASYNC;
   if (!m_blocking) {
     mode |= O_NONBLOCK;
   }

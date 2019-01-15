@@ -145,7 +145,7 @@ protected:
   /**
    * Used by util::operators
    **/
-  friend class packeteer::util::operators<network>;
+  friend struct packeteer::util::operators<network>;
 
   virtual bool is_equal_to(network const & other) const;
   virtual bool is_less_than(network const & other) const;

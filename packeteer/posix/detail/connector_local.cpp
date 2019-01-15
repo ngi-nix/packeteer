@@ -90,7 +90,7 @@ connector_local::~connector_local()
 error_t
 connector_local::connect()
 {
-  return connector_socket::connect(AF_LOCAL, sock_type(m_behaviour));
+  return connector_socket::socket_connect(AF_LOCAL, sock_type(m_behaviour));
 }
 
 
@@ -100,13 +100,13 @@ connector_local::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::bind(AF_LOCAL, sock_type(m_behaviour), fd);
+  error_t err = connector_socket::socket_bind(AF_LOCAL, sock_type(m_behaviour), fd);
   if (ERR_SUCCESS != err) {
     return err;
   }
 
   // Attempt to listen
-  err = connector_socket::listen(fd);
+  err = connector_socket::socket_listen(fd);
   if (ERR_SUCCESS != err) {
     return err;
   }
@@ -137,7 +137,7 @@ connector *
 connector_local::accept(net::socket_address & addr) const
 {
   int fd = -1;
-  error_t err = connector_socket::accept(fd, addr);
+  error_t err = connector_socket::socket_accept(fd, addr);
   if (ERR_SUCCESS != err) {
     return nullptr;
   }

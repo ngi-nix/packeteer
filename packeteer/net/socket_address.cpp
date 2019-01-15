@@ -366,7 +366,7 @@ socket_address::operator++()
   // As always, IPv4 is pretty simple.
   if (AF_INET == data.sa_storage.ss_family) {
     uint32_t ip = ntohl(data.sa_in.sin_addr.s_addr);
-    data.sa_in.sin_addr.s_addr = htonl(++ip);
+    data.sa_in.sin_addr.s_addr = htonl(ip + 1);
   }
   else if (AF_INET6) {
     // IPv6 is still simple enough, we just have to handle overflow from one

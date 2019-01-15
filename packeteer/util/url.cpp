@@ -22,6 +22,9 @@
 
 #include <iostream>
 #include <algorithm>
+#include <functional>
+#include <locale>
+#include <cwctype>
 
 #include <packeteer/util/hash.h>
 
@@ -30,14 +33,19 @@ namespace util {
 
 namespace {
 
+inline std::string::value_type
+locale_lower(std::string::value_type const & c)
+{
+  return std::tolower<std::string::value_type>(c, std::locale());
+}
+
 std::string
 normalize_value(std::string const & value)
 {
   // std::cout << "pre normalization: " << value << std::endl;
   std::string ret;
   ret.resize(value.size());
-  std::transform(value.begin(), value.end(), ret.begin(),
-      std::bind2nd(std::ptr_fun(&std::tolower<char>), std::locale("")));
+  std::transform(value.begin(), value.end(), ret.begin(), locale_lower);
 
   if ("true" == ret or "yes" == ret) {
     ret = "1";
@@ -69,8 +77,7 @@ split_query(std::map<std::string, std::string> & params,
     if (equal >= end) {
       // Parameter without value.
       auto key = query.substr(start, end - start);
-      std::transform(key.begin(), key.end(), key.begin(),
-          std::bind2nd(std::ptr_fun(&std::tolower<char>), std::locale("")));
+      std::transform(key.begin(), key.end(), key.begin(), locale_lower);
 
       // std::cout << "got simple: " << key << std::endl;
       params[key] = "1"; // Treat as boolean
@@ -79,8 +86,7 @@ split_query(std::map<std::string, std::string> & params,
     else {
       // Parameter with value
       auto key = query.substr(start, equal - start);
-      std::transform(key.begin(), key.end(), key.begin(),
-          std::bind2nd(std::ptr_fun(&std::tolower<char>), std::locale("")));
+      std::transform(key.begin(), key.end(), key.begin(), locale_lower);
 
       auto value = normalize_value(query.substr(equal + 1, end - equal - 1));
       // std::cout << "got kv: " << key << " = " << value << std::endl;
@@ -127,7 +133,7 @@ url::parse(std::string const & url_string)
   // Ok, we seem to have a scheme part. Lower-case it.
   ret.scheme = url_string.substr(0, end);
   std::transform(ret.scheme.begin(), ret.scheme.end(), ret.scheme.begin(),
-      std::bind2nd(std::ptr_fun(&std::tolower<char>), std::locale("")));
+      locale_lower);
   // std::cout << "got scheme: " << ret.scheme << std::endl;
 
   // Next grab the authority - that's everything until the next '/' character.

@@ -241,7 +241,7 @@ public:
   }
 
 private:
-  friend class ::packeteer::util::operators<callback>;
+  friend struct ::packeteer::util::operators<callback>;
 
   inline bool is_equal_to(callback const & other) const
   {

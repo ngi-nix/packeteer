@@ -42,15 +42,9 @@ public:
   connector_socket(::packeteer::net::socket_address const & addr,
       bool blocking, connector_behaviour const & behaviour);
 
-  error_t create(int domain, int type, int & fd);
-  error_t bind(int domain, int type, int & fd);
-  error_t listen(int fd);
+  // Connector interface, partially implemented
   bool listening() const;
-
-  error_t connect(int domain, int type);
   bool connected() const;
-
-  error_t accept(int & new_fd, net::socket_address & addr) const;
 
   handle get_read_handle() const;
   handle get_write_handle() const;
@@ -59,6 +53,13 @@ public:
 
   error_t set_blocking_mode(bool state);
   error_t get_blocking_mode(bool & state) const;
+
+  // Socket-specific versions of connect() and accept()
+  error_t socket_create(int domain, int type, int & fd);
+  error_t socket_bind(int domain, int type, int & fd);
+  error_t socket_listen(int fd);
+  error_t socket_connect(int domain, int type);
+  error_t socket_accept(int & new_fd, net::socket_address & addr) const;
 
 protected:
   connector_socket();

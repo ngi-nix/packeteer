@@ -235,6 +235,10 @@ template <> struct hash<packeteer::net::socket_address>
 template <>
 inline void
 swap<::packeteer::net::socket_address>(::packeteer::net::socket_address & first, ::packeteer::net::socket_address & second)
+  noexcept(
+      is_nothrow_move_constructible<::packeteer::net::socket_address>::value
+      && is_nothrow_move_assignable<::packeteer::net::socket_address>::value
+  )
 {
   return first.swap(second);
 }

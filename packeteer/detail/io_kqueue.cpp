@@ -24,6 +24,7 @@
 #include <packeteer/detail/scheduler_impl.h>
 
 // Posix
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -79,7 +80,7 @@ translate_os_to_events(int os)
 
 
 inline void
-modify_kqueue(bool add, int queue, int const * fds, size_t amount,
+modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
     events_t const & events)
 {
   // Get enough memory for the transaction
@@ -91,10 +92,12 @@ modify_kqueue(bool add, int queue, int const * fds, size_t amount,
     // Now we access the last (i.e. the newly added) element of the vector.
     int translated = translate_events_to_os(events);
     if (add) {
-      EV_SET(&pending[i], fds[i], translated, EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
+      EV_SET(&pending[i], handles[i].sys_handle(), translated,
+          EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
     }
     else {
-      EV_SET(&pending[i], fds[i], translated, EV_DELETE, 0, 0, nullptr);
+      EV_SET(&pending[i], handles[i].sys_handle(), translated,
+          EV_DELETE, 0, 0, nullptr);
     }
   }
 
@@ -165,45 +168,45 @@ io_kqueue::io_kqueue()
 
 io_kqueue::~io_kqueue()
 {
-  close(m_kqueue_fd);
+  ::close(m_kqueue_fd);
   m_kqueue_fd = -1;
 }
 
 
 
 void
-io_kqueue::register_fd(int fd, events_t const & events)
+io_kqueue::register_handle(handle const & handle, events_t const & events)
 {
-  int fds[1] = { fd };
-  register_fds(fds, 1, events);
+  struct handle handles[1] = { handle };
+  register_handles(handles, 1, events);
 }
 
 
 
 void
-io_kqueue::register_fds(int const * fds, size_t size,
+io_kqueue::register_handles(handle const * handles, size_t size,
     events_t const & events)
 {
-  modify_kqueue(true, m_kqueue_fd, fds, size, events);
+  modify_kqueue(true, m_kqueue_fd, handles, size, events);
 }
 
 
 
 
 void
-io_kqueue::unregister_fd(int fd, events_t const & events)
+io_kqueue::unregister_handle(handle const & handle, events_t const & events)
 {
-  int fds[1] = { fd };
-  unregister_fds(fds, 1, events);
+  struct handle handles[1] = { handle };
+  unregister_handles(handles, 1, events);
 }
 
 
 
 void
-io_kqueue::unregister_fds(int const * fds, size_t size,
+io_kqueue::unregister_handles(handle const * handles, size_t size,
     events_t const & events)
 {
-  modify_kqueue(false, m_kqueue_fd, fds, size, events);
+  modify_kqueue(false, m_kqueue_fd, handles, size, events);
 }
 
 
@@ -253,24 +256,27 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
   // Map events
   for (int i = 0 ; i < ret ; ++i) {
     if (kqueue_events[i].flags & EV_ERROR) {
-      event_data ev;
-      ev.fd = kqueue_events[i].ident;
-      ev.events = PEV_IO_ERROR;
-      events.push_back(ev);
+      event_data data = {
+        handle(kqueue_events[i].ident),
+        PEV_IO_ERROR
+      };
+      events.push_back(data);
     }
     else if (kqueue_events[i].flags & EV_EOF) {
-      event_data ev;
-      ev.fd = kqueue_events[i].ident;
-      ev.events = PEV_IO_CLOSE;
-      events.push_back(ev);
+      event_data data = {
+        handle(kqueue_events[i].ident),
+        PEV_IO_CLOSE
+      };
+      events.push_back(data);
     }
     else {
-      int translated = translate_os_to_events(kqueue_events[i].filter);
+      events_t translated = translate_os_to_events(kqueue_events[i].filter);
       if (translated) {
-        event_data ev;
-        ev.fd = kqueue_events[i].ident;
-        ev.events = translated;
-        events.push_back(ev);
+        event_data data = {
+          handle(kqueue_events[i].ident),
+          translated
+        };
+        events.push_back(data);
       }
     }
   }
