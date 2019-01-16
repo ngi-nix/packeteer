@@ -161,7 +161,7 @@ struct connector::connector_impl
     }
 
     // Check if there is a blocking mode specified.
-    bool blocking = true;
+    bool blocking = false;
     iter = m_url.query.find("blocking");
     if (iter != m_url.query.end()) {
       if ("1" == iter->second) {

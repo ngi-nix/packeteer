@@ -255,7 +255,7 @@ private:
 
 
 
-  void testStreamConnector(connector_type expected_type, std::string const & addr)
+  void testBlockingStreamConnector(connector_type expected_type, std::string const & addr)
   {
     // Tests for "stream" connectors, i.e. connectors that allow synchronous,
     // reliable delivery.
@@ -400,7 +400,7 @@ private:
   void testLocalConnector()
   {
     // Local sockets are "stream" connectors
-    testStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream");
+    testBlockingStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream?blocking=1");
     // FIXME testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram");
   }
 
@@ -409,7 +409,7 @@ private:
   void testPipeConnector()
   {
     // Named pipes are "stream" connectors
-    testStreamConnector(CT_PIPE, "pipe:///tmp/test-connector-pipe");
+    testBlockingStreamConnector(CT_PIPE, "pipe:///tmp/test-connector-pipe?blocking=1");
   }
 
 
@@ -417,7 +417,7 @@ private:
   void testTCPv4Connector()
   {
     // TCP over IPv4 to localhost
-    testStreamConnector(CT_TCP4, "tcp4://127.0.0.1:54321");
+    testBlockingStreamConnector(CT_TCP4, "tcp4://127.0.0.1:54321?blocking=1");
   }
 
 
@@ -425,7 +425,7 @@ private:
   void testTCPv6Connector()
   {
     // TCP over IPv6 to localhost
-    testStreamConnector(CT_TCP6, "tcp6://[::1]:54321");
+    testBlockingStreamConnector(CT_TCP6, "tcp6://[::1]:54321?blocking=1");
   }
 
 
