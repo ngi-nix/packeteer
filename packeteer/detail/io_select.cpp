@@ -82,6 +82,9 @@ void
 io_select::unregister_handle(handle const & h, events_t const & events)
 {
   auto iter = m_fds.find(h.sys_handle());
+  if (iter == m_fds.end()) {
+    return;
+  }
   iter->second &= ~events;
   if (!iter->second) {
     m_fds.erase(iter);
@@ -96,6 +99,9 @@ io_select::unregister_handles(handle const * handles, size_t size,
 {
   for (size_t i = 0 ; i < size ; ++i) {
     auto iter = m_fds.find(handles[i].sys_handle());
+    if (iter == m_fds.end()) {
+      continue;
+    }
     iter->second &= ~events;
     if (!iter->second) {
       m_fds.erase(iter);
