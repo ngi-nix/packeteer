@@ -501,7 +501,7 @@ public:
     // much - this is difficult to bound, because it's the thread scheduling
     // and I/O scheduling properties of the kernel that determine this.
     CPPUNIT_ASSERT_MESSAGE("Should not fail",
-        (reading.m_called > 1 && reading.m_called < 50));
+        (reading.m_called >= 1 && reading.m_called < 100));
   }
 
 
