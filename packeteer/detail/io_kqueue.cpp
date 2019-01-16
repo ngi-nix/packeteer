@@ -79,7 +79,7 @@ translate_os_to_events(int os)
 
 
 
-inline void
+inline bool
 modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
     events_t const & events)
 {
@@ -118,8 +118,26 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
       case EFAULT:
       case EINVAL:
       case EBADF:
-      case ENOENT:
         throw exception(ERR_INVALID_OPTION, errno);
+
+      case ENOENT:
+        // This happens if an FD has already been deleted. Since the FD set
+        // can include more than one, it's difficult to understand how to
+        // recover, because we don't know which FD triggered the issue.
+        // So we'll try the entire set one by one.
+        if (amount == 1) {
+          // Already handling a single FD, so we can just bail. The return
+          // value is largely for logging (below).
+          return false;
+        }
+        for (size_t i = 0 ; i < amount ; ++i) {
+          bool ret = modify_kqueue(add, queue, &handles[i], 1, events);
+          if (!ret) {
+            LOG("Handle " << handles[i] << " [" << handles[i].sys_handle() \
+                << "] could not be modified, maybe it's a double delete?");
+          }
+        }
+        return true;
 
       case ENOMEM:
         throw exception(ERR_OUT_OF_MEMORY, errno, "OOM trying to modify kqueue events");
@@ -130,6 +148,7 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
         throw exception(ERR_UNEXPECTED, errno);
     }
   }
+  return true;
 }
 
 
