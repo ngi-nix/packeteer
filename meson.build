@@ -21,6 +21,15 @@ elif compiler_id == 'gcc'
   extra_args = ['-Wall', '-Wextra', '-Wold-style-cast', '-Wstrict-null-sentinel']
 endif
 
+bt = get_option('buildtype')
+if bt in ['debug', 'debugoptimized']
+  if compiler_id == 'clang'
+    extra_args += ['-O0', '-ggdb', '-DDEBUG']
+  elif compiler_id == 'gcc'
+    extra_args += ['-O0', '-ggdb', '-DDEBUG']
+  endif
+endif
+
 
 ### Version and package information
 ver = meson.project_version()
