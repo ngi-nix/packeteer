@@ -338,7 +338,7 @@ connector::connector()
 
 connector::~connector()
 {
-  if (--(m_impl->m_refcount) <= 0) {
+  if (m_impl && --(m_impl->m_refcount) <= 0) {
     delete m_impl;
   }
   m_impl = nullptr;
