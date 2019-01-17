@@ -33,7 +33,7 @@ namespace packeteer {
 // for peer addresses.
 enum connector_type
 {
-  CT_UNSPEC = -1, // Never returned
+  CT_UNSPEC = -1,
   CT_TCP4 = 0,
   CT_TCP6,
   CT_TCP,
