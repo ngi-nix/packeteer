@@ -124,7 +124,7 @@ error_t
 connector_local::close()
 {
   bool server = m_server;
-  error_t err = connector_socket::close_socket();
+  error_t err = connector_socket::socket_close();
   if (ERR_SUCCESS == err && server) {
     ::unlink(m_addr.full_str().c_str());
   }

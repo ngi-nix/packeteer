@@ -120,7 +120,7 @@ connector_udp::listen()
 error_t
 connector_udp::close()
 {
-  return connector_socket::close_socket();
+  return connector_socket::socket_close();
 }
 
 

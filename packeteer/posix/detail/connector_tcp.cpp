@@ -113,7 +113,7 @@ connector_tcp::listen()
 error_t
 connector_tcp::close()
 {
-  return connector_socket::close_socket();
+  return connector_socket::socket_close();
 }
 
 
