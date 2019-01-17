@@ -34,12 +34,10 @@ namespace packeteer {
   // will be notified for which event(s) it was invoked.
   enum
   {
-    PEV_IO_CONNECT = (1 <<  0),  // A handle has connected. The meaning of this
-                                 // flag depends a little on the handle type.
-    PEV_IO_READ    = (1 <<  1),  // A handle is ready for reading
-    PEV_IO_WRITE   = (1 <<  2),  // A handle is ready for writing
-    PEV_IO_ERROR   = (1 <<  3),  // A handle has produced errors
-    PEV_IO_CLOSE   = (1 <<  4),  // A handle has been closed. This event
+    PEV_IO_READ    = (1 <<  0),  // A handle is ready for reading
+    PEV_IO_WRITE   = (1 <<  1),  // A handle is ready for writing
+    PEV_IO_ERROR   = (1 <<  2),  // A handle has produced errors
+    PEV_IO_CLOSE   = (1 <<  3),  // A handle has been closed. This event
                                  // cannot be reliably reported.
                                  //
     PEV_TIMEOUT    = (1 <<  7),  // A timout has been reached that the callback was
