@@ -303,11 +303,8 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
     case ACTION_ADD:
       {
         // Add the callback for the event mask
-        m_io_callbacks.add(io);
-        // Ensure the handle is in non-blocking mode.
-        // TODO: this may introduce syscalls we don't need.
-        set_blocking_mode(io->m_handle.sys_handle(), false);
-        m_io->register_handle(io->m_handle, io->m_events);
+        auto updated = m_io_callbacks.add(io);
+        m_io->register_handle(updated->m_handle, updated->m_events);
       }
       break;
 
@@ -315,8 +312,8 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
     case ACTION_REMOVE:
       {
         // Add the callback from the event mask
-        m_io_callbacks.remove(io);
-        m_io->unregister_handle(io->m_handle, io->m_events);
+        auto updated = m_io_callbacks.remove(io);
+        m_io->unregister_handle(updated->m_handle, updated->m_events);
         delete io;
       }
       break;
