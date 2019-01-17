@@ -98,9 +98,14 @@ public:
    * The constructor will throw if an address could not be parsed. Note that
    * paths will not be parsed immediately, but only when the connection
    * specified by the connector is to be established.
+   *
+   * The default constructed connector does not have any connection semantics,
+   * but is assignable and very lightweight - and can therefore be used in
+   * place of a connector pointer.
    **/
   connector(std::string const & connect_url);
   connector(util::url const & connect_url);
+  connector();
   ~connector();
 
   /**
@@ -243,6 +248,8 @@ public:
   connector(connector &&) = default;
   connector & operator=(connector const & other);
 
+  operator bool() const;
+
   bool is_equal_to(connector const & other) const;
   bool is_less_than(connector const & other) const;
 
@@ -250,8 +257,6 @@ public:
   size_t hash() const;
 
 private:
-  connector();
-
   // pimpl
   struct connector_impl;
   connector_impl * m_impl;

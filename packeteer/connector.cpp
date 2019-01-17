@@ -324,7 +324,9 @@ connector::connector(util::url const & connect_url)
 connector::connector(connector const & other)
   : m_impl(other.m_impl)
 {
-  ++(m_impl->m_refcount);
+  if (m_impl) {
+    ++(m_impl->m_refcount);
+  }
 }
 
 
@@ -349,6 +351,9 @@ connector::~connector()
 connector_type
 connector::type() const
 {
+  if (!m_impl) {
+    return CT_UNSPEC;
+  }
   return m_impl->m_type;
 }
 
@@ -357,6 +362,9 @@ connector::type() const
 util::url
 connector::connect_url() const
 {
+  if (!m_impl) {
+    throw exception(ERR_INITIALIZATION, "Connector not initialized.");
+  }
   return m_impl->m_url;
 }
 
@@ -365,6 +373,9 @@ connector::connect_url() const
 net::socket_address
 connector::socket_address() const
 {
+  if (!m_impl) {
+    throw exception(ERR_INITIALIZATION, "Connector not initialized.");
+  }
   return m_impl->m_address.socket_address();
 }
 
@@ -373,6 +384,9 @@ connector::socket_address() const
 peer_address
 connector::peer_addr() const
 {
+  if (!m_impl) {
+    throw exception(ERR_INITIALIZATION, "Connector not initialized.");
+  }
   return m_impl->m_address;
 }
 
@@ -381,7 +395,7 @@ connector::peer_addr() const
 error_t
 connector::listen()
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->listen();
@@ -392,7 +406,7 @@ connector::listen()
 bool
 connector::listening() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return false;
   }
   return (*m_impl)->listening();
@@ -403,7 +417,7 @@ connector::listening() const
 error_t
 connector::connect()
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->connect();
@@ -414,7 +428,7 @@ connector::connect()
 bool
 connector::connected() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return false;
   }
   return (*m_impl)->connected();
@@ -425,7 +439,7 @@ connector::connected() const
 connector
 connector::accept() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     throw exception(ERR_INITIALIZATION, "Can't accept() an uninitialized connector!");
   }
 
@@ -475,7 +489,7 @@ connector::accept() const
 handle
 connector::get_read_handle() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return handle();
   }
   return (*m_impl)->get_read_handle();
@@ -486,7 +500,7 @@ connector::get_read_handle() const
 handle
 connector::get_write_handle() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return handle();
   }
   return (*m_impl)->get_write_handle();
@@ -498,7 +512,7 @@ error_t
 connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
     net::socket_address & sender)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->receive(buf, bufsize, bytes_read, sender);
@@ -510,7 +524,7 @@ error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
     net::socket_address const & recipient)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->send(buf, bufsize, bytes_written, recipient);
@@ -522,7 +536,7 @@ error_t
 connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
     peer_address & sender)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
 
@@ -537,7 +551,7 @@ error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
     peer_address const & recipient)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->send(buf, bufsize, bytes_written, recipient.socket_address());
@@ -548,7 +562,7 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
 size_t
 connector::peek() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     throw exception(ERR_INITIALIZATION);
   }
   return (*m_impl)->peek();
@@ -559,7 +573,7 @@ connector::peek() const
 error_t
 connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->read(buf, bufsize, bytes_read);
@@ -570,7 +584,7 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 error_t
 connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->write(buf, bufsize, bytes_written);
@@ -581,7 +595,7 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
 error_t
 connector::close()
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->close();
@@ -592,7 +606,7 @@ connector::close()
 error_t
 connector::set_blocking_mode(bool state)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->set_blocking_mode(state);
@@ -603,7 +617,7 @@ connector::set_blocking_mode(bool state)
 error_t
 connector::get_blocking_mode(bool & state)
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->get_blocking_mode(state);
@@ -614,7 +628,7 @@ connector::get_blocking_mode(bool & state)
 connector_behaviour
 connector::get_behaviour() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     throw exception(ERR_INITIALIZATION, "Error retrieving behaviour.");
   }
   return (*m_impl)->get_behaviour();
@@ -622,12 +636,22 @@ connector::get_behaviour() const
 
 
 
+connector::operator bool() const
+{
+  return type() != CT_UNSPEC;
+}
+
+
+
 bool
 connector::is_equal_to(connector const & other) const
 {
-  return (
-      type() == other.type()
-      && get_read_handle() == other.get_read_handle()
+  bool ret = type() == other.type();
+  if (type() == CT_UNSPEC) {
+    return ret;
+  }
+  return ret && (
+      get_read_handle() == other.get_read_handle()
       && get_write_handle() == other.get_write_handle()
       && connect_url() == other.connect_url()
   );
@@ -638,6 +662,9 @@ connector::is_equal_to(connector const & other) const
 bool
 connector::is_less_than(connector const & other) const
 {
+  if (type() == CT_UNSPEC) {
+    return true;
+  }
   if (type() < other.type()) {
     return true;
   }
@@ -656,7 +683,7 @@ connector &
 connector::operator=(connector const & other)
 {
   // First decrease the refcount on our existing implementation
-  if (--(m_impl->m_refcount) <= 0) {
+  if (m_impl && --(m_impl->m_refcount) <= 0) {
     delete m_impl;
   }
 
@@ -680,7 +707,7 @@ connector::swap(connector & other)
 size_t
 connector::hash() const
 {
-  if (!*m_impl) {
+  if (!m_impl || !*m_impl) {
     return 0;
   }
   return m_impl->hash();
