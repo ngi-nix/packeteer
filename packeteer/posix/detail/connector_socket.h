@@ -49,8 +49,6 @@ public:
   handle get_read_handle() const;
   handle get_write_handle() const;
 
-  error_t close_socket();
-
   error_t set_blocking_mode(bool state);
   error_t get_blocking_mode(bool & state) const;
 
@@ -60,6 +58,7 @@ public:
   error_t socket_listen(int fd);
   error_t socket_connect(int domain, int type);
   error_t socket_accept(int & new_fd, net::socket_address & addr) const;
+  error_t socket_close();
 
 protected:
   connector_socket();

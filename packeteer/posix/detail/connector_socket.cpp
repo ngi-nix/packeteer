@@ -155,12 +155,23 @@ connector_socket::socket_connect(int domain, int type)
       m_fd = fd;
       m_server = false;
 
+      // Simulate non-blocking mode, also for socket types that return
+      // success. This helps the calling code treat all sockets the same.
+      if (m_blocking == false) {
+        return ERR_ASYNC;
+      }
       return ERR_SUCCESS;
     }
 
-    // TODO if EINPROGRESS or EALREADY, we need to poll/select/etc.
-    //      for the FD to become writeable.
+    // We have a non-blocking socket, and connection will take a while to
+    // complete. We'll treat this as success, but have to return ERR_ASYNC.
+    if (errno == EINPROGRESS || errno == EALREADY) {
+      m_fd = fd;
+      m_server = false;
+      return ERR_ASYNC;
+    }
 
+    // Otherwise we have an error.
     ::close(fd);
 
     ERRNO_LOG("connector_socket connect failed!");
@@ -188,15 +199,6 @@ connector_socket::socket_connect(int domain, int type)
       case ENOTSOCK:
       case EISCONN:
         return ERR_INITIALIZATION;
-
-      case EINPROGRESS:
-      case EALREADY:
-        // We'll treat this as success.
-        std::cout << "GOT EALREADY" << std::endl;
-        // FIXME should use select to determine whether the socket
-        // is usable
-        // remove this part here, see above!
-        break;
 
       case ECONNREFUSED:
         return ERR_CONNECTION_REFUSED;
@@ -365,7 +367,7 @@ connector_socket::get_write_handle() const
 
 
 error_t
-connector_socket::close_socket()
+connector_socket::socket_close()
 {
   if (!listening() && !connected()) {
     return ERR_INITIALIZATION;
