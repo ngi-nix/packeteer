@@ -98,6 +98,10 @@ struct handle : public ::packeteer::util::operators<handle>
 
   size_t hash() const
   {
+    if (m_handle == PACKETEER_INVALID_HANDLE_VALUE) {
+      return 0;
+    }
+
     char const * p = reinterpret_cast<char const *>(&m_handle);
     size_t state = std::hash<char>()(p[0]);
     for (size_t i = 1 ; i < sizeof(sys_handle_t) ; ++i) {
@@ -155,6 +159,7 @@ operator<<(std::ostream & os, handle const & h)
 
 /**
  * Set/get the blocking mode of the file descriptor (on or off).
+ * FIXME member functions of handle, maybe?
  */
 error_t
 set_blocking_mode(handle::sys_handle_t const & h, bool state);
