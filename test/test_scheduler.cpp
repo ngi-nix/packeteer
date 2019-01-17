@@ -64,6 +64,26 @@ struct test_callback
 };
 
 
+struct counting_callback
+{
+  std::atomic<int> m_read_called = 0;
+  std::atomic<int> m_write_called = 0;
+
+  pk::error_t
+  func(uint64_t mask, pk::error_t error, pk::handle const & h, void *)
+  {
+    if (mask & pk::PEV_IO_READ) {
+      ++m_read_called;
+    }
+    if (mask & pk::PEV_IO_WRITE) {
+      ++m_write_called;
+    }
+    return pk::error_t(0);
+  }
+
+};
+
+
 
 struct thread_id_callback
 {
@@ -519,14 +539,14 @@ public:
       // We only need one thread for this.
       pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
-      test_callback source;
-      pk::callback cb = pk::make_callback(&source, &test_callback::func);
+      counting_callback source;
+      pk::callback cb = pk::make_callback(&source, &counting_callback::func);
       sched.register_handle(pk::PEV_IO_READ|pk::PEV_IO_WRITE, pipe.get_read_handle(), cb);
 
       std::this_thread::sleep_for(sc::milliseconds(50));
 
       // No read callbacks without writing.
-      ASSERT_CALLBACK(source, 0, 0);
+      CPPUNIT_ASSERT(source.m_read_called == 0);
 
       // Writing should trigger an invocation.
       char buf[] = { '\0' };
@@ -537,7 +557,7 @@ public:
       std::this_thread::sleep_for(sc::milliseconds(50));
 
       // After writing, there must be a callback
-      CPPUNIT_ASSERT(source.m_called > 0);
+      CPPUNIT_ASSERT(source.m_read_called > 0);
     }
     // Second case registers them one after another, which could lead to overwrites.
     {
@@ -547,15 +567,15 @@ public:
       // We only need one thread for this.
       pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
 
-      test_callback source;
-      pk::callback cb = pk::make_callback(&source, &test_callback::func);
+      counting_callback source;
+      pk::callback cb = pk::make_callback(&source, &counting_callback::func);
       sched.register_handle(pk::PEV_IO_READ, pipe.get_read_handle(), cb);
       sched.register_handle(pk::PEV_IO_WRITE, pipe.get_read_handle(), cb);
 
       std::this_thread::sleep_for(sc::milliseconds(50));
 
       // No read callbacks without writing.
-      ASSERT_CALLBACK(source, 0, 0);
+      CPPUNIT_ASSERT(source.m_read_called == 0);
 
       // Writing should trigger an invocation.
       char buf[] = { '\0' };
@@ -566,7 +586,7 @@ public:
       std::this_thread::sleep_for(sc::milliseconds(50));
 
       // After writing, there must be a callback
-      CPPUNIT_ASSERT(source.m_called > 0);
+      CPPUNIT_ASSERT(source.m_read_called > 0);
     }
   }
 
