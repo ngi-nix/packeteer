@@ -213,6 +213,9 @@ connector_pipe::connect()
   m_fd = fd;
   m_server = false;
 
+  if (!m_blocking) {
+    return ERR_ASYNC;
+  }
   return ERR_SUCCESS;
 }
 
