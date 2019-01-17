@@ -506,6 +506,72 @@ public:
 
 
 
+  void testIOCallbackRegistration()
+  {
+    // Tests whether the scheduler *adds* or *overwrites* callbacks. It should
+    // *add*, always.
+
+    // First case registers read/write callbacks simultaneously.
+    {
+      pk::connector pipe("anon://");
+      pipe.connect();
+
+      // We only need one thread for this.
+      pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
+
+      test_callback source;
+      pk::callback cb = pk::make_callback(&source, &test_callback::func);
+      sched.register_handle(pk::PEV_IO_READ|pk::PEV_IO_WRITE, pipe.get_read_handle(), cb);
+
+      std::this_thread::sleep_for(sc::milliseconds(50));
+
+      // No read callbacks without writing.
+      ASSERT_CALLBACK(source, 0, 0);
+
+      // Writing should trigger an invocation.
+      char buf[] = { '\0' };
+      size_t amount = 0;
+      pipe.write(buf, sizeof(buf), amount);
+      CPPUNIT_ASSERT_EQUAL(sizeof(buf), amount);
+
+      std::this_thread::sleep_for(sc::milliseconds(50));
+
+      // After writing, there must be a callback
+      CPPUNIT_ASSERT(source.m_called > 0);
+    }
+    // Second case registers them one after another, which could lead to overwrites.
+    {
+      pk::connector pipe("anon://");
+      pipe.connect();
+
+      // We only need one thread for this.
+      pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(SCHED_TYPE));
+
+      test_callback source;
+      pk::callback cb = pk::make_callback(&source, &test_callback::func);
+      sched.register_handle(pk::PEV_IO_READ, pipe.get_read_handle(), cb);
+      sched.register_handle(pk::PEV_IO_WRITE, pipe.get_read_handle(), cb);
+
+      std::this_thread::sleep_for(sc::milliseconds(50));
+
+      // No read callbacks without writing.
+      ASSERT_CALLBACK(source, 0, 0);
+
+      // Writing should trigger an invocation.
+      char buf[] = { '\0' };
+      size_t amount = 0;
+      pipe.write(buf, sizeof(buf), amount);
+      CPPUNIT_ASSERT_EQUAL(sizeof(buf), amount);
+
+      std::this_thread::sleep_for(sc::milliseconds(50));
+
+      // After writing, there must be a callback
+      CPPUNIT_ASSERT(source.m_called > 0);
+    }
+  }
+
+
+
   void testSingleThreaded()
   {
     // We use a single user-triggered event here for simplicity.
@@ -551,6 +617,7 @@ public:
 
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
+    CPPUNIT_TEST(testIOCallbackRegistration);
 
     // Single-threaded operation
     CPPUNIT_TEST(testSingleThreaded);
@@ -583,6 +650,7 @@ public:
 
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
+    CPPUNIT_TEST(testIOCallbackRegistration);
 
     // Single-threaded operation
     CPPUNIT_TEST(testSingleThreaded);
@@ -615,6 +683,7 @@ public:
 
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
+    CPPUNIT_TEST(testIOCallbackRegistration);
 
     // Single-threaded operation
     CPPUNIT_TEST(testSingleThreaded);
@@ -647,6 +716,7 @@ public:
 
     // I/O callbacks
     CPPUNIT_TEST(testIOCallback);
+    CPPUNIT_TEST(testIOCallbackRegistration);
 
     // Single-threaded operation
     CPPUNIT_TEST(testSingleThreaded);
