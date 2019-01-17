@@ -44,8 +44,12 @@
 #if defined(DEBUG) && !defined(NDEBUG)
 #include <iostream>
 #include <string.h>
-#define _LOG_BASE(severity, msg) std::cerr << "[" << __FILE__ << ":" \
-  << __LINE__ << "] " << severity << ": " << msg << std::endl;
+#define _LOG_BASE(severity, msg) { \
+  std::stringstream s; \
+  s << "[" << __FILE__ << ":" \
+  << __LINE__ << "] " << severity << ": " << msg << std::endl; \
+  std::cerr << s.str(); \
+}
 #define LOG(msg) _LOG_BASE("DEBUG", msg)
 #define ERRNO_LOG(msg) _LOG_BASE("ERROR", msg << " // " \
   << ::strerror(errno))
