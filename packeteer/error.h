@@ -136,11 +136,15 @@ PACKETEER_ERRDEF(ERR_FS_ERROR,
 
 PACKETEER_ERRDEF(ERR_UNSUPPORTED_ACTION,
     20,
-    "The specified action was not supported for the object type.")
+    "The requested action was not supported for the object type.")
 
 PACKETEER_ERRDEF(ERR_REPEAT_ACTION,
     21,
-    "The action would block or was interrupted and should be attempted again.")
+    "The requested action would block or was interrupted and should be attempted again.")
+
+PACKETEER_ERRDEF(ERR_ASYNC,
+    22,
+    "The requested action is being performed asynchronously.")
 
 PACKETEER_END_ERRORS
 
