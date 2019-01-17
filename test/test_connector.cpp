@@ -20,6 +20,7 @@
  **/
 
 #include <packeteer/connector.h>
+#include <packeteer/scheduler.h>
 
 #include <cppunit/extensions/HelperMacros.h>
 
@@ -144,6 +145,49 @@ struct test_data
 
 };
 
+
+struct client_post_connect_callback
+{
+  bool m_connected = false;
+
+  ::packeteer::error_t
+  func(uint64_t mask, ::packeteer::error_t error, handle const & h, void *)
+  {
+    if (!m_connected) {
+      m_connected = true;
+      LOG(" ***** CONNECTED! " << mask << ":" << error << ":" << h.sys_handle());
+    }
+
+    return ERR_SUCCESS;
+  }
+};
+
+
+
+struct server_connect_callback
+{
+  connector & m_server;
+  connector   m_conn;
+
+  server_connect_callback(connector & server)
+    : m_server(server)
+    , m_conn()
+  {
+  }
+
+  ::packeteer::error_t
+  func(uint64_t mask, ::packeteer::error_t error, handle const & h, void *)
+  {
+    if (!m_conn) {
+      LOG(" ***** INCOMING " << mask << ":" << error << ":" << h.sys_handle());
+      // The accept() function clears the event.
+      m_conn = m_server.accept();
+      CPPUNIT_ASSERT(m_conn);
+    }
+    return ERR_SUCCESS;
+  }
+};
+
 } // anonymous namespace
 
 class ConnectorTest
@@ -154,11 +198,20 @@ public:
 
     CPPUNIT_TEST(testAddressParsing);
     CPPUNIT_TEST(testValueSemantics);
+    CPPUNIT_TEST(testDefaultConstructed);
+
     CPPUNIT_TEST(testAnonConnector);
-    CPPUNIT_TEST(testLocalConnector);
-    CPPUNIT_TEST(testPipeConnector);
-    CPPUNIT_TEST(testTCPv4Connector);
-    CPPUNIT_TEST(testTCPv6Connector);
+
+    // Stream connectors blocking and non-blocking
+    CPPUNIT_TEST(testLocalConnectorBlocking);
+    CPPUNIT_TEST(testLocalConnectorNonBlocking);
+    CPPUNIT_TEST(testPipeConnectorBlocking);
+    CPPUNIT_TEST(testPipeConnectorNonBlocking);
+    CPPUNIT_TEST(testTCPv4ConnectorBlocking);
+    CPPUNIT_TEST(testTCPv4ConnectorNonBlocking);
+    CPPUNIT_TEST(testTCPv6ConnectorBlocking);
+    CPPUNIT_TEST(testTCPv6ConnectorNonBlocking);
+
     CPPUNIT_TEST(testUDPv4Connector);
     CPPUNIT_TEST(testUDPv6Connector);
 
@@ -189,6 +242,7 @@ private:
     // We'll use an anon connector, because they're simplest.
     connector original("anon://");
     CPPUNIT_ASSERT_EQUAL(CT_ANON, original.type());
+    CPPUNIT_ASSERT(original);
 
     connector copy = original;
     CPPUNIT_ASSERT_EQUAL(original.type(), copy.type());
@@ -199,6 +253,42 @@ private:
     CPPUNIT_ASSERT(!(original < copy));
 
     PACKETEER_VALUES_TEST(copy, original, true);
+  }
+
+
+  void testDefaultConstructed()
+  {
+    // Default constructed connectors should vaguely work.
+    connector conn;
+    CPPUNIT_ASSERT_EQUAL(CT_UNSPEC, conn.type());
+    CPPUNIT_ASSERT(!conn);
+
+    CPPUNIT_ASSERT_THROW(auto url = conn.connect_url(), exception);
+
+    // Most functions should just return ERR_INITIALIZATION
+    bool mode = false;
+    CPPUNIT_ASSERT_EQUAL(ERR_INITIALIZATION, conn.get_blocking_mode(mode));
+
+    // Comparison should always yield the unspecified connector to be smaller.
+    connector conn2;
+    CPPUNIT_ASSERT(!conn2);
+    CPPUNIT_ASSERT(conn == conn2);
+    CPPUNIT_ASSERT(conn2 == conn);
+
+    connector anon("anon://");
+    CPPUNIT_ASSERT(anon);
+    CPPUNIT_ASSERT(conn < anon);
+    CPPUNIT_ASSERT(anon > conn);
+
+    // Assigning does work, though
+    conn = anon;
+    CPPUNIT_ASSERT(conn);
+    CPPUNIT_ASSERT(conn == anon);
+    CPPUNIT_ASSERT(anon == conn);
+
+    CPPUNIT_ASSERT(!(conn == conn2));
+    CPPUNIT_ASSERT(conn2 < conn);
+    CPPUNIT_ASSERT(conn > conn2);
   }
 
 
@@ -258,7 +348,7 @@ private:
   void testBlockingStreamConnector(connector_type expected_type, std::string const & addr)
   {
     // Tests for "stream" connectors, i.e. connectors that allow synchronous,
-    // reliable delivery.
+    // reliable delivery - in blocking mode, making the setup/teardown very simple.
 
     auto url = ::packeteer::util::url::parse(addr);
     url.query["behaviour"] = "stream";
@@ -304,6 +394,89 @@ private:
 
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.get_blocking_mode(mode));
     CPPUNIT_ASSERT_EQUAL(true, mode);
+    CPPUNIT_ASSERT_EQUAL(CB_STREAM, client.get_behaviour());
+
+    // Communications
+    sendMessageStream(client, server_conn);
+    sendMessageStream(server_conn, client);
+  }
+
+
+
+  void testNonBlockingStreamConnector(connector_type expected_type, std::string const & addr)
+  {
+    // Tests for "stream" connectors, i.e. connectors that allow synchronous,
+    // reliable delivery - in non-blocking mode, meaning we need to react to
+    // events with the scheduler.
+
+    auto url = ::packeteer::util::url::parse(addr);
+    url.query["behaviour"] = "stream";
+
+    // Server
+    connector server(url);
+    CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
+
+    CPPUNIT_ASSERT(!server.listening());
+    CPPUNIT_ASSERT(!server.connected());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.listen());
+
+    CPPUNIT_ASSERT(server.listening());
+    CPPUNIT_ASSERT(!server.connected());
+
+    bool mode = false;
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.get_blocking_mode(mode));
+    CPPUNIT_ASSERT_EQUAL(false, mode);
+    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server.get_behaviour());
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    // Client
+    connector client(url);
+    CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
+
+    CPPUNIT_ASSERT(!client.listening());
+    CPPUNIT_ASSERT(!client.connected());
+
+    // Connecting must result in ERR_ASYNC. We use a scheduler run to
+    // understand when the connection attempt was finished.
+    scheduler sched(1);
+    server_connect_callback server_struct(server);
+    auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
+    sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, server.get_read_handle(),
+        server_cb);
+
+    // Give scheduler a chance to register handlers
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    CPPUNIT_ASSERT_EQUAL(ERR_ASYNC, client.connect());
+
+    client_post_connect_callback client_struct;
+    auto client_cb = make_callback(&client_struct, &client_post_connect_callback::func);
+    sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, client.get_read_handle(),
+        client_cb);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // FIXME
+
+    // After the sleep, the server conn and client conn should both
+    // be ready to roll.
+    CPPUNIT_ASSERT(server_struct.m_conn);
+    CPPUNIT_ASSERT(client_struct.m_connected);
+
+    connector server_conn = server_struct.m_conn;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    CPPUNIT_ASSERT(!client.listening());
+    CPPUNIT_ASSERT(client.connected());
+    CPPUNIT_ASSERT(server_conn.listening());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
+    CPPUNIT_ASSERT_EQUAL(false, mode);
+    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server_conn.get_behaviour());
+
+    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.get_blocking_mode(mode));
+    CPPUNIT_ASSERT_EQUAL(false, mode);
     CPPUNIT_ASSERT_EQUAL(CB_STREAM, client.get_behaviour());
 
     // Communications
@@ -397,35 +570,51 @@ private:
 
 
 
-  void testLocalConnector()
+  void testLocalConnectorBlocking()
   {
-    // Local sockets are "stream" connectors
-    testBlockingStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream?blocking=1");
-    // FIXME testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram");
+    testBlockingStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream-block?blocking=1");
+  }
+
+  void testLocalConnectorNonBlocking()
+  {
+    testNonBlockingStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream-noblock");
+  }
+
+  // FIXME testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram");
+
+
+  void testPipeConnectorBlocking()
+  {
+    testBlockingStreamConnector(CT_PIPE, "pipe:///tmp/test-connector-pipe-block?blocking=1");
+  }
+
+  void testPipeConnectorNonBlocking()
+  {
+    testNonBlockingStreamConnector(CT_PIPE, "pipe:///tmp/test-connector-pipe-noblock");
   }
 
 
 
-  void testPipeConnector()
+  void testTCPv4ConnectorBlocking()
   {
-    // Named pipes are "stream" connectors
-    testBlockingStreamConnector(CT_PIPE, "pipe:///tmp/test-connector-pipe?blocking=1");
-  }
-
-
-
-  void testTCPv4Connector()
-  {
-    // TCP over IPv4 to localhost
     testBlockingStreamConnector(CT_TCP4, "tcp4://127.0.0.1:54321?blocking=1");
   }
 
-
-
-  void testTCPv6Connector()
+  void testTCPv4ConnectorNonBlocking()
   {
-    // TCP over IPv6 to localhost
+    testNonBlockingStreamConnector(CT_TCP4, "tcp4://127.0.0.1:54321");
+  }
+
+
+
+  void testTCPv6ConnectorBlocking()
+  {
     testBlockingStreamConnector(CT_TCP6, "tcp6://[::1]:54321?blocking=1");
+  }
+
+  void testTCPv6ConnectorNonBlocking()
+  {
+    testNonBlockingStreamConnector(CT_TCP6, "tcp6://[::1]:54321");
   }
 
 
