@@ -447,8 +447,7 @@ private:
         server_cb);
 
     // Give scheduler a chance to register handlers
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
     CPPUNIT_ASSERT_EQUAL(ERR_ASYNC, client.connect());
 
     client_post_connect_callback client_struct;
@@ -456,7 +455,8 @@ private:
     sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, client.get_read_handle(),
         client_cb);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // FIXME
+    // Wait for all callbacks to be invoked.
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // After the sleep, the server conn and client conn should both
     // be ready to roll.
