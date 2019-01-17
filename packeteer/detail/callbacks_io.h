@@ -84,7 +84,8 @@ struct io_callbacks_t
    * If an entry with the same callback/file descriptor exists, their event masks
    * are merged. Otherwise, the entry is added.
    **/
-  inline void add(io_callback_entry * cb)
+  inline io_callback_entry *
+  add(io_callback_entry * cb)
   {
     // Try to find callbacks matching the file descriptor.
     auto range = m_callback_map.equal_range(cb->m_handle);
@@ -99,14 +100,16 @@ struct io_callbacks_t
     }
 
     // Let's see if we found the callback/handle combination
-    if (range.second != c_iter) {
+    if (m_callback_map.end() != c_iter) {
       // Yep, found it. Merge event mask.
       c_iter->second->m_events |= cb->m_events;
       delete cb;
+      return c_iter->second;
     }
     else {
       // Nope, new entry
-      m_callback_map.insert(std::make_pair(cb->m_handle, cb));
+      auto ret = m_callback_map.insert(std::make_pair(cb->m_handle, cb));
+      return ret->second;
     }
   }
 
@@ -119,13 +122,14 @@ struct io_callbacks_t
    * container matching the callback. If there are no flags left afterwards,
    * the item is removed entirely.
    **/
-  inline void remove(io_callback_entry * cb)
+  inline io_callback_entry *
+  remove(io_callback_entry * cb)
   {
     // Try to find callbacks matching the file descriptor
     auto range = m_callback_map.equal_range(cb->m_handle);
-    if (range.first == range.second) {
+    if (range.first == m_callback_map.end()) {
       // Nothing matches this file descriptor
-      return;
+      return cb;
     }
 
     // Try to find an entry matching the callback.
@@ -144,10 +148,23 @@ struct io_callbacks_t
       if (!c_iter->second->m_events) {
         delete c_iter->second;
         m_callback_map.erase(c_iter);
+
+        // Returning the callback unmodified ensures the I/O subsystem
+        // unregisters all events.
+        return cb;
+      }
+      else {
+        // Here, we want to have the I/O subsystem perform a partial update
+        // of its state. We need to modify m_events to contain the events
+        // we're hoping for - luckily, that's already stored in the
+        // map.
+        cb->m_events = c_iter->second->m_events;
+        return cb;
       }
     }
     else {
       // Not found, ignoring.
+      return cb;
     }
   }
 
