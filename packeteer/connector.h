@@ -202,11 +202,14 @@ public:
       peer_address const & recipient);
 
   /**
-   * FIXME move? document!
-   */
+   * Get or set blocking mode on the connector.
+   **/
   error_t set_blocking_mode(bool state);
   error_t get_blocking_mode(bool & state);
 
+  /**
+   * Get the connector behaviour.
+   **/
   ::packeteer::connector_behaviour get_behaviour() const;
 
   /**
