@@ -66,37 +66,15 @@ inline events_t
 translate_os_to_events(int os)
 {
   events_t ret = 0;
-  switch (os) {
-    case EVFILT_READ:
-      return PEV_IO_READ;
 
-    case EVFILT_WRITE:
-      return PEV_IO_WRITE;
+  if (os & EVFILT_READ) {
+    ret |= PEV_IO_READ;
   }
-  return -1;
-}
-
-
-inline void
-set_event_if_selected(std::vector<struct kevent> & pending, size_t & offset,
-    events_t const & events, bool add, events_t const & desired, int fd)
-{
-  if (!(events & desired)) {
-    return;
+  if (os & EVFILT_WRITE) {
+    ret |= PEV_IO_WRITE;
   }
 
-  int action = add
-    ? EV_ADD|EV_ENABLE
-    : EV_DELETE|EV_DISABLE;
-
-  while (offset >= pending.size()) {
-    LOG("GROWING EVENT VECTOR: current is " << pending.size());
-    pending.resize(pending.size() * 2);
-  }
-
-  EV_SET(&pending[++offset], fd,
-    desired == PEV_IO_READ ? EVFILT_READ : EVFILT_WRITE,
-    action, 0, 0, nullptr);
+  return ret;
 }
 
 
@@ -107,21 +85,25 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
 {
   // Get enough memory for the transaction
   std::vector<struct kevent> pending;
-  pending.resize(amount * 2);
-  size_t p_offset = 0;
+  pending.resize(amount);
 
   // Register FDs individually
   for (size_t i = 0 ; i < amount ; ++i) {
-    // Add or remove READ and/or WRITE event filters
-    set_event_if_selected(pending, p_offset, events, add, PEV_IO_READ,
-        handles[i].sys_handle());
-    set_event_if_selected(pending, p_offset, events, add, PEV_IO_WRITE,
-        handles[i].sys_handle());
+    // Now we access the last (i.e. the newly added) element of the vector.
+    int translated = translate_events_to_os(events);
+    if (add) {
+      EV_SET(&pending[i], handles[i].sys_handle(), translated,
+          EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
+    }
+    else {
+      EV_SET(&pending[i], handles[i].sys_handle(), translated,
+          EV_DELETE, 0, 0, nullptr);
+    }
   }
 
   // Now flush the events to the kqueue.
   while (true) {
-    int res = kevent(queue, &pending[0], p_offset, nullptr, 0, nullptr);
+    int res = kevent(queue, &pending[0], pending.size(), nullptr, 0, nullptr);
     if (res >= 0) {
       break;
     }
@@ -308,9 +290,7 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
     }
     else {
       events_t translated = translate_os_to_events(kqueue_events[i].filter);
-      if (translated >= 0) {
-        // TODO can merge this event with any other events for the same
-        // identifier.
+      if (translated) {
         event_data data = {
           handle(kqueue_events[i].ident),
           translated
