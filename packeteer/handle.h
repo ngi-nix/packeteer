@@ -159,7 +159,6 @@ operator<<(std::ostream & os, handle const & h)
 
 /**
  * Set/get the blocking mode of the file descriptor (on or off).
- * FIXME member functions of handle, maybe?
  */
 error_t
 set_blocking_mode(handle::sys_handle_t const & h, bool state);
