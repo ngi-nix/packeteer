@@ -49,8 +49,8 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
       ::packeteer::net::socket_address & sender)
 {
   socklen_t socklen = sender.bufsize_available();
-  ssize_t amount = ::recvfrom(get_read_handle().sys_handle(), buf, bufsize, MSG_DONTWAIT, // FIXME what flags?
-      static_cast<sockaddr *>(sender.buffer()), &socklen);
+  ssize_t amount = ::recvfrom(get_read_handle().sys_handle(), buf, bufsize,
+      MSG_DONTWAIT, static_cast<sockaddr *>(sender.buffer()), &socklen);
 
   if (amount < 0) {
     ERRNO_LOG("recvfrom failed!");
