@@ -59,7 +59,26 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
       case EAGAIN: // EWOULDBLOCK
       case EINTR:
         return ERR_REPEAT_ACTION;
-        // TODO ?
+
+      case EBADF:
+      case ENOTSOCK:
+      case EINVAL:
+        return ERR_INVALID_VALUE;
+
+      case ECONNREFUSED:
+        return ERR_CONNECTION_REFUSED;
+
+      case ENOTCONN:
+        return ERR_NO_CONNECTION;
+
+      case EFAULT:
+        return ERR_ACCESS_VIOLATION;
+
+      case ENOMEM:
+        return ERR_OUT_OF_MEMORY;
+
+      default:
+        return ERR_UNEXPECTED;
     }
   }
 
@@ -73,7 +92,6 @@ error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
       ::packeteer::net::socket_address const & recipient)
 {
-  // FIXME
   ssize_t amount = ::sendto(get_write_handle().sys_handle(),
       buf, bufsize, MSG_DONTWAIT,
       static_cast<sockaddr const *>(recipient.buffer()), recipient.bufsize());
@@ -84,7 +102,46 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
       case EAGAIN: // EWOULDBLOCK
       case EINTR:
         return ERR_REPEAT_ACTION;
-        // TODO ?
+
+      case EALREADY:
+        return ERR_ASYNC;
+
+      case EDESTADDRREQ: // Nont connection-mode socket, but no peer given.
+      case EISCONN: // Connection-mode socket.
+        return ERR_INVALID_OPTION;
+
+      case EMSGSIZE: // Message size is too large
+        return ERR_INVALID_VALUE;
+
+      case ENOBUFS: // Send buffer overflow
+        return ERR_NUM_ITEMS;
+
+      case EBADF:
+      case ENOTSOCK:
+      case EINVAL:
+        return ERR_INVALID_VALUE;
+
+      case ECONNREFUSED:
+        return ERR_CONNECTION_REFUSED;
+
+      case ECONNRESET:
+      case EPIPE:
+        return ERR_CONNECTION_ABORTED;
+
+      case ENOTCONN:
+        return ERR_NO_CONNECTION;
+
+      case EFAULT:
+        return ERR_ACCESS_VIOLATION;
+
+      case ENOMEM:
+        return ERR_OUT_OF_MEMORY;
+
+      case EOPNOTSUPP:
+        return ERR_UNSUPPORTED_ACTION;
+
+      default:
+        return ERR_UNEXPECTED;
     }
   }
 
