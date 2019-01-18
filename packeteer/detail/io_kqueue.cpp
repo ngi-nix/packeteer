@@ -65,16 +65,15 @@ translate_events_to_os(events_t const & events)
 inline events_t
 translate_os_to_events(int os)
 {
-  events_t ret = 0;
+  switch (os) {
+    case EVFILT_READ:
+      return PEV_IO_READ;
 
-  if (os & EVFILT_READ) {
-    ret |= PEV_IO_READ;
-  }
-  if (os & EVFILT_WRITE) {
-    ret |= PEV_IO_WRITE;
+    case EVFILT_WRITE:
+      return PEV_IO_WRITE;
   }
 
-  return ret;
+  return -1;
 }
 
 
@@ -290,7 +289,7 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
     }
     else {
       events_t translated = translate_os_to_events(kqueue_events[i].filter);
-      if (translated) {
+      if (translated >= 0) {
         event_data data = {
           handle(kqueue_events[i].ident),
           translated
