@@ -73,14 +73,16 @@
  * and a cache line size'd padding value. Ensures the data is occupying a cache
  * line all by itself.
  **/
-// FIXME not sure this is right, see cask
-#define PACKETEER_CACHE_LINE_ALIGN(data)                                    \
-  union {                                                                       \
-    data;                                                                       \
-    char PACKETEER_TOKEN_CAT(pad, __LINE__)[PACKETEER_CACHE_LINE_SIZE]; \
+#define PACKETEER_CACHE_LINE_ALIGN(type, name)              \
+  union {                                                   \
+    type name;                                              \
+    char PACKETEER_TOKEN_CAT(pad, __LINE__)[                \
+      PACKETEER_CACHE_LINE_SIZE *                           \
+      (1 + int(sizeof(type) / PACKETEER_CACHE_LINE_SIZE))   \
+    ];                                                      \
   };
 
-#define PACKETEER_CACHE_LINE_PAD                                            \
+#define PACKETEER_CACHE_LINE_PAD \
   char PACKETEER_TOKEN_CAT(pad, __LINE__)[PACKETEER_CACHE_LINE_SIZE];
 
 /**

@@ -208,13 +208,9 @@ private:
       delete m_value;
     }
 
-    PACKETEER_CACHE_LINE_ALIGN(
-      struct
-      {
-        valueT *            m_value;
-        std::atomic<node *> m_next;
-      };
-    )
+    valueT *            m_value;
+    std::atomic<node *> m_next;
+    PACKETEER_CACHE_LINE_PAD;
   };
 
   // By adding padding the size of a cache line, we ensure that the following
@@ -222,12 +218,12 @@ private:
   PACKETEER_CACHE_LINE_PAD;
 
   // The consumers contend for m_consumer_lock in order to use m_first.
-  PACKETEER_CACHE_LINE_ALIGN(node *                     m_first);
-  PACKETEER_CACHE_LINE_ALIGN(mutable std::atomic<bool>  m_consumer_lock);
+  PACKETEER_CACHE_LINE_ALIGN(node *, m_first);
+  PACKETEER_CACHE_LINE_ALIGN(std::atomic<bool>, m_consumer_lock);
 
   // The producers contend for m_producer_lock in order to use m_last.
-  PACKETEER_CACHE_LINE_ALIGN(node *                     m_last);
-  PACKETEER_CACHE_LINE_ALIGN(mutable std::atomic<bool>  m_producer_lock);
+  PACKETEER_CACHE_LINE_ALIGN(node *, m_last);
+  PACKETEER_CACHE_LINE_ALIGN(std::atomic<bool>, m_producer_lock);
 };
 
 } // namespace packeteer
