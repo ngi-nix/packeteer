@@ -39,8 +39,6 @@ namespace detail {
 
 namespace {
 
-// FIXME 
-// utility namespace for this and filedescriptors.h?
 error_t
 create_socket(int domain, int type, int & fd, bool blocking)
 {
@@ -190,10 +188,8 @@ connector_socket::socket_connect(int domain, int type)
         return ERR_INVALID_OPTION;
 
       case EAGAIN:
+      case EADDRNOTAVAIL:
         return ERR_NUM_FILES; // technically, ports.
-
-      // TODO
-      // EADDRNOTAVAIL
 
       case EBADF:
       case ENOTSOCK:
