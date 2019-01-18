@@ -90,14 +90,25 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
   // Register FDs individually
   for (size_t i = 0 ; i < amount ; ++i) {
     // Now we access the last (i.e. the newly added) element of the vector.
-    int translated = translate_events_to_os(events);
     if (add) {
-      EV_SET(&pending[pending_offset++], handles[i].sys_handle(), translated,
-          EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
+      if (events & PEV_IO_READ) {
+        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_READ,
+            EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
+      }
+      if (events & PEV_IO_WRITE) {
+        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_WRITE,
+            EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
+      }
     }
     else {
-      EV_SET(&pending[pending_offset++], handles[i].sys_handle(), translated,
-          EV_DELETE, 0, 0, nullptr);
+      if (events & PEV_IO_READ) {
+        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_READ,
+            EV_DELETE, 0, 0, nullptr);
+      }
+      if (events & PEV_IO_WRITE) {
+        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_WRITE,
+            EV_DELETE, 0, 0, nullptr);
+      }
     }
   }
 
