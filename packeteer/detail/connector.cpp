@@ -53,7 +53,6 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
       static_cast<sockaddr *>(sender.buffer()), &socklen);
 
   if (amount < 0) {
-    std::cout << errno << " " << strerror(errno) << std::endl;
     ERRNO_LOG("recvfrom failed!");
     switch (errno) {
       case EAGAIN: // EWOULDBLOCK
@@ -96,7 +95,6 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
       buf, bufsize, MSG_DONTWAIT,
       static_cast<sockaddr const *>(recipient.buffer()), recipient.bufsize());
   if (amount < 0) {
-    std::cout << errno << " " << strerror(errno) << std::endl;
     ERRNO_LOG("sendto failed!");
     switch (errno) {
       case EAGAIN: // EWOULDBLOCK
