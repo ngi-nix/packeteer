@@ -106,9 +106,11 @@ connector_local::listen()
   }
 
   // Attempt to listen
-  err = connector_socket::socket_listen(fd);
-  if (ERR_SUCCESS != err) {
-    return err;
+  if (m_behaviour != CB_DATAGRAM) {
+    err = connector_socket::socket_listen(fd);
+    if (ERR_SUCCESS != err) {
+      return err;
+    }
   }
 
   // Finally, set the fd
