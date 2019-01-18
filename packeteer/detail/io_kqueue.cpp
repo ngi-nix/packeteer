@@ -48,16 +48,13 @@ namespace {
 inline int
 translate_events_to_os(events_t const & events)
 {
-  int ret = 0;
+  switch (events) {
+    case PEV_IO_READ:
+      return EVFILT_READ;
 
-  if (events & PEV_IO_READ) {
-    ret |= EVFILT_READ;
+    case PEV_IO_WRITE:
+      return EVFILT_WRITE;
   }
-  if (events & PEV_IO_WRITE) {
-    ret |= EVFILT_WRITE;
-  }
-
-  return ret;
 }
 
 
@@ -78,6 +75,42 @@ translate_os_to_events(int os)
 
 
 
+inline void
+set_event_if_selected(std::vector<struct kevent> & pending,
+    size_t & pending_offset, handle const & handle,
+    events_t const & events, events_t const & requested)
+{
+  if (!(events & requested)) {
+    return;
+  }
+
+  int translated = translate_events_to_os(requested);
+
+  EV_SET(&pending[pending_offset++], handle.sys_handle(), translated,
+      EV_ADD, 0, 0, nullptr);
+}
+
+
+inline void
+del_event_if_selected(std::vector<struct kevent> & pending,
+    size_t & pending_offset, handle const & handle,
+    events_t const & events, events_t const & requested)
+{
+  if (!(events & requested)) {
+    return;
+  }
+
+  int translated = requested == PEV_IO_READ
+    ? EVFILT_READ
+    : EVFILT_WRITE;
+
+  EV_SET(&pending[pending_offset++], handle.sys_handle(), translated,
+      EV_DELETE, 0, 0, nullptr);
+}
+
+
+
+
 inline bool
 modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
     events_t const & events)
@@ -91,24 +124,16 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
   for (size_t i = 0 ; i < amount ; ++i) {
     // Now we access the last (i.e. the newly added) element of the vector.
     if (add) {
-      if (events & PEV_IO_READ) {
-        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_READ,
-            EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
-      }
-      if (events & PEV_IO_WRITE) {
-        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_WRITE,
-            EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
-      }
+      set_event_if_selected(pending, pending_offset, handles[i],
+          events, PEV_IO_READ);
+      set_event_if_selected(pending, pending_offset, handles[i],
+          events, PEV_IO_WRITE);
     }
     else {
-      if (events & PEV_IO_READ) {
-        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_READ,
-            EV_DELETE, 0, 0, nullptr);
-      }
-      if (events & PEV_IO_WRITE) {
-        EV_SET(&pending[pending_offset++], handles[i].sys_handle(), EVFILT_WRITE,
-            EV_DELETE, 0, 0, nullptr);
-      }
+      del_event_if_selected(pending, pending_offset, handles[i],
+          events, PEV_IO_READ);
+      del_event_if_selected(pending, pending_offset, handles[i],
+          events, PEV_IO_WRITE);
     }
   }
 
