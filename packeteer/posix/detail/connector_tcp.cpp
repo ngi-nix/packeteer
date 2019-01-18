@@ -120,7 +120,6 @@ connector_tcp::close()
 connector *
 connector_tcp::accept(net::socket_address & addr) const
 {
-  // FIXME use accept for CB_DATAGRAM?
   int fd = -1;
   error_t err = connector_socket::socket_accept(fd, addr);
   if (ERR_SUCCESS != err) {
