@@ -30,6 +30,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <functional>
 
 #include <packeteer/thread/binder.h>
 #include <packeteer/thread/chrono.h>
