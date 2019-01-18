@@ -213,8 +213,8 @@ public:
     CPPUNIT_TEST(testTCPv6ConnectorBlocking);
     CPPUNIT_TEST(testTCPv6ConnectorNonBlocking);
 
-    CPPUNIT_TEST(testUDPv4ConnectorNoConnect);
-    CPPUNIT_TEST(testUDPv6ConnectorNoConnect);
+    CPPUNIT_TEST(testUDPv4Connector);
+    CPPUNIT_TEST(testUDPv6Connector);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -613,21 +613,15 @@ private:
 
 
 
-  void testUDPv4ConnectorNoConnect()
+  void testUDPv4Connector()
   {
     // UDP over IPv4 to localhost
-    // TODO
-    // * listening sockets can send/receive as expected
-    // * connected sockets can send/receive to one peer
-    // * unconnected, non-listening sockets can receive, but the sender port will be transient
-    // * check how this gets transferred to local://
     testDGramConnector(CT_UDP4, "udp4://127.0.0.1:54321", "udp4://127.0.0.1:54322");
-    // FIXME testBlockingStreamConnector(CT_UDP4, "udp4://127.0.0.1:54322?blocking=true");
   }
 
 
 
-  void testUDPv6ConnectorNoConnect()
+  void testUDPv6Connector()
   {
     // UDP over IPv6 to localhost
     testDGramConnector(CT_UDP6, "udp6://[::1]:54321", "udp6://[::1]:54322");
