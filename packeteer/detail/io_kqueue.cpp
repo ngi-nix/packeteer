@@ -84,25 +84,26 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
 {
   // Get enough memory for the transaction
   std::vector<struct kevent> pending;
-  pending.resize(amount);
+  pending.resize(amount * 2);
+  size_t pending_offset = 0;
 
   // Register FDs individually
   for (size_t i = 0 ; i < amount ; ++i) {
     // Now we access the last (i.e. the newly added) element of the vector.
     int translated = translate_events_to_os(events);
     if (add) {
-      EV_SET(&pending[i], handles[i].sys_handle(), translated,
+      EV_SET(&pending[pending_offset++], handles[i].sys_handle(), translated,
           EV_ADD|EV_CLEAR||EV_RECEIPT, 0, 0, nullptr);
     }
     else {
-      EV_SET(&pending[i], handles[i].sys_handle(), translated,
+      EV_SET(&pending[pending_offset++], handles[i].sys_handle(), translated,
           EV_DELETE, 0, 0, nullptr);
     }
   }
 
   // Now flush the events to the kqueue.
   while (true) {
-    int res = kevent(queue, &pending[0], pending.size(), nullptr, 0, nullptr);
+    int res = kevent(queue, &pending[0], pending_offset, nullptr, 0, nullptr);
     if (res >= 0) {
       break;
     }
