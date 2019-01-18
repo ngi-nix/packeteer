@@ -205,6 +205,7 @@ public:
     // Stream connectors blocking and non-blocking
     CPPUNIT_TEST(testLocalConnectorBlocking);
     CPPUNIT_TEST(testLocalConnectorNonBlocking);
+    CPPUNIT_TEST(testLocalConnectorDGram);
     CPPUNIT_TEST(testPipeConnectorBlocking);
     CPPUNIT_TEST(testPipeConnectorNonBlocking);
     CPPUNIT_TEST(testTCPv4ConnectorBlocking);
@@ -212,8 +213,8 @@ public:
     CPPUNIT_TEST(testTCPv6ConnectorBlocking);
     CPPUNIT_TEST(testTCPv6ConnectorNonBlocking);
 
-    CPPUNIT_TEST(testUDPv4Connector);
-    CPPUNIT_TEST(testUDPv6Connector);
+    CPPUNIT_TEST(testUDPv4ConnectorNoConnect);
+    CPPUNIT_TEST(testUDPv6ConnectorNoConnect);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -317,11 +318,8 @@ private:
 
   void sendMessageDGram(connector & sender, connector & receiver)
   {
-    // FIXME use send() and receive()
-    // for that, address needs to not return a string (grr)
     std::string msg = "hello, world!";
     size_t amount = 0;
-    std::cout << "from " << sender.connect_url() << " to " << receiver.connect_url() << std::endl;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.send(msg.c_str(), msg.size(), amount,
         receiver.peer_addr()));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
@@ -331,11 +329,9 @@ private:
     std::vector<char> result;
     result.reserve(2 * msg.size());
     packeteer::peer_address sendaddr;
-    std::cout << "receiving..." << std::endl;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.receive(&result[0], result.capacity(),
           amount, sendaddr));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-    std::cout << "sender socket address: " << sender.peer_addr() << " <> " << sendaddr << std::endl;
     CPPUNIT_ASSERT_EQUAL(sender.peer_addr(), sendaddr);
 
     for (size_t i = 0 ; i < msg.size() ; ++i) {
@@ -503,7 +499,6 @@ private:
     CPPUNIT_ASSERT(!server.listening());
     CPPUNIT_ASSERT(!server.connected());
 
-
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.listen());
 
     CPPUNIT_ASSERT(server.listening());
@@ -518,9 +513,7 @@ private:
     CPPUNIT_ASSERT(!client.listening());
     CPPUNIT_ASSERT(!client.connected());
 
-    // FIXME not sure?
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.listen());
-//    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
 
     CPPUNIT_ASSERT(client.listening());
     CPPUNIT_ASSERT(!client.connected());
@@ -528,10 +521,7 @@ private:
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // Communications
-    std::cout << "send(client, server)" << std::endl;
     sendMessageDGram(client, server);
-    std::cout << "send(server, client)" << std::endl;
-    std::cout << "client address " << client.connect_url() << std::endl;
     sendMessageDGram(server, client);
   }
 
@@ -580,7 +570,11 @@ private:
     testNonBlockingStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream-noblock");
   }
 
-  // FIXME testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram");
+  void testLocalConnectorDGram()
+  {
+    testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram-first",
+        "local:///tmp/test-connector-local-dgram-second");
+  }
 
 
   void testPipeConnectorBlocking()
@@ -619,7 +613,7 @@ private:
 
 
 
-  void testUDPv4Connector()
+  void testUDPv4ConnectorNoConnect()
   {
     // UDP over IPv4 to localhost
     // TODO
@@ -628,11 +622,12 @@ private:
     // * unconnected, non-listening sockets can receive, but the sender port will be transient
     // * check how this gets transferred to local://
     testDGramConnector(CT_UDP4, "udp4://127.0.0.1:54321", "udp4://127.0.0.1:54322");
+    // FIXME testBlockingStreamConnector(CT_UDP4, "udp4://127.0.0.1:54322?blocking=true");
   }
 
 
 
-  void testUDPv6Connector()
+  void testUDPv6ConnectorNoConnect()
   {
     // UDP over IPv6 to localhost
     testDGramConnector(CT_UDP6, "udp6://[::1]:54321", "udp6://[::1]:54322");
