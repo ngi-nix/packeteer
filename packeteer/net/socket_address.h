@@ -25,16 +25,15 @@
 // *** Config
 #include <packeteer/packeteer.h>
 #include <packeteer/net/detail/sysincludes.h>
-#include <packeteer/error.h>
-#include <packeteer/util/operators.h>
-
-// *** C includes
-#include <sys/socket.h>
 
 // *** C++ includes
 #include <iostream>
 #include <string>
 #include <stdexcept>
+
+// *** Own includes
+#include <packeteer/error.h>
+#include <packeteer/util/operators.h>
 
 namespace packeteer {
 namespace net {
@@ -58,8 +57,10 @@ union address_type
   sockaddr          sa;
   sockaddr_in       sa_in;
   sockaddr_in6      sa_in6;
-  sockaddr_un       sa_un;
   sockaddr_storage  sa_storage;
+#if defined(PACKETEER_POSIX)
+  sockaddr_un       sa_un;
+#endif
 };
 
 } // namespace detail

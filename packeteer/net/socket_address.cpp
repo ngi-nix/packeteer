@@ -62,11 +62,13 @@ parse_address(detail::address_type & data, T const & source, uint16_t port)
     return;
   }
 
+#if defined(PACKETEER_POSIX)
   // If parsing got aborted, we either have AF_LOCAL or AF_UNSPEC as the
   // actual socket type.
   ::memset(&data.sa_storage, 0, sizeof(data));
   data.sa_un.sun_family = ::strlen(unwrap(source)) > 0 ? AF_LOCAL : AF_UNSPEC;
   ::snprintf(data.sa_un.sun_path, UNIX_PATH_MAX, "%s", unwrap(source));
+#endif
 }
 
 } // anonymous namespace
@@ -147,10 +149,20 @@ socket_address::cidr_str() const
   // latter two, only one is safe to use!
   char buf[INET6_ADDRSTRLEN] = { '\0' };
   if (AF_INET == data.sa_storage.ss_family) {
-    inet_ntop(data.sa_storage.ss_family, &(data.sa_in.sin_addr), buf, sizeof(buf));
+#if defined(PACKETEER_WIN32)
+    PVOID addr = (PVOID) (&(data.sa_in.sin_addr));
+#else
+    void const * addr = &(data.sa_in.sin_addr);
+#endif
+    inet_ntop(data.sa_storage.ss_family, addr, buf, sizeof(buf));
   }
   else if (AF_INET6 == data.sa_storage.ss_family) {
-    inet_ntop(data.sa_storage.ss_family, &(data.sa_in6.sin6_addr), buf, sizeof(buf));
+#if defined(PACKETEER_WIN32)
+    PVOID addr = (PVOID) (&(data.sa_in6.sin6_addr));
+#else
+    void const * addr = &(data.sa_in6.sin6_addr);
+#endif
+    inet_ntop(data.sa_storage.ss_family, addr, buf, sizeof(buf));
   }
 
   return buf;
@@ -191,9 +203,11 @@ socket_address::full_str() const
       s << "[" << cidr_str() << "]:" << port();
       break;
 
+#if defined(PACKETEER_POSIX)
     case AF_LOCAL:
       s << data.sa_un.sun_path;
       break;
+#endif
 
     default:
       break;
@@ -214,11 +228,13 @@ socket_address::bufsize() const
     case AF_INET6:
       return sizeof(sockaddr_in6);
 
+#if defined(PACKETEER_POSIX)
     case AF_LOCAL:
       {
         socklen_t size = offsetof(sockaddr_un, sun_path) + ::strlen(data.sa_un.sun_path) + 1;
         return size;
       }
+#endif
 
     default:
       break;
@@ -311,12 +327,14 @@ socket_address::is_equal_to(socket_address const & other) const
     compare_buf_other = &(other.data.sa_in6.sin6_addr);
   }
 
+#if defined(PACKETEER_POSIX)
   // UNIX
   else {
     compare_size = UNIX_PATH_MAX;
     compare_buf = data.sa_un.sun_path;
     compare_buf_other = other.data.sa_un.sun_path;
   }
+#endif
 
   return 0 == ::memcmp(compare_buf, compare_buf_other, compare_size);
 }
@@ -352,10 +370,15 @@ socket_address::is_less_than(socket_address const & other) const
     return (ntohs(data.sa_in6.sin6_port) < ntohs(other.data.sa_in6.sin6_port));
   }
 
+#if defined(PACKETEER_POSIX)
   // Unix paths are simple again.
   else {
     return 0 > ::memcmp(data.sa_un.sun_path, other.data.sa_un.sun_path, UNIX_PATH_MAX);
   }
+#else
+  // We don't know what to do, really.
+  return false;
+#endif
 }
 
 
@@ -396,8 +419,10 @@ socket_address::type() const
     case AF_INET6:
       return SAT_INET6;
 
+#if defined(PACKETEER_POSIX)
     case AF_LOCAL:
       return SAT_LOCAL;
+#endif
 
     default:
       return SAT_UNSPEC;
@@ -429,12 +454,14 @@ socket_address::hash() const
     port = data.sa_in6.sin6_port;
   }
 
+#if defined(PACKETEER_POSIX)
   // UNIX
   else {
     hash_size = ::strlen(data.sa_un.sun_path);
     hash_buf = data.sa_un.sun_path;
     port = 0;
   }
+#endif
 
   return packeteer::util::multi_hash(
       std::string(static_cast<char const *>(hash_buf), hash_size),

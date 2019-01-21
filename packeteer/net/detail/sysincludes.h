@@ -33,8 +33,26 @@
 #if defined(PACKETEER_HAVE_LINUX_UN_H)
 #  include <linux/un.h>
 #else
-#  include <sys/un.h>
-#  define UNIX_PATH_MAX 108
+#  if defined(PACKETEER_HAVE_SYS_UN_H)
+#    include <sys/un.h>
+#    define UNIX_PATH_MAX 108
+#  endif
+#endif
+
+#if defined(PACKETEER_HAVE_SYS_SOCKET_H)
+#  include <sys/socket.h>
+#endif
+
+#if defined(PACKETEER_HAVE_WINSOCK2_H)
+#  include <winsock2.h>
+#endif
+
+#if defined(PACKETEER_HAVE_WS2TCPIP_H)
+#  include <ws2tcpip.h>
+#endif
+
+#if defined(PACKETEER_WIN32)
+typedef int sa_family_t;
 #endif
 
 #endif // guard
