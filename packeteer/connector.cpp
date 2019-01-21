@@ -39,10 +39,12 @@
 #include <packeteer/net/socket_address.h>
 
 #include <packeteer/detail/connector_anon.h>
-#include <packeteer/detail/connector_local.h>
 #include <packeteer/detail/connector_pipe.h>
 #include <packeteer/detail/connector_tcp.h>
 #include <packeteer/detail/connector_udp.h>
+#if defined(PACKETEER_POSIX)
+#  include <packeteer/detail/connector_local.h>
+#endif
 
 namespace packeteer {
 
@@ -73,8 +75,10 @@ match_scheme(std::string const & scheme)
     mapping["udp6"]  = std::make_pair(CT_UDP6, std::make_pair(CB_DATAGRAM, CB_DATAGRAM));
     mapping["udp"]   = std::make_pair(CT_UDP, std::make_pair(CB_DATAGRAM, CB_DATAGRAM));
     mapping["anon"]  = std::make_pair(CT_ANON, std::make_pair(CB_STREAM, CB_STREAM));
-    mapping["local"] = std::make_pair(CT_LOCAL, std::make_pair(CB_STREAM, CB_STREAM|CB_DATAGRAM));
     mapping["pipe"]  = std::make_pair(CT_PIPE, std::make_pair(CB_STREAM, CB_STREAM));
+#if defined(PACKETEER_POSIX)
+    mapping["local"] = std::make_pair(CT_LOCAL, std::make_pair(CB_STREAM, CB_STREAM|CB_DATAGRAM));
+#endif
   }
 
   // Find scheme type
@@ -247,9 +251,11 @@ struct connector::connector_impl
 
       // Instanciate the connector implementation
       switch (m_type) {
+#if defined(PACKETEER_POSIX)
         case CT_LOCAL:
           m_conn = new detail::connector_local(m_url.path, blocking, behaviour);
           break;
+#endif
 
         case CT_PIPE:
           m_conn = new detail::connector_pipe(m_url.path, blocking);
