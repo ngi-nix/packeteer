@@ -24,6 +24,7 @@
 /*****************************************************************************
  * Headers
  **/
+#mesondefine PACKETEER_HAVE_UNISTD_H
 #mesondefine PACKETEER_HAVE_SYS_SELECT_H
 #mesondefine PACKETEER_HAVE_SYS_TIME_H
 #mesondefine PACKETEER_HAVE_SYS_EPOLL_H
@@ -32,6 +33,10 @@
 #mesondefine PACKETEER_HAVE_ARPA_INET_H
 #mesondefine PACKETEER_HAVE_NETINET_IN_H
 #mesondefine PACKETEER_HAVE_LINUX_UN_H
+#mesondefine PACKETEER_HAVE_SYS_UN_H
+#mesondefine PACKETEER_HAVE_SYS_SOCKET_H
+#mesondefine PACKETEER_HAVE_WINSOCK2_H
+#mesondefine PACKETEER_HAVE_WS2TCPIP_H
 
 
 /*****************************************************************************

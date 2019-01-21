@@ -19,6 +19,8 @@ if compiler_id == 'clang'
   extra_args = ['-Wall', '-Wextra', '-Wabi', '-Wold-style-cast']
 elif compiler_id == 'gcc'
   extra_args = ['-Wall', '-Wextra', '-Wold-style-cast', '-Wstrict-null-sentinel']
+elif compiler_id == 'msvc'
+  extra_args = []
 endif
 
 bt = get_option('buildtype')
@@ -44,6 +46,9 @@ conf_data.set('PACKETEER_PACKAGE_URL', 'https://github.com/jfinkhaeuser/packetee
 conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
 
 ### Headers
+if compiler.has_header('unistd.h')
+  conf_data.set('PACKETEER_HAVE_UNISTD_H', true)
+endif
 if compiler.has_header('sys/select.h')
   conf_data.set('PACKETEER_HAVE_SYS_SELECT_H', true)
 endif
@@ -67,6 +72,18 @@ if compiler.has_header('netinet/in.h')
 endif
 if compiler.has_header('linux/un.h')
   conf_data.set('PACKETEER_HAVE_LINUX_UN_H', true)
+endif
+if compiler.has_header('sys/un.h')
+  conf_data.set('PACKETEER_HAVE_SYS_UN_H', true)
+endif
+if compiler.has_header('sys/socket.h')
+  conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H', true)
+endif
+if compiler.has_header('winsock2.h')
+  conf_data.set('PACKETEER_HAVE_WINSOCK2_H', true)
+endif
+if compiler.has_header('ws2tcpip.h')
+  conf_data.set('PACKETEER_HAVE_WS2TCPIP_H', true)
 endif
 
 
@@ -249,7 +266,6 @@ libsrc = [
   'packeteer/peer_address.cpp',
   'packeteer/detail/worker.cpp',
   'packeteer/detail/scheduler_impl.cpp',
-  'packeteer/detail/connector.cpp',
   'packeteer/net/socket_address.cpp',
   'packeteer/net/network.cpp',
   'packeteer/net/detail/cidr.cpp',
@@ -275,6 +291,7 @@ endif
 
 posixsrc = [
   'packeteer/posix/handle.cpp',
+  'packeteer/posix/detail/connector.cpp',
   'packeteer/posix/detail/connector_socket.cpp',
   'packeteer/posix/detail/connector_pipe.cpp',
   'packeteer/posix/detail/connector_tcp.cpp',
@@ -283,12 +300,20 @@ posixsrc = [
   'packeteer/posix/detail/connector_local.cpp',
 ]
 
-winsrc = []
+winsrc = [
+  'packeteer/win32/handle.cpp',
+  'packeteer/win32/detail/connector.cpp',
+  'packeteer/win32/detail/connector_socket.cpp',
+  'packeteer/win32/detail/connector_pipe.cpp',
+  'packeteer/win32/detail/connector_tcp.cpp',
+  'packeteer/win32/detail/connector_udp.cpp',
+  'packeteer/win32/detail/connector_anon.cpp',
+]
 
 if host_machine.system() in [ 'cygwin', 'darwin', 'dragonfly', 'freebsd', 'gnu', 'linux', 'netbsd' ]
   libsrc += posixsrc
 elif host_machine.system() == 'windows'
-  libsrc + winsrc
+  libsrc += winsrc
 endif
 
 lib = both_libraries('packeteer', libsrc,
