@@ -12,6 +12,13 @@ project('packeteer', 'cpp',
 conf_data = configuration_data()
 compiler = meson.get_compiler('cpp')
 
+host_type = ''
+if host_machine.system() in [ 'cygwin', 'darwin', 'dragonfly', 'freebsd', 'gnu', 'linux', 'netbsd' ]
+  host_type = 'posix'
+elif host_machine.system() == 'windows'
+  host_type = 'win32'
+endif
+
 ### Compiler flags
 compiler_id = compiler.get_id()
 
@@ -247,6 +254,27 @@ thread_dep = dependency('threads', required: true)
 
 cppunit_dep = dependency('cppunit', required: false)
 
+if not cppunit_dep.found()
+  if host_type == 'win32'
+    cppunit_inc = include_directories(get_option('cppunit_prefix') + '\\include')
+    cppunit_dir = get_option('cppunit_prefix') + '\\lib'
+    if bt in ['debug', 'debugoptimized']
+      libname = 'cppunitd'
+    else
+      libname = 'cppunit'
+    endif
+    cppunit_lib = compiler.find_library(libname, dirs: [cppunit_dir])
+  elif host_type == 'posix'
+    cppunit_inc = include_directories(get_option('cppunit_prefix') + '/include')
+    cppunit_dir = get_option('cppunit_prefix') + '/lib'
+    cppunit_lib = compiler.find_library('cppunit', dirs: [cppunit_dir])
+  endif
+
+  cppunit_dep = declare_dependency(
+    include_directories: cppunit_inc,
+    dependencies: cppunit_lib)
+endif
+
 configure_file(
   input: 'packeteer-config.h.in',
   output: 'packeteer-config.h',
@@ -310,9 +338,10 @@ winsrc = [
   'packeteer/win32/detail/connector_anon.cpp',
 ]
 
-if host_machine.system() in [ 'cygwin', 'darwin', 'dragonfly', 'freebsd', 'gnu', 'linux', 'netbsd' ]
+
+if host_type == 'posix'
   libsrc += posixsrc
-elif host_machine.system() == 'windows'
+elif host_type == 'win32'
   libsrc += winsrc
 endif
 
