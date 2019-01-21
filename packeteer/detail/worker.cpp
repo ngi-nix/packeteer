@@ -23,14 +23,17 @@
 
 #if defined(PACKETEER_HAVE_SYS_SELECT_H)
 #  include <sys/select.h>
-#elif defined(PACKETEER_HAVE_SYS_TIME_H) && defined(PACKETEER_HAVE_SYS_TYPES_H) && defined(PACKETEER_HAVE_UNISTD_H)
+#elif defined(PACKETEER_HAVE_SYS_TYPES_H) && defined(PACKETEER_HAVE_UNISTD_H)
 #  include <sys/types.h>
 #  include <unistd.h>
 #else
-#  error Cannot compile on this system.
+// FIXME #  error Cannot compile on this system.
 #endif
 
-#include <sys/time.h>
+#if defined(PACKETEER_HAVE_SYS_TIME_H)
+#  include <sys/time.h>
+#endif
+
 #include <errno.h>
 
 #include <packeteer/events.h>
