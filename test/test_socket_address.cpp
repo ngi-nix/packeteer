@@ -57,8 +57,10 @@ struct test_data
   { AF_INET6, pnet::socket_address::SAT_INET6, "::1", "::1", 12345, },
   { AF_INET6, pnet::socket_address::SAT_INET6, "0:0:0:0:0:0:0:0", "::", 12345, },
   { AF_INET6, pnet::socket_address::SAT_INET6, "::", "::", 12345, },
+#if defined(PACKETEER_POSIX)
   { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "/foo/bar", "/foo/bar", 0 },
   { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "something else", "something else", 0 },
+#endif
 };
 
 
@@ -128,12 +130,16 @@ private:
       return socket_address(&addr, sizeof(addr));
     }
 
+#if defined(PACKETEER_POSIX)
     // UNIX
     sockaddr_un addr;
     addr.sun_family = AF_LOCAL;
     ::snprintf(addr.sun_path, UNIX_PATH_MAX, "%s", data.address);
 
     return socket_address(&addr, sizeof(addr));
+#endif
+
+    throw std::runtime_error("Should not be reached.");
   }
 
 
@@ -298,19 +304,21 @@ private:
     CPPUNIT_ASSERT_EQUAL(socket_address("2001:0db8:85a3::8a2e:0370:7335"), s6);
 
     // *** IPv4 with port
-    PACKETEER_VALUES_TEST(socket_address("192.168.0.1", 1234),
-                          socket_address("192.168.0.1", 4321),
+    PACKETEER_VALUES_TEST(socket_address(std::string("192.168.0.1"), 1234),
+                          socket_address(std::string("192.168.0.1"), 4321),
                           false);
 
     // *** IPv6 with port
-    PACKETEER_VALUES_TEST(socket_address("2001:0db8:85a3::8a2e:0370:7334", 1234),
-                          socket_address("2001:0db8:85a3::8a2e:0370:7334", 4321),
+    PACKETEER_VALUES_TEST(socket_address(std::string("2001:0db8:85a3::8a2e:0370:7334"), 1234),
+                          socket_address(std::string("2001:0db8:85a3::8a2e:0370:7334"), 4321),
                           false);
 
+#if defined(PACKETEER_POSIX)
     // *** Unix paths
     PACKETEER_VALUES_TEST(socket_address("/foo/bar"),
                           socket_address("/foo/baz"),
                           false);
+#endif
   }
 };
 
