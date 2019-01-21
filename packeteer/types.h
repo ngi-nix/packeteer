@@ -37,4 +37,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#if defined(PACKETEER_WIN32)
+#  include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 #endif // guard
