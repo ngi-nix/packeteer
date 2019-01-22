@@ -70,6 +70,16 @@
 
 namespace packeteer {
 
+/**
+ * Initialize and de-initialize the library. This is required on some
+ * platforms; on others, the functions don't do anything. Call them always for
+ * portability.
+ * If init() returns anything other than true, packeteer is not guaranteed
+ * to function properly.
+ **/
+bool init();
+void deinit();
+
 } // namespace packeteer
 
 #endif // guard

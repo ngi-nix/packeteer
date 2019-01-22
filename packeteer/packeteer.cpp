@@ -20,7 +20,28 @@
  * PARTICULAR PURPOSE.
  **/
 #include <packeteer/packeteer.h>
+#include <packeteer/detail/netincludes.h>
 
 namespace packeteer {
+
+#if defined(PACKETEER_WIN32)
+bool init()
+{
+  WSADATA data;
+  // Request Winsock 2.2
+  int res = WSAStartup(MAKEWORD(2, 2), &data);
+  return (res == 0);
+}
+
+
+void deinit()
+{
+  WSACleanup();
+}
+
+#else
+void init() { return true; }
+void deinit() {}
+#endif
 
 } // namespace packeteer

@@ -326,6 +326,10 @@ VerboseOutput::endTestRun(CppUnit::Test *,
 int main(int argc, char **argv)
 {
   std::cout << packeteer::copyright_string() << std::endl;
+  if (!packeteer::init()) {
+    std::cerr << "Error initializing packeteer, aborting!" << std::endl;
+    return 1;
+  }
 
   std::string testPath = (argc > 1) ? std::string(argv[1]) : "";
 
@@ -357,8 +361,10 @@ int main(int argc, char **argv)
   } catch (std::invalid_argument const & e) {
     // Test path not resolved
     std::cerr << std::endl <<  "ERROR: " << e.what() << std::endl;
+    packeteer::deinit();
     return 2;
   }
 
+  packeteer::deinit();
   return result.wasSuccessful() ? 0 : 1;
 }
