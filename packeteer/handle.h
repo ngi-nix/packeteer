@@ -84,7 +84,11 @@ struct handle : public ::packeteer::util::operators<handle>
    **/
   static handle make_dummy(size_t value)
   {
+#if defined(PACKETEER_POSIX)
     return handle(static_cast<sys_handle_t>(value));
+#else
+    return handle(reinterpret_cast<sys_handle_t>(value));
+#endif
   }
 
   /**
