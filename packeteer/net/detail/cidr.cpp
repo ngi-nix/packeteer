@@ -38,7 +38,7 @@ parse_extended_cidr(std::string const & cidr, bool no_mask,
   // guarantees, we're copying into a vector<char>, though.
   std::vector<char> cidr_vec;
   size_t cidr_size = cidr.length();
-  cidr_vec.reserve(cidr_size + 1);
+  cidr_vec.resize(cidr_size + 1, '\0');
   ::memcpy(&cidr_vec[0], cidr.c_str(), cidr_size);
   cidr_vec[cidr_size] = '\0';
 

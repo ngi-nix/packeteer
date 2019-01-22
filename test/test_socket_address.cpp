@@ -272,8 +272,12 @@ private:
       hashes.insert(hasher(address));
     }
 
-    // We have only 8 unique addresses - two where only the port differs.
+    // We have only some unique addresses - some where only the port differs.
+#if defined(PACKETEER_POSIX)
     CPPUNIT_ASSERT_EQUAL(size_t(8), hashes.size());
+#else
+    CPPUNIT_ASSERT_EQUAL(size_t(6), hashes.size());
+#endif
   }
 
 
