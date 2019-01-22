@@ -364,7 +364,7 @@ if cppunit_dep.found()
     'test/test_network.cpp',
     'test/test_callback.cpp',
     'test/test_concurrent_queue.cpp',
-#    'test/test_scheduler_impl.cpp',
+    'test/test_scheduler_impl.cpp',
 #    'test/test_scheduler.cpp',
     'test/test_peer_address.cpp',
 #    'test/test_connector.cpp',

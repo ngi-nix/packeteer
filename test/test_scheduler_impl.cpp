@@ -90,47 +90,51 @@ private:
     pk::detail::io_callbacks_t container;
 
     pk::detail::io_callback_entry * entry = new pk::detail::io_callback_entry(&foo,
-        1, pk::PEV_IO_WRITE);
+        pk::handle::make_dummy(1), pk::PEV_IO_WRITE);
     container.add(entry);
 
-    entry = new pk::detail::io_callback_entry(&bar, 1, pk::PEV_IO_WRITE | pk::PEV_IO_READ);
+    entry = new pk::detail::io_callback_entry(&bar, pk::handle::make_dummy(1),
+        pk::PEV_IO_WRITE | pk::PEV_IO_READ);
     container.add(entry);
 
-    entry = new pk::detail::io_callback_entry(&foo, 1, pk::PEV_IO_READ);
+    entry = new pk::detail::io_callback_entry(&foo, pk::handle::make_dummy(1),
+        pk::PEV_IO_READ);
     container.add(entry);
 
-    entry = new pk::detail::io_callback_entry(&baz, 1, pk::PEV_IO_READ);
+    entry = new pk::detail::io_callback_entry(&baz, pk::handle::make_dummy(1),
+        pk::PEV_IO_READ);
     container.add(entry);
 
-    entry = new pk::detail::io_callback_entry(&foo, 2, pk::PEV_IO_READ);
+    entry = new pk::detail::io_callback_entry(&foo, pk::handle::make_dummy(2),
+        pk::PEV_IO_READ);
     container.add(entry);
 
     // Two of the entries get merged, so we should have 3 entries for FD 1, and 
     // one entry for FD 2.
 
     // More precisely, there should be three read callbacks for FD 1
-    auto range = container.copy_matching(1, pk::PEV_IO_READ);
+    auto range = container.copy_matching(pk::handle::make_dummy(1), pk::PEV_IO_READ);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
     for (auto entry : range) { delete entry; }
 
     // There should be two write callbacks for FD 1
-    range = container.copy_matching(1, pk::PEV_IO_WRITE);
+    range = container.copy_matching(pk::handle::make_dummy(1), pk::PEV_IO_WRITE);
     CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
     for (auto entry : range) { delete entry; }
 
     // There should be 1 read callback for FD 2
-    range = container.copy_matching(2, pk::PEV_IO_READ);
+    range = container.copy_matching(pk::handle::make_dummy(2), pk::PEV_IO_READ);
     CPPUNIT_ASSERT_EQUAL(size_t(1), range.size());
     for (auto entry : range) { delete entry; }
 
     // And no write callback for FD 2
-    range = container.copy_matching(2, pk::PEV_IO_WRITE);
+    range = container.copy_matching(pk::handle::make_dummy(2), pk::PEV_IO_WRITE);
     CPPUNIT_ASSERT_EQUAL(size_t(0), range.size());
     for (auto entry : range) { delete entry; }
 
     // Lastly, if we ask for callbacks for read or write, that should be three
     // again (for FD 1)
-    range = container.copy_matching(1, pk::PEV_IO_READ | pk::PEV_IO_WRITE);
+    range = container.copy_matching(pk::handle::make_dummy(1), pk::PEV_IO_READ | pk::PEV_IO_WRITE);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
     for (auto entry : range) { delete entry; }
   }
