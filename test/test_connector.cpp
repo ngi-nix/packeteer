@@ -304,7 +304,7 @@ private:
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     std::vector<char> result;
-    result.reserve(2 * msg.size());
+    result.resize(2 * msg.size(), '\0');
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.read(&result[0], result.capacity(),
           amount));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
@@ -327,7 +327,7 @@ private:
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     std::vector<char> result;
-    result.reserve(2 * msg.size());
+    result.resize(2 * msg.size(), '\0');
     packeteer::peer_address sendaddr;
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.receive(&result[0], result.capacity(),
           amount, sendaddr));
@@ -548,7 +548,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
 
     std::vector<char> result;
-    result.reserve(2 * msg.size());
+    result.resize(2 * msg.size(), '\0');
     CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.read(&result[0], result.capacity(),
           amount));
     CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
