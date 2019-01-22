@@ -24,7 +24,7 @@
 
 // *** Config
 #include <packeteer/packeteer.h>
-#include <packeteer/net/detail/sysincludes.h>
+#include <packeteer/detail/netincludes.h>
 #include <packeteer/util/operators.h>
 
 // *** C++ includes

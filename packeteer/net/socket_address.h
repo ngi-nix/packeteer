@@ -24,7 +24,7 @@
 
 // *** Config
 #include <packeteer/packeteer.h>
-#include <packeteer/net/detail/sysincludes.h>
+#include <packeteer/detail/netincludes.h>
 
 // *** C++ includes
 #include <iostream>
@@ -82,7 +82,7 @@ public:
     SAT_UNSPEC = -1,
     SAT_INET4 = 0,
     SAT_INET6,
-    SAT_LOCAL,
+    SAT_LOCAL, // Only works on POSIX
   };
 
   /**

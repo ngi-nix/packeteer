@@ -25,7 +25,7 @@
 // *** Config
 #include <packeteer/packeteer.h>
 #include <packeteer/error.h>
-#include <packeteer/net/detail/sysincludes.h>
+#include <packeteer/detail/netincludes.h>
 #include <packeteer/net/socket_address.h>
 
 // *** C++ includes
