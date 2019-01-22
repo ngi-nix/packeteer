@@ -219,11 +219,11 @@ private:
 
   // The consumers contend for m_consumer_lock in order to use m_first.
   PACKETEER_CACHE_LINE_ALIGN(node *, m_first);
-  PACKETEER_CACHE_LINE_ALIGN(std::atomic<bool>, m_consumer_lock);
+  PACKETEER_CACHE_LINE_ALIGN(mutable std::atomic<bool>, m_consumer_lock);
 
   // The producers contend for m_producer_lock in order to use m_last.
   PACKETEER_CACHE_LINE_ALIGN(node *, m_last);
-  PACKETEER_CACHE_LINE_ALIGN(std::atomic<bool>, m_producer_lock);
+  PACKETEER_CACHE_LINE_ALIGN(mutable std::atomic<bool>, m_producer_lock);
 };
 
 } // namespace packeteer
