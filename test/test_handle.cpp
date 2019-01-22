@@ -33,6 +33,7 @@ public:
   CPPUNIT_TEST_SUITE(HandleTest);
 
     CPPUNIT_TEST(testBasicFunctionality);
+    CPPUNIT_TEST(testDummyHandle);
 
   CPPUNIT_TEST_SUITE_END();
 
@@ -66,6 +67,16 @@ private:
     std::stringstream s2;
     s2 << h1.hash();
     CPPUNIT_ASSERT_EQUAL(s1.str(), s2.str());
+  }
+
+  void testDummyHandle()
+  {
+    auto h1 = pk::handle::make_dummy(1);
+    auto h2 = pk::handle::make_dummy(2);
+
+    CPPUNIT_ASSERT(h1.valid());
+    CPPUNIT_ASSERT(h2.valid());
+    CPPUNIT_ASSERT(h1 != h2);
   }
 };
 

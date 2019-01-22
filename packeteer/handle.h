@@ -78,6 +78,16 @@ struct handle : public ::packeteer::util::operators<handle>
   }
 
   /**
+   * Handles returned by this function behave like valid handles, but cannot
+   * be used for I/O. Don't use this outside of code that requires dummy
+   * handles.
+   **/
+  static handle make_dummy(size_t value)
+  {
+    return handle(reinterpret_cast<sys_handle_t>(value));
+  }
+
+  /**
    * Operators
    **/
   handle & operator=(handle const & other)
