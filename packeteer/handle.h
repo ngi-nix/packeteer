@@ -84,7 +84,7 @@ struct handle : public ::packeteer::util::operators<handle>
    **/
   static handle make_dummy(size_t value)
   {
-    return handle(reinterpret_cast<sys_handle_t>(value));
+    return handle(static_cast<sys_handle_t>(value));
   }
 
   /**

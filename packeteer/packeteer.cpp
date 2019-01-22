@@ -40,7 +40,7 @@ void deinit()
 }
 
 #else
-void init() { return true; }
+bool init() { return true; }
 void deinit() {}
 #endif
 
