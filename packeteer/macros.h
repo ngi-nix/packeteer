@@ -73,17 +73,17 @@
  * and a cache line size'd padding value. Ensures the data is occupying a cache
  * line all by itself.
  **/
-#define PACKETEER_CACHE_LINE_ALIGN(type, name)              \
-  union {                                                   \
-    type name;                                              \
-    char PACKETEER_TOKEN_CAT(pad, __LINE__)[                \
-      PACKETEER_CACHE_LINE_SIZE *                           \
-      (1 + int(sizeof(type) / PACKETEER_CACHE_LINE_SIZE))   \
-    ];                                                      \
-  };
+#define PACKETEER_SIZED_PAD(size) \
+  char PACKETEER_TOKEN_CAT(pad, __LINE__)[size];
 
 #define PACKETEER_CACHE_LINE_PAD \
-  char PACKETEER_TOKEN_CAT(pad, __LINE__)[PACKETEER_CACHE_LINE_SIZE];
+  PACKETEER_SIZED_PAD(PACKETEER_CACHE_LINE_SIZE)
+
+#define PACKETEER_CACHE_LINE_ALIGN(type, name) \
+  union { \
+    type name; \
+    PACKETEER_CACHE_LINE_PAD; \
+  };
 
 /**
  * Flow control guard; if this line is reached, an exception is thrown.
