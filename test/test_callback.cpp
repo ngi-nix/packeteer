@@ -154,7 +154,7 @@ private:
     CPPUNIT_ASSERT_EQUAL(true, cb.empty());
     CPPUNIT_ASSERT(!cb);
 
-    CPPUNIT_ASSERT_THROW(cb(0, pk::error_t(1), 2, nullptr), pk::exception);
+    CPPUNIT_ASSERT_THROW(cb(0, pk::error_t(1), pk::handle(), nullptr), pk::exception);
 
     pk::callback cb2 = &free_func1;
     CPPUNIT_ASSERT(cb != cb2);
