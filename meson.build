@@ -85,13 +85,13 @@ conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
 if compiler.has_header('unistd.h')
   conf_data.set('PACKETEER_HAVE_UNISTD_H', true)
 endif
-if compiler.has_header('sys/select.h')
+if compiler.has_header('sys' / 'select.h')
   conf_data.set('PACKETEER_HAVE_SYS_SELECT_H', true)
 endif
-if compiler.has_header('sys/time.h')
+if compiler.has_header('sys' / 'time.h')
   conf_data.set('PACKETEER_HAVE_SYS_TIME_H', true)
 endif
-if compiler.has_header('sys/epoll.h')
+if compiler.has_header('sys' / 'epoll.h')
   conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H', true)
 endif
 if compiler.has_header('time.h')
@@ -100,19 +100,19 @@ endif
 if compiler.has_header('poll.h')
   conf_data.set('PACKETEER_HAVE_POLL_H', true)
 endif
-if compiler.has_header('arpa/inet.h')
+if compiler.has_header('arpa' / 'inet.h')
   conf_data.set('PACKETEER_HAVE_ARPA_INET_H', true)
 endif
-if compiler.has_header('netinet/in.h')
+if compiler.has_header('netinet' / 'in.h')
   conf_data.set('PACKETEER_HAVE_NETINET_IN_H', true)
 endif
-if compiler.has_header('linux/un.h')
+if compiler.has_header('linux' / 'un.h')
   conf_data.set('PACKETEER_HAVE_LINUX_UN_H', true)
 endif
-if compiler.has_header('sys/un.h')
+if compiler.has_header('sys' / 'un.h')
   conf_data.set('PACKETEER_HAVE_SYS_UN_H', true)
 endif
-if compiler.has_header('sys/socket.h')
+if compiler.has_header('sys' / 'socket.h')
   conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H', true)
 endif
 if compiler.has_header('winsock2.h')
@@ -296,8 +296,8 @@ if not cppunit_dep.found()
     endif
     cppunit_lib = compiler.find_library(libname, dirs: [cppunit_dir])
   elif host_type == 'posix'
-    cppunit_inc = include_directories(get_option('cppunit_prefix') + '/include')
-    cppunit_dir = get_option('cppunit_prefix') + '/lib'
+    cppunit_inc = include_directories(get_option('cppunit_prefix') / 'include')
+    cppunit_dir = get_option('cppunit_prefix') / 'lib'
     cppunit_lib = compiler.find_library('cppunit', dirs: [cppunit_dir])
   endif
 
@@ -319,56 +319,56 @@ configure_file(
 # Sources
 
 libsrc = [
-  'packeteer/version.cpp',
-  'packeteer/error.cpp',
-  'packeteer/packeteer.cpp',
-  'packeteer/scheduler.cpp',
-  'packeteer/connector.cpp',
-  'packeteer/peer_address.cpp',
-  'packeteer/detail/worker.cpp',
-  'packeteer/detail/scheduler_impl.cpp',
-  'packeteer/net/socket_address.cpp',
-  'packeteer/net/network.cpp',
-  'packeteer/net/detail/cidr.cpp',
-  'packeteer/thread/tasklet.cpp',
-  'packeteer/util/url.cpp',
+  'packeteer' / 'version.cpp',
+  'packeteer' / 'error.cpp',
+  'packeteer' / 'packeteer.cpp',
+  'packeteer' / 'scheduler.cpp',
+  'packeteer' / 'connector.cpp',
+  'packeteer' / 'peer_address.cpp',
+  'packeteer' / 'detail' / 'worker.cpp',
+  'packeteer' / 'detail' / 'scheduler_impl.cpp',
+  'packeteer' / 'net' / 'socket_address.cpp',
+  'packeteer' / 'net' / 'network.cpp',
+  'packeteer' / 'net' / 'detail' / 'cidr.cpp',
+  'packeteer' / 'thread' / 'tasklet.cpp',
+  'packeteer' / 'util' / 'url.cpp',
 ]
 
 if have_epoll_create
-  libsrc += ['packeteer/detail/io_epoll.cpp']
+  libsrc += ['packeteer' / 'detail' / 'io_epoll.cpp']
 endif
 
 if have_select
-  libsrc += ['packeteer/detail/io_select.cpp']
+  libsrc += ['packeteer' / 'detail' / 'io_select.cpp']
 endif
 
 if have_poll
-  libsrc +=  ['packeteer/detail/io_poll.cpp']
+  libsrc +=  ['packeteer' / 'detail' / 'io_poll.cpp']
 endif
 
 if have_kqueue
-  libsrc +=  ['packeteer/detail/io_kqueue.cpp']
+  libsrc +=  ['packeteer' / 'detail' / 'io_kqueue.cpp']
 endif
 
 posixsrc = [
-  'packeteer/posix/handle.cpp',
-  'packeteer/posix/detail/connector.cpp',
-  'packeteer/posix/detail/connector_socket.cpp',
-  'packeteer/posix/detail/connector_pipe.cpp',
-  'packeteer/posix/detail/connector_tcp.cpp',
-  'packeteer/posix/detail/connector_udp.cpp',
-  'packeteer/posix/detail/connector_anon.cpp',
-  'packeteer/posix/detail/connector_local.cpp',
+  'packeteer' / 'posix' / 'handle.cpp',
+  'packeteer' / 'posix' / 'detail' / 'connector.cpp',
+  'packeteer' / 'posix' / 'detail' / 'connector_socket.cpp',
+  'packeteer' / 'posix' / 'detail' / 'connector_pipe.cpp',
+  'packeteer' / 'posix' / 'detail' / 'connector_tcp.cpp',
+  'packeteer' / 'posix' / 'detail' / 'connector_udp.cpp',
+  'packeteer' / 'posix' / 'detail' / 'connector_anon.cpp',
+  'packeteer' / 'posix' / 'detail' / 'connector_local.cpp',
 ]
 
 winsrc = [
-  'packeteer/win32/handle.cpp',
-  'packeteer/win32/detail/connector.cpp',
-  'packeteer/win32/detail/connector_socket.cpp',
-  'packeteer/win32/detail/connector_pipe.cpp',
-  'packeteer/win32/detail/connector_tcp.cpp',
-  'packeteer/win32/detail/connector_udp.cpp',
-  'packeteer/win32/detail/connector_anon.cpp',
+  'packeteer' / 'win32' / 'handle.cpp',
+  'packeteer' / 'win32' / 'detail' / 'connector.cpp',
+  'packeteer' / 'win32' / 'detail' / 'connector_socket.cpp',
+  'packeteer' / 'win32' / 'detail' / 'connector_pipe.cpp',
+  'packeteer' / 'win32' / 'detail' / 'connector_tcp.cpp',
+  'packeteer' / 'win32' / 'detail' / 'connector_udp.cpp',
+  'packeteer' / 'win32' / 'detail' / 'connector_anon.cpp',
 ]
 
 
@@ -389,21 +389,21 @@ lib = library('packeteer', libsrc,
 if cppunit_dep.found()
 
   testsrc = [
-    'test/test_error.cpp',
-    'test/test_cidr.cpp',
-    'test/test_handle.cpp',
-    'test/test_url.cpp',
-    'test/test_socket_address.cpp',
-    'test/test_network.cpp',
-    'test/test_callback.cpp',
-    'test/test_concurrent_queue.cpp',
-    'test/test_scheduler_impl.cpp',
-    'test/test_scheduler.cpp',
-    'test/test_peer_address.cpp',
-    'test/test_connector.cpp',
-    'test/test_binder.cpp',
-    'test/test_tasklet.cpp',
-    'test/testsuite.cpp',
+    'test' / 'test_error.cpp',
+    'test' / 'test_cidr.cpp',
+    'test' / 'test_handle.cpp',
+    'test' / 'test_url.cpp',
+    'test' / 'test_socket_address.cpp',
+    'test' / 'test_network.cpp',
+    'test' / 'test_callback.cpp',
+    'test' / 'test_concurrent_queue.cpp',
+    'test' / 'test_scheduler_impl.cpp',
+    'test' / 'test_scheduler.cpp',
+    'test' / 'test_peer_address.cpp',
+    'test' / 'test_connector.cpp',
+    'test' / 'test_binder.cpp',
+    'test' / 'test_tasklet.cpp',
+    'test' / 'testsuite.cpp',
   ]
 
   testsuite = executable('testsuite', testsrc,
