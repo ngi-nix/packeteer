@@ -70,7 +70,8 @@ struct counting_callback
   std::atomic<int> m_write_called = 0;
 
   pk::error_t
-  func(uint64_t mask, pk::error_t error, pk::handle const & h, void *)
+  func(uint64_t mask, pk::error_t error [[maybe_unused]],
+      pk::handle const & h [[maybe_unused]], void *)
   {
     if (mask & pk::PEV_IO_READ) {
       ++m_read_called;
