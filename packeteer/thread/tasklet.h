@@ -100,9 +100,9 @@ public:
    *
    * If you don't want that, use the condition object you're passing directly.
    **/
-  tasklet(function func, void * baton = nullptr, bool start_now = false);
+  tasklet(function const & func, void * baton = nullptr, bool start_now = false);
   tasklet(std::condition_variable_any * condition, std::recursive_mutex * mutex,
-      function func, void * baton = nullptr, bool start_now = false);
+      function const & func, void * baton = nullptr, bool start_now = false);
 
   virtual ~tasklet();
 

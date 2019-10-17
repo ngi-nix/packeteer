@@ -59,7 +59,7 @@ worker::~worker()
 
 
 void
-worker::worker_loop(packeteer::thread::tasklet & tasklet, void * /* unused */)
+worker::worker_loop(packeteer::thread::tasklet & _1 [[maybe_unused]], void * _2 [[maybe_unused]])
 {
   LOG("worker started");
   do {
@@ -87,7 +87,7 @@ worker::worker_loop(packeteer::thread::tasklet & tasklet, void * /* unused */)
       }
     }
     LOG("worker going to sleep");
-  } while (tasklet.sleep());
+  } while (packeteer::thread::tasklet::sleep());
   LOG("worker stopped");
 }
 

@@ -74,7 +74,8 @@
  * line all by itself.
  **/
 #define PACKETEER_SIZED_PAD(size) \
-  char PACKETEER_TOKEN_CAT(pad, __LINE__)[size];
+  char PACKETEER_TOKEN_CAT(pad, __LINE__)[size] // no semicolon,
+                                                // leave to the caller
 
 #define PACKETEER_CACHE_LINE_PAD \
   PACKETEER_SIZED_PAD(PACKETEER_CACHE_LINE_SIZE)
@@ -83,7 +84,7 @@
   union { \
     type name; \
     PACKETEER_CACHE_LINE_PAD; \
-  };
+  } // no semicolon, leave to the caller.
 
 /**
  * Flow control guard; if this line is reached, an exception is thrown.

@@ -115,28 +115,28 @@ private:
     // More precisely, there should be three read callbacks for FD 1
     auto range = container.copy_matching(pk::handle::make_dummy(1), pk::PEV_IO_READ);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // There should be two write callbacks for FD 1
     range = container.copy_matching(pk::handle::make_dummy(1), pk::PEV_IO_WRITE);
     CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // There should be 1 read callback for FD 2
     range = container.copy_matching(pk::handle::make_dummy(2), pk::PEV_IO_READ);
     CPPUNIT_ASSERT_EQUAL(size_t(1), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // And no write callback for FD 2
     range = container.copy_matching(pk::handle::make_dummy(2), pk::PEV_IO_WRITE);
     CPPUNIT_ASSERT_EQUAL(size_t(0), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // Lastly, if we ask for callbacks for read or write, that should be three
     // again (for FD 1)
     range = container.copy_matching(pk::handle::make_dummy(1), pk::PEV_IO_READ | pk::PEV_IO_WRITE);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
   }
 
 
@@ -231,31 +231,31 @@ private:
     // 'bar' the second time merges the entry with the first.
     auto range = container.copy_matching(EVENT_1);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // Similarly, there should be one match for EVENT_2...
     range = container.copy_matching(EVENT_2);
     CPPUNIT_ASSERT_EQUAL(size_t(1), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // ... two matches again for EVENT_3...
     range = container.copy_matching(EVENT_3);
     CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // ... and no matches again for EVENT_4.
     range = container.copy_matching(EVENT_4);
     CPPUNIT_ASSERT_EQUAL(size_t(0), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     // Now try to find entries with more complex masks.
     range = container.copy_matching(EVENT_1 | EVENT_2);
     CPPUNIT_ASSERT_EQUAL(size_t(3), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
 
     range = container.copy_matching(EVENT_2 | EVENT_3);
     CPPUNIT_ASSERT_EQUAL(size_t(2), range.size());
-    for (auto entry : range) { delete entry; }
+    for (auto todelete : range) { delete todelete; }
   }
 };
 

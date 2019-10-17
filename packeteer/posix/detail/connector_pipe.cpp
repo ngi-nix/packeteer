@@ -248,7 +248,7 @@ connector_pipe::listen()
     }
 
     ERRNO_LOG("listen() named pipe connector failed to open pipe");
-    error_t err = translate_open_error();
+    err = translate_open_error();
     if (ERR_SUCCESS == err) {
       // signal interrupt handling
       continue;

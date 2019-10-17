@@ -170,9 +170,10 @@ io_poll::wait_for_events(std::vector<event_data> & events,
 {
   // Prepare FD set
   size_t size = m_fds.size();
-  ::pollfd fds[size];
+  std::vector<::pollfd> fds;
+  fds.resize(size);
 
-  int i = 0;
+  size_t i = 0;
   for (auto entry : m_fds) {
     fds[i].fd = entry.first;
     fds[i].events = translate_events_to_os(entry.second);
@@ -186,9 +187,9 @@ io_poll::wait_for_events(std::vector<event_data> & events,
     ::timespec ts;
     ::packeteer::thread::chrono::convert(timeout, ts);
 
-    int ret = ::ppoll(fds, size, &ts, nullptr);
+    int ret = ::ppoll(&fds[0], size, &ts, nullptr);
 #else
-    int ret = ::poll(fds, size, sc::duration_cast<sc::milliseconds>(timeout).count());
+    int ret = ::poll(&fds[0], size, sc::duration_cast<sc::milliseconds>(timeout).count());
 #endif
 
     if (ret >= 0) {
@@ -218,7 +219,7 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   // Map events; we'll need to iterate over the available file descriptors again
   // (conceivably, we could just use the subset in the FD sets, but that uses
   // additional memory).
-  for (size_t i = 0 ; i < size ; ++i) {
+  for (i = 0 ; i < size ; ++i) {
     int translated = translate_os_to_events(fds[i].revents);
     if (translated) {
       event_data ev;
