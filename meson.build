@@ -76,7 +76,7 @@ conf_data.set('PACKETEER_PACKAGE_MAJOR', splitver[0])
 conf_data.set('PACKETEER_PACKAGE_MINOR', splitver[1])
 
 conf_data.set('PACKETEER_PACKAGE_NAME', meson.project_name())
-conf_data.set('PACKETEER_PACKAGE_URL', 'https://github.com/jfinkhaeuser/packeteer')
+conf_data.set('PACKETEER_PACKAGE_URL', 'https://gitlab.com/jfinkhaeuser/packeteer')
 
 ### Host platform details
 conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
