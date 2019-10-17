@@ -18,6 +18,8 @@ if host_machine.system() in [ 'cygwin', 'darwin', 'dragonfly', 'freebsd', 'gnu',
   host_type = 'posix'
 elif host_machine.system() == 'windows'
   host_type = 'win32'
+elif host_machine.system().startswith('android')
+  host_type = 'android'
 endif
 
 ### Compiler flags
@@ -29,13 +31,13 @@ posix_common_args = [
   '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast', '-Wabi',
 ]
 if compiler_id == 'clang'
-  extra_args = posix_common_args + []
+  cpp_args = posix_common_args + []
 elif compiler_id == 'gcc'
-  extra_args = posix_common_args + [
+  cpp_args = posix_common_args + [
     '-Wstrict-null-sentinel',
   ]
 elif compiler_id == 'msvc'
-  extra_args = [
+  cpp_args = [
     '/W4', '/wd4250', '/wd4251', '/wd4275',
   ]
 endif
@@ -43,13 +45,28 @@ endif
 bt = get_option('buildtype')
 if bt in ['debug', 'debugoptimized']
   if compiler_id == 'clang'
-    extra_args += ['-O0', '-ggdb', '-DDEBUG']
+    cpp_args += ['-O0', '-ggdb', '-DDEBUG']
   elif compiler_id == 'gcc'
-    extra_args += ['-O0', '-ggdb', '-DDEBUG']
+    cpp_args += ['-O0', '-ggdb', '-DDEBUG']
   elif compiler_id == 'msvc'
-    extra_args += ['/Zi', '/FS', '/DDEBUG']
+    cpp_args += ['/Zi', '/FS', '/DDEBUG']
   endif
 endif
+
+
+link_args = []
+if host_type == 'android'
+  # Only posix compilers supported (?)
+  cpp_args += [
+    '-DANDROID_STL=c++_shared',
+    '-fexceptions', '-frtti',
+  ]
+  link_args = [
+    '-lstdc++', '-lm',
+  ]
+endif
+
+add_project_arguments(cpp_args, language: 'cpp')
 
 
 ### Version and package information
@@ -267,6 +284,8 @@ thread_dep = dependency('threads', required: true)
 cppunit_dep = dependency('cppunit', required: false)
 
 if not cppunit_dep.found()
+  cppunit_lib = false
+  cppunit_inc = false
   if host_type == 'win32'
     cppunit_inc = include_directories(get_option('cppunit_prefix') + '\\include')
     cppunit_dir = get_option('cppunit_prefix') + '\\lib'
@@ -282,9 +301,11 @@ if not cppunit_dep.found()
     cppunit_lib = compiler.find_library('cppunit', dirs: [cppunit_dir])
   endif
 
-  cppunit_dep = declare_dependency(
-    include_directories: cppunit_inc,
-    dependencies: cppunit_lib)
+  if cppunit_lib and cppunit_inc
+    cppunit_dep = declare_dependency(
+      include_directories: cppunit_inc,
+      link_with: cppunit_lib)
+  endif
 endif
 
 configure_file(
@@ -351,7 +372,7 @@ winsrc = [
 ]
 
 
-if host_type == 'posix'
+if host_type == 'posix' or host_type == 'android'
   libsrc += posixsrc
 elif host_type == 'win32'
   libsrc += winsrc
@@ -360,7 +381,7 @@ endif
 lib = library('packeteer', libsrc,
     include_directories: [],
     dependencies: [thread_dep],
-    cpp_args: extra_args,
+    link_args: link_args,
     install: true)
 
 # TODO soversion, version, darwin_versions
@@ -388,7 +409,6 @@ if cppunit_dep.found()
   testsuite = executable('testsuite', testsrc,
       include_directories: [],
       dependencies: [cppunit_dep],
-      cpp_args: extra_args,
       link_with: lib)
   test('testsuite', testsuite)
 
