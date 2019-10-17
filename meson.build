@@ -4,6 +4,7 @@ project('packeteer', 'cpp',
   version: '0.1',
   default_options: [
     'cpp_std=c++17',
+    'default_library=both',
   ])
 
 ##############################################################################
@@ -22,12 +23,21 @@ endif
 ### Compiler flags
 compiler_id = compiler.get_id()
 
+posix_common_args = [
+  '-Wall', '-Wextra', '-Wpedantic', '-Wshadow', '-Wstrict-aliasing',
+  '-Wstrict-overflow=5', '-Wcast-align', '-Wmissing-declarations',
+  '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast', '-Wabi',
+]
 if compiler_id == 'clang'
-  extra_args = ['-Wall', '-Wextra', '-Wabi', '-Wold-style-cast']
+  extra_args = posix_common_args + []
 elif compiler_id == 'gcc'
-  extra_args = ['-Wall', '-Wextra', '-Wold-style-cast', '-Wstrict-null-sentinel']
+  extra_args = posix_common_args + [
+    '-Wstrict-null-sentinel',
+  ]
 elif compiler_id == 'msvc'
-  extra_args = []
+  extra_args = [
+    '/W4', '/wd4250', '/wd4251', '/wd4275',
+  ]
 endif
 
 bt = get_option('buildtype')
@@ -36,6 +46,8 @@ if bt in ['debug', 'debugoptimized']
     extra_args += ['-O0', '-ggdb', '-DDEBUG']
   elif compiler_id == 'gcc'
     extra_args += ['-O0', '-ggdb', '-DDEBUG']
+  elif compiler_id == 'msvc'
+    extra_args += ['/Zi', '/FS', '/DDEBUG']
   endif
 endif
 
@@ -345,7 +357,7 @@ elif host_type == 'win32'
   libsrc += winsrc
 endif
 
-lib = both_libraries('packeteer', libsrc,
+lib = library('packeteer', libsrc,
     include_directories: [],
     dependencies: [thread_dep],
     cpp_args: extra_args,
@@ -365,9 +377,9 @@ if cppunit_dep.found()
     'test/test_callback.cpp',
     'test/test_concurrent_queue.cpp',
     'test/test_scheduler_impl.cpp',
-#    'test/test_scheduler.cpp',
+    'test/test_scheduler.cpp',
     'test/test_peer_address.cpp',
-#    'test/test_connector.cpp',
+    'test/test_connector.cpp',
     'test/test_binder.cpp',
     'test/test_tasklet.cpp',
     'test/testsuite.cpp',
@@ -377,7 +389,7 @@ if cppunit_dep.found()
       include_directories: [],
       dependencies: [cppunit_dep],
       cpp_args: extra_args,
-      link_with: lib.get_static_lib())
+      link_with: lib)
   test('testsuite', testsuite)
 
 endif
