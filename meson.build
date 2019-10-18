@@ -300,11 +300,11 @@ endif
 
 ### Dependencies
 
-thread_dep = dependency('threads', required: true)
+thread = dependency('threads', required: true)
 
-cppunit_dep = dependency('cppunit', required: false)
+cppunit = dependency('cppunit', required: false)
 
-if not cppunit_dep.found()
+if not cppunit.found()
   cppunit_lib = false
   cppunit_inc = false
   if host_type == 'win32'
@@ -323,7 +323,7 @@ if not cppunit_dep.found()
   endif
 
   if cppunit_lib and cppunit_inc
-    cppunit_dep = declare_dependency(
+    cppunit = declare_dependency(
       include_directories: cppunit_inc,
       link_with: cppunit_lib)
   endif
@@ -337,7 +337,7 @@ configure_file(
 
 
 ##############################################################################
-# Sources
+# Library
 
 libsrc = [
   'packeteer' / 'version.cpp',
@@ -401,13 +401,21 @@ endif
 
 lib = library('packeteer', libsrc,
     include_directories: [],
-    dependencies: [thread_dep],
+    dependencies: [thread],
     link_args: link_args,
     version: LIB_VERSION,
     soversion: ABI_VERSION,
     install: true)
 
-if cppunit_dep.found()
+packeteer_dep = declare_dependency(
+    sources: [lib], # FIXME headers
+    version: LIB_VERSION,
+)
+
+##############################################################################
+# Tests
+
+if cppunit.found()
 
   testsrc = [
     'test' / 'test_error.cpp',
@@ -429,7 +437,7 @@ if cppunit_dep.found()
 
   testsuite = executable('testsuite', testsrc,
       include_directories: [],
-      dependencies: [cppunit_dep],
+      dependencies: [cppunit],
       link_with: lib)
   test('testsuite', testsuite)
 
