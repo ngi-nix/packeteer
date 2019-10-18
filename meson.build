@@ -1,11 +1,31 @@
 ##############################################################################
 # Project
 project('packeteer', 'cpp',
-  version: '0.1',
+  version: '0.1.0',
+  license: 'GPLv3',
   default_options: [
     'cpp_std=c++17',
     'default_library=both',
   ])
+
+
+##############################################################################
+# Versioning, project and libraries
+
+# There are so many versioning schemes, each of which is incompatible with
+# others. We'll manage best by keeping things simple:
+#
+# - The package version follows semver
+# - The library version is the package version
+# - The ABI version, i.e. the compatibility we expect, is the major
+#   component of the package
+_splitver = meson.project_version().split('.')
+PACKAGE_MAJOR = _splitver[0]
+PACKAGE_MINOR = _splitver[1]
+PACKAGE_PATCH = _splitver[2]
+
+ABI_VERSION = PACKAGE_MAJOR
+LIB_VERSION = meson.project_version()
 
 ##############################################################################
 # Configuration
@@ -70,10 +90,11 @@ add_project_arguments(cpp_args, language: 'cpp')
 
 
 ### Version and package information
-ver = meson.project_version()
-splitver = ver.split('.')
-conf_data.set('PACKETEER_PACKAGE_MAJOR', splitver[0])
-conf_data.set('PACKETEER_PACKAGE_MINOR', splitver[1])
+conf_data.set('PACKETEER_PACKAGE_MAJOR', PACKAGE_MAJOR)
+conf_data.set('PACKETEER_PACKAGE_MINOR', PACKAGE_MINOR)
+conf_data.set('PACKETEER_PACKAGE_PATCH', PACKAGE_PATCH)
+conf_data.set('PACKETEER_ABI_VERSION', ABI_VERSION)
+conf_data.set('PACKETEER_LIB_VERSION', LIB_VERSION)
 
 conf_data.set('PACKETEER_PACKAGE_NAME', meson.project_name())
 conf_data.set('PACKETEER_PACKAGE_URL', 'https://gitlab.com/jfinkhaeuser/packeteer')
@@ -382,9 +403,9 @@ lib = library('packeteer', libsrc,
     include_directories: [],
     dependencies: [thread_dep],
     link_args: link_args,
+    version: LIB_VERSION,
+    soversion: ABI_VERSION,
     install: true)
-
-# TODO soversion, version, darwin_versions
 
 if cppunit_dep.found()
 
