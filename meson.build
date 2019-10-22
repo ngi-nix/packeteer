@@ -26,6 +26,7 @@ PACKAGE_PATCH = _splitver[2]
 
 ABI_VERSION = PACKAGE_MAJOR
 LIB_VERSION = meson.project_version()
+PACKAGE_VERSION = meson.project_version()
 
 ##############################################################################
 # Configuration
@@ -90,14 +91,15 @@ add_project_arguments(cpp_args, language: 'cpp')
 
 
 ### Version and package information
-conf_data.set('PACKETEER_PACKAGE_MAJOR', PACKAGE_MAJOR)
-conf_data.set('PACKETEER_PACKAGE_MINOR', PACKAGE_MINOR)
-conf_data.set('PACKETEER_PACKAGE_PATCH', PACKAGE_PATCH)
-conf_data.set('PACKETEER_ABI_VERSION', ABI_VERSION)
-conf_data.set('PACKETEER_LIB_VERSION', LIB_VERSION)
+conf_data.set_quoted('PACKETEER_PACKAGE_MAJOR', PACKAGE_MAJOR)
+conf_data.set_quoted('PACKETEER_PACKAGE_MINOR', PACKAGE_MINOR)
+conf_data.set_quoted('PACKETEER_PACKAGE_PATCH', PACKAGE_PATCH)
+conf_data.set_quoted('PACKETEER_PACKAGE_VERSION', PACKAGE_VERSION)
+conf_data.set_quoted('PACKETEER_ABI_VERSION', ABI_VERSION)
+conf_data.set_quoted('PACKETEER_LIB_VERSION', LIB_VERSION)
 
-conf_data.set('PACKETEER_PACKAGE_NAME', meson.project_name())
-conf_data.set('PACKETEER_PACKAGE_URL', 'https://gitlab.com/jfinkhaeuser/packeteer')
+conf_data.set_quoted('PACKETEER_PACKAGE_NAME', meson.project_name())
+conf_data.set_quoted('PACKETEER_PACKAGE_URL', 'https://gitlab.com/jfinkhaeuser/packeteer')
 
 ### Host platform details
 conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
