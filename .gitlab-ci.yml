@@ -1,0 +1,134 @@
+stages:
+  - build
+  - test:clang-freebsd
+  - test:clang
+  - test:gcc
+  - test:clang-macOS
+# FIXME - test:gcc-i386
+
+cache:
+  paths:
+  - apt-cache/
+
+.build-template: &build-template
+  stage: build
+  before_script:
+    - pip3 install meson
+    - sudo apt-get -o dir::cache::archives="apt-cache" update
+    - sudo apt-get -o dir::cache::archives="apt-cache" install -y ninja
+  script:
+    - mkdir build
+    - cd build
+    - CXX=$compiler meson ..
+    - ninja
+    #    - tools/10_get_fructose.sh
+    #    - $maker CXX=$compiler OS_NAME=$os_name
+    #    - $maker CXX=$compiler OS_NAME=$os_name AdsLibTest.bin
+    #    - cd example
+    #    - $maker CXX=$compiler OS_NAME=$os_name
+    #  artifacts:
+    #    paths:
+    #    - AdsLib-$os_name.a
+    #    - AdsLibTest.bin
+    #    - example/example.bin
+
+build:clang:
+  <<: *build-template
+  tags:
+    - linux
+  variables:
+    compiler: /usr/bin/clang++
+    os_name: Linux
+
+build:clang-freebsd:
+  <<: *build-template
+  tags:
+    - freebsd
+  variables:
+    compiler: /usr/bin/clang++
+    os_name: FreeBSD
+
+build:clang-macOS:
+  <<: *build-template
+  tags:
+    - macOS
+  variables:
+    compiler: /usr/bin/clang++
+    os_name: Darwin
+
+build:gcc:
+  <<: *build-template
+  tags:
+    - linux
+  variables:
+    compiler: /usr/bin/g++
+    os_name: Linux
+
+build:gcc-i386:
+  <<: *build-template
+  tags:
+    - linux
+  variables:
+    compiler: /usr/bin/g++
+    os_name: i386
+    ci_cxx_flags: -m32
+
+build:mxe:
+  <<: *build-template
+  tags:
+    - mingw
+  variables:
+    compiler: /mxe/usr/bin/i686-w64-mingw32.static.posix-g++
+    os_name: win32
+
+.test-linux: &test-linux
+#  tags:
+#    - kvm
+#    - rack
+#    - ubuntu1804
+#    - x86_64
+  tags:
+    - linux
+  before_script:
+    - sudo dpkg --add-architecture i386
+    - sudo apt-get -o dir::cache::archives="apt-cache" update
+    - sudo apt-get -o dir::cache::archives="apt-cache" install -y libc6:i386 libstdc++6:i386 nmap
+  script:
+    - ./testsuite
+
+test:clang:
+  <<: *test-linux
+  stage: test:clang
+  dependencies:
+    - build:clang
+
+test:gcc:
+  <<: *test-linux
+  stage: test:gcc
+  dependencies:
+    - build:gcc
+
+      #FIXME
+      # test:gcc-i386:
+      #   <<: *test-linux
+      #   stage: test:gcc-i386
+      #   dependencies:
+      #     - build:gcc-i386
+
+test:clang-freebsd:
+  stage: test:clang-freebsd
+  dependencies:
+    - build:clang-freebsd
+  tags:
+    - freebsd
+  script:
+    - ./testsuite
+
+test:clang-macOS:
+  stage: test:clang-macOS
+  dependencies:
+    - build:clang-macOS
+  tags:
+    - macOS
+  script:
+    - ./testsuite
