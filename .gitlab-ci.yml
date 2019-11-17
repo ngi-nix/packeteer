@@ -13,8 +13,8 @@ cache:
 .build-template: &build-template
   stage: build
   before_script:
-    - sudo apt-get -o dir::cache::archives="apt-cache" update
-    - sudo apt-get -o dir::cache::archives="apt-cache" install -y ninja python3
+    - apt-get -o dir::cache::archives="apt-cache" update
+    - apt-get -o dir::cache::archives="apt-cache" install -y ninja python3
     - pip3 install meson
   script:
     - mkdir build
@@ -82,9 +82,9 @@ build:mxe:
     - linux
     - x86_64
   before_script:
-    - sudo dpkg --add-architecture i386
-    - sudo apt-get -o dir::cache::archives="apt-cache" update
-    - sudo apt-get -o dir::cache::archives="apt-cache" install -y libc6:i386 libstdc++6:i386
+    - dpkg --add-architecture i386
+    - apt-get -o dir::cache::archives="apt-cache" update
+    - apt-get -o dir::cache::archives="apt-cache" install -y libc6:i386 libstdc++6:i386
   script:
     - ./testsuite
 
