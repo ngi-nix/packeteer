@@ -20,276 +20,239 @@
 
 #include <packeteer/util/url.h>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 namespace util = packeteer::util;
 
-namespace {
-
-} // anonymous namespace
-
-class URLTest
-    : public CppUnit::TestFixture
+TEST(URL, complete)
 {
-public:
-  CPPUNIT_TEST_SUITE(URLTest);
+  // With everything
+  auto url = util::url::parse("https://finkhaeuser.de/path/to?some=value&simple&other=tRue#myfrag");
+  ASSERT_EQ(std::string("https"), url.scheme);
+  ASSERT_EQ(std::string("finkhaeuser.de"), url.authority);
+  ASSERT_EQ(std::string("/path/to"), url.path);
+  ASSERT_EQ(3, url.query.size());
 
-    CPPUNIT_TEST(testComplete);
-    CPPUNIT_TEST(testAuthorityPathAndFragment);
-    CPPUNIT_TEST(testAuthorityPathAndQuery);
-    CPPUNIT_TEST(testAuthorityQueryAndFragment);
-    CPPUNIT_TEST(testPathAndFragment);
-    CPPUNIT_TEST(testPathAndQuery);
-    CPPUNIT_TEST(testQueryAndFragment);
+  auto iter = url.query.find("some");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("value"), iter->second);
 
-    CPPUNIT_TEST(testIPAddress);
-    CPPUNIT_TEST(testAnon);
-    CPPUNIT_TEST(testLocal);
-    CPPUNIT_TEST(testPipe);
+  iter = url.query.find("simple");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
 
-    CPPUNIT_TEST(testNonBlocking);
-    CPPUNIT_TEST(testDatagram);
+  iter = url.query.find("other");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
 
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-
-  void testComplete()
-  {
-    // With everything
-    auto url = util::url::parse("https://finkhaeuser.de/path/to?some=value&simple&other=tRue#myfrag");
-    CPPUNIT_ASSERT_EQUAL(std::string("https"), url.scheme);
-    CPPUNIT_ASSERT_EQUAL(std::string("finkhaeuser.de"), url.authority);
-    CPPUNIT_ASSERT_EQUAL(std::string("/path/to"), url.path);
-    CPPUNIT_ASSERT(3 == url.query.size());
-
-    auto iter = url.query.find("some");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("value"), iter->second);
-
-    iter = url.query.find("simple");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    iter = url.query.find("other");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    CPPUNIT_ASSERT_EQUAL(std::string("myfrag"), url.fragment);
-  }
-
-  void testAuthorityPathAndFragment()
-  {
-    // With fragment, no query
-    auto url = util::url::parse("https://finkhaeuser.de/path/to/#myfrag");
-    CPPUNIT_ASSERT_EQUAL(std::string("https"), url.scheme);
-    CPPUNIT_ASSERT_EQUAL(std::string("finkhaeuser.de"), url.authority);
-    CPPUNIT_ASSERT_EQUAL(std::string("/path/to/"), url.path);
-    CPPUNIT_ASSERT(0 == url.query.size());
-    CPPUNIT_ASSERT_EQUAL(std::string("myfrag"), url.fragment);
-
-    // With query, no fragment
-    url = util::url::parse("https://finkhaeuser.de/path/to?some=value&simple&other=tRue");
-    CPPUNIT_ASSERT_EQUAL(std::string("https"), url.scheme);
-    CPPUNIT_ASSERT_EQUAL(std::string("finkhaeuser.de"), url.authority);
-    CPPUNIT_ASSERT_EQUAL(std::string("/path/to"), url.path);
-    CPPUNIT_ASSERT(3 == url.query.size());
-
-    auto iter = url.query.find("some");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("value"), iter->second);
-
-    iter = url.query.find("simple");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    iter = url.query.find("other");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    CPPUNIT_ASSERT(0 == url.fragment.length());
-  }
-
-  void testAuthorityPathAndQuery()
-  {
-    // With query, no fragment
-    auto url = util::url::parse("https://finkhaeuser.de/path/to?some=value&simple&other=tRue");
-    CPPUNIT_ASSERT_EQUAL(std::string("https"), url.scheme);
-    CPPUNIT_ASSERT_EQUAL(std::string("finkhaeuser.de"), url.authority);
-    CPPUNIT_ASSERT_EQUAL(std::string("/path/to"), url.path);
-    CPPUNIT_ASSERT(3 == url.query.size());
-
-    auto iter = url.query.find("some");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("value"), iter->second);
-
-    iter = url.query.find("simple");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    iter = url.query.find("other");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    CPPUNIT_ASSERT(0 == url.fragment.length());
-  }
+  ASSERT_EQ(std::string("myfrag"), url.fragment);
+}
 
 
-  void testAuthorityQueryAndFragment()
-  {
-    // Query and fragment, but no path
-    auto url = util::url::parse("https://finkhaeuser.de?some=value&simple&other=tRue#myfrag");
-    CPPUNIT_ASSERT_EQUAL(std::string("https"), url.scheme);
-    CPPUNIT_ASSERT_EQUAL(std::string("finkhaeuser.de"), url.authority);
-    CPPUNIT_ASSERT(0 == url.path.length());
-    CPPUNIT_ASSERT(3 == url.query.size());
+TEST(URL, authority_path_and_fragment)
+{
+  // With fragment, no query
+  auto url = util::url::parse("https://finkhaeuser.de/path/to/#myfrag");
+  ASSERT_EQ(std::string("https"), url.scheme);
+  ASSERT_EQ(std::string("finkhaeuser.de"), url.authority);
+  ASSERT_EQ(std::string("/path/to/"), url.path);
+  ASSERT_EQ(0, url.query.size());
+  ASSERT_EQ(std::string("myfrag"), url.fragment);
 
-    auto iter = url.query.find("some");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("value"), iter->second);
+  // With query, no fragment
+  url = util::url::parse("https://finkhaeuser.de/path/to?some=value&simple&other=tRue");
+  ASSERT_EQ(std::string("https"), url.scheme);
+  ASSERT_EQ(std::string("finkhaeuser.de"), url.authority);
+  ASSERT_EQ(std::string("/path/to"), url.path);
+  ASSERT_EQ(3, url.query.size());
 
-    iter = url.query.find("simple");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
+  auto iter = url.query.find("some");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("value"), iter->second);
 
-    iter = url.query.find("other");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
+  iter = url.query.find("simple");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
 
-    CPPUNIT_ASSERT_EQUAL(std::string("myfrag"), url.fragment);
+  iter = url.query.find("other");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
 
-  }
-
-  void testPathAndFragment()
-  {
-    // No authority, but path and framgnent
-    auto url = util::url::parse("file:///path/to?some=value&simple&other=tRue#myfrag");
-    CPPUNIT_ASSERT_EQUAL(std::string("file"), url.scheme);
-    CPPUNIT_ASSERT(0 == url.authority.length());
-    CPPUNIT_ASSERT_EQUAL(std::string("/path/to"), url.path);
-    CPPUNIT_ASSERT(3 == url.query.size());
-
-    auto iter = url.query.find("some");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("value"), iter->second);
-
-    iter = url.query.find("simple");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    iter = url.query.find("other");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    CPPUNIT_ASSERT_EQUAL(std::string("myfrag"), url.fragment);
-
-  }
-
-  void testPathAndQuery()
-  {
-    // No authority, but path and query. No fragment.
-    auto url = util::url::parse("file:///path/to#myfrag");
-    CPPUNIT_ASSERT_EQUAL(std::string("file"), url.scheme);
-    CPPUNIT_ASSERT(0 == url.authority.length());
-    CPPUNIT_ASSERT_EQUAL(std::string("/path/to"), url.path);
-    CPPUNIT_ASSERT(0 == url.query.size());
-    CPPUNIT_ASSERT_EQUAL(std::string("myfrag"), url.fragment);
-  }
-
-  void testQueryAndFragment()
-  {
-    // No authority, no path, just query and fragment.
-    auto url = util::url::parse("file://?some=value&simple&other=tRue#myfrag");
-    CPPUNIT_ASSERT_EQUAL(std::string("file"), url.scheme);
-    CPPUNIT_ASSERT(0 == url.authority.length());
-    CPPUNIT_ASSERT(0 == url.path.length());
-    CPPUNIT_ASSERT(3 == url.query.size());
-
-    auto iter = url.query.find("some");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("value"), iter->second);
-
-    iter = url.query.find("simple");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    iter = url.query.find("other");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("1"), iter->second);
-
-    CPPUNIT_ASSERT_EQUAL(std::string("myfrag"), url.fragment);
-
-  }
+  ASSERT_EQ(0, url.fragment.length());
+}
 
 
+TEST(URL, authority_path_and_query)
+{
+  // With query, no fragment
+  auto url = util::url::parse("https://finkhaeuser.de/path/to?some=value&simple&other=tRue");
+  ASSERT_EQ(std::string("https"), url.scheme);
+  ASSERT_EQ(std::string("finkhaeuser.de"), url.authority);
+  ASSERT_EQ(std::string("/path/to"), url.path);
+  ASSERT_EQ(3, url.query.size());
 
-  void testIPAddress()
-  {
-    auto url = util::url::parse("TcP4://127.0.0.1:123");
-    CPPUNIT_ASSERT_EQUAL(std::string("tcp4"), url.scheme);
-    CPPUNIT_ASSERT_EQUAL(std::string("127.0.0.1:123"), url.authority);
-    CPPUNIT_ASSERT(0 == url.path.length());
-    CPPUNIT_ASSERT(0 == url.query.size());
-    CPPUNIT_ASSERT(0 == url.fragment.length());
-  }
+  auto iter = url.query.find("some");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("value"), iter->second);
 
+  iter = url.query.find("simple");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
 
-  void testAnon()
-  {
-    auto url = util::url::parse("anon://");
-    CPPUNIT_ASSERT_EQUAL(std::string("anon"), url.scheme);
-    CPPUNIT_ASSERT(0 == url.authority.length());
-    CPPUNIT_ASSERT(0 == url.path.length());
-    CPPUNIT_ASSERT(0 == url.query.size());
-    CPPUNIT_ASSERT(0 == url.fragment.length());
+  iter = url.query.find("other");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
 
-  }
-
-  void testLocal()
-  {
-    auto url = util::url::parse("local:///foo/bar");
-    CPPUNIT_ASSERT_EQUAL(std::string("local"), url.scheme);
-    CPPUNIT_ASSERT(0 == url.authority.length());
-    CPPUNIT_ASSERT_EQUAL(std::string("/foo/bar"), url.path);
-    CPPUNIT_ASSERT(0 == url.query.size());
-    CPPUNIT_ASSERT(0 == url.fragment.length());
-  }
-
-  void testPipe()
-  {
-    auto url = util::url::parse("pipe:///foo/bar");
-    CPPUNIT_ASSERT_EQUAL(std::string("pipe"), url.scheme);
-    CPPUNIT_ASSERT(0 == url.authority.length());
-    CPPUNIT_ASSERT_EQUAL(std::string("/foo/bar"), url.path);
-    CPPUNIT_ASSERT(0 == url.query.size());
-    CPPUNIT_ASSERT(0 == url.fragment.length());
-
-  }
+  ASSERT_EQ(0, url.fragment.length());
+}
 
 
-  void testNonBlocking()
-  {
-    auto url = util::url::parse("pipe:///foo/bar?blocking=false");
-    CPPUNIT_ASSERT(1 == url.query.size());
+TEST(URL, authority_query_and_fragment)
+{
+  // Query and fragment, but no path
+  auto url = util::url::parse("https://finkhaeuser.de?some=value&simple&other=tRue#myfrag");
+  ASSERT_EQ(std::string("https"), url.scheme);
+  ASSERT_EQ(std::string("finkhaeuser.de"), url.authority);
+  ASSERT_EQ(0, url.path.length());
+  ASSERT_EQ(3, url.query.size());
 
-    auto iter = url.query.find("blocking");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("0"), iter->second);
-  }
+  auto iter = url.query.find("some");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("value"), iter->second);
+
+  iter = url.query.find("simple");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
+
+  iter = url.query.find("other");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
+
+  ASSERT_EQ(std::string("myfrag"), url.fragment);
+}
+
+TEST(URL, path_and_fragment)
+{
+  // No authority, but path and framgnent
+  auto url = util::url::parse("file:///path/to?some=value&simple&other=tRue#myfrag");
+  ASSERT_EQ(std::string("file"), url.scheme);
+  ASSERT_EQ(0, url.authority.length());
+  ASSERT_EQ(std::string("/path/to"), url.path);
+  ASSERT_EQ(3, url.query.size());
+
+  auto iter = url.query.find("some");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("value"), iter->second);
+
+  iter = url.query.find("simple");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
+
+  iter = url.query.find("other");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
+
+  ASSERT_EQ(std::string("myfrag"), url.fragment);
+
+}
+
+TEST(URL, path_and_query)
+{
+  // No authority, but path and query. No fragment.
+  auto url = util::url::parse("file:///path/to#myfrag");
+  ASSERT_EQ(std::string("file"), url.scheme);
+  ASSERT_EQ(0, url.authority.length());
+  ASSERT_EQ(std::string("/path/to"), url.path);
+  ASSERT_EQ(0, url.query.size());
+  ASSERT_EQ(std::string("myfrag"), url.fragment);
+}
+
+TEST(URL, query_and_fragment)
+{
+  // No authority, no path, just query and fragment.
+  auto url = util::url::parse("file://?some=value&simple&other=tRue#myfrag");
+  ASSERT_EQ(std::string("file"), url.scheme);
+  ASSERT_EQ(0, url.authority.length());
+  ASSERT_EQ(0, url.path.length());
+  ASSERT_EQ(3, url.query.size());
+
+  auto iter = url.query.find("some");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("value"), iter->second);
+
+  iter = url.query.find("simple");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
+
+  iter = url.query.find("other");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("1"), iter->second);
+
+  ASSERT_EQ(std::string("myfrag"), url.fragment);
+}
 
 
-  void testDatagram()
-  {
-    auto url = util::url::parse("pipe:///foo/bar?behaviour=datagram");
-    CPPUNIT_ASSERT(1 == url.query.size());
-
-    auto iter = url.query.find("behaviour");
-    CPPUNIT_ASSERT(url.query.end() != iter);
-    CPPUNIT_ASSERT_EQUAL(std::string("datagram"), iter->second);
-  }
-
-
-};
+TEST(URL, IP_address)
+{
+  auto url = util::url::parse("TcP4://127.0.0.1:123");
+  ASSERT_EQ(std::string("tcp4"), url.scheme);
+  ASSERT_EQ(std::string("127.0.0.1:123"), url.authority);
+  ASSERT_EQ(0, url.path.length());
+  ASSERT_EQ(0, url.query.size());
+  ASSERT_EQ(0, url.fragment.length());
+}
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(URLTest);
+TEST(URL, anon)
+{
+  auto url = util::url::parse("anon://");
+  ASSERT_EQ(std::string("anon"), url.scheme);
+  ASSERT_EQ(0, url.authority.length());
+  ASSERT_EQ(0, url.path.length());
+  ASSERT_EQ(0, url.query.size());
+  ASSERT_EQ(0, url.fragment.length());
+}
+
+
+TEST(URL, local)
+{
+  auto url = util::url::parse("local:///foo/bar");
+  ASSERT_EQ(std::string("local"), url.scheme);
+  ASSERT_EQ(0, url.authority.length());
+  ASSERT_EQ(std::string("/foo/bar"), url.path);
+  ASSERT_EQ(0, url.query.size());
+  ASSERT_EQ(0, url.fragment.length());
+}
+
+
+TEST(URL, pipe)
+{
+  auto url = util::url::parse("pipe:///foo/bar");
+  ASSERT_EQ(std::string("pipe"), url.scheme);
+  ASSERT_EQ(0, url.authority.length());
+  ASSERT_EQ(std::string("/foo/bar"), url.path);
+  ASSERT_EQ(0, url.query.size());
+  ASSERT_EQ(0, url.fragment.length());
+}
+
+
+TEST(URL, non_blocking)
+{
+  auto url = util::url::parse("pipe:///foo/bar?blocking=false");
+  ASSERT_EQ(1, url.query.size());
+
+  auto iter = url.query.find("blocking");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("0"), iter->second);
+}
+
+
+TEST(URL, datagram)
+{
+  auto url = util::url::parse("pipe:///foo/bar?behaviour=datagram");
+  ASSERT_EQ(1, url.query.size());
+
+  auto iter = url.query.find("behaviour");
+  ASSERT_NE(url.query.end(), iter);
+  ASSERT_EQ(std::string("datagram"), iter->second);
+}

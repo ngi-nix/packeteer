@@ -21,64 +21,47 @@
 
 #include <sstream>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 namespace pk = packeteer;
 
-
-class HandleTest
-    : public CppUnit::TestFixture
+TEST(Handle, test_basic_functionality)
 {
-public:
-  CPPUNIT_TEST_SUITE(HandleTest);
+  // Default-constructed handles are invalid
+  pk::handle h1;
+  ASSERT_FALSE(h1.valid());
 
-    CPPUNIT_TEST(testBasicFunctionality);
-    CPPUNIT_TEST(testDummyHandle);
+  // Two default-constructed handles should have the same hash value.
+  pk::handle h2;
+  ASSERT_EQ(h1.hash(), h2.hash());
 
-  CPPUNIT_TEST_SUITE_END();
+  // In fact, they should be equal
+  ASSERT_EQ(h1, h2);
+  ASSERT_FALSE(h1 < h2);
+  ASSERT_FALSE(h2 < h1);
 
-private:
+  // Copying should not change this at all
+  pk::handle copy = h2;
+  ASSERT_EQ(h1, copy);
+  ASSERT_FALSE(h1 < copy);
+  ASSERT_FALSE(copy < h1);
 
-  void testBasicFunctionality()
-  {
-    // Default-constructed handles are invalid
-    pk::handle h1;
-    CPPUNIT_ASSERT(!h1.valid());
+  // Outputting a handle should output its hash
+  std::stringstream s1;
+  s1 << h1;
 
-    // Two default-constructed handles should have the same hash value.
-    pk::handle h2;
-    CPPUNIT_ASSERT_EQUAL(h1.hash(), h2.hash());
-
-    // In fact, they should be equal
-    CPPUNIT_ASSERT(h1 == h2);
-    CPPUNIT_ASSERT(!(h1 < h2));
-    CPPUNIT_ASSERT(!(h2 < h1));
-
-    // Copying should not change this at all
-    pk::handle copy = h2;
-    CPPUNIT_ASSERT(h1 == copy);
-    CPPUNIT_ASSERT(!(h1 < copy));
-    CPPUNIT_ASSERT(!(copy < h1));
-
-    // Outputting a handle should output its hash
-    std::stringstream s1;
-    s1 << h1;
-
-    std::stringstream s2;
-    s2 << h1.hash();
-    CPPUNIT_ASSERT_EQUAL(s1.str(), s2.str());
-  }
-
-  void testDummyHandle()
-  {
-    auto h1 = pk::handle::make_dummy(1);
-    auto h2 = pk::handle::make_dummy(2);
-
-    CPPUNIT_ASSERT(h1.valid());
-    CPPUNIT_ASSERT(h2.valid());
-    CPPUNIT_ASSERT(h1 != h2);
-  }
-};
+  std::stringstream s2;
+  s2 << h1.hash();
+  ASSERT_EQ(s1.str(), s2.str());
+}
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(HandleTest);
+TEST(Handle, test_dummy)
+{
+  auto h1 = pk::handle::make_dummy(1);
+  auto h2 = pk::handle::make_dummy(2);
+
+  ASSERT_TRUE(h1.valid());
+  ASSERT_TRUE(h2.valid());
+  ASSERT_NE(h1, h2);
+}

@@ -19,15 +19,17 @@
  * PARTICULAR PURPOSE.
  **/
 
-#include <packeteer/net/detail/cidr.h>
-
-#include <cppunit/extensions/HelperMacros.h>
-
 #include <cstring>
 
 #include <sstream>
 #include <string>
 #include <set>
+
+#include <gtest/gtest.h>
+
+#include <packeteer/net/detail/cidr.h>
+
+#include "test_name.h"
 
 namespace pnet = packeteer::net;
 
@@ -99,68 +101,84 @@ struct test_data
 
 };
 
+
+std::string generate_name(testing::TestParamInfo<test_data> const & info)
+{
+  std::string name{ info.param.netspec };
+
+  name += "_";
+  name += (info.param.no_mask ? "no_mask" : "mask");
+
+  name += "_port_";
+  name += std::to_string(info.param.port);
+
+  return symbolize_name(name);
+}
+
 } // anonymous namespace
 
-class CIDRTest
-    : public CppUnit::TestFixture
+
+class CIDR
+  : public testing::TestWithParam<test_data>
 {
-public:
-  CPPUNIT_TEST_SUITE(CIDRTest);
-
-    CPPUNIT_TEST(testCIDRParsing);
-
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-
-  void testCIDRParsing()
-  {
-    for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      // std::cout << "=== test: " << tests[i].netspec << std::endl;
-
-      // Parse without specifying port
-      pnet::detail::address_type address;
-      pnet::detail::parse_result_t result(address);
-      packeteer::error_t err = pnet::detail::parse_extended_cidr(tests[i].netspec,
-          tests[i].no_mask, result);
-      CPPUNIT_ASSERT_EQUAL_MESSAGE(error_name(err), tests[i].expected_error, err);
-
-      CPPUNIT_ASSERT_EQUAL(tests[i].expected_proto, result.proto);
-      CPPUNIT_ASSERT_EQUAL(tests[i].expected_mask, result.mask);
-
-      if (AF_INET == result.proto) {
-        sockaddr_in * addr = reinterpret_cast<sockaddr_in *>(&result.address);
-        CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port1)), addr->sin_port);
-      }
-      else if (AF_INET6 == result.proto) {
-        sockaddr_in6 * addr = reinterpret_cast<sockaddr_in6 *>(&result.address);
-        CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port1)), addr->sin6_port);
-      }
-
-      // Parsing the same thing again with port should change the test
-      // results a little.
-      ::memset(&address, 0, sizeof(sockaddr_storage));
-      err = pnet::detail::parse_extended_cidr(tests[i].netspec,
-          tests[i].no_mask, result, tests[i].port);
-      CPPUNIT_ASSERT_EQUAL(tests[i].expected_error, err);
-
-      CPPUNIT_ASSERT_EQUAL(tests[i].expected_proto, result.proto);
-      CPPUNIT_ASSERT_EQUAL(tests[i].expected_mask, result.mask);
-
-      if (AF_INET == result.proto) {
-        sockaddr_in * addr = reinterpret_cast<sockaddr_in *>(&result.address);
-        CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port2)), addr->sin_port);
-      }
-      else if (AF_INET6 == result.proto) {
-        sockaddr_in6 * addr = reinterpret_cast<sockaddr_in6 *>(&result.address);
-        CPPUNIT_ASSERT_EQUAL(uint16_t(htons(tests[i].expected_port2)), addr->sin6_port);
-      }
-
-    }
-  }
-
-
 };
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(CIDRTest);
+TEST_P(CIDR, parsing_without_explicit_port)
+{
+  auto td = GetParam();
+
+  // std::cout << "=== test: " << td.netspec << std::endl;
+
+  // Parse without specifying port
+  pnet::detail::address_type address;
+  pnet::detail::parse_result_t result(address);
+  packeteer::error_t err = pnet::detail::parse_extended_cidr(td.netspec,
+      td.no_mask, result);
+  ASSERT_EQ(td.expected_error, err);
+
+  ASSERT_EQ(td.expected_proto, result.proto);
+  ASSERT_EQ(td.expected_mask, result.mask);
+
+  if (AF_INET == result.proto) {
+    sockaddr_in * addr = reinterpret_cast<sockaddr_in *>(&result.address);
+    ASSERT_EQ(uint16_t(htons(td.expected_port1)), addr->sin_port);
+  }
+  else if (AF_INET6 == result.proto) {
+    sockaddr_in6 * addr = reinterpret_cast<sockaddr_in6 *>(&result.address);
+    ASSERT_EQ(uint16_t(htons(td.expected_port1)), addr->sin6_port);
+  }
+}
+
+
+TEST_P(CIDR, parsing_with_explicit_port)
+{
+  auto td = GetParam();
+
+  // std::cout << "=== test: " << td.netspec << std::endl;
+
+  // Parsing the same thing again with port should change the test
+  // results a little.
+  pnet::detail::address_type address;
+  pnet::detail::parse_result_t result(address);
+  ::memset(&address, 0, sizeof(sockaddr_storage));
+  packeteer::error_t err = pnet::detail::parse_extended_cidr(td.netspec,
+      td.no_mask, result, td.port);
+  ASSERT_EQ(td.expected_error, err);
+
+  ASSERT_EQ(td.expected_proto, result.proto);
+  ASSERT_EQ(td.expected_mask, result.mask);
+
+  if (AF_INET == result.proto) {
+    sockaddr_in * addr = reinterpret_cast<sockaddr_in *>(&result.address);
+    ASSERT_EQ(uint16_t(htons(td.expected_port2)), addr->sin_port);
+  }
+  else if (AF_INET6 == result.proto) {
+    sockaddr_in6 * addr = reinterpret_cast<sockaddr_in6 *>(&result.address);
+    ASSERT_EQ(uint16_t(htons(td.expected_port2)), addr->sin6_port);
+  }
+}
+
+
+INSTANTIATE_TEST_CASE_P(net, CIDR, testing::ValuesIn(tests),
+    generate_name);

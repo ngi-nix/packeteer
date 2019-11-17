@@ -21,7 +21,7 @@
 
 #include <packeteer/net/socket_address.h>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include <cstring>
 
@@ -30,19 +30,24 @@
 #include <set>
 
 #include "value_tests.h"
+#include "test_name.h"
 
 namespace pnet = packeteer::net;
 
+/*****************************************************************************
+ * SocketAddressParsing
+ */
+
 namespace {
 
-struct test_data
+struct parsing_test_data
 {
   int                                       type;
   pnet::socket_address::socket_address_type sa_type;
   char const *                              address;
   char const *                              expected;
   uint16_t                                  port;
-} tests[] = {
+} parsing_tests[] = {
   { AF_INET,  pnet::socket_address::SAT_INET4, "192.168.0.1", "192.168.0.1", 12344, },
   { AF_INET,  pnet::socket_address::SAT_INET4, "192.168.0.1", "192.168.0.1", 12345, },
   { AF_INET6, pnet::socket_address::SAT_INET6, "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
@@ -65,7 +70,7 @@ struct test_data
 
 
 inline std::string
-full_expected(test_data const & td, uint16_t port = 0)
+full_expected(parsing_test_data const & td, uint16_t port = 0)
 {
   std::stringstream s;
 
@@ -87,244 +92,332 @@ full_expected(test_data const & td, uint16_t port = 0)
 }
 
 
+std::string generate_name_parsing(testing::TestParamInfo<parsing_test_data> const & info)
+{
+  using namespace pnet;
+
+  std::string name{ std::to_string(info.param.type) };
+  name += "_";
+  name += std::to_string(info.param.sa_type);
+  name += "_";
+  name += info.param.address;
+
+  if (socket_address::SAT_LOCAL != info.param.sa_type) {
+    name += "_port_";
+    name += std::to_string(info.param.port);
+  }
+
+  return symbolize_name(name);
+}
+
+pnet::socket_address create_address(parsing_test_data const & data)
+{
+  using namespace pnet;
+
+  // IPv4
+  if (AF_INET == data.type) {
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(data.port);
+    inet_pton(AF_INET, data.address, &addr.sin_addr);
+
+    return socket_address(&addr, sizeof(addr));
+  }
+
+  // IPv6
+  if (AF_INET6 == data.type) {
+    sockaddr_in6 addr;
+    addr.sin6_family = AF_INET6;
+    addr.sin6_port = htons(data.port);
+    inet_pton(AF_INET6, data.address, &addr.sin6_addr);
+
+    return socket_address(&addr, sizeof(addr));
+  }
+
+#if defined(PACKETEER_POSIX)
+  // UNIX
+  sockaddr_un addr;
+  addr.sun_family = AF_LOCAL;
+  ::snprintf(addr.sun_path, UNIX_PATH_MAX, "%s", data.address);
+
+  return socket_address(&addr, sizeof(addr));
+#endif
+
+  throw std::runtime_error("Should not be reached.");
+}
+
 
 } // anonymous namespace
 
-class SocketAddressTest
-    : public CppUnit::TestFixture
+class SocketAddressParsing
+  : public testing::TestWithParam<parsing_test_data>
 {
-public:
-  CPPUNIT_TEST_SUITE(SocketAddressTest);
-
-    CPPUNIT_TEST(testVerifyCIDR);
-    CPPUNIT_TEST(testRawConstruction);
-    CPPUNIT_TEST(testStringConstruction);
-    CPPUNIT_TEST(testHash);
-    CPPUNIT_TEST(testOperators);
-
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-
-  pnet::socket_address create_address(test_data const & data)
-  {
-    using namespace pnet;
-
-    // IPv4
-    if (AF_INET == data.type) {
-      sockaddr_in addr;
-      addr.sin_family = AF_INET;
-      addr.sin_port = htons(data.port);
-      inet_pton(AF_INET, data.address, &addr.sin_addr);
-
-      return socket_address(&addr, sizeof(addr));
-    }
-
-    // IPv6
-    if (AF_INET6 == data.type) {
-      sockaddr_in6 addr;
-      addr.sin6_family = AF_INET6;
-      addr.sin6_port = htons(data.port);
-      inet_pton(AF_INET6, data.address, &addr.sin6_addr);
-
-      return socket_address(&addr, sizeof(addr));
-    }
-
-#if defined(PACKETEER_POSIX)
-    // UNIX
-    sockaddr_un addr;
-    addr.sun_family = AF_LOCAL;
-    ::snprintf(addr.sun_path, UNIX_PATH_MAX, "%s", data.address);
-
-    return socket_address(&addr, sizeof(addr));
-#endif
-
-    throw std::runtime_error("Should not be reached.");
-  }
-
-
-
-  void testVerifyCIDR()
-  {
-    // Tests that the verify_cidr() function works as expected.
-    using namespace pnet;
-
-    for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      if (socket_address::SAT_LOCAL == tests[i].sa_type) {
-        continue;
-      }
-      CPPUNIT_ASSERT(socket_address::verify_cidr(tests[i].address));
-    }
-  }
-
-
-
-  void testRawConstruction()
-  {
-    // Tests that information doesn't get mangled during construction or
-    // formatting
-    using namespace pnet;
-
-    for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      socket_address address = create_address(tests[i]);
-
-      CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
-      if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-        CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
-      }
-      CPPUNIT_ASSERT_EQUAL(tests[i].port, address.port());
-
-      std::stringstream s;
-      s << address;
-
-      std::string s2 = full_expected(tests[i], tests[i].port);
-
-      CPPUNIT_ASSERT_EQUAL(s2, s.str());
-    }
-  }
-
-
-
-  void testStringConstruction()
-  {
-    // Tests that information doesn't get mangled during construction or
-    // formatting
-    using namespace pnet;
-
-    for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      // *** Without port in ctor
-      {
-        // std::cout << "=== " << tests[i].address << " without port" << std::endl;
-        socket_address address(tests[i].address);
-
-        CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
-        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-         CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
-        }
-        CPPUNIT_ASSERT_EQUAL(uint16_t(0), address.port()); // No port in ctor
-
-        std::stringstream s;
-        s << address;
-
-        std::string s2 = full_expected(tests[i], 0); // No port in ctor
-
-        CPPUNIT_ASSERT_EQUAL(s2, s.str());
-
-        // Let's also test the verify_netmask() function.
-        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-          size_t max = AF_INET == tests[i].type ? 32 : 128;
-          for (size_t j = 0 ; j <= max ; ++j) {
-            CPPUNIT_ASSERT(address.verify_netmask(j));
-          }
-
-          // +1 can't work.
-          ++max;
-          CPPUNIT_ASSERT(!address.verify_netmask(max));
-        }
-      }
-
-      // *** With port in ctor
-      {
-        // std::cout << "=== " << tests[i].address << " with port " << tests[i].port << std::endl;
-        socket_address address(tests[i].address, tests[i].port);
-
-        CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.type());
-        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-          CPPUNIT_ASSERT_EQUAL(std::string(tests[i].expected), address.cidr_str());
-        }
-        CPPUNIT_ASSERT_EQUAL(tests[i].port, address.port());
-
-        std::stringstream s;
-        s << address;
-
-        std::string s2 = full_expected(tests[i], tests[i].port);
-
-        CPPUNIT_ASSERT_EQUAL(s2, s.str());
-
-        // Let's also test the verify_netmask() function.
-        if (socket_address::SAT_LOCAL != tests[i].sa_type) {
-          size_t max = AF_INET == tests[i].type ? 32 : 128;
-          for (size_t j = 0 ; j <= max ; ++j) {
-            CPPUNIT_ASSERT(address.verify_netmask(j));
-          }
-
-          // +1 can't work.
-          ++max;
-          CPPUNIT_ASSERT(!address.verify_netmask(max));
-        }
-      }
-
-    }
-  }
-
-
-
-  void testHash()
-  {
-    // Tests that all unique IP addresses in the tests generate unique hashes.
-    using namespace pnet;
-
-    std::set<size_t> hashes;
-    std::hash<socket_address> hasher;
-
-    for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      socket_address address = create_address(tests[i]);
-      hashes.insert(hasher(address));
-    }
-
-    // We have only some unique addresses - some where only the port differs.
-#if defined(PACKETEER_POSIX)
-    CPPUNIT_ASSERT_EQUAL(size_t(8), hashes.size());
-#else
-    CPPUNIT_ASSERT_EQUAL(size_t(6), hashes.size());
-#endif
-  }
-
-
-
-  void testOperators()
-  {
-    using namespace pnet;
-
-    // *** IPv4
-    PACKETEER_VALUES_TEST(socket_address("192.168.0.1"),
-                          socket_address("192.168.0.2"),
-                          false);
-    // Increment
-    socket_address s4("192.168.0.1");
-    CPPUNIT_ASSERT_EQUAL(socket_address("192.168.0.1"), s4);
-    ++s4;
-    CPPUNIT_ASSERT_EQUAL(socket_address("192.168.0.2"), s4);
-
-
-    // *** IPv6
-    PACKETEER_VALUES_TEST(socket_address("2001:0db8:85a3::8a2e:0370:7334"),
-                          socket_address("2001:0db8:85a3::8a2e:0370:7335"),
-                          false);
-    // Increment
-    socket_address s6("2001:0db8:85a3::8a2e:0370:7334");
-    CPPUNIT_ASSERT_EQUAL(socket_address("2001:0db8:85a3::8a2e:0370:7334"), s6);
-    ++s6;
-    CPPUNIT_ASSERT_EQUAL(socket_address("2001:0db8:85a3::8a2e:0370:7335"), s6);
-
-    // *** IPv4 with port
-    PACKETEER_VALUES_TEST(socket_address(std::string("192.168.0.1"), 1234),
-                          socket_address(std::string("192.168.0.1"), 4321),
-                          false);
-
-    // *** IPv6 with port
-    PACKETEER_VALUES_TEST(socket_address(std::string("2001:0db8:85a3::8a2e:0370:7334"), 1234),
-                          socket_address(std::string("2001:0db8:85a3::8a2e:0370:7334"), 4321),
-                          false);
-
-#if defined(PACKETEER_POSIX)
-    // *** Unix paths
-    PACKETEER_VALUES_TEST(socket_address("/foo/bar"),
-                          socket_address("/foo/baz"),
-                          false);
-#endif
-  }
 };
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(SocketAddressTest);
+TEST_P(SocketAddressParsing, verify_CIDR)
+{
+  // Tests that the verify_cidr() function works as expected.
+  using namespace pnet;
+  auto td = GetParam();
+  if (socket_address::SAT_LOCAL == td.sa_type) {
+    return; // Skip these values
+  }
+
+  ASSERT_TRUE(socket_address::verify_cidr(td.address));
+}
+
+
+
+TEST_P(SocketAddressParsing, raw_construction)
+{
+  // Tests that information doesn't get mangled during construction or
+  // formatting
+  using namespace pnet;
+  auto td = GetParam();
+
+  socket_address address = create_address(td);
+
+  ASSERT_EQ(td.sa_type, address.type());
+  if (socket_address::SAT_LOCAL != td.sa_type) {
+    ASSERT_EQ(std::string(td.expected), address.cidr_str());
+  }
+  ASSERT_EQ(td.port, address.port());
+
+  std::stringstream s;
+  s << address;
+
+  std::string s2 = full_expected(td, td.port);
+  ASSERT_EQ(s2, s.str());
+}
+
+
+TEST_P(SocketAddressParsing, string_construction_without_port)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+
+  // std::cout << "=== " << td.address << " without port" << std::endl;
+  socket_address address(td.address);
+
+  ASSERT_EQ(td.sa_type, address.type());
+  if (socket_address::SAT_LOCAL != td.sa_type) {
+   ASSERT_EQ(std::string(td.expected), address.cidr_str());
+  }
+  ASSERT_EQ(0, address.port()); // No port in ctor
+
+  std::stringstream s;
+  s << address;
+
+  std::string s2 = full_expected(td, 0); // No port in ctor
+  ASSERT_EQ(s2, s.str());
+
+  // Let's also test the verify_netmask() function.
+  if (socket_address::SAT_LOCAL != td.sa_type) {
+    size_t max = AF_INET == td.type ? 32 : 128;
+    for (size_t j = 0 ; j <= max ; ++j) {
+      ASSERT_TRUE(address.verify_netmask(j));
+    }
+
+    // +1 can't work.
+    ++max;
+    ASSERT_FALSE(address.verify_netmask(max));
+  }
+}
+
+
+TEST_P(SocketAddressParsing, string_construction_with_port)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  // std::cout << "=== " << td.address << " with port " << td.port << std::endl;
+  socket_address address(td.address, td.port);
+
+  ASSERT_EQ(td.sa_type, address.type());
+  if (socket_address::SAT_LOCAL != td.sa_type) {
+    ASSERT_EQ(std::string(td.expected), address.cidr_str());
+  }
+  ASSERT_EQ(td.port, address.port());
+
+  std::stringstream s;
+  s << address;
+
+  std::string s2 = full_expected(td, td.port);
+
+  ASSERT_EQ(s2, s.str());
+
+  // Let's also test the verify_netmask() function.
+  if (socket_address::SAT_LOCAL != td.sa_type) {
+    size_t max = AF_INET == td.type ? 32 : 128;
+    for (size_t j = 0 ; j <= max ; ++j) {
+      ASSERT_TRUE(address.verify_netmask(j));
+    }
+
+    // +1 can't work.
+    ++max;
+    ASSERT_FALSE(address.verify_netmask(max));
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(net, SocketAddressParsing,
+    testing::ValuesIn(parsing_tests),
+    generate_name_parsing);
+
+
+TEST(SocketAddressParsing, unique_hashes)
+{
+  // Tests that all unique IP addresses in the tests generate unique hashes.
+  using namespace pnet;
+
+  std::set<size_t> hashes;
+  std::set<std::string> canonical;
+  std::hash<socket_address> hasher;
+
+  for (size_t i = 0 ; i < sizeof(parsing_tests) / sizeof(parsing_test_data) ; ++i) {
+    socket_address address = create_address(parsing_tests[i]);
+    hashes.insert(hasher(address));
+    canonical.insert(address.full_str());
+  }
+
+  // Each unique full string must have a unique hash
+  ASSERT_EQ(canonical.size(), hashes.size());
+}
+
+/*****************************************************************************
+ * SocketAddressAsValues
+ */
+
+namespace {
+
+struct value_test_data
+{
+  pnet::socket_address addr1;
+  pnet::socket_address addr2;
+} value_tests[] = {
+  { pnet::socket_address{"192.168.0.1"},
+    pnet::socket_address{"192.168.0.2"} },
+  { pnet::socket_address{"2001:0db8:85a3::8a2e:0370:7334"},
+    pnet::socket_address{"2001:0db8:85a3::8a2e:0370:7335"} },
+  { pnet::socket_address{"192.168.0.1", 1234},
+    pnet::socket_address{"192.168.0.1", 4321} },
+  { pnet::socket_address{"2001:0db8:85a3::8a2e:0370:7334", 1234},
+    pnet::socket_address{"2001:0db8:85a3::8a2e:0370:7334", 4321} },
+#if defined(PACKETEER_POSIX)
+  { pnet::socket_address{"/foo/bar"},
+    pnet::socket_address{"/foo/baz"} },
+#endif
+};
+
+
+std::string generate_name_value(testing::TestParamInfo<value_test_data> const & info)
+{
+  using namespace pnet;
+
+  std::string name;
+  switch (info.param.addr1.type()) {
+    case socket_address::SAT_INET4:
+      name = "ipv4_";
+      break;
+
+    case socket_address::SAT_INET6:
+      name = "ipv6_";
+      break;
+
+    case socket_address::SAT_LOCAL:
+      name = "local_";
+      break;
+
+    default:
+      ADD_FAILURE() << "Untestable spec";
+      break;
+  }
+
+  name += info.param.addr1.full_str();
+
+  return symbolize_name(name);
+}
+
+} // anonymous namespace
+
+class SocketAddressOperators
+  : public testing::TestWithParam<value_test_data>
+{
+};
+
+
+TEST_P(SocketAddressOperators, equality)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  test_equality(
+      socket_address{td.addr1},
+      socket_address{td.addr1}
+  );
+}
+
+
+TEST_P(SocketAddressOperators, inequality)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  test_less_than(
+      socket_address{td.addr1},
+      socket_address{td.addr2}
+  );
+}
+
+
+TEST_P(SocketAddressOperators, copy_construction)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  test_copy_construction(td.addr1);
+}
+
+
+TEST_P(SocketAddressOperators, assignment)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  test_assignment(td.addr1);
+}
+
+
+TEST_P(SocketAddressOperators, hashing)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  test_hashing_inequality(td.addr1, td.addr2);
+  test_hashing_equality(td.addr1, socket_address{td.addr1});
+  test_hashing_equality(td.addr2, socket_address{td.addr2});
+}
+
+
+TEST_P(SocketAddressOperators, swapping)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  test_swapping(td.addr1, td.addr2);
+}
+
+
+TEST_P(SocketAddressOperators, incrementing)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  test_incrementing(td.addr1);
+}
+
+
+INSTANTIATE_TEST_CASE_P(net, SocketAddressOperators,
+    testing::ValuesIn(value_tests),
+    generate_name_value);

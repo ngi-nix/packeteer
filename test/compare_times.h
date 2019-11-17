@@ -21,7 +21,7 @@
 #ifndef PACKETEER_TEST_COMPARE_TIMES_H
 #define PACKETEER_TEST_COMPARE_TIMES_H
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include <chrono>
 
@@ -34,7 +34,7 @@ compare_times(firstT const & first, secondT const & second, expectedT const & ex
   auto diff = sc::duration_cast<sc::nanoseconds>(second.time_since_epoch()) -
     sc::duration_cast<sc::nanoseconds>(first.time_since_epoch());
 
-  CPPUNIT_ASSERT_MESSAGE("Cannot spend negative time!", diff.count() > 0);
+  ASSERT_GT(diff.count(), 0) << "Cannot spend negative time!";
 
   // The diff should be no more than 25% off of the expected value, but also it's possible it will be >20ms due to scheduler granularity.
   auto max = sc::duration_cast<sc::nanoseconds>(expected * 1.25);
@@ -43,7 +43,7 @@ compare_times(firstT const & first, secondT const & second, expectedT const & ex
     max = twenty;
   }
 
-  CPPUNIT_ASSERT_MESSAGE("Should not fail except under high CPU workload or on emulators!", diff.count() <= max.count());
+  EXPECT_LE(diff.count(), max.count()) << "Should not fail except under high CPU workload or on emulators!";
 }
 
 #endif // guard

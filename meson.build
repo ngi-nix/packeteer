@@ -66,14 +66,27 @@ endif
 bt = get_option('buildtype')
 if bt in ['debug', 'debugoptimized']
   if compiler_id == 'clang'
-    cpp_args += ['-O0', '-ggdb', '-DDEBUG']
+    cpp_args += ['-ggdb', '-DDEBUG']
   elif compiler_id == 'gcc'
-    cpp_args += ['-O0', '-ggdb', '-DDEBUG']
+    cpp_args += ['-g3', '-DDEBUG']
   elif compiler_id == 'msvc'
-    cpp_args += ['/Zi', '/FS', '/DDEBUG']
+    # HAHAHA, VC tries to default to non-permissive mode via /permissive-, but
+    # Windows SDK headers are non-conforming.
+    cpp_args += ['/Zi', '/FS', '/permissive']
+  endif
+else
+  posix_release_args = [
+    '-DNDEBUG',
+    '-fvisibility=hidden', '-fvisibility-inlines-hidden',
+  ]
+  if compiler_id == 'clang'
+    cpp_args += posix_release_args
+  elif compiler_id == 'gcc'
+    cpp_args += posix_release_args
+  elif compiler_id == 'msvc'
+    cpp_args += ['/Oi']
   endif
 endif
-
 
 link_args = []
 if host_type == 'android'
@@ -304,33 +317,6 @@ endif
 
 thread = dependency('threads', required: true)
 
-cppunit = dependency('cppunit', required: false)
-
-if not cppunit.found()
-  cppunit_lib = false
-  cppunit_inc = false
-  if host_type == 'win32'
-    cppunit_inc = include_directories(get_option('cppunit_prefix') + '\\include')
-    cppunit_dir = get_option('cppunit_prefix') + '\\lib'
-    if bt in ['debug', 'debugoptimized']
-      libname = 'cppunitd'
-    else
-      libname = 'cppunit'
-    endif
-    cppunit_lib = compiler.find_library(libname, dirs: [cppunit_dir])
-  elif host_type == 'posix'
-    cppunit_inc = include_directories(get_option('cppunit_prefix') / 'include')
-    cppunit_dir = get_option('cppunit_prefix') / 'lib'
-    cppunit_lib = compiler.find_library('cppunit', dirs: [cppunit_dir])
-  endif
-
-  if cppunit_lib and cppunit_inc
-    cppunit = declare_dependency(
-      include_directories: cppunit_inc,
-      link_with: cppunit_lib)
-  endif
-endif
-
 configure_file(
   input: 'packeteer-config.h.in',
   output: 'packeteer-config.h',
@@ -415,9 +401,21 @@ packeteer_dep = declare_dependency(
 )
 
 ##############################################################################
+# Meson Wrap Dependencies
+gtest = subproject('gtest')
+
+##############################################################################
 # Tests
 
-if cppunit.found()
+# Tests in a subproject are complicicated. You need all the compile and
+# link flags from the enclosing project, etc.
+if not meson.is_subproject()
+
+  # See https://github.com/google/googletest/issues/813
+  test_args = []
+  if host_machine.system() == 'cygwin'
+    test_args += ['-D_POSIX_C_SOURCE=200809L']
+  endif
 
   testsrc = [
     'test' / 'test_error.cpp',
@@ -428,7 +426,7 @@ if cppunit.found()
     'test' / 'test_network.cpp',
     'test' / 'test_callback.cpp',
     'test' / 'test_concurrent_queue.cpp',
-    'test' / 'test_scheduler_impl.cpp',
+    'test' / 'test_scheduler_containers.cpp',
     'test' / 'test_scheduler.cpp',
     'test' / 'test_peer_address.cpp',
     'test' / 'test_connector.cpp',
@@ -439,8 +437,26 @@ if cppunit.found()
 
   testsuite = executable('testsuite', testsrc,
       include_directories: [],
-      dependencies: [cppunit],
-      link_with: lib)
+      dependencies: [
+        gtest.get_variable('gtest_dep')
+      ],
+      link_with: lib,
+      cpp_args: cpp_args + test_args,
+      link_args: link_args,
+  )
   test('testsuite', testsuite)
 
+endif
+
+##############################################################################
+# Linter, etc.
+cppcheck = find_program('cppcheck', required: false)
+
+if cppcheck.found()
+  run_target('cppcheck', command: [
+    cppcheck.path(),
+    '--cppcheck-build-dir=@0@/cppcheck'.format(meson.current_build_dir()),
+    '--enable=all', '-v',
+    '@0@/packeteer'.format(meson.current_source_dir()),
+  ])
 endif

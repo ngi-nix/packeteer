@@ -24,53 +24,41 @@
 
 #include <string>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
-class ErrorTest
-    : public CppUnit::TestFixture
+
+TEST(Error, basics)
 {
-public:
-  CPPUNIT_TEST_SUITE(ErrorTest);
-
-    CPPUNIT_TEST(testBasics);
-    CPPUNIT_TEST(testDetails);
-
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-
-  void testBasics()
-  {
-    try {
-      throw packeteer::exception(packeteer::ERR_SUCCESS);
-    } catch (packeteer::exception const & ex) {
-      CPPUNIT_ASSERT_EQUAL(packeteer::ERR_SUCCESS, ex.code());
-      CPPUNIT_ASSERT_EQUAL(std::string("No error"), std::string(ex.what()));
-      CPPUNIT_ASSERT_EQUAL(std::string("ERR_SUCCESS"), std::string(ex.name()));
-    }
+  try {
+    throw packeteer::exception(packeteer::ERR_SUCCESS);
+  } catch (packeteer::exception const & ex) {
+    ASSERT_EQ(packeteer::ERR_SUCCESS, ex.code());
+    ASSERT_EQ(std::string("No error"), std::string(ex.what()));
+    ASSERT_EQ(std::string("ERR_SUCCESS"), std::string(ex.name()));
   }
+}
 
 
-  void testDetails()
-  {
-    // Without errno
-    try {
-      throw packeteer::exception(packeteer::ERR_SUCCESS, "foo");
-    } catch (packeteer::exception const & ex) {
-      CPPUNIT_ASSERT_EQUAL(std::string("foo"), ex.details());
-    }
-
-    // With an errno value
-    try {
-      throw packeteer::exception(packeteer::ERR_SUCCESS, EAGAIN, "foo");
-    } catch (packeteer::exception const & ex) {
-
-      std::string prefix = "foo // ";
-      CPPUNIT_ASSERT(ex.details().size() > prefix.size());
-      CPPUNIT_ASSERT(0 == ex.details().compare(0, prefix.size(), prefix));
-    }
+TEST(Error, details_without_errno)
+{
+  // Without errno
+  try {
+    throw packeteer::exception(packeteer::ERR_SUCCESS, "foo");
+  } catch (packeteer::exception const & ex) {
+    ASSERT_EQ(std::string("foo"), ex.details());
   }
-};
+}
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(ErrorTest);
+TEST(Error, details_with_errno)
+{
+  // With an errno value
+  try {
+    throw packeteer::exception(packeteer::ERR_SUCCESS, EAGAIN, "foo");
+  } catch (packeteer::exception const & ex) {
+
+    std::string prefix = "foo // ";
+    ASSERT_GT(ex.details().size(), prefix.size());
+    ASSERT_EQ(0, ex.details().compare(0, prefix.size(), prefix));
+  }
+}

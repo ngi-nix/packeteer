@@ -21,7 +21,7 @@
  **/
 #include <packeteer/callback.h>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include <functional>
 
@@ -31,14 +31,14 @@ namespace {
 
 pk::error_t free_func1(uint64_t events, pk::error_t, pk::handle const &, void *)
 {
-  CPPUNIT_ASSERT_EQUAL(uint64_t(42), events);
+  EXPECT_EQ(42, events);
   return pk::error_t(1);
 }
 
 
 pk::error_t free_func2(uint64_t events, pk::error_t, pk::handle const &, void *)
 {
-  CPPUNIT_ASSERT_EQUAL(uint64_t(666), events);
+  EXPECT_EQ(666, events);
   return pk::error_t(2);
 }
 
@@ -47,7 +47,7 @@ struct functor
 {
   pk::error_t member_func(uint64_t events, pk::error_t, pk::handle const &, void *)
   {
-    CPPUNIT_ASSERT_EQUAL(uint64_t(1234), events);
+    EXPECT_EQ(1234, events);
     return pk::error_t(3);
   }
 
@@ -55,7 +55,7 @@ struct functor
 
   pk::error_t operator()(uint64_t events, pk::error_t, pk::handle const &, void *)
   {
-    CPPUNIT_ASSERT_EQUAL(uint64_t(0xdeadbeef), events);
+    EXPECT_EQ(0xdeadbeef, events);
     return pk::error_t(4);
   }
 };
@@ -64,162 +64,143 @@ struct functor
 } // anonymous namespace
 
 
-class CallbackTest
-    : public CppUnit::TestFixture
+TEST(Callback, free_functions)
 {
-public:
-  CPPUNIT_TEST_SUITE(CallbackTest);
+  // Test that a free function is correctly invoked.
+  pk::callback cb1 = &free_func1;
+  ASSERT_EQ(pk::error_t(1), cb1(42, pk::error_t(0), 0, nullptr));
 
-    CPPUNIT_TEST(testFreeFunctions);
-    CPPUNIT_TEST(testMemberFunctions);
-    CPPUNIT_TEST(testComparison);
-    CPPUNIT_TEST(testEmpty);
-    CPPUNIT_TEST(testAssignment);
-    CPPUNIT_TEST(testHash);
-    CPPUNIT_TEST(testCopy);
+  pk::callback cb2 = &free_func2;
+  ASSERT_EQ(pk::error_t(2), cb2(666, pk::error_t(0), 0, nullptr));
 
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-  void testFreeFunctions()
-  {
-    // Test that a free function is correctly invoked.
-    pk::callback cb1 = &free_func1;
-    CPPUNIT_ASSERT_EQUAL(pk::error_t(1), cb1(42, pk::error_t(0), 0, nullptr));
-
-    pk::callback cb2 = &free_func2;
-    CPPUNIT_ASSERT_EQUAL(pk::error_t(2), cb2(666, pk::error_t(0), 0, nullptr));
-
-    // Test for equality.
-    CPPUNIT_ASSERT(cb1 != cb2);
-    pk::callback cb3 = &free_func1;
-    CPPUNIT_ASSERT(cb1 == cb3);
-  }
+  // Test for equality.
+  ASSERT_NE(cb1, cb2);
+  pk::callback cb3 = &free_func1;
+  ASSERT_EQ(cb1, cb3);
+}
 
 
 
-  void testMemberFunctions()
-  {
-    // Test that member functions are correctly invoked.
-    functor f;
+TEST(Callback, member_functions)
+{
+  // Test that member functions are correctly invoked.
+  functor f;
 
-    pk::callback cb1 = pk::make_callback(&f, &functor::member_func);
-    CPPUNIT_ASSERT_EQUAL(pk::error_t(3), cb1(1234, pk::error_t(0), 0, nullptr));
+  pk::callback cb1 = pk::make_callback(&f, &functor::member_func);
+  ASSERT_EQ(pk::error_t(3), cb1(1234, pk::error_t(0), 0, nullptr));
 
-    pk::callback cb2 = pk::make_callback(&f);
-    CPPUNIT_ASSERT_EQUAL(pk::error_t(4), cb2(0xdeadbeef, pk::error_t(0), 0, nullptr));
+  pk::callback cb2 = pk::make_callback(&f);
+  ASSERT_EQ(pk::error_t(4), cb2(0xdeadbeef, pk::error_t(0), 0, nullptr));
 
-    // Test for equality.
-    CPPUNIT_ASSERT(cb1 != cb2);
-    pk::callback cb3 = pk::make_callback(&f, &functor::member_func);
-    CPPUNIT_ASSERT(cb1 == cb3);
-  }
-
-
-
-  void testComparison()
-  {
-    // Test that a functor and a free function bound to callbacks do not
-    // compare equal.
-    functor f;
-
-    pk::callback cb1 = pk::make_callback(&f, &functor::member_func);
-    pk::callback cb2 = &free_func1;
-
-    CPPUNIT_ASSERT(cb1 != cb2);
-    CPPUNIT_ASSERT(cb2 != cb1);
-
-    // Also check whether two callbacks encapsulating the same function/
-    // functor compare equal.
-    pk::callback cb3 = pk::make_callback(&f, &functor::member_func);
-    CPPUNIT_ASSERT_EQUAL(cb1, cb3);
-
-    pk::callback cb4 = &free_func1;
-    CPPUNIT_ASSERT_EQUAL(cb2, cb4);
-
-    // It's equally important that a callback constructed from a different
-    // instance of the same functor class compares not equal.
-    functor f2;
-    pk::callback cb5 = pk::make_callback(&f2, &functor::member_func);
-    CPPUNIT_ASSERT(cb1 != cb5);
-    CPPUNIT_ASSERT(cb3 != cb5);
-  }
+  // Test for equality.
+  ASSERT_NE(cb1, cb2);
+  pk::callback cb3 = pk::make_callback(&f, &functor::member_func);
+  ASSERT_EQ(cb1, cb3);
+}
 
 
-  void testEmpty()
-  {
-    // Empty/un-assigned callbacks should behave sanely
-    pk::callback cb;
 
-    CPPUNIT_ASSERT_EQUAL(true, cb.empty());
-    CPPUNIT_ASSERT(!cb);
+TEST(Callback, comparison)
+{
+  // Test that a functor and a free function bound to callbacks do not
+  // compare equal.
+  functor f;
 
-    CPPUNIT_ASSERT_THROW(cb(0, pk::error_t(1), pk::handle(), nullptr), pk::exception);
+  pk::callback cb1 = pk::make_callback(&f, &functor::member_func);
+  pk::callback cb2 = &free_func1;
 
-    pk::callback cb2 = &free_func1;
-    CPPUNIT_ASSERT(cb != cb2);
-  }
+  ASSERT_NE(cb1, cb2);
+  ASSERT_NE(cb2, cb1);
 
+  // Also check whether two callbacks encapsulating the same function/
+  // functor compare equal.
+  pk::callback cb3 = pk::make_callback(&f, &functor::member_func);
+  ASSERT_EQ(cb1, cb3);
 
-  void testAssignment()
-  {
-    // Ensure that empty callbacks can be assigned later on.
-    pk::callback cb;
-    CPPUNIT_ASSERT(!cb);
+  pk::callback cb4 = &free_func1;
+  ASSERT_EQ(cb2, cb4);
 
-    cb = &free_func1;
-    CPPUNIT_ASSERT(cb);
-    CPPUNIT_ASSERT_EQUAL(false, cb.empty());
-    CPPUNIT_ASSERT_EQUAL(pk::error_t(1), cb(42, pk::error_t(0), 0, nullptr));
-
-    functor f;
-    cb = pk::make_callback(&f);
-    CPPUNIT_ASSERT(cb);
-    CPPUNIT_ASSERT_EQUAL(false, cb.empty());
-    CPPUNIT_ASSERT_EQUAL(pk::error_t(4), cb(0xdeadbeef, pk::error_t(0), 0, nullptr));
-  }
+  // It's equally important that a callback constructed from a different
+  // instance of the same functor class compares not equal.
+  functor f2;
+  pk::callback cb5 = pk::make_callback(&f2, &functor::member_func);
+  ASSERT_NE(cb1, cb5);
+  ASSERT_NE(cb3, cb5);
+}
 
 
-  void testHash()
-  {
-    std::hash<pk::callback> hasher;
+TEST(Callback, empty)
+{
+  // Empty/un-assigned callbacks should behave sanely
+  pk::callback cb;
 
-    // Callbacks made from the same free function should have the same hash.
-    pk::callback cb1 = &free_func1;
-    pk::callback cb2 = &free_func1;
-    CPPUNIT_ASSERT_EQUAL(hasher(cb1), hasher(cb2));
+  ASSERT_EQ(true, cb.empty());
+  ASSERT_FALSE(cb);
 
-    // But they can't have the same hash as a callback made from a different
-    // free function.
-    pk::callback cb3 = &free_func2;
-    CPPUNIT_ASSERT(hasher(cb1) != hasher(cb3));
-    CPPUNIT_ASSERT(hasher(cb2) != hasher(cb3));
+  ASSERT_THROW(cb(0, pk::error_t(1), pk::handle(), nullptr), pk::exception);
 
-    // The equality constraint also applies to functors.
-    functor f1;
-    pk::callback cb4 = pk::make_callback(&f1, &functor::member_func);
-    pk::callback cb5 = pk::make_callback(&f1, &functor::member_func);
-    CPPUNIT_ASSERT_EQUAL(hasher(cb4), hasher(cb5));
-
-    // And the same applies to the non-equality
-    functor f2;
-    pk::callback cb6 = pk::make_callback(&f2, &functor::member_func);
-    CPPUNIT_ASSERT(hasher(cb4) != hasher(cb6));
-    CPPUNIT_ASSERT(hasher(cb5) != hasher(cb6));
-  }
+  pk::callback cb2 = &free_func1;
+  ASSERT_NE(cb, cb2);
+}
 
 
-  void testCopy()
-  {
-    // Copy ctor
-    pk::callback cb1 = &free_func1;
-    pk::callback cb2 = cb1;
+TEST(Callback, assignment)
+{
+  // Ensure that empty callbacks can be assigned later on.
+  pk::callback cb;
+  ASSERT_FALSE(cb);
 
-    // Assign
-    pk::callback cb3;
-    cb3 = cb1;
-  }
-};
+  cb = &free_func1;
+  ASSERT_TRUE(cb);
+  ASSERT_EQ(false, cb.empty());
+  ASSERT_EQ(pk::error_t(1), cb(42, pk::error_t(0), 0, nullptr));
+
+  functor f;
+  cb = pk::make_callback(&f);
+  ASSERT_TRUE(cb);
+  ASSERT_EQ(false, cb.empty());
+  ASSERT_EQ(pk::error_t(4), cb(0xdeadbeef, pk::error_t(0), 0, nullptr));
+}
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(CallbackTest);
+TEST(Callback, hash)
+{
+  std::hash<pk::callback> hasher;
+
+  // Callbacks made from the same free function should have the same hash.
+  pk::callback cb1 = &free_func1;
+  pk::callback cb2 = &free_func1;
+  ASSERT_EQ(hasher(cb1), hasher(cb2));
+
+  // But they can't have the same hash as a callback made from a different
+  // free function.
+  pk::callback cb3 = &free_func2;
+  ASSERT_NE(hasher(cb1), hasher(cb3));
+  ASSERT_NE(hasher(cb2), hasher(cb3));
+
+  // The equality constraint also applies to functors.
+  functor f1;
+  pk::callback cb4 = pk::make_callback(&f1, &functor::member_func);
+  pk::callback cb5 = pk::make_callback(&f1, &functor::member_func);
+  ASSERT_EQ(hasher(cb4), hasher(cb5));
+
+  // And the same applies to the non-equality
+  functor f2;
+  pk::callback cb6 = pk::make_callback(&f2, &functor::member_func);
+  ASSERT_NE(hasher(cb4), hasher(cb6));
+  ASSERT_NE(hasher(cb5), hasher(cb6));
+}
+
+
+TEST(Callback, copy)
+{
+  // Copy ctor
+  pk::callback cb1 = &free_func1;
+  pk::callback cb2 = cb1;
+  ASSERT_EQ(cb1, cb2);
+
+  // Assign
+  pk::callback cb3;
+  cb3 = cb1;
+  ASSERT_EQ(cb1, cb3);
+}

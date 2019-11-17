@@ -22,14 +22,20 @@
 #include <packeteer/net/network.h>
 #include <packeteer/net/socket_address.h>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include <cstring>
 
 #include <sstream>
 #include <string>
 
+#include "test_name.h"
+
 namespace pnet = packeteer::net;
+
+/*****************************************************************************
+ * NetworkConstruction
+ */
 
 namespace {
 
@@ -44,7 +50,6 @@ struct ctor_test_data
   char const *  expected_broadcast;
 } ctor_tests[] = {
   // Garbage
-  { "asddfs",         true,   AF_UNSPEC, size_t(-1), "", "", },
   { "asddfs",         true,   AF_UNSPEC, size_t(-1), "", "", },
 
   // IPv4 hosts
@@ -77,9 +82,62 @@ struct ctor_test_data
 
   { "2001:0db8:85a3:0000:0000:8a2e:0370:7334/129",true,   AF_INET6,  size_t(-1), "", "", },
   { "2001:0db8:85a3::8a2e:0370:7334/0",           true,   AF_INET6,  size_t(-1), "", "", },
-
 };
 
+
+std::string ctor_name(testing::TestParamInfo<ctor_test_data> const & info)
+{
+  return symbolize_name(info.param.netspec);
+}
+
+
+} // anonymous namespace
+
+class NetworkConstruction
+  : public testing::TestWithParam<ctor_test_data>
+{
+};
+
+
+TEST_P(NetworkConstruction, verify)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  ASSERT_NE(td.throws, network::verify_netspec(td.netspec));
+}
+
+
+TEST_P(NetworkConstruction, construct)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  if (td.throws) {
+    ASSERT_THROW(network n{td.netspec}, std::runtime_error);
+  }
+  else {
+    network n{td.netspec};
+    ASSERT_EQ(td.expected_proto, n.family());
+    ASSERT_EQ(td.expected_mask, n.mask_size());
+    ASSERT_EQ(socket_address(td.expected_network),
+        n.network_address());
+    ASSERT_EQ(socket_address(td.expected_broadcast, UINT16_MAX),
+        n.broadcast_address());
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(net, NetworkConstruction,
+    testing::ValuesIn(ctor_tests),
+    ctor_name);
+
+
+/*****************************************************************************
+ * NetworkContents
+ */
+
+
+namespace {
 
 // Contained tests
 struct contained_test_data
@@ -101,203 +159,172 @@ struct contained_test_data
   { "2001:C00::/22",    "192.168.0.123",                            false, },
 };
 
+
+
+std::string contained_name(testing::TestParamInfo<contained_test_data> const & info)
+{
+  std::string name{info.param.netspec};
+  name += "_";
+  name += info.param.testee;
+
+  return symbolize_name(name);
+}
+
+
+
 } // anonymous namespace
 
-class NetworkTest
-    : public CppUnit::TestFixture
+
+class NetworkContents
+  : public testing::TestWithParam<contained_test_data>
 {
-public:
-  CPPUNIT_TEST_SUITE(NetworkTest);
-
-    CPPUNIT_TEST(testVerify);
-    CPPUNIT_TEST(testConstruction);
-    CPPUNIT_TEST(testInNetwork);
-    CPPUNIT_TEST(testReset);
-    CPPUNIT_TEST(testIPv4Allocation);
-    CPPUNIT_TEST(testIDAllocation);
-    CPPUNIT_TEST(testDirectAllocation);
-
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-
-  void testVerify()
-  {
-    using namespace pnet;
-
-    for (size_t i = 0 ; i < sizeof(ctor_tests) / sizeof(ctor_test_data) ; ++i) {
-      // std::cout << "Testing [" << ctor_tests[i].throws << "]: " << ctor_tests[i].netspec << std::endl;
-      CPPUNIT_ASSERT_EQUAL(!ctor_tests[i].throws,
-          network::verify_netspec(ctor_tests[i].netspec));
-    }
-  }
-
-
-
-  void testReset()
-  {
-    using namespace pnet;
-
-    // Simple test: create network, reserve an address from it.
-    network net("192.168.0.1/24");
-    socket_address address;
-    CPPUNIT_ASSERT(!net.in_network(address));
-    CPPUNIT_ASSERT_NO_THROW(address = net.reserve_address());
-    CPPUNIT_ASSERT(net.in_network(address));
-
-    // Now reset the network to a new range. The address can't be in_networK()
-    // any longer.
-    net.reset("10.0.0.0/8");
-    CPPUNIT_ASSERT(!net.in_network(address));
-
-    // Reserve a new address and things should be fine again.
-    CPPUNIT_ASSERT_NO_THROW(address = net.reserve_address());
-    CPPUNIT_ASSERT(net.in_network(address));
-  }
-
-
-
-  void testConstruction()
-  {
-    using namespace pnet;
-
-    for (size_t i = 0 ; i < sizeof(ctor_tests) / sizeof(ctor_test_data) ; ++i) {
-      // std::cout << "Testing [" << ctor_tests[i].throws << "]: " << ctor_tests[i].netspec << std::endl;
-      if (ctor_tests[i].throws) {
-        CPPUNIT_ASSERT_THROW(network n(ctor_tests[i].netspec), std::runtime_error);
-      }
-      else {
-        network n(ctor_tests[i].netspec);
-        CPPUNIT_ASSERT_EQUAL(ctor_tests[i].expected_proto, n.family());
-        CPPUNIT_ASSERT_EQUAL(ctor_tests[i].expected_mask, n.mask_size());
-        CPPUNIT_ASSERT_EQUAL(socket_address(ctor_tests[i].expected_network),
-            n.network_address());
-        CPPUNIT_ASSERT_EQUAL(socket_address(ctor_tests[i].expected_broadcast, UINT16_MAX),
-            n.broadcast_address());
-      }
-    }
-  }
-
-
-  void testInNetwork()
-  {
-    using namespace pnet;
-
-    for (size_t i = 0 ; i < sizeof(contained_tests) / sizeof(contained_test_data) ; ++i) {
-      // std::cout << "Testing: " << contained_tests[i].netspec << " ("
-      //  << contained_tests[i].testee << ")" << std::endl;
-      network n(contained_tests[i].netspec);
-      CPPUNIT_ASSERT_EQUAL(contained_tests[i].expected,
-        n.in_network(socket_address(contained_tests[i].testee)));
-    }
-  }
-
-
-  void testIPv4Allocation()
-  {
-    using namespace pnet;
-
-    // The network has 14 available addresses - the network address and the
-    // broadcast address don't count.
-    network n("192.168.1.0/28");
-
-    // Generate 14 addresses. Each of those must succeed, and each of those
-    // must be unique.
-    std::vector<std::shared_ptr<socket_address>> known;
-    for (size_t i = 0 ; i < 14 ; ++i) {
-      socket_address addr;
-      CPPUNIT_ASSERT_NO_THROW(addr = n.reserve_address());
-
-      for (size_t j = 0 ; j < known.size() ; ++j) {
-        socket_address & k = *(known[j].get());
-        CPPUNIT_ASSERT(!(addr == k));
-      }
-    }
-
-    // The next allocation attempt should fail, though.
-    CPPUNIT_ASSERT_THROW(auto addr = n.reserve_address(), std::runtime_error);
-
-    // If we erase one address, and re-add it, that should work.
-    CPPUNIT_ASSERT(n.release_address(socket_address("192.168.1.7")));
-    socket_address addr;
-    CPPUNIT_ASSERT_NO_THROW(addr = n.reserve_address());
-    CPPUNIT_ASSERT_EQUAL(socket_address("192.168.1.7"), addr);
-
-    // Erasing an unknown address should fail
-    CPPUNIT_ASSERT(!n.release_address(socket_address("127.0.0.1")));
-
-    // Lastly, erasing any of the known addresses must succeed.
-    auto end = known.end();
-    for (auto iter = known.begin() ; iter != end ; ++iter) {
-      CPPUNIT_ASSERT(*iter);
-      CPPUNIT_ASSERT(n.release_address(*iter->get()));
-    }
-  }
-
-
-
-  void testIDAllocation()
-  {
-    using namespace pnet;
-
-    // Creating a /24 network means there are only 254 available
-    // addresses.
-    network net("192.168.0.1/24");
-    // std::cout << "MAX: " << net.max_size() << std::endl;
-
-    // Let's allocate one first, and test that releasing and re-allocating
-    // works (i.e. same ID gets same address).
-    std::string id1 = "foobar";
-    socket_address address;
-    CPPUNIT_ASSERT_NO_THROW(address = net.reserve_address(id1));
-    CPPUNIT_ASSERT(net.in_network(address));
-
-    // Let's ensure first that using the same ID again will result in an
-    // error result as it's already allocated.
-    socket_address address2;
-    CPPUNIT_ASSERT_THROW(address2 = net.reserve_address(id1), std::runtime_error);
-
-    // However, releasing the address means we can get it again.
-    net.release_address(address);
-    CPPUNIT_ASSERT_NO_THROW(address2 = net.reserve_address(id1));
-    CPPUNIT_ASSERT(net.in_network(address2));
-    CPPUNIT_ASSERT_EQUAL(address, address2);
-
-    // Right, now verify that another ID does not produce a collision.
-    std::string id2 = "foobaz";
-    CPPUNIT_ASSERT(id1 != id2);
-
-    socket_address address3;
-    CPPUNIT_ASSERT_NO_THROW(address3 = net.reserve_address(id2));
-    CPPUNIT_ASSERT(net.in_network(address3));
-
-    CPPUNIT_ASSERT(address2 != address3);
-  }
-
-
-
-  void testDirectAllocation()
-  {
-    using namespace pnet;
-
-    // Creating a /24 network means there are only 254 available
-    // addresses.
-    network net("192.168.0.1/24");
-
-    // Try to allocate a socket_address directly.
-    CPPUNIT_ASSERT(net.reserve_address(socket_address("192.168.0.1")));
-
-    // The same again won't work.
-    CPPUNIT_ASSERT(!net.reserve_address(socket_address("192.168.0.1")));
-
-    // But after releasing it will.
-    CPPUNIT_ASSERT(net.release_address(socket_address("192.168.0.1")));
-    CPPUNIT_ASSERT(net.reserve_address(socket_address("192.168.0.1")));
-
-    // Reserving outside of the network will fail.
-    CPPUNIT_ASSERT(!net.reserve_address(socket_address("10.0.0.1")));
-  }
 };
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(NetworkTest);
+TEST_P(NetworkContents, ip_in_network)
+{
+  using namespace pnet;
+  auto td = GetParam();
+
+  // std::cout << "Testing: " << td.netspec << " ("
+  //  << td.testee << ")" << std::endl;
+  network n{td.netspec};
+  ASSERT_EQ(td.expected, n.in_network(socket_address(td.testee)));
+}
+
+
+INSTANTIATE_TEST_CASE_P(net, NetworkContents,
+    testing::ValuesIn(contained_tests),
+    contained_name);
+
+
+
+/*****************************************************************************
+ * Network
+ */
+
+
+TEST(Network, reset)
+{
+  using namespace pnet;
+
+  // Simple test: create network, reserve an address from it.
+  network net{"192.168.0.1/24"};
+  socket_address address;
+  ASSERT_FALSE(net.in_network(address));
+  ASSERT_NO_THROW(address = net.reserve_address());
+  ASSERT_TRUE(net.in_network(address));
+
+  // Now reset the network to a new range. The address can't be in_networK()
+  // any longer.
+  net.reset("10.0.0.0/8");
+  ASSERT_FALSE(net.in_network(address));
+
+  // Reserve a new address and things should be fine again.
+  ASSERT_NO_THROW(address = net.reserve_address());
+  ASSERT_TRUE(net.in_network(address));
+}
+
+
+TEST(Network, ipv4_allocation)
+{
+  using namespace pnet;
+
+  // The network has 14 available addresses - the network address and the
+  // broadcast address don't count.
+  network n{"192.168.1.0/28"};
+
+  // Generate 14 addresses. Each of those must succeed, and each of those
+  // must be unique.
+  std::vector<std::shared_ptr<socket_address>> known;
+  for (size_t i = 0 ; i < 14 ; ++i) {
+    socket_address addr;
+    ASSERT_NO_THROW(addr = n.reserve_address());
+
+    for (size_t j = 0 ; j < known.size() ; ++j) {
+      socket_address & k = *(known[j].get());
+      ASSERT_NE(addr, k);
+    }
+  }
+
+  // The next allocation attempt should fail, though.
+  ASSERT_THROW(auto addr = n.reserve_address(), std::runtime_error);
+
+  // If we erase one address, and re-add it, that should work.
+  EXPECT_TRUE(n.release_address(socket_address("192.168.1.7")));
+  socket_address addr;
+  ASSERT_NO_THROW(addr = n.reserve_address());
+  ASSERT_EQ(socket_address("192.168.1.7"), addr);
+
+  // Erasing an unknown address should fail
+  ASSERT_FALSE(n.release_address(socket_address("127.0.0.1")));
+
+  // Lastly, erasing any of the known addresses must succeed.
+  auto end = known.end();
+  for (auto iter = known.begin() ; iter != end ; ++iter) {
+    EXPECT_TRUE(*iter);
+    ASSERT_TRUE(n.release_address(*iter->get()));
+  }
+}
+
+
+TEST(Network, ipv4_allocation_with_id)
+{
+  using namespace pnet;
+
+  // Creating a /24 network means there are only 254 available
+  // addresses.
+  network net{"192.168.0.1/24"};
+  // std::cout << "MAX: " << net.max_size() << std::endl;
+
+  // Let's allocate one first, and test that releasing and re-allocating
+  // works (i.e. same ID gets same address).
+  std::string id1 = "foobar";
+  socket_address address;
+  ASSERT_NO_THROW(address = net.reserve_address(id1));
+  ASSERT_TRUE(net.in_network(address));
+
+  // Let's ensure first that using the same ID again will result in an
+  // error result as it's already allocated.
+  socket_address address2;
+  ASSERT_THROW(address2 = net.reserve_address(id1), std::runtime_error);
+
+  // However, releasing the address means we can get it again.
+  net.release_address(address);
+  ASSERT_NO_THROW(address2 = net.reserve_address(id1));
+  ASSERT_TRUE(net.in_network(address2));
+  ASSERT_EQ(address, address2);
+
+  // Right, now verify that another ID does not produce a collision.
+  std::string id2 = "foobaz";
+  ASSERT_NE(id1, id2);
+
+  socket_address address3;
+  ASSERT_NO_THROW(address3 = net.reserve_address(id2));
+  ASSERT_TRUE(net.in_network(address3));
+
+  ASSERT_NE(address2, address3);
+}
+
+
+TEST(Network, direct_allocation)
+{
+  using namespace pnet;
+
+  // Creating a /24 network means there are only 254 available
+  // addresses.
+  network net{"192.168.0.1/24"};
+
+  // Try to allocate a socket_address directly.
+  ASSERT_TRUE(net.reserve_address(socket_address("192.168.0.1")));
+
+  // The same again won't work.
+  ASSERT_FALSE(net.reserve_address(socket_address("192.168.0.1")));
+
+  // But after releasing it will.
+  EXPECT_TRUE(net.release_address(socket_address("192.168.0.1")));
+  ASSERT_TRUE(net.reserve_address(socket_address("192.168.0.1")));
+
+  // Reserving outside of the network will fail.
+  ASSERT_FALSE(net.reserve_address(socket_address("10.0.0.1")));
+}

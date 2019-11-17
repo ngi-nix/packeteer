@@ -19,7 +19,7 @@
  * PARTICULAR PURPOSE.
  **/
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include "compare_times.h"
 
@@ -80,199 +80,176 @@ struct bind_test
 
 } // anonymous namespace
 
-class TaskletTest
-  : public CppUnit::TestFixture
+
+// By testing the msec-based version of sleep(), both functions are
+// tested nicely. It might be prudent to test them separately at some
+// point though.
+
+TEST(Tasklet, sleep_zero_msec)
 {
-public:
-  CPPUNIT_TEST_SUITE(TaskletTest);
+  // Check whether sleep() correctly handles 0 msecs (no sleeping)
+  done = false;
+  packeteer::thread::tasklet task(sleeper);
 
-    CPPUNIT_TEST(testTaskletSleep);
-    CPPUNIT_TEST(testTaskletMemFun);
-    CPPUNIT_TEST(testTaskletLambda);
-    CPPUNIT_TEST(testTaskletScope);
-    CPPUNIT_TEST(testSharedCondition);
+  auto t1 = std::chrono::steady_clock::now();
+  ASSERT_TRUE(task.start());
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
+  ASSERT_TRUE(task.stop());
+  ASSERT_TRUE(task.wait());
+  auto t2 = std::chrono::steady_clock::now();
 
-  CPPUNIT_TEST_SUITE_END();
-private:
+  // The time difference must always be lower than the 1000 msecs
+  // (1000000 nsecs) we specified as the sleep time.
+  auto diff = t2 - t1;
+  ASSERT_GT(diff, std::chrono::nanoseconds::zero());
+  ASSERT_LT((t2 - t1).count(), 1'000'000'000);
+}
 
 
-  void testTaskletSleep()
+TEST(Tasklet, sleep_some)
+{
+  // Same test, but with a half-second sleep. Now the elapsed time must
+  // be larger than half a second.
+  done = false;
+  packeteer::thread::tasklet task(sleep_halfsec);
+
+  auto t1 = std::chrono::steady_clock::now();
+  ASSERT_TRUE(task.start());
+  ASSERT_TRUE(task.wait());
+  auto t2 = std::chrono::steady_clock::now();
+
+  // The time difference must be very close to the sleep time of
+  // 500msec. 
+  compare_times(t1, t2, std::chrono::milliseconds(500));
+}
+
+
+TEST(Tasklet, sleep_count_wakeup)
+{
+  // Count how often the thread got woken. Since it sleeps indefinitely,
+  // it should get woken exactly twice: once due to wakeup(), and once
+  // due to stop(). The stop() one would not result in wake_count to be
+  // incremented, though.
+  count = 0;
+  packeteer::thread::tasklet task(counter);
+
+  ASSERT_TRUE(task.start());
+
+  // Wait until the thread is running. Otherwise, wakeup() won't be
+  // able to do anything (unless the thread runs quickly).
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
+
+  task.wakeup();
+
+  // Wait until the wakup is handled. There's a possibility for a race
+  // in that it's possible the thread has gone to sleep once more by
+  // the time we're trying to wait on the condition, in which case the
+  // thread will not notify us and stay in its sleep state.
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
+
+  ASSERT_EQ(1, count);
+
+  ASSERT_TRUE(task.stop());
+  ASSERT_TRUE(task.wait());
+}
+
+
+TEST(Tasklet, member_function)
+{
+  // Binding member functions is done much manually in packeteer.
+  bind_test test;
+  packeteer::thread::tasklet task(
+      packeteer::thread::binder(test, &bind_test::sleep_member));
+
+  auto t1 = std::chrono::steady_clock::now();
+  ASSERT_TRUE(task.start());
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
+  ASSERT_TRUE(task.stop());
+  ASSERT_TRUE(task.wait());
+  auto t2 = std::chrono::steady_clock::now();
+
+  // The time difference must always be lower than the 1000 msecs
+  // (1000000 nsecs) we specified as the sleep time.
+  auto diff = t2 - t1;
+  ASSERT_GT(diff, std::chrono::nanoseconds::zero());
+  ASSERT_LT((t2 - t1).count(), 1'000'000'000);
+}
+
+
+TEST(Tasklet, lambda)
+{
+  packeteer::thread::tasklet task([](packeteer::thread::tasklet &, void *) {
+      std::this_thread::sleep_for(THREAD_TEST_SHORT_DELAY);
+  });
+
+  auto t1 = std::chrono::steady_clock::now();
+  ASSERT_TRUE(task.start());
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
+  ASSERT_TRUE(task.stop());
+  ASSERT_TRUE(task.wait());
+  auto t2 = std::chrono::steady_clock::now();
+
+  // The time difference must always be lower than the 1000 msecs
+  // (1000000 nsecs) we specified as the sleep time.
+  auto diff = t2 - t1;
+  ASSERT_GT(diff, std::chrono::nanoseconds::zero());
+  ASSERT_LT((t2 - t1).count(), 1'000'000'000);
+}
+
+
+TEST(Tasklet, scoped_behaviour)
+{
+  // Checks to determine whether tasklets that are destroyed before being
+  // started, stopped or waited upon cause ugliness. These tests basically
+  // only have to not segfault...
+
+  // Unused task
   {
-    // By testing the msec-based version of sleep(), both functions are
-    // tested nicely. It might be prudent to test them separately at some
-    // point though.
-
-    // Check whether sleep() correctly handles 0 msecs (no sleeping)
-    {
-      done = false;
-      packeteer::thread::tasklet task(sleeper);
-
-      auto t1 = std::chrono::steady_clock::now();
-      CPPUNIT_ASSERT(task.start());
-      std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-      CPPUNIT_ASSERT(task.stop());
-      CPPUNIT_ASSERT(task.wait());
-      auto t2 = std::chrono::steady_clock::now();
-
-      // The time difference must always be lower than the 1000 msecs
-      // (1000000 nsecs) we specified as the sleep time.
-      auto diff = t2 - t1;
-      CPPUNIT_ASSERT(diff > std::chrono::nanoseconds::zero());
-      CPPUNIT_ASSERT((t2 - t1).count() < 1'000'000'000);
-    }
-
-    // Same test, but with a half-second sleep. Now the elapsed time must
-    // be larger than half a second.
-    {
-      done = false;
-      packeteer::thread::tasklet task(sleep_halfsec);
-
-      auto t1 = std::chrono::steady_clock::now();
-      CPPUNIT_ASSERT(task.start());
-      CPPUNIT_ASSERT(task.wait());
-      auto t2 = std::chrono::steady_clock::now();
-
-      // The time difference must be very close to the sleep time of
-      // 500msec. 
-     compare_times(t1, t2, std::chrono::milliseconds(500));
-    }
-
-    // Count how often the thread got woken. Since it sleeps indefinitely,
-    // it should get woken exactly twice: once due to wakeup(), and once
-    // due to stop(). The stop() one would not result in wake_count to be
-    // incremented, though.
-    {
-      count = 0;
-      packeteer::thread::tasklet task(counter);
-
-      CPPUNIT_ASSERT(task.start());
-
-      // Wait until the thread is running. Otherwise, wakeup() won't be
-      // able to do anything (unless the thread runs quickly).
-      std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-
-      task.wakeup();
-
-      // Wait until the wakup is handled. There's a possibility for a race
-      // in that it's possible the thread has gone to sleep once more by
-      // the time we're trying to wait on the condition, in which case the
-      // thread will not notify us and stay in its sleep state.
-      std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-
-      CPPUNIT_ASSERT_EQUAL(int(1), count);
-
-      CPPUNIT_ASSERT(task.stop());
-      CPPUNIT_ASSERT(task.wait());
-    }
+    packeteer::thread::tasklet task(sleeper);
   }
 
-
-
-  void testTaskletMemFun()
+  // started task
   {
-    // Binding member functions is done much manually in packeteer.
-    bind_test test;
-    packeteer::thread::tasklet task(
-        packeteer::thread::binder(test, &bind_test::sleep_member));
-
-    auto t1 = std::chrono::steady_clock::now();
-    CPPUNIT_ASSERT(task.start());
-    std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-    CPPUNIT_ASSERT(task.stop());
-    CPPUNIT_ASSERT(task.wait());
-    auto t2 = std::chrono::steady_clock::now();
-
-    // The time difference must always be lower than the 1000 msecs
-    // (1000000 nsecs) we specified as the sleep time.
-    auto diff = t2 - t1;
-    CPPUNIT_ASSERT(diff > std::chrono::nanoseconds::zero());
-    CPPUNIT_ASSERT((t2 - t1).count() < 1'000'000'000);
+    packeteer::thread::tasklet task(sleeper);
+    task.start();
   }
 
-
-
-  void testTaskletLambda()
+  // started & stopped task
   {
-    packeteer::thread::tasklet task([](packeteer::thread::tasklet &, void *) {
-        std::this_thread::sleep_for(THREAD_TEST_SHORT_DELAY);
-    });
-
-    auto t1 = std::chrono::steady_clock::now();
-    CPPUNIT_ASSERT(task.start());
-    std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-    CPPUNIT_ASSERT(task.stop());
-    CPPUNIT_ASSERT(task.wait());
-    auto t2 = std::chrono::steady_clock::now();
-
-    // The time difference must always be lower than the 1000 msecs
-    // (1000000 nsecs) we specified as the sleep time.
-    auto diff = t2 - t1;
-    CPPUNIT_ASSERT(diff > std::chrono::nanoseconds::zero());
-    CPPUNIT_ASSERT((t2 - t1).count() < 1'000'000'000);
+    packeteer::thread::tasklet task(sleeper);
+    task.start();
+    task.stop();
   }
+}
 
 
 
-  void testTaskletScope()
-  {
-    // Checks to determine whether tasklets that are destroyed before being
-    // started, stopped or waited upon cause ugliness. These tests basically
-    // only have to not segfault...
+TEST(Tasklet, shared_condition_variable)
+{
+  count = 0;
 
-    // Unused task
-    {
-      packeteer::thread::tasklet task(sleeper);
-    }
+  std::condition_variable_any cond;
+  std::recursive_mutex mutex;
 
-    // started task
-    {
-      packeteer::thread::tasklet task(sleeper);
-      task.start();
-    }
+  packeteer::thread::tasklet t1(&cond, &mutex, counter, nullptr, true);
+  packeteer::thread::tasklet t2(&cond, &mutex, counter, nullptr, true);
 
-    // started & stopped task
-    {
-      packeteer::thread::tasklet task(sleeper);
-      task.start();
-      task.stop();
-    }
-  }
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
 
+  t1.wakeup(); // also wakes up t2
 
-  void testSharedCondition()
-  {
-    count = 0;
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
 
-    std::condition_variable_any cond;
-    std::recursive_mutex mutex;
+  // Both get woken
+  ASSERT_LE(2, count);
+  EXPECT_EQ(2, count) << "may fail under resource starvation.";
 
-    packeteer::thread::tasklet t1(&cond, &mutex, counter, nullptr, true);
-    packeteer::thread::tasklet t2(&cond, &mutex, counter, nullptr, true);
+  // One gets stopped by this
+  t1.stop();
+  std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
+  ASSERT_LE(3, count);
+  EXPECT_EQ(3, count) << "may fail under resource starvation.";
 
-    std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-
-    t1.wakeup(); // also wakes up t2
-
-    std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-
-    // Both get woken
-    CPPUNIT_ASSERT(int(2) <= count);
-    CPPUNIT_ASSERT_EQUAL_MESSAGE(
-        "may fail under resource starvation.",
-        int(2), count);
-
-    // One gets stopped by this
-    t1.stop();
-    std::this_thread::sleep_for(THREAD_TEST_LONG_DELAY);
-    CPPUNIT_ASSERT(int(3) <= count);
-    CPPUNIT_ASSERT_EQUAL_MESSAGE(
-        "may fail under resource starvation.",
-        int(3), count);
-
-    // Now both should be stopped.
-    t2.stop();
-  }
-};
-
-
-CPPUNIT_TEST_SUITE_REGISTRATION(TaskletTest);
+  // Now both should be stopped.
+  t2.stop();
+}

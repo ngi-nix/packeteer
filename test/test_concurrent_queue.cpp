@@ -21,53 +21,37 @@
  **/
 #include <packeteer/concurrent_queue.h>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 namespace pk = packeteer;
 
 
-class ConcurrentQueueTest
-    : public CppUnit::TestFixture
+TEST(ConcurrentQueue, queue_functionality)
 {
-public:
-  CPPUNIT_TEST_SUITE(ConcurrentQueueTest);
+  // Test that the FIFO principle works for the queue as such, and that
+  // extra functions do what they're supposed to do.
+  pk::concurrent_queue<int> queue;
+  ASSERT_EQ(true, queue.empty());
+  ASSERT_EQ(0, queue.size());
 
-    CPPUNIT_TEST(testBasicFunctionality);
+  queue.push(42);
+  ASSERT_EQ(false, queue.empty());
+  ASSERT_EQ(1, queue.size());
 
-  CPPUNIT_TEST_SUITE_END();
+  queue.push(666);
+  ASSERT_EQ(false, queue.empty());
+  ASSERT_EQ(2, queue.size());
 
-private:
+  int value = 0;
+  ASSERT_TRUE(queue.pop(value));
+  ASSERT_EQ(42, value);
+  ASSERT_EQ(false, queue.empty());
+  ASSERT_EQ(1, queue.size());
 
-  void testBasicFunctionality()
-  {
-    // Test that the FIFO principle works for the queue as such, and that
-    // extra functions do what they're supposed to do.
-    pk::concurrent_queue<int> queue;
-    CPPUNIT_ASSERT_EQUAL(true, queue.empty());
-    CPPUNIT_ASSERT_EQUAL(size_t(0), queue.size());
+  ASSERT_TRUE(queue.pop(value));
+  ASSERT_EQ(666, value);
+  ASSERT_EQ(true, queue.empty());
+  ASSERT_EQ(0, queue.size());
 
-    queue.push(42);
-    CPPUNIT_ASSERT_EQUAL(false, queue.empty());
-    CPPUNIT_ASSERT_EQUAL(size_t(1), queue.size());
-
-    queue.push(666);
-    CPPUNIT_ASSERT_EQUAL(false, queue.empty());
-    CPPUNIT_ASSERT_EQUAL(size_t(2), queue.size());
-
-    int value = 0;
-    CPPUNIT_ASSERT(queue.pop(value));
-    CPPUNIT_ASSERT_EQUAL(42, value);
-    CPPUNIT_ASSERT_EQUAL(false, queue.empty());
-    CPPUNIT_ASSERT_EQUAL(size_t(1), queue.size());
-
-    CPPUNIT_ASSERT(queue.pop(value));
-    CPPUNIT_ASSERT_EQUAL(666, value);
-    CPPUNIT_ASSERT_EQUAL(true, queue.empty());
-    CPPUNIT_ASSERT_EQUAL(size_t(0), queue.size());
-
-    CPPUNIT_ASSERT(!queue.pop(value));
-  }
-};
-
-
-CPPUNIT_TEST_SUITE_REGISTRATION(ConcurrentQueueTest);
+  ASSERT_FALSE(queue.pop(value));
+}

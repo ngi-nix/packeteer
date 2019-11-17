@@ -20,7 +20,7 @@
 
 #include <packeteer/peer_address.h>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include <cstring>
 
@@ -29,6 +29,7 @@
 #include <set>
 
 #include "value_tests.h"
+#include "test_name.h"
 
 namespace pnet = packeteer::net;
 
@@ -62,58 +63,77 @@ struct test_data
   { "udp6",  "udp6://[::1]:4321",      packeteer::CT_UDP6,  pnet::socket_address::SAT_INET6,  "udp6://[::1]:4321",       },
 };
 
+
+std::string generate_name(testing::TestParamInfo<test_data> const & info)
+{
+  return symbolize_name(info.param.address);
+}
+
 } // anonymous namespace
 
-class PeerAddressTest
-    : public CppUnit::TestFixture
+
+class PeerAddress
+  : public testing::TestWithParam<test_data>
 {
-public:
-  CPPUNIT_TEST_SUITE(PeerAddressTest);
-
-    CPPUNIT_TEST(testStringConstruction);
-    CPPUNIT_TEST(testValueSemantics);
-
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-
-
-  void testStringConstruction()
-  {
-    // Tests that information doesn't get mangled during construction or
-    // formatting
-    using namespace packeteer;
-
-    for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      peer_address address(tests[i].address);
-
-      CPPUNIT_ASSERT_EQUAL(tests[i].scheme,  address.scheme());
-      CPPUNIT_ASSERT_EQUAL(tests[i].sa_type, address.socket_address().type());
-      CPPUNIT_ASSERT_EQUAL(tests[i].type, address.conn_type());
-      CPPUNIT_ASSERT_EQUAL(tests[i].expected, address.str());
-    }
-  }
-
-  void testValueSemantics()
-  {
-    using namespace packeteer;
-
-    // TCP4 and TCP with an IPv4 address should be equivalent.
-    PACKETEER_VALUES_TEST(peer_address("tcp4://192.168.0.1"),
-                          peer_address("tcp://192.168.0.1"),
-                          true);
-
-    // However, different IPs should be non-equal
-    PACKETEER_VALUES_TEST(peer_address("tcp4://192.168.0.1"),
-                          peer_address("tcp4://192.168.0.2"),
-                          false);
-
-    // And so should the same IP with different protocols
-    PACKETEER_VALUES_TEST(peer_address("tcp4://192.168.0.1"),
-                          peer_address("udp4://192.168.0.1"),
-                          false);
-  }
 };
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(PeerAddressTest);
+TEST_P(PeerAddress, string_construction)
+{
+  auto td = GetParam();
+
+  // Tests that information doesn't get mangled during construction or
+  // formatting
+  using namespace packeteer;
+
+  peer_address address(td.address);
+
+  ASSERT_EQ(td.scheme,  address.scheme());
+  ASSERT_EQ(td.sa_type, address.socket_address().type());
+  ASSERT_EQ(td.type, address.conn_type());
+  ASSERT_EQ(td.expected, address.str());
+}
+
+
+INSTANTIATE_TEST_CASE_P(net, PeerAddress,
+    testing::ValuesIn(tests),
+    generate_name);
+
+
+TEST(PeerAddressValueSemantics, expanded_scheme)
+{
+  using namespace packeteer;
+
+  peer_address first{"tcp4://192.168.0.1"};
+  peer_address second{"tcp://192.168.0.1"};
+
+  test_copy_construction(first);
+  test_assignment(first);
+
+  test_equality(first, second);
+  test_hashing_equality(first, second);
+}
+
+
+TEST(PeerAddressValueSemantics, different_address)
+{
+  using namespace packeteer;
+
+  peer_address first{"tcp4://192.168.0.1"};
+  peer_address second{"tcp4://192.168.0.2"};
+
+  test_less_than(first, second);
+  test_hashing_inequality(first, second);
+}
+
+
+TEST(PeerAddressValueSemantics, different_protocol)
+{
+  using namespace packeteer;
+
+  peer_address first{"tcp4://192.168.0.1"};
+  peer_address second{"udp4://192.168.0.1"};
+
+  test_less_than(first, second);
+  test_hashing_inequality(first, second);
+}

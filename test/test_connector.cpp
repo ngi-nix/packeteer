@@ -22,7 +22,7 @@
 #include <packeteer/connector.h>
 #include <packeteer/scheduler.h>
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include <unistd.h>
 
@@ -34,18 +34,23 @@
 #include <thread>
 
 #include "value_tests.h"
+#include "test_name.h"
 
 
 using namespace packeteer;
 
+/*****************************************************************************
+ * ConnectorParsing
+ */
+
 namespace {
 
-struct test_data
+struct parsing_test_data
 {
   char const *    address;
   bool            valid;
   connector_type  type;
-} tests[] = {
+} parsing_tests[] = {
   // Garbage
   { "foo", false, CT_UNSPEC },
   { "foo:", false, CT_UNSPEC },
@@ -145,23 +150,201 @@ struct test_data
 
 };
 
-
-struct client_post_connect_callback
+std::string connector_name(testing::TestParamInfo<parsing_test_data> const & info)
 {
-  bool m_connected = false;
+  return symbolize_name(info.param.address);
+}
 
-  ::packeteer::error_t
-  func(uint64_t mask, ::packeteer::error_t error, handle const & h, void *)
-  {
-    if (!m_connected) {
-      m_connected = true;
-      LOG(" ***** CONNECTED! " << mask << ":" << error << ":" << h.sys_handle());
-    }
+} // anonymous namespace
 
-    return ERR_SUCCESS;
-  }
+
+class ConnectorParsing
+  : public testing::TestWithParam<parsing_test_data>
+{
 };
 
+
+TEST_P(ConnectorParsing, parsing)
+{
+  using namespace packeteer;
+  auto td = GetParam();
+
+  // std::cout << "test: " << td.address << std::endl;
+
+  if (td.valid) {
+    ASSERT_NO_THROW(auto c = connector(td.address));
+    auto c = connector(td.address);
+    ASSERT_EQ(td.type, c.type());
+  }
+  else {
+    ASSERT_THROW(auto c = connector(td.address), std::runtime_error);
+  }
+}
+
+
+INSTANTIATE_TEST_CASE_P(net, ConnectorParsing,
+    testing::ValuesIn(parsing_tests),
+    connector_name);
+
+
+/*****************************************************************************
+ * Connector
+ */
+
+
+TEST(Connector, value_semantics)
+{
+  // We'll use an anon connector, because they're simplest.
+  connector original{"anon://"};
+  ASSERT_EQ(CT_ANON, original.type());
+  ASSERT_TRUE(original);
+
+  test_copy_construction(original);
+  test_assignment(original);
+
+  connector copy = original;
+  ASSERT_EQ(original.type(), copy.type());
+  ASSERT_EQ(original.connect_url(), copy.connect_url());
+  ASSERT_EQ(original.get_read_handle(), copy.get_read_handle());
+  ASSERT_EQ(original.get_write_handle(), copy.get_write_handle());
+
+  test_equality(original, copy);
+
+  // Hashing and swapping require different types
+  connector different{"pipe:///foo"};
+  test_hashing_inequality(original, different);
+  test_hashing_equality(original, copy);
+  test_swapping(original, different);
+}
+
+
+TEST(Connector, default_constructed)
+{
+  // Default constructed connectors should vaguely work.
+  connector conn;
+  ASSERT_EQ(CT_UNSPEC, conn.type());
+  ASSERT_FALSE(conn);
+
+  ASSERT_THROW(auto url = conn.connect_url(), exception);
+
+  // Most functions should just return ERR_INITIALIZATION
+  bool mode = false;
+  ASSERT_EQ(ERR_INITIALIZATION, conn.get_blocking_mode(mode));
+
+  // Comparison should always yield the unspecified connector to be smaller.
+  connector conn2;
+  ASSERT_FALSE(conn2);
+  ASSERT_EQ(conn, conn2);
+  ASSERT_EQ(conn2, conn);
+
+  // Either default-constructed connector should consider
+  // itself smaller than the other.
+  ASSERT_LT(conn, conn2);
+  ASSERT_LT(conn2, conn);
+
+  // Anonymous connectors are greater than default-constructed ones
+  connector anon("anon://");
+  ASSERT_TRUE(anon);
+  ASSERT_LT(conn, anon);
+  ASSERT_GT(anon, conn);
+
+  // Assigning does work, though
+  conn = anon;
+  ASSERT_TRUE(conn);
+  ASSERT_EQ(conn, anon);
+  ASSERT_EQ(anon, conn);
+
+  // Afterwards, conn (which is now anonymoys) should
+  // evaluate as greater than conn2 (default)
+  ASSERT_NE(conn, conn2);
+  ASSERT_LT(conn2, conn);
+  ASSERT_GT(conn, conn2);
+}
+
+
+/*****************************************************************************
+ * ConnectorStreaming
+ */
+namespace {
+
+struct streaming_test_data
+{
+  connector_type  type;
+  char const *    stream_blocking;
+  char const *    stream_non_blocking;
+} streaming_tests[] = {
+  { CT_LOCAL,
+    "local:///tmp/test-connector-local-stream-block?blocking=1",
+    "local:///tmp/test-connector-local-stream-noblock", },
+  { CT_TCP4,
+    "tcp4://127.0.0.1:54321?blocking=1",
+    "tcp4://127.0.0.1:54321", },
+  { CT_TCP6,
+    "tcp6://[::1]:54321?blocking=1",
+    "tcp6://[::1]:54321", },
+  { CT_PIPE,
+    "pipe:///tmp/test-connector-pipe-block?blocking=1",
+    "pipe:///tmp/test-connector-pipe-noblock", },
+
+
+// testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram-first",
+//     "local:///tmp/test-connector-local-dgram-second");
+// testDGramConnector(CT_UDP4, "udp4://127.0.0.1:54321", "udp4://127.0.0.1:54322");
+// testDGramConnector(CT_UDP6, "udp6://[::1]:54321", "udp6://[::1]:54322");
+
+
+};
+
+template <typename T>
+std::string connector_name(testing::TestParamInfo<T> const & info)
+{
+  switch (info.param.type) {
+    case CT_TCP4:
+      return "tcp4";
+
+    case CT_TCP6:
+      return "tcp6";
+
+    case CT_UDP4:
+      return "udp4";
+
+    case CT_UDP6:
+      return "udp6";
+
+    case CT_LOCAL:
+      return "local";
+
+    case CT_PIPE:
+      return "pipe";
+
+      // TODO
+    default:
+      ADD_FAILURE_AT(__FILE__, __LINE__) << "Unreachable line reached.";
+  }
+
+  return {}; // silence compiler warnings
+}
+
+
+void send_message_streaming(connector & sender, connector & receiver)
+{
+  std::string msg = "hello, world!";
+  size_t amount = 0;
+  ASSERT_EQ(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
+  ASSERT_EQ(msg.size(), amount);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  std::vector<char> result;
+  result.resize(2 * msg.size(), '\0');
+  ASSERT_EQ(ERR_SUCCESS, receiver.read(&result[0], result.capacity(),
+        amount));
+  ASSERT_EQ(msg.size(), amount);
+
+  for (size_t i = 0 ; i < msg.size() ; ++i) {
+    ASSERT_EQ(msg[i], result[i]);
+  }
+}
 
 
 struct server_connect_callback
@@ -182,451 +365,321 @@ struct server_connect_callback
       LOG(" ***** INCOMING " << mask << ":" << error << ":" << h.sys_handle());
       // The accept() function clears the event.
       m_conn = m_server.accept();
-      CPPUNIT_ASSERT(m_conn);
+      EXPECT_TRUE(m_conn);
     }
     return ERR_SUCCESS;
   }
 };
 
-} // anonymous namespace
 
-class ConnectorTest
-    : public CppUnit::TestFixture
+struct client_post_connect_callback
 {
-public:
-  CPPUNIT_TEST_SUITE(ConnectorTest);
+  bool m_connected = false;
 
-    CPPUNIT_TEST(testAddressParsing);
-    CPPUNIT_TEST(testValueSemantics);
-    CPPUNIT_TEST(testDefaultConstructed);
-
-    CPPUNIT_TEST(testAnonConnector);
-
-    // Stream connectors blocking and non-blocking
-    CPPUNIT_TEST(testLocalConnectorBlocking);
-    CPPUNIT_TEST(testLocalConnectorNonBlocking);
-    CPPUNIT_TEST(testLocalConnectorDGram);
-    CPPUNIT_TEST(testPipeConnectorBlocking);
-    CPPUNIT_TEST(testPipeConnectorNonBlocking);
-    CPPUNIT_TEST(testTCPv4ConnectorBlocking);
-    CPPUNIT_TEST(testTCPv4ConnectorNonBlocking);
-    CPPUNIT_TEST(testTCPv6ConnectorBlocking);
-    CPPUNIT_TEST(testTCPv6ConnectorNonBlocking);
-
-    CPPUNIT_TEST(testUDPv4Connector);
-    CPPUNIT_TEST(testUDPv6Connector);
-
-  CPPUNIT_TEST_SUITE_END();
-
-private:
-
-  void testAddressParsing()
+  ::packeteer::error_t
+  func(uint64_t mask, ::packeteer::error_t error, handle const & h, void *)
   {
-    for (size_t i = 0 ; i < sizeof(tests) / sizeof(test_data) ; ++i) {
-      // std::cout << "test: " << tests[i].address << std::endl;
-
-      if (tests[i].valid) {
-        CPPUNIT_ASSERT_NO_THROW(auto c = connector(tests[i].address));
-        auto c = connector(tests[i].address);
-        CPPUNIT_ASSERT_EQUAL(tests[i].type, c.type());
-      }
-      else {
-        CPPUNIT_ASSERT_THROW(auto c = connector(tests[i].address), std::runtime_error);
-      }
+    if (!m_connected) {
+      m_connected = true;
+      LOG(" ***** CONNECTED! " << mask << ":" << error << ":" << h.sys_handle());
     }
-  }
 
-
-
-  void testValueSemantics()
-  {
-    // We'll use an anon connector, because they're simplest.
-    connector original("anon://");
-    CPPUNIT_ASSERT_EQUAL(CT_ANON, original.type());
-    CPPUNIT_ASSERT(original);
-
-    connector copy = original;
-    CPPUNIT_ASSERT_EQUAL(original.type(), copy.type());
-    CPPUNIT_ASSERT_EQUAL(original.connect_url(), copy.connect_url());
-    CPPUNIT_ASSERT_EQUAL(original.get_read_handle(), copy.get_read_handle());
-    CPPUNIT_ASSERT_EQUAL(original.get_write_handle(), copy.get_write_handle());
-    CPPUNIT_ASSERT(original == copy);
-    CPPUNIT_ASSERT(!(original < copy));
-
-    PACKETEER_VALUES_TEST(copy, original, true);
-  }
-
-
-  void testDefaultConstructed()
-  {
-    // Default constructed connectors should vaguely work.
-    connector conn;
-    CPPUNIT_ASSERT_EQUAL(CT_UNSPEC, conn.type());
-    CPPUNIT_ASSERT(!conn);
-
-    CPPUNIT_ASSERT_THROW(auto url = conn.connect_url(), exception);
-
-    // Most functions should just return ERR_INITIALIZATION
-    bool mode = false;
-    CPPUNIT_ASSERT_EQUAL(ERR_INITIALIZATION, conn.get_blocking_mode(mode));
-
-    // Comparison should always yield the unspecified connector to be smaller.
-    connector conn2;
-    CPPUNIT_ASSERT(!conn2);
-    CPPUNIT_ASSERT(conn == conn2);
-    CPPUNIT_ASSERT(conn2 == conn);
-
-    connector anon("anon://");
-    CPPUNIT_ASSERT(anon);
-    CPPUNIT_ASSERT(conn < anon);
-    CPPUNIT_ASSERT(anon > conn);
-
-    // Assigning does work, though
-    conn = anon;
-    CPPUNIT_ASSERT(conn);
-    CPPUNIT_ASSERT(conn == anon);
-    CPPUNIT_ASSERT(anon == conn);
-
-    CPPUNIT_ASSERT(!(conn == conn2));
-    CPPUNIT_ASSERT(conn2 < conn);
-    CPPUNIT_ASSERT(conn > conn2);
-  }
-
-
-
-  void sendMessageStream(connector & sender, connector & receiver)
-  {
-    std::string msg = "hello, world!";
-    size_t amount = 0;
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
-    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    std::vector<char> result;
-    result.resize(2 * msg.size(), '\0');
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.read(&result[0], result.capacity(),
-          amount));
-    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-
-    for (size_t i = 0 ; i < msg.size() ; ++i) {
-      CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
-    }
-  }
-
-
-
-  void sendMessageDGram(connector & sender, connector & receiver)
-  {
-    std::string msg = "hello, world!";
-    size_t amount = 0;
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, sender.send(msg.c_str(), msg.size(), amount,
-        receiver.peer_addr()));
-    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    std::vector<char> result;
-    result.resize(2 * msg.size(), '\0');
-    packeteer::peer_address sendaddr;
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, receiver.receive(&result[0], result.capacity(),
-          amount, sendaddr));
-    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-    CPPUNIT_ASSERT_EQUAL(sender.peer_addr(), sendaddr);
-
-    for (size_t i = 0 ; i < msg.size() ; ++i) {
-      CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
-    }
-  }
-
-
-
-  void testBlockingStreamConnector(connector_type expected_type, std::string const & addr)
-  {
-    // Tests for "stream" connectors, i.e. connectors that allow synchronous,
-    // reliable delivery - in blocking mode, making the setup/teardown very simple.
-
-    auto url = ::packeteer::util::url::parse(addr);
-    url.query["behaviour"] = "stream";
-
-    // Server
-    connector server(url);
-    CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
-
-    CPPUNIT_ASSERT(!server.listening());
-    CPPUNIT_ASSERT(!server.connected());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.listen());
-
-    CPPUNIT_ASSERT(server.listening());
-    CPPUNIT_ASSERT(!server.connected());
-
-    bool mode = false;
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.get_blocking_mode(mode));
-    CPPUNIT_ASSERT_EQUAL(true, mode);
-    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server.get_behaviour());
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // Client
-    connector client(url);
-    CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
-
-    CPPUNIT_ASSERT(!client.listening());
-    CPPUNIT_ASSERT(!client.connected());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.connect());
-    connector server_conn = server.accept();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    CPPUNIT_ASSERT(!client.listening());
-    CPPUNIT_ASSERT(client.connected());
-    CPPUNIT_ASSERT(server_conn.listening());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
-    CPPUNIT_ASSERT_EQUAL(true, mode);
-    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server_conn.get_behaviour());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.get_blocking_mode(mode));
-    CPPUNIT_ASSERT_EQUAL(true, mode);
-    CPPUNIT_ASSERT_EQUAL(CB_STREAM, client.get_behaviour());
-
-    // Communications
-    sendMessageStream(client, server_conn);
-    sendMessageStream(server_conn, client);
-  }
-
-
-
-  void testNonBlockingStreamConnector(connector_type expected_type, std::string const & addr)
-  {
-    // Tests for "stream" connectors, i.e. connectors that allow synchronous,
-    // reliable delivery - in non-blocking mode, meaning we need to react to
-    // events with the scheduler.
-
-    auto url = ::packeteer::util::url::parse(addr);
-    url.query["behaviour"] = "stream";
-
-    // Server
-    connector server(url);
-    CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
-
-    CPPUNIT_ASSERT(!server.listening());
-    CPPUNIT_ASSERT(!server.connected());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.listen());
-
-    CPPUNIT_ASSERT(server.listening());
-    CPPUNIT_ASSERT(!server.connected());
-
-    bool mode = false;
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.get_blocking_mode(mode));
-    CPPUNIT_ASSERT_EQUAL(false, mode);
-    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server.get_behaviour());
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // Client
-    connector client(url);
-    CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
-
-    CPPUNIT_ASSERT(!client.listening());
-    CPPUNIT_ASSERT(!client.connected());
-
-    // Connecting must result in ERR_ASYNC. We use a scheduler run to
-    // understand when the connection attempt was finished.
-    scheduler sched(1);
-    server_connect_callback server_struct(server);
-    auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
-    sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, server.get_read_handle(),
-        server_cb);
-
-    // Give scheduler a chance to register handlers
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    CPPUNIT_ASSERT_EQUAL(ERR_ASYNC, client.connect());
-
-    client_post_connect_callback client_struct;
-    auto client_cb = make_callback(&client_struct, &client_post_connect_callback::func);
-    sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, client.get_read_handle(),
-        client_cb);
-
-    // Wait for all callbacks to be invoked.
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // After the sleep, the server conn and client conn should both
-    // be ready to roll.
-    CPPUNIT_ASSERT(server_struct.m_conn);
-    CPPUNIT_ASSERT(client_struct.m_connected);
-
-    connector server_conn = server_struct.m_conn;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    CPPUNIT_ASSERT(!client.listening());
-    CPPUNIT_ASSERT(client.connected());
-    CPPUNIT_ASSERT(server_conn.listening());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
-    CPPUNIT_ASSERT_EQUAL(false, mode);
-    CPPUNIT_ASSERT_EQUAL(CB_STREAM, server_conn.get_behaviour());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.get_blocking_mode(mode));
-    CPPUNIT_ASSERT_EQUAL(false, mode);
-    CPPUNIT_ASSERT_EQUAL(CB_STREAM, client.get_behaviour());
-
-    // Communications
-    sendMessageStream(client, server_conn);
-    sendMessageStream(server_conn, client);
-  }
-
-
-
-  void testDGramConnector(connector_type expected_type, std::string const & saddr, std::string const & caddr)
-  {
-    // Tests for "datagram" connectors, i.e. connectors that allow synchronous,
-    // un-reliable delivery.
-
-    auto surl = ::packeteer::util::url::parse(saddr);
-    surl.query["behaviour"] = "datagram";
-    auto curl = ::packeteer::util::url::parse(caddr);
-    curl.query["behaviour"] = "datagram";
-
-    // Server
-    connector server(surl);
-    CPPUNIT_ASSERT_EQUAL(expected_type, server.type());
-
-    CPPUNIT_ASSERT(!server.listening());
-    CPPUNIT_ASSERT(!server.connected());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, server.listen());
-
-    CPPUNIT_ASSERT(server.listening());
-    CPPUNIT_ASSERT(!server.connected());
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // Client
-    connector client(curl);
-    CPPUNIT_ASSERT_EQUAL(expected_type, client.type());
-
-    CPPUNIT_ASSERT(!client.listening());
-    CPPUNIT_ASSERT(!client.connected());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, client.listen());
-
-    CPPUNIT_ASSERT(client.listening());
-    CPPUNIT_ASSERT(!client.connected());
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // Communications
-    sendMessageDGram(client, server);
-    sendMessageDGram(server, client);
-  }
-
-
-
-  void testAnonConnector()
-  {
-    // Anonymous pipes are special in that they need only one connector for
-    // communications.
-    connector conn("anon://");
-    CPPUNIT_ASSERT_EQUAL(CT_ANON, conn.type());
-
-    CPPUNIT_ASSERT(!conn.listening());
-    CPPUNIT_ASSERT(!conn.connected());
-
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.listen());
-
-    CPPUNIT_ASSERT(conn.listening());
-    CPPUNIT_ASSERT(conn.connected());
-
-    std::string msg = "hello, world!";
-    size_t amount = 0;
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.write(msg.c_str(), msg.size(), amount));
-    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-
-    std::vector<char> result;
-    result.resize(2 * msg.size(), '\0');
-    CPPUNIT_ASSERT_EQUAL(ERR_SUCCESS, conn.read(&result[0], result.capacity(),
-          amount));
-    CPPUNIT_ASSERT_EQUAL(msg.size(), amount);
-
-    for (size_t i = 0 ; i < msg.size() ; ++i) {
-      CPPUNIT_ASSERT_EQUAL(msg[i], result[i]);
-    }
-  }
-
-
-
-  void testLocalConnectorBlocking()
-  {
-    testBlockingStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream-block?blocking=1");
-  }
-
-  void testLocalConnectorNonBlocking()
-  {
-    testNonBlockingStreamConnector(CT_LOCAL, "local:///tmp/test-connector-local-stream-noblock");
-  }
-
-  void testLocalConnectorDGram()
-  {
-    testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram-first",
-        "local:///tmp/test-connector-local-dgram-second");
-  }
-
-
-  void testPipeConnectorBlocking()
-  {
-    testBlockingStreamConnector(CT_PIPE, "pipe:///tmp/test-connector-pipe-block?blocking=1");
-  }
-
-  void testPipeConnectorNonBlocking()
-  {
-    testNonBlockingStreamConnector(CT_PIPE, "pipe:///tmp/test-connector-pipe-noblock");
-  }
-
-
-
-  void testTCPv4ConnectorBlocking()
-  {
-    testBlockingStreamConnector(CT_TCP4, "tcp4://127.0.0.1:54321?blocking=1");
-  }
-
-  void testTCPv4ConnectorNonBlocking()
-  {
-    testNonBlockingStreamConnector(CT_TCP4, "tcp4://127.0.0.1:54321");
-  }
-
-
-
-  void testTCPv6ConnectorBlocking()
-  {
-    testBlockingStreamConnector(CT_TCP6, "tcp6://[::1]:54321?blocking=1");
-  }
-
-  void testTCPv6ConnectorNonBlocking()
-  {
-    testNonBlockingStreamConnector(CT_TCP6, "tcp6://[::1]:54321");
-  }
-
-
-
-  void testUDPv4Connector()
-  {
-    // UDP over IPv4 to localhost
-    testDGramConnector(CT_UDP4, "udp4://127.0.0.1:54321", "udp4://127.0.0.1:54322");
-  }
-
-
-
-  void testUDPv6Connector()
-  {
-    // UDP over IPv6 to localhost
-    testDGramConnector(CT_UDP6, "udp6://[::1]:54321", "udp6://[::1]:54322");
+    return ERR_SUCCESS;
   }
 };
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(ConnectorTest);
+} // anonymous namespace
+
+class ConnectorStream
+  : public testing::TestWithParam<streaming_test_data>
+{
+};
+
+
+TEST_P(ConnectorStream, blocking_messaging)
+{
+  // Tests for "stream" connectors, i.e. connectors that allow synchronous,
+  // reliable delivery - in blocking mode, making the setup/teardown very simple.
+  auto td = GetParam();
+
+  auto url = ::packeteer::util::url::parse(td.stream_blocking);
+  url.query["behaviour"] = "stream";
+
+  // Server
+  connector server(url);
+  ASSERT_EQ(td.type, server.type());
+
+  ASSERT_FALSE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, server.listen());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  bool mode = false;
+  ASSERT_EQ(ERR_SUCCESS, server.get_blocking_mode(mode));
+  ASSERT_EQ(true, mode);
+  ASSERT_EQ(CB_STREAM, server.get_behaviour());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Client
+  connector client(url);
+  ASSERT_EQ(td.type, client.type());
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_FALSE(client.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, client.connect());
+  connector server_conn = server.accept();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_TRUE(client.connected());
+  ASSERT_TRUE(server_conn.listening());
+
+  ASSERT_EQ(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
+  ASSERT_EQ(true, mode);
+  ASSERT_EQ(CB_STREAM, server_conn.get_behaviour());
+
+  ASSERT_EQ(ERR_SUCCESS, client.get_blocking_mode(mode));
+  ASSERT_EQ(true, mode);
+  ASSERT_EQ(CB_STREAM, client.get_behaviour());
+
+  // Communications
+  send_message_streaming(client, server_conn);
+  send_message_streaming(server_conn, client);
+}
+
+
+
+TEST_P(ConnectorStream, non_blocking_messaging)
+{
+  // Tests for "stream" connectors, i.e. connectors that allow synchronous,
+  // reliable delivery - in non-blocking mode, meaning we need to react to
+  // events with the scheduler.
+  auto td = GetParam();
+
+  auto url = ::packeteer::util::url::parse(td.stream_non_blocking);
+  url.query["behaviour"] = "stream";
+
+  // Server
+  connector server(url);
+  ASSERT_EQ(td.type, server.type());
+
+  ASSERT_FALSE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, server.listen());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  bool mode = false;
+  ASSERT_EQ(ERR_SUCCESS, server.get_blocking_mode(mode));
+  ASSERT_EQ(false, mode);
+  ASSERT_EQ(CB_STREAM, server.get_behaviour());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Client
+  connector client(url);
+  ASSERT_EQ(td.type, client.type());
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_FALSE(client.connected());
+
+  // Connecting must result in ERR_ASYNC. We use a scheduler run to
+  // understand when the connection attempt was finished.
+  scheduler sched(1);
+  server_connect_callback server_struct(server);
+  auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
+  sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, server.get_read_handle(),
+      server_cb);
+
+  // Give scheduler a chance to register handlers
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  ASSERT_EQ(ERR_ASYNC, client.connect());
+
+  client_post_connect_callback client_struct;
+  auto client_cb = make_callback(&client_struct, &client_post_connect_callback::func);
+  sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, client.get_read_handle(),
+      client_cb);
+
+  // Wait for all callbacks to be invoked.
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // After the sleep, the server conn and client conn should both
+  // be ready to roll.
+  ASSERT_TRUE(server_struct.m_conn);
+  ASSERT_TRUE(client_struct.m_connected);
+
+  connector server_conn = server_struct.m_conn;
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_TRUE(client.connected());
+  ASSERT_TRUE(server_conn.listening());
+
+  ASSERT_EQ(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
+  ASSERT_EQ(false, mode);
+  ASSERT_EQ(CB_STREAM, server_conn.get_behaviour());
+
+  ASSERT_EQ(ERR_SUCCESS, client.get_blocking_mode(mode));
+  ASSERT_EQ(false, mode);
+  ASSERT_EQ(CB_STREAM, client.get_behaviour());
+
+  // Communications
+  send_message_streaming(client, server_conn);
+  send_message_streaming(server_conn, client);
+}
+
+
+INSTANTIATE_TEST_CASE_P(net, ConnectorStream,
+    testing::ValuesIn(streaming_tests),
+    connector_name<streaming_test_data>);
+
+
+/*****************************************************************************
+ * ConnectorDGram
+ */
+namespace {
+
+struct dgram_test_data
+{
+  connector_type  type;
+  char const *    dgram_first;
+  char const *    dgram_second;
+} dgram_tests[] = {
+  { CT_LOCAL,
+    "local:///tmp/test-connector-local-dgram-first",
+    "local:///tmp/test-connector-local-dgram-second", },
+  { CT_UDP4,
+    "udp4://127.0.0.1:54321",
+    "udp4://127.0.0.1:54322", },
+  { CT_UDP6,
+    "udp6://[::1]:54321",
+    "udp6://[::1]:54322", },
+};
+
+
+void send_message_dgram(connector & sender, connector & receiver)
+{
+  std::string msg = "hello, world!";
+  size_t amount = 0;
+  ASSERT_EQ(ERR_SUCCESS, sender.send(msg.c_str(), msg.size(), amount,
+      receiver.peer_addr()));
+  ASSERT_EQ(msg.size(), amount);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  std::vector<char> result;
+  result.resize(2 * msg.size(), '\0');
+  packeteer::peer_address sendaddr;
+  ASSERT_EQ(ERR_SUCCESS, receiver.receive(&result[0], result.capacity(),
+        amount, sendaddr));
+  ASSERT_EQ(msg.size(), amount);
+  ASSERT_EQ(sender.peer_addr(), sendaddr);
+
+  for (size_t i = 0 ; i < msg.size() ; ++i) {
+    ASSERT_EQ(msg[i], result[i]);
+  }
+}
+
+
+} // anonymous namespace
+
+class ConnectorDGram
+  : public testing::TestWithParam<dgram_test_data>
+{
+};
+
+
+TEST_P(ConnectorDGram, messaging)
+{
+  // Tests for "datagram" connectors, i.e. connectors that allow synchronous,
+  // un-reliable delivery.
+  auto td = GetParam();
+
+  auto surl = ::packeteer::util::url::parse(td.dgram_first);
+  surl.query["behaviour"] = "datagram";
+  auto curl = ::packeteer::util::url::parse(td.dgram_second);
+  curl.query["behaviour"] = "datagram";
+
+  // Server
+  connector server(surl);
+  ASSERT_EQ(td.type, server.type());
+
+  ASSERT_FALSE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, server.listen());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Client
+  connector client(curl);
+  ASSERT_EQ(td.type, client.type());
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_FALSE(client.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, client.listen());
+
+  ASSERT_TRUE(client.listening());
+  ASSERT_FALSE(client.connected());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Communications
+  send_message_dgram(client, server);
+  send_message_dgram(server, client);
+}
+
+
+INSTANTIATE_TEST_CASE_P(net, ConnectorDGram,
+    testing::ValuesIn(dgram_tests),
+    connector_name<dgram_test_data>);
+
+
+/*****************************************************************************
+ * ConnectorMisc
+ */
+
+TEST(ConnectorMisc, anon_connector)
+{
+  // Anonymous pipes are special in that they need only one connector for
+  // communications.
+  connector conn("anon://");
+  ASSERT_EQ(CT_ANON, conn.type());
+
+  ASSERT_FALSE(conn.listening());
+  ASSERT_FALSE(conn.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, conn.listen());
+
+  ASSERT_TRUE(conn.listening());
+  ASSERT_TRUE(conn.connected());
+
+  std::string msg = "hello, world!";
+  size_t amount = 0;
+  ASSERT_EQ(ERR_SUCCESS, conn.write(msg.c_str(), msg.size(), amount));
+  ASSERT_EQ(msg.size(), amount);
+
+  std::vector<char> result;
+  result.resize(2 * msg.size(), '\0');
+  ASSERT_EQ(ERR_SUCCESS, conn.read(&result[0], result.capacity(),
+        amount));
+  ASSERT_EQ(msg.size(), amount);
+
+  for (size_t i = 0 ; i < msg.size() ; ++i) {
+    ASSERT_EQ(msg[i], result[i]);
+  }
+}

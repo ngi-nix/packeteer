@@ -19,16 +19,16 @@
  * PARTICULAR PURPOSE.
  **/
 
-#include <cppunit/extensions/HelperMacros.h>
+#include <gtest/gtest.h>
 
 #include <packeteer/thread/binder.h>
 
 namespace {
 
-bool called = false;
-
 struct member
 {
+  bool called = false;
+
   void mem1()
   {
     called = true;
@@ -47,92 +47,97 @@ struct member
 
   void mem4() const
   {
-    called = true;
+    const_cast<member *>(this)->called = true;
   }
 };
 
 
 } // anonymous namespace
 
-class BinderTest
-    : public CppUnit::TestFixture
+TEST(Binder, void_member_by_pointer)
 {
-public:
-    CPPUNIT_TEST_SUITE(BinderTest);
+  member m;
+  EXPECT_FALSE(m.called);
 
-      CPPUNIT_TEST(testMemberByPointer);
-      CPPUNIT_TEST(testMemberByReference);
+  auto f = packeteer::thread::binder(&m, &member::mem1);
+  f();
+  ASSERT_TRUE(m.called);
+}
 
-    CPPUNIT_TEST_SUITE_END();
+TEST(Binder, int_member_by_pointer)
+{
+  member m;
+  EXPECT_FALSE(m.called);
 
-private:
+  auto f = packeteer::thread::binder(&m, &member::mem2);
+  f(42);
+  ASSERT_TRUE(m.called);
+}
 
-    void testMemberByPointer()
-    {
-      member m;
+TEST(Binder, int_returning_member_by_pointer)
+{
+  member m;
+  EXPECT_FALSE(m.called);
 
-      called = false;
-      std::function<void()> f1 = packeteer::thread::binder(&m, &member::mem1);
-      CPPUNIT_ASSERT(!called);
-      f1();
-      CPPUNIT_ASSERT(called);
+  auto f = packeteer::thread::binder(&m, &member::mem3);
+  EXPECT_FALSE(m.called);
+  int x = f();
+  ASSERT_TRUE(m.called);
+  ASSERT_EQ(42, x);
+}
 
-      called = false;
-      std::function<void(int)> f2 = packeteer::thread::binder(&m, &member::mem2);
-      CPPUNIT_ASSERT(!called);
-      f2(42);
-      CPPUNIT_ASSERT(called);
+TEST(Binder, const_member_by_pointer)
+{
+  member m;
+  EXPECT_FALSE(m.called);
+  member const * m2 = &m;
 
-      called = false;
-      std::function<int()> f3 = packeteer::thread::binder(&m, &member::mem3);
-      CPPUNIT_ASSERT(!called);
-      int x = f3();
-      CPPUNIT_ASSERT(called);
-      CPPUNIT_ASSERT_EQUAL(42, x);
+  auto f = packeteer::thread::binder(m2, &member::mem4);
+  EXPECT_FALSE(m.called);
+  f();
+  ASSERT_TRUE(m.called);
+}
 
+TEST(Binder, void_member_by_reference)
+{
+  member m;
+  EXPECT_FALSE(m.called);
 
-      member const * m2 = &m;
-      called = false;
-      std::function<void()> f4 = packeteer::thread::binder(m2, &member::mem4);
-      CPPUNIT_ASSERT(!called);
-      f4();
-      CPPUNIT_ASSERT(called);
-    }
+  auto f = packeteer::thread::binder(m, &member::mem1);
+  f();
+  ASSERT_TRUE(m.called);
+}
 
+TEST(Binder, int_member_by_reference)
+{
+  member m;
+  EXPECT_FALSE(m.called);
 
+  auto f = packeteer::thread::binder(m, &member::mem2);
+  f(42);
+  ASSERT_TRUE(m.called);
+}
 
-    void testMemberByReference()
-    {
-      member m;
+TEST(Binder, int_returning_member_by_reference)
+{
+  member m;
+  EXPECT_FALSE(m.called);
 
-      called = false;
-      std::function<void()> f1 = packeteer::thread::binder(m, &member::mem1);
-      CPPUNIT_ASSERT(!called);
-      f1();
-      CPPUNIT_ASSERT(called);
+  auto f = packeteer::thread::binder(m, &member::mem3);
+  EXPECT_FALSE(m.called);
+  int x = f();
+  ASSERT_TRUE(m.called);
+  ASSERT_EQ(42, x);
+}
 
-      called = false;
-      std::function<void(int)> f2 = packeteer::thread::binder(m, &member::mem2);
-      CPPUNIT_ASSERT(!called);
-      f2(42);
-      CPPUNIT_ASSERT(called);
+TEST(Binder, const_member_by_reference)
+{
+  member m;
+  EXPECT_FALSE(m.called);
+  member const & m2 = m;
 
-      called = false;
-      std::function<int()> f3 = packeteer::thread::binder(m, &member::mem3);
-      CPPUNIT_ASSERT(!called);
-      int x = f3();
-      CPPUNIT_ASSERT(called);
-      CPPUNIT_ASSERT_EQUAL(42, x);
-
-
-      member const & m2 = m;
-      called = false;
-      std::function<void()> f4 = packeteer::thread::binder(m2, &member::mem4);
-      CPPUNIT_ASSERT(!called);
-      f4();
-      CPPUNIT_ASSERT(called);
-    }
-};
-
-
-CPPUNIT_TEST_SUITE_REGISTRATION(BinderTest);
+  auto f = packeteer::thread::binder(m2, &member::mem4);
+  EXPECT_FALSE(m.called);
+  f();
+  ASSERT_TRUE(m.called);
+}
