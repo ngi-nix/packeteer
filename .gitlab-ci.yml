@@ -13,9 +13,9 @@ cache:
 .build-template: &build-template
   stage: build
   before_script:
-    - pip3 install meson
     - sudo apt-get -o dir::cache::archives="apt-cache" update
-    - sudo apt-get -o dir::cache::archives="apt-cache" install -y ninja
+    - sudo apt-get -o dir::cache::archives="apt-cache" install -y ninja python3
+    - pip3 install meson
   script:
     - mkdir build
     - cd build
@@ -92,7 +92,7 @@ build:mxe:
   before_script:
     - sudo dpkg --add-architecture i386
     - sudo apt-get -o dir::cache::archives="apt-cache" update
-    - sudo apt-get -o dir::cache::archives="apt-cache" install -y libc6:i386 libstdc++6:i386 nmap
+    - sudo apt-get -o dir::cache::archives="apt-cache" install -y libc6:i386 libstdc++6:i386
   script:
     - ./testsuite
 
@@ -108,12 +108,11 @@ test:gcc:
   dependencies:
     - build:gcc
 
-      #FIXME
-      # test:gcc-i386:
-      #   <<: *test-linux
-      #   stage: test:gcc-i386
-      #   dependencies:
-      #     - build:gcc-i386
+test:gcc-i386:
+  <<: *test-linux
+  stage: test:gcc-i386
+  dependencies:
+    - build:gcc-i386
 
 test:clang-freebsd:
   stage: test:clang-freebsd
