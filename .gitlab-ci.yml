@@ -4,7 +4,7 @@ stages:
   - test:clang
   - test:gcc
   - test:clang-macOS
-# FIXME - test:gcc-i386
+  - test:gcc-i386
 
 cache:
   paths:
@@ -21,11 +21,7 @@ cache:
     - cd build
     - CXX=$compiler meson ..
     - ninja
-    #    - tools/10_get_fructose.sh
-    #    - $maker CXX=$compiler OS_NAME=$os_name
-    #    - $maker CXX=$compiler OS_NAME=$os_name AdsLibTest.bin
-    #    - cd example
-    #    - $maker CXX=$compiler OS_NAME=$os_name
+      #  FIXME
     #  artifacts:
     #    paths:
     #    - AdsLib-$os_name.a
@@ -82,13 +78,9 @@ build:mxe:
     os_name: win32
 
 .test-linux: &test-linux
-#  tags:
-#    - kvm
-#    - rack
-#    - ubuntu1804
-#    - x86_64
   tags:
     - linux
+    - x86_64
   before_script:
     - sudo dpkg --add-architecture i386
     - sudo apt-get -o dir::cache::archives="apt-cache" update
