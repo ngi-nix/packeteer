@@ -44,15 +44,15 @@ build:gcc:
     compiler: g++
     os_name: Linux
 
-build:gcc-i386:
-  <<: *build-template
-  image: debian
-  tags:
-    - linux
-  variables:
-    compiler: g++
-    os_name: i386
-    ci_cxx_flags: -m32
+    #build:gcc-i386:
+    #  <<: *build-template
+    #  image: debian
+    #  tags:
+    #    - linux
+    #  variables:
+    #    compiler: g++
+    #    os_name: i386
+    #    ci_cxx_flags: -m32
 
 #build:clang-freebsd:
 #  <<: *build-template
@@ -102,11 +102,11 @@ test:gcc:
   dependencies:
     - build:gcc
 
-test:gcc-i386:
-  <<: *test-linux
-  stage: test
-  dependencies:
-    - build:gcc-i386
+      #test:gcc-i386:
+      #  <<: *test-linux
+      #  stage: test
+      #  dependencies:
+      #    - build:gcc-i386
 
 #test:clang-freebsd:
 #  stage: test:clang-freebsd
