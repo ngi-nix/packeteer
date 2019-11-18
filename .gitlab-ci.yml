@@ -85,10 +85,12 @@ build:gcc-i386:
     - apt-get -o dir::cache::archives="apt-cache" update
     - apt-get -o dir::cache::archives="apt-cache" install -y gcc-multilib g++-multilib
   script:
-    - ./build/testsuite 2>testsuite-debug.log
+    - ./build/testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
   artifacts:
     paths:
       - testsuite-debug.log
+    reports:
+      junit: testsuite-log.xml
 
 test:clang:
   <<: *test-linux
