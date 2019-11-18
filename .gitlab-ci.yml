@@ -107,7 +107,7 @@ test:clang:
   tags:
     - clang
     - x86_64
-  stage: test:clang
+  stage: test
   dependencies:
     - build:clang
 
@@ -116,7 +116,7 @@ test:gcc:
   tags:
     - gcc
     - x86_64
-  stage: test:gcc
+  stage: test
   dependencies:
     - build:gcc
 
@@ -125,7 +125,7 @@ test:gcc-i386:
   tags:
     - gcc
     - i386
-  stage: test:gcc-i386
+  stage: test
   dependencies:
     - build:gcc-i386
 
