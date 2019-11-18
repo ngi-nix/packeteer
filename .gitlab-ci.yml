@@ -33,7 +33,7 @@ build:clang:
   tags:
     - linux
   before_script:
-    - apt-get -o dir::cache::archives="apt-cache" install -y clang-8
+    - apt-get -o dir::cache::archives="apt-cache" install -y clang
   variables:
     compiler: clang++
     os_name: Linux
@@ -43,7 +43,7 @@ build:gcc:
   tags:
     - linux
   before_script:
-    - apt-get -o dir::cache::archives="apt-cache" install -y gcc-8
+    - apt-get -o dir::cache::archives="apt-cache" install -y gcc
   variables:
     compiler: g++
     os_name: Linux
