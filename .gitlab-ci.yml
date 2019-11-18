@@ -89,6 +89,7 @@ build:gcc-i386:
   artifacts:
     paths:
       - testsuite-debug.log
+      - testsuite-log.xml
     reports:
       junit: testsuite-log.xml
 
