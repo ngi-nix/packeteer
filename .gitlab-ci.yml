@@ -67,6 +67,7 @@ build:gcc-i386:
     - ./testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
     - ninja coverage && cat meson-logs/coverage.txt
   artifacts:
+    when: always
     paths:
       - build/libpacketeer.*
       - build/testsuite
