@@ -6,16 +6,24 @@ cache:
   paths:
   - apt-cache/
 
-### build
-
-.build-linux: &build-linux
-  stage: build
+### build & test dependencies
+.dep-linux: &dep-linux
+  image: debian
+  tags:
+    - linux
   before_script:
     - apt-get -o dir::cache::archives="apt-cache" update
     - >
       apt-get -o dir::cache::archives="apt-cache" install -y
       ninja-build python3 python3-pip clang gcc gcc-multilib g++-multilib
     - pip3 install meson
+
+
+### build
+
+.build-linux: &build-linux
+  <<: *dep-linux
+  stage: build
   script:
     - mkdir build
     - cd build
@@ -27,27 +35,18 @@ cache:
 
 build:clang:
   <<: *build-linux
-  image: debian
-  tags:
-    - linux
   variables:
     compiler: clang++
     os_name: Linux
 
 build:gcc:
   <<: *build-linux
-  image: debian
-  tags:
-    - linux
   variables:
     compiler: g++
     os_name: Linux
 
 build:gcc-i386:
   <<: *build-linux
-  image: debian
-  tags:
-    - linux
   variables:
     compiler: g++
     os_name: i386
@@ -56,12 +55,7 @@ build:gcc-i386:
 ### test
 
 .test-linux: &test-linux
-  stage: test
-  tags:
-    - linux
-  before_script:
-    - apt-get -o dir::cache::archives="apt-cache" update
-    - apt-get -o dir::cache::archives="apt-cache" install -y gcc-multilib g++-multilib
+  <<: *dep-linux
   script:
     - cd build
     - ./testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
