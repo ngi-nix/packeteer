@@ -115,19 +115,26 @@ url::parse(std::string const & url_string)
   // We'll find the first occurrence of a colon; that *should* delimit the scheme.
   auto end = url_string.find_first_of(':');
   if (std::string::npos == end) {
-    throw exception(ERR_FORMAT, "No scheme separator found in connector URL.");
+    throw exception(ERR_FORMAT,
+        std::string{"No scheme separator found in connector URL: "}
+        + url_string);
   }
   // std::cout << "colon at: " << end << std::endl;
 
   // We'll then try to see if the characters immediately following are two
   // slashes.
   if (end + 3 > url_string.size()) {
-    throw exception(ERR_FORMAT, "Bad scheme separator found in connector URL.");
+    throw exception(ERR_FORMAT,
+        std::string{"Bad scheme separator found in connector URL: "}
+        + url_string);
+
   }
   // std::cout << "end + 1: " << url_string[end + 1] << std::endl;
   // std::cout << "end + 2: " << url_string[end + 2] << std::endl;
   if (!('/' == url_string[end + 1] && '/' == url_string[end + 2])) {
-    throw exception(ERR_FORMAT, "Bad scheme separator found in connector URL.");
+    throw exception(ERR_FORMAT,
+        std::string{"Bad scheme separator found in connector URL: "}
+        + url_string);
   }
 
   // Ok, we seem to have a scheme part. Lower-case it.
