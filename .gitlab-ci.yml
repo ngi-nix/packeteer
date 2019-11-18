@@ -33,8 +33,6 @@ build:clang:
   image: debian
   tags:
     - linux
-    - clang
-    - x86_64
   before_script:
     - apt-get -o dir::cache::archives="apt-cache" install -y clang
   variables:
@@ -46,8 +44,6 @@ build:gcc:
   image: debian
   tags:
     - linux
-    - gcc
-    - x86_64
   before_script:
     - apt-get -o dir::cache::archives="apt-cache" install -y gcc
   variables:
@@ -59,8 +55,6 @@ build:gcc-i386:
   image: debian
   tags:
     - linux
-    - gcc
-    - i386
   variables:
     compiler: g++
     os_name: i386
@@ -104,27 +98,18 @@ build:gcc-i386:
 
 test:clang:
   <<: *test-linux
-  tags:
-    - clang
-    - x86_64
   stage: test
   dependencies:
     - build:clang
 
 test:gcc:
   <<: *test-linux
-  tags:
-    - gcc
-    - x86_64
   stage: test
   dependencies:
     - build:gcc
 
 test:gcc-i386:
   <<: *test-linux
-  tags:
-    - gcc
-    - i386
   stage: test
   dependencies:
     - build:gcc-i386
