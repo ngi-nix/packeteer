@@ -483,6 +483,7 @@ connector::accept() const
       conn = nullptr;
       throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
     }
+    LOG("Peer address is: " << peer.full_str() << " - " << conn);
     result.m_impl = new connector_impl(util::url::parse(peer.full_str()), conn);
   }
 
