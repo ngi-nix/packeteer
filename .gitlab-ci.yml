@@ -32,6 +32,8 @@ build:clang:
   <<: *build-template
   tags:
     - linux
+    - clang
+    - x86_64
   before_script:
     - apt-get -o dir::cache::archives="apt-cache" install -y clang
   variables:
@@ -42,6 +44,8 @@ build:gcc:
   <<: *build-template
   tags:
     - linux
+    - gcc
+    - x86_64
   before_script:
     - apt-get -o dir::cache::archives="apt-cache" install -y gcc
   variables:
@@ -52,6 +56,8 @@ build:gcc-i386:
   <<: *build-template
   tags:
     - linux
+    - gcc
+    - i386
   variables:
     compiler: g++
     os_name: i386
@@ -85,7 +91,6 @@ build:gcc-i386:
 .test-linux: &test-linux
   tags:
     - linux
-    - x86_64
   before_script:
     - dpkg --add-architecture i386
     - apt-get -o dir::cache::archives="apt-cache" update
@@ -95,18 +100,27 @@ build:gcc-i386:
 
 test:clang:
   <<: *test-linux
+  tags:
+    - clang
+    - x86_64
   stage: test:clang
   dependencies:
     - build:clang
 
 test:gcc:
   <<: *test-linux
+  tags:
+    - gcc
+    - x86_64
   stage: test:gcc
   dependencies:
     - build:gcc
 
 test:gcc-i386:
   <<: *test-linux
+  tags:
+    - gcc
+    - i386
   stage: test:gcc-i386
   dependencies:
     - build:gcc-i386
