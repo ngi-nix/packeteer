@@ -82,26 +82,31 @@ build:gcc-i386:
   tags:
     - linux
   before_script:
-    - dpkg --add-architecture i386
     - apt-get -o dir::cache::archives="apt-cache" update
-    - apt-get -o dir::cache::archives="apt-cache" install -y g++-multilib
+    - apt-get -o dir::cache::archives="apt-cache" install -y gcc-multilib g++-multilib
   script:
-    - ./build/testsuite
+    - ./build/testsuite 2>testsuite-debug.log
+  artifacts:
+    paths:
+      - testsuite-debug.log
 
 test:clang:
   <<: *test-linux
+  image: debian
   stage: test
   dependencies:
     - build:clang
 
 test:gcc:
   <<: *test-linux
+  image: debian
   stage: test
   dependencies:
     - build:gcc
 
 test:gcc-i386:
   <<: *test-linux
+  image: debian
   stage: test
   dependencies:
     - build:gcc-i386
