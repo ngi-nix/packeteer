@@ -33,7 +33,8 @@ TEST(Error, basics)
     throw packeteer::exception(packeteer::ERR_SUCCESS);
   } catch (packeteer::exception const & ex) {
     ASSERT_EQ(packeteer::ERR_SUCCESS, ex.code());
-    ASSERT_EQ(std::string("No error"), std::string(ex.what()));
+    auto msg = std::string{ex.what()};
+    ASSERT_NE(std::string::npos, msg.find("No error"));
     ASSERT_EQ(std::string("ERR_SUCCESS"), std::string(ex.name()));
   }
 }
@@ -45,7 +46,8 @@ TEST(Error, details_without_errno)
   try {
     throw packeteer::exception(packeteer::ERR_SUCCESS, "foo");
   } catch (packeteer::exception const & ex) {
-    ASSERT_EQ(std::string("foo"), ex.details());
+    auto msg = std::string{ex.what()};
+    ASSERT_NE(std::string::npos, msg.find(" // foo"));
   }
 }
 
@@ -56,9 +58,8 @@ TEST(Error, details_with_errno)
   try {
     throw packeteer::exception(packeteer::ERR_SUCCESS, EAGAIN, "foo");
   } catch (packeteer::exception const & ex) {
-
-    std::string prefix = "foo // ";
-    ASSERT_GT(ex.details().size(), prefix.size());
-    ASSERT_EQ(0, ex.details().compare(0, prefix.size(), prefix));
+    auto msg = std::string{ex.what()};
+    ASSERT_NE(std::string::npos, msg.find("[ERR_SUCCESS] "));
+    ASSERT_NE(std::string::npos, msg.find("// foo"));
   }
 }

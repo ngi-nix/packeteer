@@ -200,11 +200,10 @@ public:
    **/
   char const * name() const throw();
   error_t code() const throw();
-  std::string const & details() const throw();
 
 private:
   error_t     m_code;
-  std::string m_details;
+  std::string m_message;
 };
 
 

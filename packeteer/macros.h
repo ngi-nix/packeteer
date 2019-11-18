@@ -53,9 +53,7 @@
 #define LOG(msg) _LOG_BASE("DEBUG", msg)
 #define ERRNO_LOG(msg) _LOG_BASE("ERROR", msg << " // " \
   << ::strerror(errno))
-#define ERR_LOG(msg, exc) _LOG_BASE("ERROR", msg << " [" \
-  << error_name(ex.code()) << "] " << ex.what() << " - " \
-  << ex.details())
+#define ERR_LOG(msg, exc) _LOG_BASE("ERROR", msg << ex.what())
 #else
 #define LOG(msg)
 #define ERRNO_LOG(msg)

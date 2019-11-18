@@ -92,11 +92,35 @@ error_name(error_t code)
 /*****************************************************************************
  * Exception
  **/
+namespace {
+
+// Helper function for trying to create a verbose error message. This may fail
+// if there can't be any more allocations, for example, so be extra careful.
+void combine_error(std::string & result, error_t code, int errnum, std::string const & details)
+{
+  try {
+    result = "[" + std::string{error_name(code)} + "] ";
+    result += std::string{error_message(code)};
+    if (errnum) {
+      result += " // ";
+      result += ::strerror(errnum);
+    }
+    if (!details.empty()) {
+      result += " // ";
+      result += details;
+    }
+  } catch (...) {
+  }
+}
+
+} // anonymous namespace
+
+
 exception::exception(error_t code, std::string const & details /* = "" */) throw()
   : std::runtime_error("")
   , m_code(code)
-  , m_details(details)
 {
+  combine_error(m_message, m_code, 0, details);
 }
 
 
@@ -104,8 +128,8 @@ exception::exception(error_t code, std::string const & details /* = "" */) throw
 exception::exception(error_t code, int errnum, std::string const & details /* = "" */) throw()
   : std::runtime_error("")
   , m_code(code)
-  , m_details(details + " // " + ::strerror(errnum))
 {
+  combine_error(m_message, m_code, errnum, details);
 }
 
 
@@ -120,7 +144,10 @@ exception::~exception() throw()
 char const *
 exception::what() const throw()
 {
-  return error_message(m_code);
+  if (m_message.empty()) {
+    return error_message(m_code);
+  }
+  return m_message.c_str();
 }
 
 
@@ -137,14 +164,6 @@ error_t
 exception::code() const throw()
 {
   return m_code;
-}
-
-
-
-std::string const &
-exception::details() const throw()
-{
-  return m_details;
 }
 
 
