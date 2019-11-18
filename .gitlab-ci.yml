@@ -6,7 +6,9 @@ cache:
   paths:
   - apt-cache/
 
-.build-template: &build-template
+### build
+
+.build-linux: &build-linux
   stage: build
   before_script:
     - apt-get -o dir::cache::archives="apt-cache" update
@@ -17,15 +19,14 @@ cache:
   script:
     - mkdir build
     - cd build
-    - CXX=$compiler CXXFLAGS="$ci_cxx_flags" meson ..
+    - CXX=$compiler CXXFLAGS="$ci_cxx_flags" meson -Db_coverage=true ..
     - ninja
   artifacts:
     paths:
-      - build/libpacketeer.*
-      - build/testsuite
+      - build/
 
 build:clang:
-  <<: *build-template
+  <<: *build-linux
   image: debian
   tags:
     - linux
@@ -34,7 +35,7 @@ build:clang:
     os_name: Linux
 
 build:gcc:
-  <<: *build-template
+  <<: *build-linux
   image: debian
   tags:
     - linux
@@ -43,7 +44,7 @@ build:gcc:
     os_name: Linux
 
 build:gcc-i386:
-  <<: *build-template
+  <<: *build-linux
   image: debian
   tags:
     - linux
@@ -52,30 +53,7 @@ build:gcc-i386:
     os_name: i386
     ci_cxx_flags: -m32
 
-#build:clang-freebsd:
-#  <<: *build-template
-#  tags:
-#    - freebsd
-#  variables:
-#    compiler: /usr/bin/clang++
-#    os_name: FreeBSD
-
-#build:clang-macOS:
-#  <<: *build-template
-#  tags:
-#    - macOS
-#  variables:
-#    compiler: /usr/bin/clang++
-#    os_name: Darwin
-
-
-#build:mxe:
-#  <<: *build-template
-#  tags:
-#    - mingw
-#  variables:
-#    compiler: /mxe/usr/bin/i686-w64-mingw32.static.posix-g++
-#    os_name: win32
+### test
 
 .test-linux: &test-linux
   stage: test
@@ -85,11 +63,16 @@ build:gcc-i386:
     - apt-get -o dir::cache::archives="apt-cache" update
     - apt-get -o dir::cache::archives="apt-cache" install -y gcc-multilib g++-multilib
   script:
-    - ./build/testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
+    - cd build
+    - ./testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
+    - ninja coverage && cat meson-logs/coverage.txt
   artifacts:
     paths:
-      - testsuite-debug.log
-      - testsuite-log.xml
+      - build/libpacketeer.*
+      - build/testsuite
+      - build/testsuite-debug.log
+      - build/testsuite-log.xml
+      - build/meson-logs/coveragereport
     reports:
       junit: testsuite-log.xml
 
@@ -113,21 +96,3 @@ test:gcc-i386:
   stage: test
   dependencies:
     - build:gcc-i386
-
-#test:clang-freebsd:
-#  stage: test:clang-freebsd
-#  dependencies:
-#    - build:clang-freebsd
-#  tags:
-#    - freebsd
-#  script:
-#    - ./testsuite
-#
-#test:clang-macOS:
-#  stage: test:clang-macOS
-#  dependencies:
-#    - build:clang-macOS
-#  tags:
-#    - macOS
-#  script:
-#    - ./testsuite
