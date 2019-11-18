@@ -1,10 +1,10 @@
 stages:
   - build
-  - test:clang-freebsd
   - test:clang
   - test:gcc
-  - test:clang-macOS
   - test:gcc-i386
+#  - test:clang-macOS
+#  - test:clang-freebsd
 
 cache:
   paths:
@@ -14,7 +14,7 @@ cache:
   stage: build
   before_script:
     - apt-get -o dir::cache::archives="apt-cache" update
-    - apt-get -o dir::cache::archives="apt-cache" install -y ninja python3
+    - apt-get -o dir::cache::archives="apt-cache" install -y ninja-build python3
     - pip3 install meson
   script:
     - mkdir build
@@ -36,22 +36,6 @@ build:clang:
     compiler: /usr/bin/clang++
     os_name: Linux
 
-build:clang-freebsd:
-  <<: *build-template
-  tags:
-    - freebsd
-  variables:
-    compiler: /usr/bin/clang++
-    os_name: FreeBSD
-
-build:clang-macOS:
-  <<: *build-template
-  tags:
-    - macOS
-  variables:
-    compiler: /usr/bin/clang++
-    os_name: Darwin
-
 build:gcc:
   <<: *build-template
   tags:
@@ -69,13 +53,30 @@ build:gcc-i386:
     os_name: i386
     ci_cxx_flags: -m32
 
-build:mxe:
-  <<: *build-template
-  tags:
-    - mingw
-  variables:
-    compiler: /mxe/usr/bin/i686-w64-mingw32.static.posix-g++
-    os_name: win32
+#build:clang-freebsd:
+#  <<: *build-template
+#  tags:
+#    - freebsd
+#  variables:
+#    compiler: /usr/bin/clang++
+#    os_name: FreeBSD
+
+#build:clang-macOS:
+#  <<: *build-template
+#  tags:
+#    - macOS
+#  variables:
+#    compiler: /usr/bin/clang++
+#    os_name: Darwin
+
+
+#build:mxe:
+#  <<: *build-template
+#  tags:
+#    - mingw
+#  variables:
+#    compiler: /mxe/usr/bin/i686-w64-mingw32.static.posix-g++
+#    os_name: win32
 
 .test-linux: &test-linux
   tags:
@@ -106,20 +107,20 @@ test:gcc-i386:
   dependencies:
     - build:gcc-i386
 
-test:clang-freebsd:
-  stage: test:clang-freebsd
-  dependencies:
-    - build:clang-freebsd
-  tags:
-    - freebsd
-  script:
-    - ./testsuite
-
-test:clang-macOS:
-  stage: test:clang-macOS
-  dependencies:
-    - build:clang-macOS
-  tags:
-    - macOS
-  script:
-    - ./testsuite
+#test:clang-freebsd:
+#  stage: test:clang-freebsd
+#  dependencies:
+#    - build:clang-freebsd
+#  tags:
+#    - freebsd
+#  script:
+#    - ./testsuite
+#
+#test:clang-macOS:
+#  stage: test:clang-macOS
+#  dependencies:
+#    - build:clang-macOS
+#  tags:
+#    - macOS
+#  script:
+#    - ./testsuite
