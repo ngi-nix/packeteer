@@ -74,7 +74,7 @@ build:gcc-i386:
       - build/testsuite-log.xml
       - build/meson-logs/coveragereport
     reports:
-      junit: testsuite-log.xml
+      junit: build/testsuite-log.xml
 
 test:clang:
   <<: *test-linux
