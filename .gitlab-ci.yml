@@ -54,7 +54,7 @@ build:gcc-i386:
   script:
     - cd build
     - ./testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
-    - test "${coverage:=false}" == true && ninja coverage && cat meson-logs/coverage.txt
+    - if test "${coverage:=false}" == true ; then ninja coverage && cat meson-logs/coverage.txt ; fi
   artifacts:
     when: always
     paths:
