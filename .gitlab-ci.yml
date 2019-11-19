@@ -115,5 +115,5 @@ release:
     name: release
     paths:
       - build/meson-dist/packeteer-*.tar.*
-#  only:
-#    - tags
+  only:
+    - tags
