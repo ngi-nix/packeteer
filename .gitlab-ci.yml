@@ -28,7 +28,7 @@ cache:
   script:
     - mkdir build
     - cd build
-    - CXX=$compiler CXXFLAGS="$ci_cxx_flags" meson -Db_coverage=true ..
+    - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} ..
     - ninja
   artifacts:
     paths:
@@ -38,19 +38,17 @@ build:clang:
   <<: *build-linux
   variables:
     compiler: clang++
-    os_name: Linux
 
 build:gcc:
   <<: *build-linux
   variables:
     compiler: g++
-    os_name: Linux
+    coverage: true
 
 build:gcc-i386:
   <<: *build-linux
   variables:
     compiler: g++
-    os_name: i386
     ci_cxx_flags: -m32
 
 ### test
@@ -60,7 +58,7 @@ build:gcc-i386:
   script:
     - cd build
     - ./testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
-    - ninja coverage && cat meson-logs/coverage.txt
+    - test "${coverage:=false}" == true && ninja coverage && cat meson-logs/coverage.txt
   artifacts:
     when: always
     paths:
@@ -85,6 +83,8 @@ test:gcc:
   stage: test
   dependencies:
     - build:gcc
+  variables:
+    coverage: true
 
 test:gcc-i386:
   <<: *test-linux
