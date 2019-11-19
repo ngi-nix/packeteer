@@ -320,6 +320,8 @@ thread = dependency('threads', required: true)
 configure_file(
   input: 'packeteer-config.h.in',
   output: 'packeteer-config.h',
+  install: true,
+  install_dir: 'include' / 'packeteer',
   configuration: conf_data)
 
 
@@ -342,6 +344,43 @@ libsrc = [
   'packeteer' / 'thread' / 'tasklet.cpp',
   'packeteer' / 'util' / 'url.cpp',
 ]
+
+install_headers(
+  'packeteer' / 'packeteer.h',
+  'packeteer' / 'version.h',
+  'packeteer' / 'error.h',
+  'packeteer' / 'macros.h',
+  'packeteer' / 'types.h',
+  'packeteer' / 'scheduler_types.h',
+  'packeteer' / 'handle.h',
+  'packeteer' / 'concurrent_queue.h',
+  'packeteer' / 'callback.h',
+  'packeteer' / 'events.h',
+  'packeteer' / 'scheduler.h',
+  'packeteer' / 'connector.h',
+  'packeteer' / 'connector_specs.h',
+  subdir: 'packeteer',
+)
+
+install_headers(
+  'packeteer' / 'net' / 'socket_address.h',
+  'packeteer' / 'net' / 'network.h',
+  subdir: 'packeteer' / 'net',
+)
+
+install_headers(
+  'packeteer' / 'util' / 'url.h',
+  'packeteer' / 'util' / 'operators.h',
+  subdir: 'packeteer' / 'util',
+)
+
+install_headers(
+  'packeteer' / 'thread' / 'binder.h',
+  'packeteer' / 'thread' / 'tasklet.h',
+  'packeteer' / 'thread' / 'chrono.h',
+  subdir: 'packeteer' / 'thread',
+)
+
 
 if have_epoll_create
   libsrc += ['packeteer' / 'detail' / 'io_epoll.cpp']
@@ -441,7 +480,7 @@ if not meson.is_subproject()
         gtest.get_variable('gtest_dep')
       ],
       link_with: lib,
-      cpp_args: cpp_args + test_args,
+      cpp_args: test_args,
       link_args: link_args,
   )
   test('testsuite', testsuite)
