@@ -318,10 +318,8 @@ endif
 thread = dependency('threads', required: true)
 
 configure_file(
-  input: 'packeteer-config.h.in',
-  output: 'packeteer-config.h',
-  install: true,
-  install_dir: 'include' / 'packeteer',
+  input: 'build-config.h.in',
+  output: 'build-config.h',
   configuration: conf_data)
 
 
@@ -330,93 +328,104 @@ configure_file(
 # Library
 
 libsrc = [
-  'packeteer' / 'version.cpp',
-  'packeteer' / 'error.cpp',
-  'packeteer' / 'packeteer.cpp',
-  'packeteer' / 'scheduler.cpp',
-  'packeteer' / 'connector.cpp',
-  'packeteer' / 'peer_address.cpp',
-  'packeteer' / 'detail' / 'worker.cpp',
-  'packeteer' / 'detail' / 'scheduler_impl.cpp',
-  'packeteer' / 'net' / 'socket_address.cpp',
-  'packeteer' / 'net' / 'network.cpp',
-  'packeteer' / 'net' / 'detail' / 'cidr.cpp',
-  'packeteer' / 'thread' / 'tasklet.cpp',
-  'packeteer' / 'util' / 'url.cpp',
+  'lib' / 'version.cpp',
+  'lib' / 'error.cpp',
+  'lib' / 'packeteer.cpp',
+  'lib' / 'scheduler.cpp',
+  'lib' / 'connector.cpp',
+  'lib' / 'peer_address.cpp',
+  'lib' / 'detail' / 'worker.cpp',
+  'lib' / 'detail' / 'scheduler_impl.cpp',
+  'lib' / 'net' / 'socket_address.cpp',
+  'lib' / 'net' / 'network.cpp',
+  'lib' / 'net' / 'detail' / 'cidr.cpp',
+  'lib' / 'thread' / 'tasklet.cpp',
+  'lib' / 'util' / 'url.cpp',
 ]
 
+includes = include_directories(
+  'include',
+)
+
+libincludes = include_directories(
+  'lib',
+)
+
+
 install_headers(
-  'packeteer' / 'packeteer.h',
-  'packeteer' / 'version.h',
-  'packeteer' / 'error.h',
-  'packeteer' / 'macros.h',
-  'packeteer' / 'types.h',
-  'packeteer' / 'scheduler_types.h',
-  'packeteer' / 'handle.h',
-  'packeteer' / 'concurrent_queue.h',
-  'packeteer' / 'callback.h',
-  'packeteer' / 'events.h',
-  'packeteer' / 'scheduler.h',
-  'packeteer' / 'connector.h',
-  'packeteer' / 'connector_specs.h',
+  'include' / 'packeteer.h',
+  'include' / 'packeteer' / 'version.h',
+  'include' / 'packeteer' / 'error.h',
+  'include' / 'packeteer' / 'types.h',
+  'include' / 'packeteer' / 'scheduler_types.h',
+  'include' / 'packeteer' / 'callback.h',
+  'include' / 'packeteer' / 'handle.h',
+  'include' / 'packeteer' / 'events.h',
+  'include' / 'packeteer' / 'connector.h',
+  'include' / 'packeteer' / 'connector_specs.h',
+  'include' / 'packeteer' / 'peer_address.h',
+  'include' / 'packeteer' / 'scheduler.h',
+
   subdir: 'packeteer',
 )
 
 install_headers(
-  'packeteer' / 'net' / 'socket_address.h',
-  'packeteer' / 'net' / 'network.h',
+  'include' / 'packeteer' / 'net' / 'socket_address.h',
+  'include' / 'packeteer' / 'net' / 'network.h',
+
   subdir: 'packeteer' / 'net',
 )
 
 install_headers(
-  'packeteer' / 'util' / 'url.h',
-  'packeteer' / 'util' / 'operators.h',
+  'include' / 'packeteer' / 'util' / 'operators.h',
+  'include' / 'packeteer' / 'util' / 'hash.h',
+  'include' / 'packeteer' / 'util' / 'url.h',
+
   subdir: 'packeteer' / 'util',
 )
 
 install_headers(
-  'packeteer' / 'thread' / 'binder.h',
-  'packeteer' / 'thread' / 'tasklet.h',
-  'packeteer' / 'thread' / 'chrono.h',
-  subdir: 'packeteer' / 'thread',
+  'include' / 'packeteer' / 'detail' / 'netincludes.h',
+
+  subdir: 'packeteer' / 'detail',
 )
 
 
 if have_epoll_create
-  libsrc += ['packeteer' / 'detail' / 'io_epoll.cpp']
+  libsrc += ['lib' / 'detail' / 'io_epoll.cpp']
 endif
 
 if have_select
-  libsrc += ['packeteer' / 'detail' / 'io_select.cpp']
+  libsrc += ['lib' / 'detail' / 'io_select.cpp']
 endif
 
 if have_poll
-  libsrc +=  ['packeteer' / 'detail' / 'io_poll.cpp']
+  libsrc +=  ['lib' / 'detail' / 'io_poll.cpp']
 endif
 
 if have_kqueue
-  libsrc +=  ['packeteer' / 'detail' / 'io_kqueue.cpp']
+  libsrc +=  ['lib' / 'detail' / 'io_kqueue.cpp']
 endif
 
 posixsrc = [
-  'packeteer' / 'posix' / 'handle.cpp',
-  'packeteer' / 'posix' / 'detail' / 'connector.cpp',
-  'packeteer' / 'posix' / 'detail' / 'connector_socket.cpp',
-  'packeteer' / 'posix' / 'detail' / 'connector_pipe.cpp',
-  'packeteer' / 'posix' / 'detail' / 'connector_tcp.cpp',
-  'packeteer' / 'posix' / 'detail' / 'connector_udp.cpp',
-  'packeteer' / 'posix' / 'detail' / 'connector_anon.cpp',
-  'packeteer' / 'posix' / 'detail' / 'connector_local.cpp',
+  'lib' / 'posix' / 'handle.cpp',
+  'lib' / 'posix' / 'detail' / 'connector.cpp',
+  'lib' / 'posix' / 'detail' / 'connector_socket.cpp',
+  'lib' / 'posix' / 'detail' / 'connector_pipe.cpp',
+  'lib' / 'posix' / 'detail' / 'connector_tcp.cpp',
+  'lib' / 'posix' / 'detail' / 'connector_udp.cpp',
+  'lib' / 'posix' / 'detail' / 'connector_anon.cpp',
+  'lib' / 'posix' / 'detail' / 'connector_local.cpp',
 ]
 
 winsrc = [
-  'packeteer' / 'win32' / 'handle.cpp',
-  'packeteer' / 'win32' / 'detail' / 'connector.cpp',
-  'packeteer' / 'win32' / 'detail' / 'connector_socket.cpp',
-  'packeteer' / 'win32' / 'detail' / 'connector_pipe.cpp',
-  'packeteer' / 'win32' / 'detail' / 'connector_tcp.cpp',
-  'packeteer' / 'win32' / 'detail' / 'connector_udp.cpp',
-  'packeteer' / 'win32' / 'detail' / 'connector_anon.cpp',
+  'lib' / 'win32' / 'handle.cpp',
+  'lib' / 'win32' / 'detail' / 'connector.cpp',
+  'lib' / 'win32' / 'detail' / 'connector_socket.cpp',
+  'lib' / 'win32' / 'detail' / 'connector_pipe.cpp',
+  'lib' / 'win32' / 'detail' / 'connector_tcp.cpp',
+  'lib' / 'win32' / 'detail' / 'connector_udp.cpp',
+  'lib' / 'win32' / 'detail' / 'connector_anon.cpp',
 ]
 
 
@@ -427,7 +436,7 @@ elif host_type == 'win32'
 endif
 
 lib = library('packeteer', libsrc,
-    include_directories: [],
+    include_directories: [includes, libincludes],
     dependencies: [thread],
     link_args: link_args,
     version: LIB_VERSION,
@@ -435,7 +444,8 @@ lib = library('packeteer', libsrc,
     install: true)
 
 packeteer_dep = declare_dependency(
-    sources: [lib], # FIXME headers
+    include_directories: [includes],
+    sources: [lib],
     version: LIB_VERSION,
 )
 
@@ -475,7 +485,7 @@ if not meson.is_subproject()
   ]
 
   testsuite = executable('testsuite', testsrc,
-      include_directories: [],
+      include_directories: [includes, libincludes],
       dependencies: [
         gtest.get_variable('gtest_dep')
       ],
