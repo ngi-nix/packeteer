@@ -19,7 +19,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/concurrent_queue.h>
+#include "../../lib/concurrent_queue.h"
 
 #include <gtest/gtest.h>
 

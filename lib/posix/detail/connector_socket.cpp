@@ -394,7 +394,7 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr) const
 
   // Accept connection
   new_fd = -1;
-  net::detail::address_type buf;
+  net::detail::address_data buf;
   ::socklen_t len = 0;
 
   while (true) {

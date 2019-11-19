@@ -22,6 +22,8 @@
 #ifndef PACKETEER_DETAIL_NETINCLUDES_H
 #define PACKETEER_DETAIL_NETINCLUDES_H
 
+#include <build-config.h>
+
 #if defined(PACKETEER_HAVE_ARPA_INET_H)
 #include <arpa/inet.h>
 #endif

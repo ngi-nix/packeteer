@@ -18,11 +18,12 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#include <gtest/gtest.h>
 
 #include <packeteer/connector.h>
 #include <packeteer/scheduler.h>
 
-#include <gtest/gtest.h>
+#include "../lib/macros.h"
 
 #include <unistd.h>
 
@@ -33,8 +34,8 @@
 #include <chrono>
 #include <thread>
 
-#include "value_tests.h"
-#include "test_name.h"
+#include "../value_tests.h"
+#include "../test_name.h"
 
 
 using namespace packeteer;

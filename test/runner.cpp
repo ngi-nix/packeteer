@@ -19,30 +19,20 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#include <iostream>
+
+#include <gtest/gtest.h>
+
 #include <packeteer.h>
 
-#include "net/netincludes.h"
-
-namespace packeteer {
-
-#if defined(PACKETEER_WIN32)
-bool init()
+int main(int argc, char **argv)
 {
-  WSADATA data;
-  // Request Winsock 2.2
-  int res = WSAStartup(MAKEWORD(2, 2), &data);
-  return (res == 0);
+  std::cout << packeteer::copyright_string() << std::endl;
+  if (!packeteer::init()) {
+    std::cerr << "Error initializing packeteer, aborting!" << std::endl;
+    return 1;
+  }
+
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
-
-
-void deinit()
-{
-  WSACleanup();
-}
-
-#else
-bool init() { return true; }
-void deinit() {}
-#endif
-
-} // namespace packeteer

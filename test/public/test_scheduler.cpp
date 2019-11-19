@@ -19,17 +19,18 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/scheduler.h>
-
 #include <gtest/gtest.h>
+
+#include <packeteer/scheduler.h>
+#include <packeteer/connector.h>
+
+#include "../lib/macros.h"
 
 #include <utility>
 #include <atomic>
 
 #include <thread>
 #include <chrono>
-
-#include <packeteer/connector.h>
 
 namespace pk = packeteer;
 namespace sc = std::chrono;

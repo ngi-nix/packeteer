@@ -19,11 +19,11 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/error.h>
-
-#include <packeteer/detail/scheduler_impl.h>
-
 #include <gtest/gtest.h>
+
+#include "../../lib/detail/scheduler_impl.h"
+
+#include <packeteer/error.h>
 
 #include <utility>
 #include <chrono>

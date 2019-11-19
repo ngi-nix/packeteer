@@ -38,6 +38,7 @@
 #include <packeteer/util/hash.h>
 
 #include <packeteer/error.h>
+#include <packeteer/net/address_type.h>
 #include <packeteer/net/socket_address.h>
 
 #include "macros.h"
@@ -192,7 +193,7 @@ struct connector::connector_impl
       auto addr = net::socket_address(m_url.authority);
 
       // Make sure the parsed address type matches the protocol.
-      if (net::socket_address::SAT_INET4 == addr.type()) {
+      if (net::AT_INET4 == addr.type()) {
         if (CT_TCP4 != ctype
             && CT_TCP != ctype
             && CT_UDP4 != ctype
@@ -201,7 +202,7 @@ struct connector::connector_impl
           throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
         }
       }
-      else if (net::socket_address::SAT_INET6 == addr.type()) {
+      else if (net::AT_INET6 == addr.type()) {
         if (CT_TCP6 != ctype
             && CT_TCP != ctype
             && CT_UDP6 != ctype
@@ -467,7 +468,7 @@ connector::accept() const
   //    m_impl and bump the ref count. However, if we have a different address
   //    (see above), that won't work.
   connector result;
-  if (net::socket_address::SAT_UNSPEC == peer.type()) {
+  if (net::AT_UNSPEC == peer.type()) {
     if (conn == m_impl->m_conn) {
       // Connectors and address are identical
       result.m_impl = m_impl;

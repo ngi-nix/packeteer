@@ -21,6 +21,9 @@
 
 #include <packeteer/net/socket_address.h>
 
+// For AF_UNSPEC, etc.
+#include "../lib/net/netincludes.h"
+
 #include <gtest/gtest.h>
 
 #include <cstring>
@@ -29,8 +32,8 @@
 #include <string>
 #include <set>
 
-#include "value_tests.h"
-#include "test_name.h"
+#include "../value_tests.h"
+#include "../test_name.h"
 
 namespace pnet = packeteer::net;
 
@@ -42,29 +45,29 @@ namespace {
 
 struct parsing_test_data
 {
-  int                                       type;
-  pnet::socket_address::socket_address_type sa_type;
-  char const *                              address;
-  char const *                              expected;
-  uint16_t                                  port;
+  int                 type;
+  pnet::address_type  sa_type;
+  char const *        address;
+  char const *        expected;
+  uint16_t            port;
 } parsing_tests[] = {
-  { AF_INET,  pnet::socket_address::SAT_INET4, "192.168.0.1", "192.168.0.1", 12344, },
-  { AF_INET,  pnet::socket_address::SAT_INET4, "192.168.0.1", "192.168.0.1", 12345, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+  { AF_INET,  pnet::AT_INET4, "192.168.0.1", "192.168.0.1", 12344, },
+  { AF_INET,  pnet::AT_INET4, "192.168.0.1", "192.168.0.1", 12345, },
+  { AF_INET6, pnet::AT_INET6, "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12345, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:db8:85a3:0:0:8a2e:370:7334",
+  { AF_INET6, pnet::AT_INET6, "2001:db8:85a3:0:0:8a2e:370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12345, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:db8:85a3::8a2e:370:7334",
+  { AF_INET6, pnet::AT_INET6, "2001:db8:85a3::8a2e:370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12344, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "2001:db8:85a3::8a2e:370:7334",
+  { AF_INET6, pnet::AT_INET6, "2001:db8:85a3::8a2e:370:7334",
     "2001:db8:85a3::8a2e:370:7334", 12345, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "0:0:0:0:0:0:0:1", "::1", 12345, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "::1", "::1", 12345, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "0:0:0:0:0:0:0:0", "::", 12345, },
-  { AF_INET6, pnet::socket_address::SAT_INET6, "::", "::", 12345, },
+  { AF_INET6, pnet::AT_INET6, "0:0:0:0:0:0:0:1", "::1", 12345, },
+  { AF_INET6, pnet::AT_INET6, "::1", "::1", 12345, },
+  { AF_INET6, pnet::AT_INET6, "0:0:0:0:0:0:0:0", "::", 12345, },
+  { AF_INET6, pnet::AT_INET6, "::", "::", 12345, },
 #if defined(PACKETEER_POSIX)
-  { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "/foo/bar", "/foo/bar", 0 },
-  { AF_LOCAL, pnet::socket_address::SAT_LOCAL, "something else", "something else", 0 },
+  { AF_LOCAL, pnet::AT_LOCAL, "/foo/bar", "/foo/bar", 0 },
+  { AF_LOCAL, pnet::AT_LOCAL, "something else", "something else", 0 },
 #endif
 };
 
@@ -74,17 +77,17 @@ full_expected(parsing_test_data const & td, uint16_t port = 0)
 {
   std::stringstream s;
 
-  if (pnet::socket_address::SAT_INET6 == td.sa_type) {
+  if (pnet::AT_INET6 == td.sa_type) {
     s << "[";
   }
 
   s << td.expected;
 
-  if (pnet::socket_address::SAT_INET6 == td.sa_type) {
+  if (pnet::AT_INET6 == td.sa_type) {
     s << "]";
   }
 
-  if (pnet::socket_address::SAT_LOCAL != td.sa_type) {
+  if (pnet::AT_LOCAL != td.sa_type) {
     s << ":" << port;
   }
 
@@ -102,7 +105,7 @@ std::string generate_name_parsing(testing::TestParamInfo<parsing_test_data> cons
   name += "_";
   name += info.param.address;
 
-  if (socket_address::SAT_LOCAL != info.param.sa_type) {
+  if (AT_LOCAL != info.param.sa_type) {
     name += "_port_";
     name += std::to_string(info.param.port);
   }
@@ -160,7 +163,7 @@ TEST_P(SocketAddressParsing, verify_CIDR)
   // Tests that the verify_cidr() function works as expected.
   using namespace pnet;
   auto td = GetParam();
-  if (socket_address::SAT_LOCAL == td.sa_type) {
+  if (AT_LOCAL == td.sa_type) {
     return; // Skip these values
   }
 
@@ -179,7 +182,7 @@ TEST_P(SocketAddressParsing, raw_construction)
   socket_address address = create_address(td);
 
   ASSERT_EQ(td.sa_type, address.type());
-  if (socket_address::SAT_LOCAL != td.sa_type) {
+  if (AT_LOCAL != td.sa_type) {
     ASSERT_EQ(std::string(td.expected), address.cidr_str());
   }
   ASSERT_EQ(td.port, address.port());
@@ -202,7 +205,7 @@ TEST_P(SocketAddressParsing, string_construction_without_port)
   socket_address address(td.address);
 
   ASSERT_EQ(td.sa_type, address.type());
-  if (socket_address::SAT_LOCAL != td.sa_type) {
+  if (AT_LOCAL != td.sa_type) {
    ASSERT_EQ(std::string(td.expected), address.cidr_str());
   }
   ASSERT_EQ(0, address.port()); // No port in ctor
@@ -214,7 +217,7 @@ TEST_P(SocketAddressParsing, string_construction_without_port)
   ASSERT_EQ(s2, s.str());
 
   // Let's also test the verify_netmask() function.
-  if (socket_address::SAT_LOCAL != td.sa_type) {
+  if (AT_LOCAL != td.sa_type) {
     size_t max = AF_INET == td.type ? 32 : 128;
     for (size_t j = 0 ; j <= max ; ++j) {
       ASSERT_TRUE(address.verify_netmask(j));
@@ -236,7 +239,7 @@ TEST_P(SocketAddressParsing, string_construction_with_port)
   socket_address address(td.address, td.port);
 
   ASSERT_EQ(td.sa_type, address.type());
-  if (socket_address::SAT_LOCAL != td.sa_type) {
+  if (AT_LOCAL != td.sa_type) {
     ASSERT_EQ(std::string(td.expected), address.cidr_str());
   }
   ASSERT_EQ(td.port, address.port());
@@ -249,7 +252,7 @@ TEST_P(SocketAddressParsing, string_construction_with_port)
   ASSERT_EQ(s2, s.str());
 
   // Let's also test the verify_netmask() function.
-  if (socket_address::SAT_LOCAL != td.sa_type) {
+  if (AT_LOCAL != td.sa_type) {
     size_t max = AF_INET == td.type ? 32 : 128;
     for (size_t j = 0 ; j <= max ; ++j) {
       ASSERT_TRUE(address.verify_netmask(j));
@@ -317,15 +320,15 @@ std::string generate_name_value(testing::TestParamInfo<value_test_data> const & 
 
   std::string name;
   switch (info.param.addr1.type()) {
-    case socket_address::SAT_INET4:
+    case AT_INET4:
       name = "ipv4_";
       break;
 
-    case socket_address::SAT_INET6:
+    case AT_INET6:
       name = "ipv6_";
       break;
 
-    case socket_address::SAT_LOCAL:
+    case AT_LOCAL:
       name = "local_";
       break;
 

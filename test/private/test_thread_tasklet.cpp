@@ -21,11 +21,11 @@
 
 #include <gtest/gtest.h>
 
-#include "compare_times.h"
+#include "../../lib/thread/tasklet.h"
 
 #include <cstdlib>
 
-#include <packeteer/thread/tasklet.h>
+#include "../compare_times.h"
 
 #define THREAD_TEST_SHORT_DELAY std::chrono::milliseconds(1)
 #define THREAD_TEST_LONG_DELAY  std::chrono::milliseconds(100)

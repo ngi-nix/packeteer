@@ -24,16 +24,24 @@
 
 // *** Config
 #include <packeteer.h>
-#include <packeteer/detail/netincludes.h>
-#include <packeteer/util/operators.h>
+
+#if defined(PACKETEER_IS_BUILDING)
+#include <net/netincludes.h>
+#endif // PACKETEER_IS_BUILDING
+
+#include <packeteer/net/socket_address.h>
 
 // *** C++ includes
 #include <string>
 #include <memory>
 #include <stdexcept>
 
-namespace packeteer {
-namespace net {
+// *** Own includes
+#include <packeteer/util/operators.h>
+#include <packeteer/net/address_type.h>
+
+
+namespace packeteer::net {
 
 /*****************************************************************************
  * Forward declarations
@@ -49,7 +57,7 @@ class socket_address;
  * within a network.
  **/
 class network
-  : public ::packeteer::util::operators<socket_address>
+  : public ::packeteer::util::operators<network>
 {
 public:
   /**
@@ -91,9 +99,11 @@ public:
 
 
   /**
-   * Returns the network family. This is one of AF_INET or AF_INET6.
+   * Returns the network family as a socket_address_type. This is one of
+   * AT_INET4 or AT_INET6. May return AT_UNSPEC for badly constructed
+   * networks.
    **/
-  sa_family_t family() const;
+  address_type family() const;
 
 
   /**
@@ -168,6 +178,6 @@ private:
 std::ostream & operator<<(std::ostream & os, network const & addr);
 
 
-}} // namespace packeteer::net
+} // namespace packeteer::net
 
 #endif // guard

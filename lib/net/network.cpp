@@ -33,7 +33,7 @@
 
 #include <packeteer/net/socket_address.h>
 
-#include "detail/cidr.h"
+#include "cidr.h"
 
 
 #define NETWORK_LIMIT 64
@@ -171,7 +171,7 @@ network::reset(std::string const & netspec)
 bool
 network::verify_netspec(std::string const & netspec)
 {
-  detail::address_type dummy_addr;
+  detail::address_data dummy_addr;
   detail::parse_result_t result(dummy_addr);
   error_t err = detail::parse_extended_cidr(netspec, false, result);
   return (err == ERR_SUCCESS);
@@ -187,10 +187,22 @@ network::mask_size() const
 
 
 
-sa_family_t
+address_type
 network::family() const
 {
-  return m_impl->m_family;
+  switch (m_impl->m_family) {
+    case AF_INET:
+      return AT_INET4;
+
+    case AF_INET6:
+      return AT_INET6;
+
+    default:
+      break;
+  }
+
+  // XXX AT_LOCAL makes little sense
+  return AT_UNSPEC;
 }
 
 

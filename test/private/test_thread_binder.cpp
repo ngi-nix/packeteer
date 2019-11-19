@@ -21,7 +21,7 @@
 
 #include <gtest/gtest.h>
 
-#include <packeteer/thread/binder.h>
+#include "../../lib/thread/binder.h"
 
 namespace {
 

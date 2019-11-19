@@ -57,7 +57,7 @@ public:
    * Constructor. The 'buf' parameter is expected to be a struct sockaddr of
    * the given length.
    **/
-  peer_address(connector_type const & type, void const * buf, socklen_t len);
+  peer_address(connector_type const & type, void const * buf, size_t len);
 
 
   /**

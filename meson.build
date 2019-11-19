@@ -53,14 +53,17 @@ posix_common_args = [
 ]
 if compiler_id == 'clang'
   cpp_args = posix_common_args + []
+  cpp_lib_args = ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'gcc'
   cpp_args = posix_common_args + [
     '-Wstrict-null-sentinel',
   ]
+  cpp_lib_args = ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'msvc'
   cpp_args = [
     '/W4', '/wd4250', '/wd4251', '/wd4275',
   ]
+  cpp_lib_args = ['/DPACKETEER_IS_BUILDING=1']
 endif
 
 bt = get_option('buildtype')
@@ -338,7 +341,7 @@ libsrc = [
   'lib' / 'detail' / 'scheduler_impl.cpp',
   'lib' / 'net' / 'socket_address.cpp',
   'lib' / 'net' / 'network.cpp',
-  'lib' / 'net' / 'detail' / 'cidr.cpp',
+  'lib' / 'net' / 'cidr.cpp',
   'lib' / 'thread' / 'tasklet.cpp',
   'lib' / 'util' / 'url.cpp',
 ]
@@ -384,11 +387,6 @@ install_headers(
   subdir: 'packeteer' / 'util',
 )
 
-install_headers(
-  'include' / 'packeteer' / 'detail' / 'netincludes.h',
-
-  subdir: 'packeteer' / 'detail',
-)
 
 
 if have_epoll_create
@@ -439,6 +437,7 @@ lib = library('packeteer', libsrc,
     include_directories: [includes, libincludes],
     dependencies: [thread],
     link_args: link_args,
+    cpp_args: cpp_lib_args,
     version: LIB_VERSION,
     soversion: ABI_VERSION,
     install: true)
@@ -466,26 +465,34 @@ if not meson.is_subproject()
     test_args += ['-D_POSIX_C_SOURCE=200809L']
   endif
 
-  testsrc = [
-    'test' / 'test_error.cpp',
-    'test' / 'test_cidr.cpp',
-    'test' / 'test_handle.cpp',
-    'test' / 'test_url.cpp',
-    'test' / 'test_socket_address.cpp',
-    'test' / 'test_network.cpp',
-    'test' / 'test_callback.cpp',
-    'test' / 'test_concurrent_queue.cpp',
-    'test' / 'test_scheduler_containers.cpp',
-    'test' / 'test_scheduler.cpp',
-    'test' / 'test_peer_address.cpp',
-    'test' / 'test_connector.cpp',
-    'test' / 'test_binder.cpp',
-    'test' / 'test_tasklet.cpp',
-    'test' / 'testsuite.cpp',
+  # We're building two tests:
+  # - public_tests include *only* public headers
+  # - private_tests include private headers
+
+  public_test_src = [
+    'test' / 'public' / 'test_error.cpp',
+    'test' / 'public' / 'test_handle.cpp',
+    'test' / 'public' / 'test_util_url.cpp',
+    'test' / 'public' / 'test_net_network.cpp',
+    'test' / 'public' / 'test_net_socket_address.cpp',
+    'test' / 'public' / 'test_callback.cpp',
+    'test' / 'public' / 'test_peer_address.cpp',
+    'test' / 'public' / 'test_scheduler.cpp',
+    'test' / 'public' / 'test_connector.cpp',
+    'test' / 'runner.cpp',
   ]
 
-  testsuite = executable('testsuite', testsrc,
-      include_directories: [includes, libincludes],
+  private_test_src = [
+    'test' / 'private' / 'test_concurrent_queue.cpp',
+    'test' / 'private' / 'test_scheduler_containers.cpp',
+    'test' / 'private' / 'test_net_cidr.cpp',
+    'test' / 'private' / 'test_thread_binder.cpp',
+    'test' / 'private' / 'test_thread_tasklet.cpp',
+    'test' / 'runner.cpp',
+  ]
+
+  public_tests = executable('public_tests', public_test_src,
+      include_directories: [includes],  # public headers only!
       dependencies: [
         gtest.get_variable('gtest_dep')
       ],
@@ -493,7 +500,18 @@ if not meson.is_subproject()
       cpp_args: test_args,
       link_args: link_args,
   )
-  test('testsuite', testsuite)
+  test('public_tests', public_tests)
+
+  private_tests = executable('private_tests', private_test_src,
+      include_directories: [includes, libincludes],  # public and private headers
+      dependencies: [
+        gtest.get_variable('gtest_dep')
+      ],
+      link_with: lib,
+      cpp_args: test_args,
+      link_args: link_args,
+  )
+  test('private_tests', private_tests)
 
 endif
 

@@ -44,10 +44,10 @@ int
 select_domain(::packeteer::net::socket_address const & addr)
 {
   switch (addr.type()) {
-    case ::packeteer::net::socket_address::SAT_INET4:
+    case ::packeteer::net::AT_INET4:
       return AF_INET;
 
-    case ::packeteer::net::socket_address::SAT_INET6:
+    case ::packeteer::net::AT_INET6:
       return AF_INET6;
 
     default:

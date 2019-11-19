@@ -43,6 +43,7 @@
 
 // Not all, but the very basic headers are always included.
 #include <packeteer/error.h>
+#include <packeteer/version.h>
 
 /**
  * Decide what to include globally

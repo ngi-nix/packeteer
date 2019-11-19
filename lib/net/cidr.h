@@ -23,10 +23,13 @@
 #define PACKETEER_NET_DETAIL_CIDR_H
 
 // *** Config
+#include <build-config.h>
+
 #include <packeteer.h>
 #include <packeteer/error.h>
-#include <packeteer/detail/netincludes.h>
 #include <packeteer/net/socket_address.h>
+
+#include "netincludes.h"
 
 // *** C++ includes
 #include <string>
@@ -68,7 +71,7 @@ namespace detail {
 
 struct parse_result_t
 {
-  inline parse_result_t(address_type & data)
+  inline parse_result_t(address_data & data)
     : proto(AF_UNSPEC)
     , address(data)
     , mask(-1)
@@ -76,7 +79,7 @@ struct parse_result_t
   }
 
   sa_family_t     proto;    // Protocol detection.
-  address_type &  address;  // The address.
+  address_data &  address;  // The address.
   ssize_t         mask;     // For AF_INET*
 };
 

@@ -3,9 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -19,21 +17,27 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <iostream>
 
-#include <gtest/gtest.h>
+#ifndef PACKETEER_NET_ADDRESS_TYPE_H
+#define PACKETEER_NET_ADDRESS_TYPE_H
 
-#include <packeteer/packeteer.h>
-#include <packeteer/version.h>
+// *** Config
+#include <packeteer.h>
 
-int main(int argc, char **argv)
+namespace packeteer::net {
+
+/**
+ * Socket or network address type.
+ */
+enum address_type
 {
-  std::cout << packeteer::copyright_string() << std::endl;
-  if (!packeteer::init()) {
-    std::cerr << "Error initializing packeteer, aborting!" << std::endl;
-    return 1;
-  }
+  AT_UNSPEC = -1,
+  AT_INET4 = 0,
+  AT_INET6,
+  AT_LOCAL, // Only works on POSIX, and not for networks.
+};
 
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+
+} // namespace packeteer::net
+
+#endif // guard

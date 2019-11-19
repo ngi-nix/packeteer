@@ -24,19 +24,23 @@
 
 // *** Config
 #include <packeteer.h>
-#include <packeteer/detail/netincludes.h>
+
+#if defined(PACKETEER_IS_BUILDING)
+#include <net/netincludes.h>
+#endif // PACKETEER_IS_BUILDING
 
 // *** C++ includes
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <cstddef>
 
 // *** Own includes
 #include <packeteer/error.h>
 #include <packeteer/util/operators.h>
+#include <packeteer/net/address_type.h>
 
-namespace packeteer {
-namespace net {
+namespace packeteer::net {
 
 /*****************************************************************************
  * Forward declarations
@@ -52,15 +56,20 @@ namespace detail {
  * Union for avoiding casts and breaking aliasing rules. We know by definition
  * that sockaddr_storage is the largest of these.
  **/
-union address_type
+union address_data
 {
+#if defined(PACKETEER_IS_BUILDING)
   sockaddr          sa;
   sockaddr_in       sa_in;
   sockaddr_in6      sa_in6;
   sockaddr_storage  sa_storage;
 #if defined(PACKETEER_POSIX)
   sockaddr_un       sa_un;
-#endif
+#endif // PACKETEER_POSIX
+#endif // PACKETEER_IS_BUILDING
+  // For the padding/dummy, see e.g.
+  // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms740504(v=vs.85)
+  std::byte         _dummy[128];
 };
 
 } // namespace detail
@@ -76,14 +85,6 @@ class socket_address
   : public ::packeteer::util::operators<socket_address>
 {
 public:
-  // Socket address type
-  enum socket_address_type
-  {
-    SAT_UNSPEC = -1,
-    SAT_INET4 = 0,
-    SAT_INET6,
-    SAT_LOCAL, // Only works on POSIX
-  };
 
   /**
    * Default constructor. The resulting socket address does not point anywhere.
@@ -99,7 +100,7 @@ public:
    * Constructor. The 'buf' parameter is expected to be a struct sockaddr of
    * the given length.
    **/
-  socket_address(void const * buf, socklen_t len);
+  socket_address(void const * buf, size_t len);
 
 
   /**
@@ -143,7 +144,7 @@ public:
   /**
    * Returns the socket address type
    **/
-  socket_address_type type() const;
+  address_type type() const;
 
 
   /**
@@ -155,12 +156,12 @@ public:
   /**
    * Returns the size of the raw address buffer.
    **/
-  socklen_t bufsize() const;
+  size_t bufsize() const;
 
   /**
    * Returns the available size of the raw address buffer.
    **/
-  socklen_t bufsize_available() const;
+  size_t bufsize_available() const;
 
 
   /**
@@ -172,7 +173,7 @@ public:
 
   /**
    * Sets/overwrites the port used for this socket address. Returns
-   * Returns ERR_INVALID_OPTION if used on the wrong (SAT_LOCAL) socket
+   * Returns ERR_INVALID_OPTION if used on the wrong (AT_LOCAL) socket
    * address type.
    **/
   packeteer::error_t set_port(uint16_t port);
@@ -204,7 +205,7 @@ public:
 
 
 private:
-  detail::address_type data;
+  detail::address_data data;
 
   friend std::ostream & operator<<(std::ostream & os, socket_address const & addr);
   friend class network;
@@ -217,7 +218,7 @@ private:
 std::ostream & operator<<(std::ostream & os, socket_address const & addr);
 
 
-}} // namespace packeteer::net
+} // namespace packeteer::net
 
 
 /*******************************************************************************

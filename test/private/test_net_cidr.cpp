@@ -27,9 +27,9 @@
 
 #include <gtest/gtest.h>
 
-#include <packeteer/net/detail/cidr.h>
+#include "../../lib/net/cidr.h"
 
-#include "test_name.h"
+#include "../test_name.h"
 
 namespace pnet = packeteer::net;
 
@@ -131,7 +131,7 @@ TEST_P(CIDR, parsing_without_explicit_port)
   // std::cout << "=== test: " << td.netspec << std::endl;
 
   // Parse without specifying port
-  pnet::detail::address_type address;
+  pnet::detail::address_data address;
   pnet::detail::parse_result_t result(address);
   packeteer::error_t err = pnet::detail::parse_extended_cidr(td.netspec,
       td.no_mask, result);
@@ -159,7 +159,7 @@ TEST_P(CIDR, parsing_with_explicit_port)
 
   // Parsing the same thing again with port should change the test
   // results a little.
-  pnet::detail::address_type address;
+  pnet::detail::address_data address;
   pnet::detail::parse_result_t result(address);
   ::memset(&address, 0, sizeof(sockaddr_storage));
   packeteer::error_t err = pnet::detail::parse_extended_cidr(td.netspec,

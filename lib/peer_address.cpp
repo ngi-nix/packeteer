@@ -49,53 +49,53 @@ static const schemes_map_t sc_schemes =
 
 inline connector_type
 best_match(connector_type const & ct_type,
-    net::socket_address::socket_address_type const & sa_type)
+    net::address_type const & sa_type)
 {
   switch (ct_type) {
     case CT_TCP:
       // TCP must have INET4 or INET6 addresses
-      if (net::socket_address::SAT_INET4 == sa_type) {
+      if (net::AT_INET4 == sa_type) {
         return CT_TCP4;
       }
-      else if (net::socket_address::SAT_INET6 == sa_type) {
+      else if (net::AT_INET6 == sa_type) {
         return CT_TCP6;
       }
       break;
 
     case CT_TCP4:
       // TCP4 must have INET4 address
-      if (net::socket_address::SAT_INET4 == sa_type) {
+      if (net::AT_INET4 == sa_type) {
         return CT_TCP4;
       }
       break;
 
     case CT_TCP6:
       // TCP6 must have INET6 address
-      if (net::socket_address::SAT_INET6 == sa_type) {
+      if (net::AT_INET6 == sa_type) {
         return CT_TCP6;
       }
       break;
 
     case CT_UDP:
       // UDP must have INET4 or INET6 addresses
-      if (net::socket_address::SAT_INET4 == sa_type) {
+      if (net::AT_INET4 == sa_type) {
         return CT_UDP4;
       }
-      else if (net::socket_address::SAT_INET6 == sa_type) {
+      else if (net::AT_INET6 == sa_type) {
         return CT_UDP6;
       }
       break;
 
     case CT_UDP4:
       // UDP4 must have INET4 address
-      if (net::socket_address::SAT_INET4 == sa_type) {
+      if (net::AT_INET4 == sa_type) {
         return CT_UDP4;
       }
       break;
 
     case CT_UDP6:
       // UDP6 must have INET6 address
-      if (net::socket_address::SAT_INET6 == sa_type) {
+      if (net::AT_INET6 == sa_type) {
         return CT_UDP6;
       }
       break;
@@ -103,7 +103,7 @@ best_match(connector_type const & ct_type,
     case CT_LOCAL:
     case CT_PIPE:
       // LOCAL and PIPE must have LOCAL address
-      if (net::socket_address::SAT_LOCAL == sa_type) {
+      if (net::AT_LOCAL == sa_type) {
         return ct_type;
       }
       break;
@@ -111,7 +111,7 @@ best_match(connector_type const & ct_type,
     case CT_ANON:
     case CT_UNSPEC:
       // Anonymous pipes need unspecified address; so does CT_UNSPEC
-      if (net::socket_address::SAT_UNSPEC == sa_type) {
+      if (net::AT_UNSPEC == sa_type) {
         return ct_type;
       }
       break;
@@ -122,7 +122,7 @@ best_match(connector_type const & ct_type,
 
 inline connector_type
 verify_best(connector_type const & ct_type,
-    net::socket_address::socket_address_type const & sa_type)
+    net::address_type const & sa_type)
 {
   auto best = best_match(ct_type, sa_type);
   if (CT_UNSPEC == best && ct_type != best) {
@@ -176,7 +176,7 @@ peer_address::peer_address(
 
 
 peer_address::peer_address(connector_type const & type,
-    void const * buf, socklen_t len)
+    void const * buf, size_t len)
   : m_sockaddr(buf, len)
   , m_connector_type(type)
 {

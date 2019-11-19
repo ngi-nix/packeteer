@@ -28,7 +28,7 @@
 #include <packeteer/error.h>
 #include <packeteer/util/hash.h>
 
-#include "detail/cidr.h"
+#include "cidr.h"
 
 namespace packeteer {
 namespace net {
@@ -52,7 +52,7 @@ char const * unwrap<std::string>(std::string const & source)
 
 template <typename T>
 void
-parse_address(detail::address_type & data, T const & source, uint16_t port)
+parse_address(detail::address_data & data, T const & source, uint16_t port)
 {
   // Need to zero data.
   ::memset(&data.sa_storage, 0, sizeof(data));
@@ -86,7 +86,7 @@ socket_address::socket_address()
 
 
 
-socket_address::socket_address(void const * buf, socklen_t len)
+socket_address::socket_address(void const * buf, size_t len)
 {
   if (static_cast<size_t>(len) > sizeof(data)) {
     throw exception(ERR_INVALID_VALUE, "socket_address: input buffer too large.");
@@ -120,7 +120,7 @@ socket_address::socket_address(char const * address, uint16_t port /* = 0 */)
 bool
 socket_address::verify_cidr(std::string const & address)
 {
-  detail::address_type dummy_addr;
+  detail::address_data dummy_addr;
   detail::parse_result_t result(dummy_addr);
   error_t err = detail::parse_extended_cidr(address, true, result);
   return (ERR_SUCCESS == err);
@@ -220,7 +220,7 @@ socket_address::full_str() const
 
 
 
-socklen_t
+size_t
 socket_address::bufsize() const
 {
   switch (data.sa_storage.ss_family) {
@@ -246,7 +246,7 @@ socket_address::bufsize() const
 
 
 
-socklen_t
+size_t
 socket_address::bufsize_available() const
 {
   return sizeof(data);
@@ -411,23 +411,23 @@ socket_address::operator++()
 
 
 
-socket_address::socket_address_type
+address_type
 socket_address::type() const
 {
   switch (data.sa_storage.ss_family) {
     case AF_INET:
-      return SAT_INET4;
+      return AT_INET4;
 
     case AF_INET6:
-      return SAT_INET6;
+      return AT_INET6;
 
 #if defined(PACKETEER_POSIX)
     case AF_LOCAL:
-      return SAT_LOCAL;
+      return AT_LOCAL;
 #endif
 
     default:
-      return SAT_UNSPEC;
+      return AT_UNSPEC;
   }
 }
 
