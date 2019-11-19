@@ -648,9 +648,10 @@ TEST_P(Scheduler, single_threaded)
   ASSERT_CALLBACK(source1, 1, EVENT_1);
 }
 
-
-INSTANTIATE_TEST_CASE_P(packeteer, Scheduler,
-    testing::Values(
+namespace {
+  auto test_values = []
+  {
+    return testing::Values(
         packeteer::scheduler::TYPE_AUTOMATIC
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
       , packeteer::scheduler::TYPE_EPOLL
@@ -664,5 +665,10 @@ INSTANTIATE_TEST_CASE_P(packeteer, Scheduler,
 #if defined(PACKETEER_HAVE_SELECT)
       , packeteer::scheduler::TYPE_SELECT
 #endif
-    ),
+    );
+  };
+}
+
+INSTANTIATE_TEST_CASE_P(packeteer, Scheduler,
+    test_values(),
     scheduler_name);
