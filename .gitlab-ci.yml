@@ -27,6 +27,7 @@ cache:
     - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} ..
     - ninja
   artifacts:
+    name: build
     paths:
       - build/
 
@@ -56,6 +57,7 @@ build:gcc-i386:
     - ./testsuite --gtest_output=xml:testsuite-log.xml 2>testsuite-debug.log
     - if test "${coverage:=false}" == true ; then ninja coverage && cat meson-logs/coverage.txt ; fi
   artifacts:
+    name: lib_test_and_logs
     when: always
     paths:
       - build/libpacketeer.*
