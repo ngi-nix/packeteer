@@ -43,7 +43,7 @@ build:gcc:
   <<: *build-linux
   variables:
     compiler: g++
-    coverage: true
+    coverage: "true"
 
 build:gcc-i386:
   <<: *build-linux
@@ -84,7 +84,7 @@ test:gcc:
   dependencies:
     - build:gcc
   variables:
-    coverage: true
+    coverage: "true"
 
 test:gcc-i386:
   <<: *test-linux
