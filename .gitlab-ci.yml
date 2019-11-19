@@ -18,6 +18,7 @@ cache:
       apt-get -o dir::cache::archives="apt-cache" install -y
       ninja-build python3 python3-pip clang gcc gcc-multilib g++-multilib
       gcovr lcov
+      git
     - pip3 install meson
 
 
