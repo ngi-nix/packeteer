@@ -28,6 +28,7 @@ cache:
     - ninja
   artifacts:
     name: build
+    expire_in: 1 week
     paths:
       - build/
 
@@ -58,6 +59,7 @@ build:gcc-i386:
     - if test "${coverage:=false}" == true ; then ninja coverage && cat meson-logs/coverage.txt ; fi
   artifacts:
     name: lib_test_and_logs
+    expire_in: 1 week
     when: always
     paths:
       - build/libpacketeer.*
@@ -91,3 +93,21 @@ test:gcc-i386:
   stage: test
   needs:
     - build:gcc-i386
+
+
+### distribution
+release:
+  <<: *dep-linux
+  image: debian
+  stage: release
+  script:
+    - cd build
+    - ninja dist
+  needs:
+    - build:gcc
+  artifacts:
+    name: release
+    paths:
+      - build/meson-dist/packeteer-*.tar.*
+#  only:
+#    - tags
