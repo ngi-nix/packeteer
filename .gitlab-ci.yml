@@ -66,7 +66,7 @@ build:gcc-i386:
       - build/testsuite
       - build/testsuite-debug.log
       - build/testsuite-log.xml
-      - build/meson-logs/coveragereport
+      - build/meson-logs/coverage*
     reports:
       junit: build/testsuite-log.xml
 
@@ -74,21 +74,22 @@ test:clang:
   <<: *test-linux
   image: debian
   stage: test
-  dependencies:
+  needs:
     - build:clang
 
 test:gcc:
   <<: *test-linux
   image: debian
   stage: test
-  dependencies:
+  needs:
     - build:gcc
   variables:
     coverage: "true"
+  coverage: /^TOTAL.*\s+(\d+\%)$/
 
 test:gcc-i386:
   <<: *test-linux
   image: debian
   stage: test
-  dependencies:
+  needs:
     - build:gcc-i386
