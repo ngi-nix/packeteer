@@ -52,7 +52,9 @@ posix_common_args = [
   '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast', '-Wabi',
 ]
 if compiler_id == 'clang'
-  cpp_args = posix_common_args + []
+  cpp_args = posix_common_args + [
+    '-Wabi'
+  ]
   cpp_lib_args = ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'gcc'
   cpp_args = posix_common_args + [
