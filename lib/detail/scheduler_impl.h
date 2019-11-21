@@ -81,7 +81,7 @@ namespace detail {
 //
 // We handle different callback types individually, because different
 // optimizations apply for the containers that hold them.
-enum callback_type
+enum callback_type : int8_t
 {
   CB_ENTRY_UNKNOWN    = -1,
   CB_ENTRY_IO         = 0,
@@ -133,7 +133,7 @@ namespace packeteer {
 struct scheduler::scheduler_impl
 {
   // Type of action to take on an item in the in-queue
-  enum action_type
+  enum action_type : int8_t
   {
     ACTION_ADD      = 0,
     ACTION_REMOVE   = 1,
