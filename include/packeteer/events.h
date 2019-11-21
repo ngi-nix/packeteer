@@ -30,26 +30,28 @@
 
 namespace PACKETEER_API packeteer {
 
-  // Event types for which callback functions can be registered. The callback
-  // will be notified for which event(s) it was invoked.
-  enum PACKETEER_API
-  {
-    PEV_IO_READ    = (1 <<  0),  // A handle is ready for reading
-    PEV_IO_WRITE   = (1 <<  1),  // A handle is ready for writing
-    PEV_IO_ERROR   = (1 <<  2),  // A handle has produced errors
-    PEV_IO_CLOSE   = (1 <<  3),  // A handle has been closed. This event
-                                 // cannot be reliably reported.
-                                 //
-    PEV_TIMEOUT    = (1 <<  7),  // A timout has been reached that the callback was
-                                 // registered for.
-    PEV_ERROR      = (1 <<  8),  // Internal scheduler error.
+// Events are masked together into events_t. All event flags with values equal
+// to or higher than PEV_USER are user-defined event types.
+typedef uint32_t events_t;
 
-    PEV_USER       = (1 << 15), // A user-defined event was fired (see below).
-  };
 
-  // Events are masked together into events_t. All event flags with values equal
-  // to or higher than PEV_USER are user-defined event types.
-  typedef uint64_t events_t;
+// Event types for which callback functions can be registered. The callback
+// will be notified for which event(s) it was invoked.
+enum PACKETEER_API : events_t
+{
+  PEV_IO_READ    = (1 <<  0),  // A handle is ready for reading
+  PEV_IO_WRITE   = (1 <<  1),  // A handle is ready for writing
+  PEV_IO_ERROR   = (1 <<  2),  // A handle has produced errors
+  PEV_IO_CLOSE   = (1 <<  3),  // A handle has been closed. This event
+                               // cannot be reliably reported.
+                               //
+  PEV_TIMEOUT    = (1 <<  7),  // A timout has been reached that the callback was
+                               // registered for.
+  PEV_ERROR      = (1 <<  8),  // Internal scheduler error.
+
+  PEV_USER       = (1 << 15), // A user-defined event was fired (see below).
+};
+
 } // namespace packeteer
 
 #endif // guard

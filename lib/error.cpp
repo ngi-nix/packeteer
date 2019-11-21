@@ -53,7 +53,7 @@ namespace packeteer {
 char const *
 error_message(error_t code)
 {
-  if (0 > code || code >= PACKETEER_ERROR_LAST) {
+  if (code >= PACKETEER_ERROR_LAST) {
     return "unidentified error";
   }
 
@@ -74,7 +74,7 @@ error_message(error_t code)
 char const *
 error_name(error_t code)
 {
-  if (0 > code || code >= PACKETEER_ERROR_LAST) {
+  if (code >= PACKETEER_ERROR_LAST) {
     return "unidentified error";
   }
 

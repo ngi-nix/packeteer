@@ -60,7 +60,7 @@ public:
   // Implementation types. Don't use this; the automatic selection is best.
   // This is provided mainly for debugging purposes, and will be ignored on some
   // platforms.
-  enum scheduler_type
+  enum scheduler_type : int8_t
   {
     TYPE_AUTOMATIC = 0,
     TYPE_EPOLL,

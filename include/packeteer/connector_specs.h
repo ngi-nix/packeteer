@@ -29,9 +29,15 @@
 
 namespace PACKETEER_API packeteer {
 
+// Connector types can be any of the above constants, or a user-defined
+// type. User-defined types must have type values of CT_USER or higher.
+typedef int16_t connector_type;
+
 // Types of connectors. See connector.h for details, also on the naming scheme
-// for peer addresses.
-enum PACKETEER_API connector_type
+// for peer addresses. Splitting into connector_type and the anonymous enum
+// for constants enables people to e.g. use (CT_USER + 1), yet retain the
+// underlying type.
+enum PACKETEER_API : connector_type
 {
   CT_UNSPEC = -1,
   CT_TCP4 = 0,
@@ -43,10 +49,11 @@ enum PACKETEER_API connector_type
   CT_LOCAL,
   CT_PIPE,
   CT_ANON,
+  CT_USER = 256, // First user-defined connector
 };
 
 // Connector behaviour
-enum PACKETEER_API connector_behaviour
+enum PACKETEER_API connector_behaviour : uint16_t
 {
   CB_DEFAULT  = 0,         // typically the best pick
   CB_STREAM   = (1 << 0),  // STREAM connector; use read()/write()

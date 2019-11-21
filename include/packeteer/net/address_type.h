@@ -24,12 +24,13 @@
 // *** Config
 #include <packeteer.h>
 
-namespace packeteer::net {
+namespace PACKETEER_API packeteer {
+namespace PACKETEER_API net {
 
 /**
  * Socket or network address type.
  */
-enum address_type
+enum PACKETEER_API address_type : int8_t
 {
   AT_UNSPEC = -1,
   AT_INET4 = 0,
@@ -38,6 +39,6 @@ enum address_type
 };
 
 
-} // namespace packeteer::net
+}} // namespace packeteer::net
 
 #endif // guard

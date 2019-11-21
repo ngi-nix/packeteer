@@ -39,9 +39,12 @@
  *     decide what namespace/scope macros are to be expanded in.
  **/
 #if !defined(PACKETEER_START_ERRORS)
-#define PACKETEER_START_ERRORS namespace PACKETEER_API packeteer { typedef enum {
+#define PACKETEER_START_ERRORS \
+  namespace PACKETEER_API packeteer { \
+  typedef uint32_t error_t; \
+  enum PACKETEER_API : error_t {
 #define PACKETEER_ERRDEF(name, code, desc) name = code,
-#define PACKETEER_END_ERRORS PACKETEER_ERROR_LAST } error_t; }
+#define PACKETEER_END_ERRORS PACKETEER_ERROR_LAST }; }
 #define PACKETEER_ERROR_FUNCTIONS
 #endif
 
