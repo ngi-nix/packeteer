@@ -39,9 +39,7 @@
 
 #include <packeteer/error.h>
 
-namespace packeteer {
-namespace thread {
-namespace chrono {
+namespace packeteer::thread::chrono {
 
 template <typename inT, typename outT>
 inline void convert(inT const &, outT &)
@@ -74,7 +72,6 @@ inline void convert(inT const & in, ::timespec & val)
 #endif
 
 
-
-}}} // namespace packeteer::thread::chrono
+} // namespace packeteer::thread::chrono
 
 #endif // guard

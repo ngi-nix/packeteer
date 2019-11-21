@@ -21,8 +21,7 @@
 
 #include "tasklet.h"
 
-namespace packeteer {
-namespace thread {
+namespace packeteer::thread {
 
 struct tasklet::tasklet_info
 {
@@ -184,4 +183,4 @@ tasklet::nanosleep(std::chrono::nanoseconds nsecs) const
 }
 
 
-}} // namespace packeteer::thread
+} // namespace packeteer::thread

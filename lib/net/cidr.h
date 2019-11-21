@@ -34,9 +34,7 @@
 // *** C++ includes
 #include <string>
 
-namespace packeteer {
-namespace net {
-namespace detail {
+namespace packeteer::net::detail {
 
 /**
  * Parses a CIDR-notation network specification into a socketaddr_storage
@@ -83,10 +81,11 @@ struct parse_result_t
   ssize_t         mask;     // For AF_INET*
 };
 
+
 packeteer::error_t
 parse_extended_cidr(std::string const & cidr, bool no_mask,
     parse_result_t & result, uint16_t port = 0);
 
-}}} // namespace packeteer::net::detail
+} // namespace packeteer::net::detail
 
 #endif // guard

@@ -26,9 +26,7 @@
 #include <cstring>
 #include <vector>
 
-namespace packeteer {
-namespace net {
-namespace detail {
+namespace packeteer::net::detail {
 
 packeteer::error_t
 parse_extended_cidr(std::string const & cidr, bool no_mask,
@@ -163,4 +161,4 @@ parse_extended_cidr(std::string const & cidr, bool no_mask,
 }
 
 
-}}} // namespace packeteer::net::detail
+} // namespace packeteer::net::detail

@@ -35,8 +35,7 @@
 #include "binder.h"
 #include "chrono.h"
 
-namespace packeteer {
-namespace thread {
+namespace packeteer::thread {
 
 /**
  * Tasklet class
@@ -191,7 +190,7 @@ private:
   bool                                    m_mutex_owned;
 };
 
-}} // namespace packeteer::thread
+} // namespace packeteer::thread
 
 
 #endif // guard

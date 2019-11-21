@@ -28,8 +28,7 @@
 
 #include <packeteer/util/hash.h>
 
-namespace packeteer {
-namespace util {
+namespace packeteer::util {
 
 namespace {
 
@@ -280,4 +279,4 @@ operator<<(std::ostream & os, url const & data)
   return os;
 }
 
-}} // namespace packeteer::util
+} // namespace packeteer::util

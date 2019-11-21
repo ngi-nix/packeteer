@@ -29,8 +29,7 @@
 
 #include <functional>
 
-namespace packeteer {
-namespace thread {
+namespace packeteer::thread {
 
 /**
  * Generates simple lambda wrappers for pointers to member functions.
@@ -90,6 +89,6 @@ binder(T & t, retT (T::*func)(argT...))
 }
 
 
-}} // namespace packeteer::thread
+} // namespace packeteer::thread
 
 #endif // guard
