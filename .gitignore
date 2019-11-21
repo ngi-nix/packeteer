@@ -1,18 +1,5 @@
-# CMake
-CMakeCache.txt
-CMakeFiles
-Makefile
-cmake_install.cmake
-install_manifest.txt
-
-# pkg-config
-packeteer.pc
-
 # editor
 .*.sw*
 
-# native code
-*.o
-*.a
-*.lo
-*.la
+# Build directories
+build*/
