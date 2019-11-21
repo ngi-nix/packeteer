@@ -31,15 +31,12 @@
 #include <typeinfo>
 #include <functional>
 
-#include <packeteer/types.h>
 #include <packeteer/handle.h>
-#include <packeteer/error.h>
 #include <packeteer/events.h>
 #include <packeteer/util/hash.h>
 #include <packeteer/util/operators.h>
 
-namespace packeteer {
-
+namespace PACKETEER_API packeteer {
 
 namespace detail {
 
@@ -81,7 +78,8 @@ struct callback_helper_base
  *  callback cb = make_callback(&obj, &Object::function);
  *  callback cb = make_callback(&obj); // assumes operator() to be the function
  **/
-class callback : public ::packeteer::util::operators<callback>
+class PACKETEER_API callback
+  : public ::packeteer::util::operators<callback>
 {
 public:
   /*****************************************************************************
@@ -369,6 +367,7 @@ private:
  * operator().
  **/
 template <typename T>
+PACKETEER_API
 inline detail::callback_helper<T> *
 make_callback(T * object,
     typename detail::callback_helper<T>::member_function_type function)
@@ -379,6 +378,7 @@ make_callback(T * object,
 
 
 template <typename T>
+PACKETEER_API
 inline detail::callback_helper<T> *
 make_callback(T * object)
 {
@@ -393,9 +393,9 @@ make_callback(T * object)
  * std namespace specializations
  **/
 
-namespace std {
+namespace PACKETEER_API std {
 
-template <> struct hash<packeteer::callback>
+template <> struct PACKETEER_API hash<packeteer::callback>
 {
   size_t operator()(packeteer::callback const & x) const
   {
@@ -403,7 +403,7 @@ template <> struct hash<packeteer::callback>
   }
 };
 
-}
+} // namespace std
 
 
 #endif // guard

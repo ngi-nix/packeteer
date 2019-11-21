@@ -41,7 +41,8 @@
 #include <packeteer/net/address_type.h>
 
 
-namespace packeteer::net {
+namespace PACKETEER_API packeteer {
+namespace PACKETEER_API net {
 
 /*****************************************************************************
  * Forward declarations
@@ -56,7 +57,7 @@ class socket_address;
  * Offers operations on networks, including allocation of available addresses
  * within a network.
  **/
-class network
+class PACKETEER_API network
   : public ::packeteer::util::operators<network>
 {
 public:
@@ -175,9 +176,9 @@ private:
 /**
  * Formats a network into human-readable form.
  **/
-std::ostream & operator<<(std::ostream & os, network const & addr);
+PACKETEER_API std::ostream & operator<<(std::ostream & os, network const & addr);
 
 
-} // namespace packeteer::net
+}} // namespace packeteer::net
 
 #endif // guard

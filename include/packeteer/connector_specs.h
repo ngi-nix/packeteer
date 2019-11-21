@@ -27,11 +27,11 @@
 
 #include <packeteer.h>
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 // Types of connectors. See connector.h for details, also on the naming scheme
 // for peer addresses.
-enum connector_type
+enum PACKETEER_API connector_type
 {
   CT_UNSPEC = -1,
   CT_TCP4 = 0,
@@ -46,7 +46,7 @@ enum connector_type
 };
 
 // Connector behaviour
-enum connector_behaviour
+enum PACKETEER_API connector_behaviour
 {
   CB_DEFAULT  = 0,         // typically the best pick
   CB_STREAM   = (1 << 0),  // STREAM connector; use read()/write()

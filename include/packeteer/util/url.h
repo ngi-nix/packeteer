@@ -29,12 +29,10 @@
 #include <string>
 #include <map>
 
-#include <packeteer/error.h>
 #include <packeteer/util/operators.h>
 
-namespace packeteer {
-namespace util {
-
+namespace PACKETEER_API packeteer {
+namespace PACKETEER_API util {
 
 /**
  * The URL class provides *minimal* URL parsing for specifying connector.
@@ -56,7 +54,7 @@ namespace util {
  * parameters and their values, and convert all values indicating
  * boolean values to simple "0" and "1" (e.g. "true", "yes", etc.).
  */
-struct url
+struct PACKETEER_API url
   : public ::packeteer::util::operators<url>
 {
 public:
@@ -90,7 +88,7 @@ private:
 /**
  * Formats a url into human-readable form.
  **/
-std::ostream & operator<<(std::ostream & os, url const & data);
+PACKETEER_API std::ostream & operator<<(std::ostream & os, url const & data);
 
 
 }} // namespace packeteer::util
@@ -98,9 +96,9 @@ std::ostream & operator<<(std::ostream & os, url const & data);
 /*******************************************************************************
  * std namespace specializations
  **/
-namespace std {
+namespace PACKETEER_API std {
 
-template <> struct hash<::packeteer::util::url>
+template <> struct PACKETEER_API hash<::packeteer::util::url>
 {
   size_t operator()(::packeteer::util::url const & x) const
   {

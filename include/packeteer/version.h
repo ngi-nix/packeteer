@@ -31,7 +31,7 @@
 #include <utility>
 #include <string>
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 /**
  * XXX Note to developers (and users): consider the following definitions to be
@@ -50,19 +50,22 @@ namespace packeteer {
  * either the branch name and subversion revision (development builds), or the
  * major and minor version numbers (release builds).
  **/
-std::pair<std::string, std::string> version();
+PACKETEER_API std::pair<std::string, std::string>
+version();
 
 
 /**
  * Return the library version as a string, with appropriate copyright notice.
  **/
-char const * copyright_string();
+PACKETEER_API char const *
+copyright_string();
 
 
 /**
  * Returns a short string with licensing information.
  **/
-char const * license_string();
+PACKETEER_API char const *
+license_string();
 
 } // namespace packeteer
 

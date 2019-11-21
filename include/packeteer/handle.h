@@ -36,12 +36,12 @@
 #include <packeteer/util/operators.h>
 
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 /**
  * The handle class wraps I/O handles in a platform-independent fashion.
  **/
-struct handle : public ::packeteer::util::operators<handle>
+struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 {
 #if defined(PACKETEER_WIN32)
   typedef HANDLE  sys_handle_t;
@@ -174,10 +174,10 @@ operator<<(std::ostream & os, handle const & h)
 /**
  * Set/get the blocking mode of the file descriptor (on or off).
  */
-error_t
+PACKETEER_API error_t
 set_blocking_mode(handle::sys_handle_t const & h, bool state);
 
-error_t
+PACKETEER_API error_t
 get_blocking_mode(handle::sys_handle_t const & h, bool & state);
 
 
@@ -186,9 +186,9 @@ get_blocking_mode(handle::sys_handle_t const & h, bool & state);
 /**
  * std specializations for handle
  **/
-namespace std {
+namespace PACKETEER_API std {
 
-template <> struct hash<::packeteer::handle>
+template <> struct PACKETEER_API hash<::packeteer::handle>
 {
   inline size_t operator()(::packeteer::handle const & conn)
   {
@@ -198,6 +198,7 @@ template <> struct hash<::packeteer::handle>
 
 
 template <>
+PACKETEER_API 
 inline void
 swap<::packeteer::handle>(::packeteer::handle & first, ::packeteer::handle & second)
 {

@@ -39,7 +39,7 @@
  *     decide what namespace/scope macros are to be expanded in.
  **/
 #if !defined(PACKETEER_START_ERRORS)
-#define PACKETEER_START_ERRORS namespace packeteer { typedef enum {
+#define PACKETEER_START_ERRORS namespace PACKETEER_API packeteer { typedef enum {
 #define PACKETEER_ERRDEF(name, code, desc) name = code,
 #define PACKETEER_END_ERRORS PACKETEER_ERROR_LAST } error_t; }
 #define PACKETEER_ERROR_FUNCTIONS
@@ -148,7 +148,7 @@ PACKETEER_END_ERRORS
 
 #if defined(PACKETEER_ERROR_FUNCTIONS)
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 /*****************************************************************************
  * Functions
@@ -159,13 +159,13 @@ namespace packeteer {
  * nullptr; if an unknown error code is given, an "unidentified error" string is
  * returned. Not that this should happen, given that error_t is an enum...
  **/
-char const * error_message(error_t code);
+PACKETEER_API char const * error_message(error_t code);
 
 /**
  * Return a string representation of the given error code. Also never returns
  * nullptr, see error_message() above.
  **/
-char const * error_name(error_t code);
+PACKETEER_API char const * error_name(error_t code);
 
 
 
@@ -177,7 +177,7 @@ char const * error_name(error_t code);
  * Exception class. Constructed with an error code and optional message;
  * wraps error_message() and error_name() above.
  **/
-class exception : public std::runtime_error
+class PACKETEER_API exception : public std::runtime_error
 {
 public:
   /**

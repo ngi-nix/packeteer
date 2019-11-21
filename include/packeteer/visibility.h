@@ -17,31 +17,21 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_SCHEDULER_TYPES_H
-#define PACKETEER_SCHEDULER_TYPES_H
+#ifndef PACKETEER_VISIBILITY_H
+#define PACKETEER_VISIBILITY_H
 
-#ifndef __cplusplus
-#error You are trying to include a C++ only header file
-#endif
-
-#include <packeteer.h>
-
-#include <chrono>
-
-namespace PACKETEER_API packeteer {
-
-/**
- * Types used in the scheduler, that may be of use elsewhere.
- **/
-using duration = std::chrono::nanoseconds;
-using clock    = std::chrono::steady_clock;
-
-template <typename durationT = duration>
-using clock_time_point = std::chrono::time_point<clock, durationT>;
-
-using time_point = clock_time_point<duration>;
-
-
-} // namespace packeteer
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+  #ifdef PACKETEER_IS_BUILDING
+    #define PACKETEER_API __declspec(dllexport)
+  #else
+    #define PACKETEER_API __declspec(dllimport)
+  #endif
+#else
+  #if __GNUC__ >= 4
+    #define PACKETEER_API  [[gnu::visibility("default")]]
+  #else
+    #define PACKETEER_API
+  #endif // GNU C
+#endif // Windows
 
 #endif // guard

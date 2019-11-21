@@ -32,7 +32,6 @@
 #include <functional>
 
 #include <packeteer/handle.h>
-#include <packeteer/error.h>
 #include <packeteer/connector_specs.h>
 #include <packeteer/peer_address.h>
 
@@ -40,7 +39,7 @@
 #include <packeteer/util/url.h>
 #include <packeteer/net/socket_address.h>
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 /**
  * The connector class provides a socket-like API for handling I/O.
@@ -49,7 +48,7 @@ namespace packeteer {
  * network I/O specifically, whereas packeteer can handle other types of I/O.
  * However, the usage is fairly similar to how you'd use sockets.
  **/
-class connector
+class PACKETEER_API connector
   : public ::packeteer::util::operators<connector>
 {
 public:
@@ -271,9 +270,9 @@ private:
 /**
  * std specializations for connector
  **/
-namespace std {
+namespace PACKETEER_API std {
 
-template <> struct hash<::packeteer::connector>
+template <> struct PACKETEER_API hash<::packeteer::connector>
 {
   inline size_t operator()(::packeteer::connector const & conn)
   {
@@ -283,6 +282,7 @@ template <> struct hash<::packeteer::connector>
 
 
 template <>
+PACKETEER_API
 inline void
 swap<::packeteer::connector>(::packeteer::connector & first, ::packeteer::connector & second)
 {

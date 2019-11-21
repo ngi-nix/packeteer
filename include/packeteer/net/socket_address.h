@@ -40,7 +40,8 @@
 #include <packeteer/util/operators.h>
 #include <packeteer/net/address_type.h>
 
-namespace packeteer::net {
+namespace PACKETEER_API packeteer {
+namespace PACKETEER_API net {
 
 /*****************************************************************************
  * Forward declarations
@@ -81,7 +82,7 @@ union address_data
 /**
  * Make it possible to use struct sockaddr as a map key.
  **/
-class socket_address
+class PACKETEER_API socket_address
   : public ::packeteer::util::operators<socket_address>
 {
 public:
@@ -215,18 +216,18 @@ private:
 /**
  * Formats a socket_address into human-readable form.
  **/
-std::ostream & operator<<(std::ostream & os, socket_address const & addr);
+PACKETEER_API std::ostream & operator<<(std::ostream & os, socket_address const & addr);
 
 
-} // namespace packeteer::net
+}} // namespace packeteer::net
 
 
 /*******************************************************************************
  * std namespace specializations
  **/
-namespace std {
+namespace PACKETEER_API std {
 
-template <> struct hash<packeteer::net::socket_address>
+template <> struct PACKETEER_API hash<packeteer::net::socket_address>
 {
   size_t operator()(packeteer::net::socket_address const & x) const
   {
@@ -235,6 +236,7 @@ template <> struct hash<packeteer::net::socket_address>
 };
 
 template <>
+PACKETEER_API
 inline void
 swap<::packeteer::net::socket_address>(::packeteer::net::socket_address & first, ::packeteer::net::socket_address & second)
   noexcept(

@@ -38,6 +38,9 @@
 #  define PACKETEER_PLATFORM_DEFINED
 #endif
 
+// Visibility macros are used by all, so they must come first.
+#include <packeteer/visibility.h>
+
 // We want standard int types across the board.
 #include <packeteer/types.h>
 
@@ -66,7 +69,7 @@
 #endif
 
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 /**
  * Initialize and de-initialize the library. This is required on some
@@ -75,8 +78,8 @@ namespace packeteer {
  * If init() returns anything other than true, packeteer is not guaranteed
  * to function properly.
  **/
-bool init();
-void deinit();
+PACKETEER_API bool init();
+PACKETEER_API void deinit();
 
 } // namespace packeteer
 

@@ -34,7 +34,7 @@
 #include <packeteer/events.h>
 #include <packeteer/handle.h>
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 /*****************************************************************************
  * The scheduler class sits at the core of the packeteer implementation.
@@ -51,7 +51,7 @@ namespace packeteer {
  * event occurred, e.g. once for (PEV_IO_READ | PEV_IO_WRITE). For other events,
  * callbacks will be invoked once per event that occurred.
  **/
-class scheduler
+class PACKETEER_API scheduler
 {
 public:
   /***************************************************************************

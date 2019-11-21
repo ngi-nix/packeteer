@@ -28,11 +28,11 @@
 
 #include <packeteer.h>
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
   // Event types for which callback functions can be registered. The callback
   // will be notified for which event(s) it was invoked.
-  enum
+  enum PACKETEER_API
   {
     PEV_IO_READ    = (1 <<  0),  // A handle is ready for reading
     PEV_IO_WRITE   = (1 <<  1),  // A handle is ready for writing
@@ -50,8 +50,6 @@ namespace packeteer {
   // Events are masked together into events_t. All event flags with values equal
   // to or higher than PEV_USER are user-defined event types.
   typedef uint64_t events_t;
-
-
 } // namespace packeteer
 
 #endif // guard

@@ -504,16 +504,19 @@ if not meson.is_subproject()
   )
   test('public_tests', public_tests)
 
-  private_tests = executable('private_tests', private_test_src,
-      include_directories: [includes, libincludes],  # public and private headers
-      dependencies: [
-        gtest.get_variable('gtest_dep')
-      ],
-      link_with: lib,
-      cpp_args: test_args,
-      link_args: link_args,
-  )
-  test('private_tests', private_tests)
+  # Due to symbol visibility, private tests won't link for non-debug builds
+  if bt in ['debug', 'debugoptimized']
+    private_tests = executable('private_tests', private_test_src,
+        include_directories: [includes, libincludes],  # public and private headers
+        dependencies: [
+          gtest.get_variable('gtest_dep')
+        ],
+        link_with: lib,
+        cpp_args: test_args,
+        link_args: link_args,
+    )
+    test('private_tests', private_tests)
+  endif
 
 endif
 
