@@ -26,7 +26,7 @@ namespace detail {
 
 
 connector::connector(bool blocking /*= true */,
-    connector_behaviour const & behaviour /* = CB_DEFAULT */)
+    connector_behaviour const & behaviour /* = CO_DEFAULT */)
   : m_behaviour(behaviour)
   , m_blocking(blocking)
 {

@@ -22,6 +22,7 @@
 
 #include "../../detail/connector.h"
 
+#include <packeteer/handle.h> // FIXME
 #include "../../macros.h"
 
 #include <unistd.h>
@@ -30,11 +31,10 @@ namespace packeteer {
 namespace detail {
 
 
-connector::connector(bool blocking /*= true */,
-    connector_behaviour const & behaviour /* = CB_DEFAULT */)
-  : m_behaviour(behaviour)
-  , m_blocking(blocking)
+connector::connector(connector_options const & options)
+  : m_options(options)
 {
+  LOG("connector::connector(" << options << ")");
 }
 
 
@@ -282,10 +282,10 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
 }
 
 
-connector_behaviour
-connector::get_behaviour() const
+connector_options
+connector::get_options() const
 {
-  return m_behaviour;
+  return m_options;
 }
 
 

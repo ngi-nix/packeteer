@@ -338,6 +338,7 @@ libsrc = [
   'lib' / 'packeteer.cpp',
   'lib' / 'scheduler.cpp',
   'lib' / 'connector.cpp',
+  'lib' / 'connector_url_params.cpp',
   'lib' / 'peer_address.cpp',
   'lib' / 'detail' / 'worker.cpp',
   'lib' / 'detail' / 'scheduler_impl.cpp',
@@ -346,6 +347,7 @@ libsrc = [
   'lib' / 'net' / 'cidr.cpp',
   'lib' / 'thread' / 'tasklet.cpp',
   'lib' / 'util' / 'url.cpp',
+  'lib' / 'util' / 'string.cpp',
 ]
 
 includes = include_directories(

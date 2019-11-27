@@ -39,8 +39,9 @@ namespace detail {
 struct connector_pipe : public ::packeteer::detail::connector
 {
 public:
-  connector_pipe(std::string const & path, bool blocking);
-  connector_pipe(::packeteer::net::socket_address const & addr, bool blocking);
+  connector_pipe(std::string const & path, connector_options const & options);
+  connector_pipe(::packeteer::net::socket_address const & addr,
+      connector_options const & options);
   ~connector_pipe();
 
   error_t listen();

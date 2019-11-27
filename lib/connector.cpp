@@ -42,6 +42,8 @@
 #include <packeteer/net/socket_address.h>
 
 #include "macros.h"
+#include "connector_url_params.h"
+#include "util/string.h"
 
 #include "detail/connector_anon.h"
 #include "detail/connector_pipe.h"
@@ -62,8 +64,8 @@ namespace {
 typedef std::pair<
           connector_type,
           std::pair<
-            connector_behaviour, // Default behaviour
-            int                  // All possible behaviours
+            connector_options,   // Default options
+            connector_options    // All possible options
           >
         > conn_spec_t;
 
@@ -73,16 +75,16 @@ match_scheme(std::string const & scheme)
   // Initialize mapping, if not yet done
   static std::map<std::string, conn_spec_t> mapping;
   if (mapping.empty()) {
-    mapping["tcp4"]  = std::make_pair(CT_TCP4, std::make_pair(CB_STREAM, CB_STREAM));
-    mapping["tcp6"]  = std::make_pair(CT_TCP6, std::make_pair(CB_STREAM, CB_STREAM));
-    mapping["tcp"]   = std::make_pair(CT_TCP, std::make_pair(CB_STREAM, CB_STREAM));
-    mapping["udp4"]  = std::make_pair(CT_UDP4, std::make_pair(CB_DATAGRAM, CB_DATAGRAM));
-    mapping["udp6"]  = std::make_pair(CT_UDP6, std::make_pair(CB_DATAGRAM, CB_DATAGRAM));
-    mapping["udp"]   = std::make_pair(CT_UDP, std::make_pair(CB_DATAGRAM, CB_DATAGRAM));
-    mapping["anon"]  = std::make_pair(CT_ANON, std::make_pair(CB_STREAM, CB_STREAM));
-    mapping["pipe"]  = std::make_pair(CT_PIPE, std::make_pair(CB_STREAM, CB_STREAM));
+    mapping["tcp4"]  = std::make_pair(CT_TCP4, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
+    mapping["tcp6"]  = std::make_pair(CT_TCP6, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
+    mapping["tcp"]   = std::make_pair(CT_TCP, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
+    mapping["udp4"]  = std::make_pair(CT_UDP4, std::make_pair(CO_DATAGRAM, CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
+    mapping["udp6"]  = std::make_pair(CT_UDP6, std::make_pair(CO_DATAGRAM, CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
+    mapping["udp"]   = std::make_pair(CT_UDP, std::make_pair(CO_DATAGRAM, CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
+    mapping["anon"]  = std::make_pair(CT_ANON, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
+    mapping["pipe"]  = std::make_pair(CT_PIPE, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
 #if defined(PACKETEER_POSIX)
-    mapping["local"] = std::make_pair(CT_LOCAL, std::make_pair(CB_STREAM, CB_STREAM|CB_DATAGRAM));
+    mapping["local"] = std::make_pair(CT_LOCAL, std::make_pair(CO_STREAM, CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
 #endif
   }
 
@@ -95,6 +97,26 @@ match_scheme(std::string const & scheme)
   return iter->second;
 }
 
+
+inline void
+connector_schemes_init()
+{
+  LOG("Initializing default connector schemes.");
+  // TODO
+}
+
+inline void
+connector_init()
+{
+  error_t err = detail::init_url_params();
+  if (ERR_SUCCESS != err) {
+    throw exception(err);
+  }
+
+  // FIXME
+  connector_schemes_init();
+}
+
 } // anonymous namespace
 
 /*****************************************************************************
@@ -102,85 +124,74 @@ match_scheme(std::string const & scheme)
  **/
 struct connector::connector_impl
 {
-  connector_type        m_type;
-  connector_behaviour   m_default_behaviour;
-  int                   m_possible_behaviours;
-  util::url             m_url;
-  peer_address          m_address;
-  bool                  m_blocking;
-  detail::connector *   m_conn;
-  volatile size_t       m_refcount;
+  connector_type            m_type;
+  connector_options         m_default_options;
+  connector_options         m_possible_options;
+  util::url                 m_url;
+  peer_address              m_address;
+  detail::connector *       m_conn;
+  volatile size_t           m_refcount;
 
   connector_impl(util::url const & connect_url, detail::connector * conn)
     : m_type(CT_UNSPEC)
-    , m_default_behaviour(CB_DEFAULT)
-    , m_possible_behaviours(CB_DEFAULT)
+    , m_default_options(CO_DEFAULT)
+    , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
     , m_address(m_url)
     , m_conn(conn)
     , m_refcount(1)
   {
+    connector_init();
+
     // We don't really need to validate the address here any further, because
     // it's not set by an outside caller - it comes directly from this file, or
     // any of the detail::connector implementations.
     auto spec = match_scheme(m_url.scheme);
     m_type = spec.first;
-    m_default_behaviour = spec.second.first;
-    m_possible_behaviours = spec.second.second;
+    m_default_options = spec.second.first;
+    m_possible_options = spec.second.second;
   }
 
 
 
   connector_impl(util::url const & connect_url)
     : m_type(CT_UNSPEC)
-    , m_default_behaviour(CB_DEFAULT)
-    , m_possible_behaviours(CB_DEFAULT)
+    , m_default_options(CO_DEFAULT)
+    , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
     , m_address(m_url)
     , m_conn(nullptr)
     , m_refcount(1)
   {
+    connector_init();
+
     // Find the scheme spec
     auto spec = match_scheme(m_url.scheme);
     auto ctype = spec.first;
-    m_default_behaviour = spec.second.first;
-    m_possible_behaviours = spec.second.second;
+    m_default_options = spec.second.first;
+    m_possible_options = spec.second.second;
 
-    // Set behaviour - this may be overridden.
-    auto behaviour = m_default_behaviour;
+    // Set options - this may be overridden.
+    connector_options options = m_default_options;
 
-    // Check if there is a "behaviour" parameter in the url.
-    auto iter = m_url.query.find("behaviour");
-    if (iter != m_url.query.end()) {
-      // Check for valid behaviour value
-      connector_behaviour requested = CB_DEFAULT;
-      if ("datagram" == iter->second or "dgram" == iter->second) {
-        requested = CB_DATAGRAM;
-      } else if ("stream" == iter->second) {
-        requested = CB_STREAM;
-      } else {
-        throw exception(ERR_FORMAT, "Invalid connector behaviour specified!");
-      }
-
+    // Check if there is a "options" parameter in the url.
+    auto requested = detail::options_from_url_params(m_url.query);
+    if (requested != CO_DEFAULT) {
       // Ensure the requested value is valid.
-      if (!(m_possible_behaviours & requested)) {
-        throw exception(ERR_FORMAT, "The requested behaviour is not supported by the connector type!");
+      if (!(m_possible_options & requested)) {
+        throw exception(ERR_FORMAT, "The requested options are not supported by the connector type!");
       }
-      behaviour = requested;
+      options = requested;
     }
 
-    // Check if there is a blocking mode specified.
-    bool blocking = false;
-    iter = m_url.query.find("blocking");
-    if (iter != m_url.query.end()) {
-      if ("1" == iter->second) {
-        blocking = true; // no-op, but let's be explicit.
-      } else if ("0" == iter->second) {
-        blocking = false;
-      } else {
-        throw exception(ERR_FORMAT, "Invalid blocking parameter value specified!");
-      }
+    // Sanity check options - the flags are mutually exclusive.
+    if (options & CO_STREAM and options & CO_DATAGRAM) {
+      throw exception(ERR_INVALID_OPTION, "Cannot choose both stream and datagram behaviour!");
     }
+    if (options & CO_BLOCKING and options & CO_NON_BLOCKING) {
+      throw exception(ERR_INVALID_OPTION, "Cannot choose both blocking and non-blocking mode!");
+    }
+    LOG("Got connector options: " << options << " for type " << ctype);
 
     // Check connector type
     if (ctype >= CT_TCP4 && ctype <= CT_UDP)
@@ -222,13 +233,13 @@ struct connector::connector_impl
         case CT_TCP:
         case CT_TCP4:
         case CT_TCP6:
-          m_conn = new detail::connector_tcp(addr, blocking);
+          m_conn = new detail::connector_tcp(addr, options);
           break;
 
         case CT_UDP:
         case CT_UDP4:
         case CT_UDP6:
-          m_conn = new detail::connector_udp(addr, blocking);
+          m_conn = new detail::connector_udp(addr, options);
           break;
 
         default:
@@ -242,7 +253,7 @@ struct connector::connector_impl
         throw exception(ERR_FORMAT, "Path component makes no sense for anon:// connectors.");
       }
       m_type = ctype;
-      m_conn = new detail::connector_anon(blocking);
+      m_conn = new detail::connector_anon(options);
     }
 
     else {
@@ -258,12 +269,12 @@ struct connector::connector_impl
       switch (m_type) {
 #if defined(PACKETEER_POSIX)
         case CT_LOCAL:
-          m_conn = new detail::connector_local(m_url.path, blocking, behaviour);
+          m_conn = new detail::connector_local(m_url.path, options);
           break;
 #endif
 
         case CT_PIPE:
-          m_conn = new detail::connector_pipe(m_url.path, blocking);
+          m_conn = new detail::connector_pipe(m_url.path, options);
           break;
 
         default:
@@ -489,6 +500,7 @@ connector::accept() const
       throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
     }
     LOG("Peer address is: " << peer.full_str() << " - " << conn);
+
     result.m_impl = new connector_impl(util::url::parse(peer.full_str()), conn);
   }
 
@@ -637,13 +649,13 @@ connector::get_blocking_mode(bool & state)
 
 
 
-connector_behaviour
-connector::get_behaviour() const
+connector_options
+connector::get_options() const
 {
   if (!m_impl || !*m_impl) {
-    throw exception(ERR_INITIALIZATION, "Error retrieving behaviour.");
+    throw exception(ERR_INITIALIZATION, "Error retrieving options.");
   }
-  return (*m_impl)->get_behaviour();
+  return (*m_impl)->get_options();
 }
 
 
@@ -723,6 +735,18 @@ connector::hash() const
     return 0;
   }
   return m_impl->hash();
+}
+
+
+
+/***************************************************************************
+ * Registry interface
+ **/
+error_t
+connector::register_option(std::string const & url_parameter,
+    connector::option_mapping_function && mapper)
+{
+  return detail::register_url_param(url_parameter, std::move(mapper));
 }
 
 

@@ -44,6 +44,7 @@ namespace {
 error_t
 create_socket(int domain, int type, int & fd, bool blocking)
 {
+  LOG("create_socket(" << blocking << ")");
   fd = ::socket(domain, type, 0);
   if (fd < 0) {
     ERRNO_LOG("create_socket socket failed!");
@@ -112,8 +113,8 @@ create_socket(int domain, int type, int & fd, bool blocking)
 
 
 connector_socket::connector_socket(net::socket_address const & addr,
-    bool blocking, connector_behaviour const & behaviour)
-  : connector(blocking, behaviour)
+    connector_options const & options)
+  : connector(options)
   , m_addr(addr)
   , m_server(false)
   , m_fd(-1)
@@ -122,8 +123,8 @@ connector_socket::connector_socket(net::socket_address const & addr,
 
 
 
-connector_socket::connector_socket()
-  : connector(true, CB_STREAM)
+connector_socket::connector_socket(connector_options const & options)
+  : connector(options)
   , m_addr()
   , m_server(false)
   , m_fd(-1)
@@ -141,7 +142,7 @@ connector_socket::socket_connect(int domain, int type)
 
   // First, create socket
   int fd = -1;
-  error_t err = create_socket(domain, type, fd, m_blocking);
+  error_t err = create_socket(domain, type, fd, m_options & CO_BLOCKING);
   if (fd < 0) {
     return err;
   }
@@ -157,7 +158,7 @@ connector_socket::socket_connect(int domain, int type)
 
       // Simulate non-blocking mode, also for socket types that return
       // success. This helps the calling code treat all sockets the same.
-      if (m_blocking == false) {
+      if (m_options & CO_NON_BLOCKING) {
         return ERR_ASYNC;
       }
       return ERR_SUCCESS;
@@ -225,7 +226,7 @@ connector_socket::socket_create(int domain, int type, int & fd)
   }
 
   fd = -1;
-  error_t err = create_socket(domain, type, fd, m_blocking);
+  error_t err = create_socket(domain, type, fd, m_options & CO_BLOCKING);
   if (fd < 0) {
     return err;
   }
@@ -243,7 +244,7 @@ connector_socket::socket_bind(int domain, int type, int & fd)
 
   // First, create socket
   fd = -1;
-  error_t err = create_socket(domain, type, fd, m_blocking);
+  error_t err = create_socket(domain, type, fd, m_options & CO_BLOCKING);
   if (fd < 0) {
     return err;
   }
@@ -450,7 +451,7 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr) const
   }
 
   // Make new socket nonblocking
-  error_t err = ::packeteer::set_blocking_mode(new_fd, m_blocking);
+  error_t err = ::packeteer::set_blocking_mode(new_fd, m_options & CO_BLOCKING);
   if (ERR_SUCCESS != err) {
     ::close(new_fd);
     new_fd = -1;

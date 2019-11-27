@@ -24,6 +24,7 @@
 #include <packeteer/net/socket_address.h>
 #include <packeteer/error.h>
 
+#include "../../macros.h"
 #include "../../detail/globals.h"
 
 #include <sys/types.h>
@@ -57,15 +58,20 @@ select_domain(::packeteer::net::socket_address const & addr)
 
 } // anonymous namespace
 
-connector_tcp::connector_tcp(net::socket_address const & addr, bool blocking)
-  : connector_socket(addr, blocking, CB_STREAM)
+connector_tcp::connector_tcp(net::socket_address const & addr,
+    connector_options const & options)
+  : connector_socket(addr, (options | CO_STREAM) & ~CO_DATAGRAM)
 {
+  // TODO options & CO_BLOCKING does not set CO_NON_BLOCKING, leading to follow-on
+  //      results.
+  // FIXME remove
+  LOG("connector_tcp::connector_tcp(" << options << " -> " << m_options << ")");
 }
 
 
 
 connector_tcp::connector_tcp()
-  : connector_socket()
+  : connector_socket(CO_STREAM|CO_BLOCKING)
 {
 }
 
@@ -132,6 +138,7 @@ connector_tcp::accept(net::socket_address & addr) const
   result->m_addr = addr;
   result->m_server = true;
   result->m_fd = fd;
+  result->m_options = m_options;
 
   return result;
 }

@@ -52,12 +52,20 @@ enum PACKETEER_API : connector_type
   CT_USER = 256, // First user-defined connector
 };
 
-// Connector behaviour
-enum PACKETEER_API connector_behaviour : uint16_t
+// Connector behaviour & underlying type
+typedef uint16_t connector_options;
+
+enum PACKETEER_API : connector_options
 {
-  CB_DEFAULT  = 0,         // typically the best pick
-  CB_STREAM   = (1 << 0),  // STREAM connector; use read()/write()
-  CB_DATAGRAM = (1 << 2),  // DATAGRAM connector; use receive()/send()
+  CO_DEFAULT  = 0,            // typically the best pick
+
+  CO_STREAM   = (1 << 0),     // STREAM connector; use read()/write()
+  CO_DATAGRAM = (1 << 1),     // DATAGRAM connector; use receive()/send()
+
+  CO_BLOCKING = (1 << 2),     // Blocking mode. Mutually exclusive with the below.
+  CO_NON_BLOCKING = (1 << 3), // Non-blocking mode
+
+  CO_USER     = (1 << 8),     // First user-defined options.
 };
 
 

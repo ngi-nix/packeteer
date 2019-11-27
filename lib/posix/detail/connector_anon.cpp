@@ -34,8 +34,8 @@
 namespace packeteer {
 namespace detail {
 
-connector_anon::connector_anon(bool blocking)
-  : connector(blocking, CB_STREAM)
+connector_anon::connector_anon(connector_options const & options)
+  : connector(CO_STREAM | (options & CO_BLOCKING))
 {
   m_fds[0] = m_fds[1] = -1;
 }
@@ -75,11 +75,15 @@ connector_anon::create_pipe()
   }
 
   // Optionally make the read and write end non-blocking
-  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[0], m_blocking)) {
+  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[0],
+        m_options & CO_BLOCKING))
+  {
     close();
     return ERR_UNEXPECTED;
   }
-  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[1], m_blocking)) {
+  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[1],
+        m_options & CO_BLOCKING))
+  {
     close();
     return ERR_UNEXPECTED;
   }

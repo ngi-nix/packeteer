@@ -42,15 +42,12 @@ namespace detail {
 namespace {
 
 inline int
-sock_type(connector_behaviour const & behaviour)
+sock_type(connector_options const & options)
 {
-  switch (behaviour) {
-    case CB_DATAGRAM:
-      return SOCK_DGRAM;
-    case CB_STREAM:
-    default:
-      return SOCK_STREAM;
+  if (options & CO_DATAGRAM) {
+    return SOCK_DGRAM;
   }
+  return SOCK_STREAM;
 }
 
 } // anonymous namespace
@@ -58,24 +55,24 @@ sock_type(connector_behaviour const & behaviour)
 
 
 
-connector_local::connector_local(std::string const & path, bool blocking,
-    connector_behaviour const & behaviour)
-  : connector_socket(net::socket_address(path), blocking, behaviour)
+connector_local::connector_local(std::string const & path,
+    connector_options const & options)
+  : connector_socket(net::socket_address(path), options)
 {
 }
 
 
 
-connector_local::connector_local(net::socket_address const & addr, bool blocking,
-    connector_behaviour const & behaviour)
-  : connector_socket(addr, blocking, behaviour)
+connector_local::connector_local(net::socket_address const & addr,
+    connector_options const & options)
+  : connector_socket(addr, options)
 {
 }
 
 
 
 connector_local::connector_local()
-  : connector_socket()
+  : connector_socket(CO_STREAM|CO_BLOCKING)
 {
 }
 
@@ -91,7 +88,7 @@ connector_local::~connector_local()
 error_t
 connector_local::connect()
 {
-  return connector_socket::socket_connect(AF_LOCAL, sock_type(m_behaviour));
+  return connector_socket::socket_connect(AF_LOCAL, sock_type(m_options));
 }
 
 
@@ -101,13 +98,13 @@ connector_local::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::socket_bind(AF_LOCAL, sock_type(m_behaviour), fd);
+  error_t err = connector_socket::socket_bind(AF_LOCAL, sock_type(m_options), fd);
   if (ERR_SUCCESS != err) {
     return err;
   }
 
   // Attempt to listen
-  if (m_behaviour != CB_DATAGRAM) {
+  if (m_options & CO_STREAM) {
     err = connector_socket::socket_listen(fd);
     if (ERR_SUCCESS != err) {
       return err;
@@ -150,7 +147,7 @@ connector_local::accept(net::socket_address & addr) const
   result->m_addr = addr;
   result->m_server = true;
   result->m_fd = fd;
-  result->m_behaviour = m_behaviour;
+  result->m_options = m_options;
 
   return result;
 }

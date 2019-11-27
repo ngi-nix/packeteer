@@ -34,7 +34,7 @@ namespace {
 } // anonymous namespace
 
 connector_tcp::connector_tcp(net::socket_address const & addr, bool blocking)
-//  : connector_socket(addr, blocking, CB_STREAM)
+//  : connector_socket(addr, blocking, CO_STREAM)
 {
 }
 

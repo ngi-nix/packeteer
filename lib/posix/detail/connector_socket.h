@@ -41,7 +41,7 @@ struct connector_socket : public ::packeteer::detail::connector
 {
 public:
   connector_socket(::packeteer::net::socket_address const & addr,
-      bool blocking, connector_behaviour const & behaviour);
+      connector_options const & options);
 
   // Connector interface, partially implemented
   bool listening() const;
@@ -62,7 +62,7 @@ public:
   error_t socket_close();
 
 protected:
-  connector_socket();
+  connector_socket(connector_options const & options);
 
   ::packeteer::net::socket_address  m_addr;
   bool                              m_server;

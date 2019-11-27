@@ -46,7 +46,7 @@ public:
   /***************************************************************************
    * Always to be implemented by child classes
    **/
-  connector(bool blocking = true, connector_behaviour const & behaviour = CB_DEFAULT);
+  connector(connector_options const & options);
 
   virtual ~connector() = 0; // Expected to close() the connector
 
@@ -69,7 +69,7 @@ public:
   virtual error_t get_blocking_mode(bool & state) const = 0;
   virtual error_t set_blocking_mode(bool state) = 0;
 
-  virtual connector_behaviour get_behaviour() const;
+  virtual connector_options get_options() const;
 
   /***************************************************************************
    * Default (POSIX-oriented) implementations; may be subclassed if necessary.
@@ -87,13 +87,7 @@ protected:
   // The connector behaviour is stored here as a reference for derived classes;
   // they can use it to determine how to initialize themselves.
   // It's set during construction, and can afterwards only be read.
-  connector_behaviour m_behaviour;
-
-  // The blocking mode is used like the behaviour - however, it will not be
-  // modified unless derived classes do so. Derived classes should set and get
-  // the blocking mode directly from their underlying handles after
-  // construction is complete.
-  bool                m_blocking;
+  connector_options m_options;
 };
 
 }} // namespace packeteer::detail

@@ -422,7 +422,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   bool mode = false;
   ASSERT_EQ(ERR_SUCCESS, server.get_blocking_mode(mode));
   ASSERT_EQ(true, mode);
-  ASSERT_EQ(CB_STREAM, server.get_behaviour());
+  ASSERT_EQ(CO_STREAM|CO_BLOCKING, server.get_options());
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -444,11 +444,11 @@ TEST_P(ConnectorStream, blocking_messaging)
 
   ASSERT_EQ(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
   ASSERT_EQ(true, mode);
-  ASSERT_EQ(CB_STREAM, server_conn.get_behaviour());
+  ASSERT_EQ(CO_STREAM|CO_BLOCKING, server_conn.get_options());
 
   ASSERT_EQ(ERR_SUCCESS, client.get_blocking_mode(mode));
   ASSERT_EQ(true, mode);
-  ASSERT_EQ(CB_STREAM, client.get_behaviour());
+  ASSERT_EQ(CO_STREAM|CO_BLOCKING, client.get_options());
 
   // Communications
   send_message_streaming(client, server_conn);
@@ -482,7 +482,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   bool mode = false;
   ASSERT_EQ(ERR_SUCCESS, server.get_blocking_mode(mode));
   ASSERT_EQ(false, mode);
-  ASSERT_EQ(CB_STREAM, server.get_behaviour());
+  ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, server.get_options());
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -495,6 +495,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
 
   // Connecting must result in ERR_ASYNC. We use a scheduler run to
   // understand when the connection attempt was finished.
+  // FIXME own run loop, no background threads.
   scheduler sched(1);
   server_connect_callback server_struct(server);
   auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
@@ -519,7 +520,6 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   ASSERT_TRUE(client_struct.m_connected);
 
   connector server_conn = server_struct.m_conn;
-
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   ASSERT_FALSE(client.listening());
@@ -528,11 +528,11 @@ TEST_P(ConnectorStream, non_blocking_messaging)
 
   ASSERT_EQ(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
   ASSERT_EQ(false, mode);
-  ASSERT_EQ(CB_STREAM, server_conn.get_behaviour());
+  ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, server_conn.get_options());
 
   ASSERT_EQ(ERR_SUCCESS, client.get_blocking_mode(mode));
   ASSERT_EQ(false, mode);
-  ASSERT_EQ(CB_STREAM, client.get_behaviour());
+  ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, client.get_options());
 
   // Communications
   send_message_streaming(client, server_conn);
@@ -683,4 +683,34 @@ TEST(ConnectorMisc, anon_connector)
   for (size_t i = 0 ; i < msg.size() ; ++i) {
     ASSERT_EQ(msg[i], result[i]);
   }
+}
+
+
+/*****************************************************************************
+ * ConnectorOptionsRegistry
+ */
+
+TEST(ConnectorOptionsRegistry, empty_param)
+{
+  using namespace packeteer;
+  ASSERT_EQ(ERR_INVALID_VALUE, connector::register_option("", nullptr));
+}
+
+TEST(ConnectorOptionsRegistry, empty_mapper)
+{
+  using namespace packeteer;
+  ASSERT_EQ(ERR_EMPTY_CALLBACK, connector::register_option("foo", nullptr));
+}
+
+TEST(ConnectorOptionsRegistry, duplicate_url_param)
+{
+  using namespace packeteer;
+  auto dummy = [] (std::string const &) -> connector_options {
+    // Return CO_DEFAULT to not mess with other tests by always setting
+    // an option.
+    return CO_DEFAULT;
+  };
+
+  ASSERT_EQ(ERR_SUCCESS, connector::register_option("foo", dummy));
+  ASSERT_EQ(ERR_INVALID_VALUE, connector::register_option("foo", dummy));
 }

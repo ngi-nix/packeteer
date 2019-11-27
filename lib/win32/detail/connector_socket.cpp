@@ -48,7 +48,7 @@ connector_socket::connector_socket(net::socket_address const & addr,
 
 
 connector_socket::connector_socket()
-  : connector(true, CB_STREAM)
+  : connector(true, CO_STREAM)
 //  , m_addr()
 //  , m_server(false)
 //  , m_fd(-1)

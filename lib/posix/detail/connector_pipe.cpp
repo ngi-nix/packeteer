@@ -158,8 +158,9 @@ translate_open_error()
 
 } // anonymous namespace
 
-connector_pipe::connector_pipe(std::string const & path, bool blocking)
-  : connector(blocking, CB_STREAM)
+connector_pipe::connector_pipe(std::string const & path,
+    connector_options const & options)
+  : connector((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr(path)
   , m_server(false)
   , m_fd(-1)
@@ -168,8 +169,9 @@ connector_pipe::connector_pipe(std::string const & path, bool blocking)
 
 
 
-connector_pipe::connector_pipe(net::socket_address const & addr, bool blocking)
-  : connector(blocking, CB_STREAM)
+connector_pipe::connector_pipe(net::socket_address const & addr,
+    connector_options const & options)
+  : connector((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr(addr)
   , m_server(false)
   , m_fd(-1)
@@ -194,7 +196,7 @@ connector_pipe::connect()
 
   // If the file exists, open it.
   int mode = O_RDWR | O_CLOEXEC | O_ASYNC;
-  if (!m_blocking) {
+  if (m_options & CO_NON_BLOCKING) {
     mode |= O_NONBLOCK;
   }
   int fd = -1;
@@ -217,7 +219,7 @@ connector_pipe::connect()
   m_fd = fd;
   m_server = false;
 
-  if (!m_blocking) {
+  if (m_options & CO_NON_BLOCKING) {
     return ERR_ASYNC;
   }
   return ERR_SUCCESS;
@@ -240,7 +242,7 @@ connector_pipe::listen()
 
   // If the file exists, open it.
   int mode = O_RDWR | O_CLOEXEC | O_ASYNC;
-  if (!m_blocking) {
+  if (m_options & CO_NON_BLOCKING) {
     mode |= O_NONBLOCK;
   }
   int fd = -1;

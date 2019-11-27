@@ -35,7 +35,7 @@ namespace {
 } // anonymous namespace
 
 connector_pipe::connector_pipe(std::string const & path, bool blocking)
-//  : connector(blocking, CB_STREAM)
+//  : connector(blocking, CO_STREAM)
 //  , m_addr(path)
 //  , m_server(false)
 //  , m_fd(-1)
@@ -45,7 +45,7 @@ connector_pipe::connector_pipe(std::string const & path, bool blocking)
 
 
 connector_pipe::connector_pipe(net::socket_address const & addr, bool blocking)
-//  : connector(blocking, CB_STREAM)
+//  : connector(blocking, CO_STREAM)
 //  , m_addr(addr)
 //  , m_server(false)
 //  , m_fd(-1)

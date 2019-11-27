@@ -38,7 +38,7 @@ namespace detail {
 struct connector_anon : public ::packeteer::detail::connector
 {
 public:
-  connector_anon(bool blocking);
+  connector_anon(connector_options const & options);
   ~connector_anon();
 
   error_t listen();

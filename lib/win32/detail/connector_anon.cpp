@@ -26,7 +26,7 @@ namespace packeteer {
 namespace detail {
 
 connector_anon::connector_anon(bool blocking)
- : connector(blocking, CB_STREAM)
+ : connector(blocking, CO_STREAM)
 {
 // FIXME  m_fds[0] = m_fds[1] = -1;
 }

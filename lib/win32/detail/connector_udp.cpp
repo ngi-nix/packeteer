@@ -33,7 +33,7 @@ namespace {
 } // anonymous namespace
 
 connector_udp::connector_udp(net::socket_address const & addr, bool blocking)
-//  : connector_socket(addr, blocking, CB_DATAGRAM)
+//  : connector_socket(addr, blocking, CO_DATAGRAM)
 {
 }
 

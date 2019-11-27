@@ -47,6 +47,14 @@ namespace PACKETEER_API packeteer {
  * We're deliberately not re-using the socket term, as it is associated with
  * network I/O specifically, whereas packeteer can handle other types of I/O.
  * However, the usage is fairly similar to how you'd use sockets.
+ *
+ * The connector class is deliberately constructed with minimal data members,
+ * enabling us to provide a stable API/ABI even if implementations for
+ * individual protocols change wildly.
+ *
+ * Internally, a registry of connector implementations is held. You can
+ * extend connector's behaviour by adding implementations to the registry
+ * via connector's static registry functions.
  **/
 class PACKETEER_API connector
   : public ::packeteer::util::operators<connector>
@@ -188,7 +196,7 @@ public:
    * Read from and write messages to a given peer address on the connector. The
    * semantics are effectively identical to the POSIX functions of similar name.
    *
-   * Note that receive() and send() are best used for CB_DATAGRAM connectors.
+   * Note that receive() and send() are best used for CO_DATAGRAM connectors.
    **/
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
       ::packeteer::net::socket_address & sender);
@@ -207,13 +215,13 @@ public:
   error_t get_blocking_mode(bool & state);
 
   /**
-   * Get the connector behaviour.
+   * Get the connector option flags.
    **/
-  ::packeteer::connector_behaviour get_behaviour() const;
+  ::packeteer::connector_options get_options() const;
 
   /**
    * Peek how much data is available to receive(). This is best use for
-   * CB_DATAGRAM connectors, when you're unsure about the datagram size.
+   * CO_DATAGRAM connectors, when you're unsure about the datagram size.
    *
    * Of course use of this function translates to another system call, so it's
    * best used sparingly, e.g. for determining the best datagram size for a new
@@ -231,7 +239,7 @@ public:
    *
    * Return errors if the connector is neither bound nor connected.
    *
-   * Note that read() and write() are best used for CB_STREAM connectors.
+   * Note that read() and write() are best used for CO_STREAM connectors.
    **/
   error_t read(void * buf, size_t bufsize, size_t & bytes_read);
   error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
@@ -257,6 +265,37 @@ public:
 
   void swap(connector & other);
   size_t hash() const;
+
+  /***************************************************************************
+   * Registry interface
+   **/
+  /**
+   * Register a new connector option mapper.
+   *
+   * Returns:
+   *  ERR_INVALID_VALUE if:
+   *    - the url parameter is not specified or already registered
+   *  ERR_EMPTY_CALLBACK if:
+   *    - the mapper function is not specified.
+   *
+   * Note that built-in option parameters count as already registered.
+   *
+   * There is no deregistration; options are expected to be static for
+   * the runtime of a program.
+   *
+   * The mapper function is taking a string value of a URL parameter, and
+   * returns a corresponding connector_options value. If a mapping
+   * cannot be done from the value, the mapper must return CO_DEFAULT; this
+   * will be handled as a parse error. On the plus side, the mapper can
+   * return any combination of sensible options if parsing succeeds.
+   */
+  using option_mapping_function = std::function<
+    ::packeteer::connector_options (std::string const &)
+  >;
+
+  static error_t register_option(std::string const & url_parameter,
+      option_mapping_function && mapper);
+
 
 private:
   // pimpl
