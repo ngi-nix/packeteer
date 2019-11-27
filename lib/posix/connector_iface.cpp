@@ -20,26 +20,23 @@
  **/
 #include <build-config.h>
 
-#include "../../detail/connector.h"
+#include <packeteer/connector_iface.h>
 
-#include <packeteer/handle.h> // FIXME
-#include "../../macros.h"
+#include "../macros.h"
 
 #include <unistd.h>
 
 namespace packeteer {
-namespace detail {
 
-
-connector::connector(connector_options const & options)
+connector_interface::connector_interface(connector_options const & options)
   : m_options(options)
 {
-  LOG("connector::connector(" << options << ")");
+  LOG("connector_interface::connector_interface(" << options << ")");
 }
 
 
 
-connector::~connector()
+connector_interface::~connector_interface()
 {
 }
 
@@ -48,7 +45,7 @@ connector::~connector()
 //     iovec style call?
 
 error_t
-connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
+connector_interface::receive(void * buf, size_t bufsize, size_t & bytes_read,
       ::packeteer::net::socket_address & sender)
 {
   socklen_t socklen = sender.bufsize_available();
@@ -91,7 +88,7 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
 
 error_t
-connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
+connector_interface::send(void const * buf, size_t bufsize, size_t & bytes_written,
       ::packeteer::net::socket_address const & recipient)
 {
   ssize_t amount = ::sendto(get_write_handle().sys_handle(),
@@ -153,7 +150,7 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
 
 
 size_t
-connector::peek() const
+connector_interface::peek() const
 {
   if (!connected() && !listening()) {
     throw exception(ERR_INITIALIZATION, "Can't peek() without listening or being connected!");
@@ -197,7 +194,7 @@ connector::peek() const
 
 
 error_t
-connector::read(void * buf, size_t bufsize, size_t & bytes_read)
+connector_interface::read(void * buf, size_t bufsize, size_t & bytes_read)
 {
   if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
@@ -239,7 +236,7 @@ connector::read(void * buf, size_t bufsize, size_t & bytes_read)
 
 
 error_t
-connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
+connector_interface::write(void const * buf, size_t bufsize, size_t & bytes_written)
 {
   if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
@@ -283,10 +280,10 @@ connector::write(void const * buf, size_t bufsize, size_t & bytes_written)
 
 
 connector_options
-connector::get_options() const
+connector_interface::get_options() const
 {
   return m_options;
 }
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer

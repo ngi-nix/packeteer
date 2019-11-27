@@ -18,8 +18,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_CONNECTOR_H
-#define PACKETEER_DETAIL_CONNECTOR_H
+#ifndef PACKETEER_CONNECTOR_IFACE_H
+#define PACKETEER_CONNECTOR_IFACE_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -34,21 +34,27 @@
 #include <packeteer/net/socket_address.h>
 
 namespace packeteer {
-namespace detail {
 
 /**
  * Base class for connector implementations. See the connector proxy class
  * in the main namespace for details.
  **/
-struct connector
+struct connector_interface
 {
 public:
   /***************************************************************************
    * Always to be implemented by child classes
    **/
-  connector(connector_options const & options);
+  /**
+   * Either implement, or call from other constructors. Most implementations
+   * will accept more constructor parameters.
+   */
+  connector_interface(connector_options const & options);
 
-  virtual ~connector() = 0; // Expected to close() the connector
+  /**
+   * Expected to close() the connector.
+   */
+  virtual ~connector_interface() = 0;
 
   virtual error_t listen() = 0;
   virtual bool listening() const = 0;
@@ -56,7 +62,13 @@ public:
   virtual error_t connect() = 0;
   virtual bool connected() const = 0;
 
-  virtual connector * accept(net::socket_address & addr) const = 0;
+  /**
+   * The accept() call *may* return this. The connector proxy class will
+   * take care of reference counting such that the connector_interface
+   * instance will be deleted only when all connector instances referring to
+   * it are gone.
+   */
+  virtual connector_interface * accept(net::socket_address & addr) const = 0;
 
   virtual handle get_read_handle() const = 0;
   virtual handle get_write_handle() const = 0;
@@ -64,8 +76,12 @@ public:
   virtual error_t close() = 0;
 
   /***************************************************************************
-   * Abstract setting accessors
+   * (Abstract) setting accessors
    **/
+  /**
+   * When setting the blocking mode, be sure to also set it in m_options, or
+   * get_blocking_mode() and get_options() may have different opinions.
+   */
   virtual error_t get_blocking_mode(bool & state) const = 0;
   virtual error_t set_blocking_mode(bool state) = 0;
 
@@ -90,6 +106,6 @@ protected:
   connector_options m_options;
 };
 
-}} // namespace packeteer::detail
+} // namespace packeteer
 
 #endif // guard

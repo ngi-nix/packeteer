@@ -26,12 +26,11 @@
 #endif
 
 #include <packeteer.h>
-#include <packeteer/connector_specs.h>
+#include <packeteer/connector_iface.h>
 #include <packeteer/net/socket_address.h>
 
 // FIXME this header should probably be in POSIX for inherting from connector_socket
 #include "../posix/detail/connector_socket.h"
-#include "connector.h"
 
 namespace packeteer {
 namespace detail {
@@ -52,7 +51,7 @@ public:
 
   error_t connect();
 
-  connector * accept(net::socket_address & addr) const;
+  connector_interface * accept(net::socket_address & addr) const;
 
   error_t close();
 

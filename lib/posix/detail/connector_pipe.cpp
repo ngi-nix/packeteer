@@ -160,7 +160,7 @@ translate_open_error()
 
 connector_pipe::connector_pipe(std::string const & path,
     connector_options const & options)
-  : connector((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr(path)
   , m_server(false)
   , m_fd(-1)
@@ -171,7 +171,7 @@ connector_pipe::connector_pipe(std::string const & path,
 
 connector_pipe::connector_pipe(net::socket_address const & addr,
     connector_options const & options)
-  : connector((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr(addr)
   , m_server(false)
   , m_fd(-1)
@@ -286,7 +286,7 @@ connector_pipe::connected() const
 
 
 
-connector *
+connector_interface *
 connector_pipe::accept(net::socket_address & /* unused */) const
 {
   // There is no need for accept(); we've already got the connection established.

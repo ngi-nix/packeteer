@@ -35,7 +35,7 @@ namespace packeteer {
 namespace detail {
 
 connector_anon::connector_anon(connector_options const & options)
-  : connector(CO_STREAM | (options & CO_BLOCKING))
+  : connector_interface(CO_STREAM | (options & CO_BLOCKING))
 {
   m_fds[0] = m_fds[1] = -1;
 }
@@ -125,7 +125,7 @@ connector_anon::connected() const
 
 
 
-connector *
+connector_interface *
 connector_anon::accept(net::socket_address & /* unused */) const
 {
   // There is no need for accept(); we've already got the connection established.

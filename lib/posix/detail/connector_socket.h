@@ -26,10 +26,8 @@
 
 #include <packeteer.h>
 
+#include <packeteer/connector_iface.h>
 #include <packeteer/net/socket_address.h>
-
-#include "../../detail/connector.h"
-
 
 namespace packeteer {
 namespace detail {
@@ -37,7 +35,7 @@ namespace detail {
 /**
  * Base for socket-style I/O on POSIX systems
  **/
-struct connector_socket : public ::packeteer::detail::connector
+struct connector_socket : public ::packeteer::connector_interface
 {
 public:
   connector_socket(::packeteer::net::socket_address const & addr,

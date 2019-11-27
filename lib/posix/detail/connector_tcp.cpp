@@ -124,7 +124,7 @@ connector_tcp::close()
 }
 
 
-connector *
+connector_interface *
 connector_tcp::accept(net::socket_address & addr) const
 {
   int fd = -1;

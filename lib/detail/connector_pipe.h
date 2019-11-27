@@ -26,9 +26,8 @@
 
 #include <packeteer.h>
 
+#include <packeteer/connector_iface.h>
 #include <packeteer/net/socket_address.h>
-
-#include "connector.h"
 
 namespace packeteer {
 namespace detail {
@@ -36,7 +35,7 @@ namespace detail {
 /**
  * Wrapper around the pipe class.
  **/
-struct connector_pipe : public ::packeteer::detail::connector
+struct connector_pipe : public ::packeteer::connector_interface
 {
 public:
   connector_pipe(std::string const & path, connector_options const & options);
@@ -50,7 +49,7 @@ public:
   error_t connect();
   bool connected() const;
 
-  connector * accept(net::socket_address & addr) const;
+  connector_interface * accept(net::socket_address & addr) const;
 
   handle get_read_handle() const;
   handle get_write_handle() const;

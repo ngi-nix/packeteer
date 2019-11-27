@@ -27,7 +27,7 @@
 
 #include <packeteer.h>
 
-#include "connector.h"
+#include <packeteer/connector_iface.h>
 
 namespace packeteer {
 namespace detail {
@@ -35,7 +35,7 @@ namespace detail {
 /**
  * Unidirectional pipe (UNIX)
  **/
-struct connector_anon : public ::packeteer::detail::connector
+struct connector_anon : public ::packeteer::connector_interface
 {
 public:
   connector_anon(connector_options const & options);
@@ -47,7 +47,7 @@ public:
   error_t connect();
   bool connected() const;
 
-  connector * accept(net::socket_address & addr) const;
+  connector_interface * accept(net::socket_address & addr) const;
 
   handle get_read_handle() const;
   handle get_write_handle() const;

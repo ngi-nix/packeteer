@@ -113,7 +113,7 @@ connector_udp::close()
 }
 
 
-connector *
+connector_interface *
 connector_udp::accept(net::socket_address & /* addr*/) const
 {
   if (!listening()) {

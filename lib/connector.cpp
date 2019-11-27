@@ -129,23 +129,23 @@ struct connector::connector_impl
   connector_options         m_possible_options;
   util::url                 m_url;
   peer_address              m_address;
-  detail::connector *       m_conn;
+  connector_interface *     m_iconn;
   volatile size_t           m_refcount;
 
-  connector_impl(util::url const & connect_url, detail::connector * conn)
+  connector_impl(util::url const & connect_url, connector_interface * iconn)
     : m_type(CT_UNSPEC)
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
     , m_address(m_url)
-    , m_conn(conn)
+    , m_iconn(iconn)
     , m_refcount(1)
   {
     connector_init();
 
     // We don't really need to validate the address here any further, because
     // it's not set by an outside caller - it comes directly from this file, or
-    // any of the detail::connector implementations.
+    // any of the connector_interface implementations.
     auto spec = match_scheme(m_url.scheme);
     m_type = spec.first;
     m_default_options = spec.second.first;
@@ -160,7 +160,7 @@ struct connector::connector_impl
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
     , m_address(m_url)
-    , m_conn(nullptr)
+    , m_iconn(nullptr)
     , m_refcount(1)
   {
     connector_init();
@@ -233,13 +233,13 @@ struct connector::connector_impl
         case CT_TCP:
         case CT_TCP4:
         case CT_TCP6:
-          m_conn = new detail::connector_tcp(addr, options);
+          m_iconn = new detail::connector_tcp(addr, options);
           break;
 
         case CT_UDP:
         case CT_UDP4:
         case CT_UDP6:
-          m_conn = new detail::connector_udp(addr, options);
+          m_iconn = new detail::connector_udp(addr, options);
           break;
 
         default:
@@ -253,7 +253,7 @@ struct connector::connector_impl
         throw exception(ERR_FORMAT, "Path component makes no sense for anon:// connectors.");
       }
       m_type = ctype;
-      m_conn = new detail::connector_anon(options);
+      m_iconn = new detail::connector_anon(options);
     }
 
     else {
@@ -269,12 +269,12 @@ struct connector::connector_impl
       switch (m_type) {
 #if defined(PACKETEER_POSIX)
         case CT_LOCAL:
-          m_conn = new detail::connector_local(m_url.path, options);
+          m_iconn = new detail::connector_local(m_url.path, options);
           break;
 #endif
 
         case CT_PIPE:
-          m_conn = new detail::connector_pipe(m_url.path, options);
+          m_iconn = new detail::connector_pipe(m_url.path, options);
           break;
 
         default:
@@ -288,25 +288,25 @@ struct connector::connector_impl
 
   ~connector_impl()
   {
-    delete m_conn;
+    delete m_iconn;
   }
 
 
-  detail::connector & operator*()
+  connector_interface & operator*()
   {
-    return *m_conn;
+    return *m_iconn;
   }
 
 
-  detail::connector* operator->()
+  connector_interface * operator->()
   {
-    return m_conn;
+    return m_iconn;
   }
 
 
   operator bool() const
   {
-    return m_conn != nullptr;
+    return m_iconn != nullptr;
   }
 
 
@@ -316,11 +316,11 @@ struct connector::connector_impl
         static_cast<int>(m_type),
         m_url);
 
-    if (m_conn) {
+    if (m_iconn) {
       packeteer::util::hash_combine(value,
           packeteer::util::multi_hash(
-            m_conn->get_read_handle(),
-            m_conn->get_write_handle()));
+            m_iconn->get_read_handle(),
+            m_iconn->get_write_handle()));
     }
     return value;
   }
@@ -470,7 +470,7 @@ connector::accept() const
   }
 
   net::socket_address peer;
-  detail::connector * conn = (*m_impl)->accept(peer);
+  connector_interface * iconn = (*m_impl)->accept(peer);
 
   // 1. If we have a socket address in the result, that'll be the best choice
   //    for the implementation's address. Otherwise pass this object's address
@@ -480,28 +480,28 @@ connector::accept() const
   //    (see above), that won't work.
   connector result;
   if (net::AT_UNSPEC == peer.type()) {
-    if (conn == m_impl->m_conn) {
+    if (iconn == m_impl->m_iconn) {
       // Connectors and address are identical
       result.m_impl = m_impl;
       ++(m_impl->m_refcount);
     }
     else {
       // Address is identical, but connector is not
-      result.m_impl = new connector_impl(m_impl->m_url, conn);
+      result.m_impl = new connector_impl(m_impl->m_url, iconn);
     }
   }
   else {
     // We have a new address, so we always need a new impl object.
     // This would lead to a double delete on the conn object, so we'll
     // have to prevent that.
-    if (conn == m_impl->m_conn) {
-      delete conn;
-      conn = nullptr;
+    if (iconn == m_impl->m_iconn) {
+      delete iconn;
+      iconn = nullptr;
       throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
     }
-    LOG("Peer address is: " << peer.full_str() << " - " << conn);
+    LOG("Peer address is: " << peer.full_str() << " - " << iconn);
 
-    result.m_impl = new connector_impl(util::url::parse(peer.full_str()), conn);
+    result.m_impl = new connector_impl(util::url::parse(peer.full_str()), iconn);
   }
 
   return result;

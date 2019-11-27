@@ -114,7 +114,7 @@ create_socket(int domain, int type, int & fd, bool blocking)
 
 connector_socket::connector_socket(net::socket_address const & addr,
     connector_options const & options)
-  : connector(options)
+  : connector_interface(options)
   , m_addr(addr)
   , m_server(false)
   , m_fd(-1)
@@ -124,7 +124,7 @@ connector_socket::connector_socket(net::socket_address const & addr,
 
 
 connector_socket::connector_socket(connector_options const & options)
-  : connector(options)
+  : connector_interface(options)
   , m_addr()
   , m_server(false)
   , m_fd(-1)
