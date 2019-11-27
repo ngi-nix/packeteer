@@ -33,6 +33,7 @@
 
 #include <packeteer/handle.h>
 #include <packeteer/connector_specs.h>
+#include <packeteer/connector_iface.h>
 #include <packeteer/peer_address.h>
 
 #include <packeteer/util/operators.h>
@@ -296,6 +297,35 @@ public:
   static error_t register_option(std::string const & url_parameter,
       option_mapping_function && mapper);
 
+  /**
+   * Register a new connector scheme, i.e. a subclass of connector_interface.
+   *
+   * - The scheme string must be unique.
+   * - The connector_type of the connector scheme must be provided. While it
+   *   does not have to be unique, that would usually be the case.
+   * - The default_options are provided to the creator function if no other
+   *   options are specified during creation.
+   * - The possible_options are verified; a connector with the given scheme
+   *   and mismatching options cannot be created.
+   * - The creator function.
+   *
+   * The creator function is passed a URL, the type associated with the scheme,
+   * and parsed & validated options. It should raise exceptions if it cannot
+   * create an instance. If it returns a nullptr, an exception is raised instead.
+   */
+  using scheme_instantiation_function = std::function<
+    ::packeteer::connector_interface * (
+        util::url const &,
+        connector_type const & type,
+        connector_options const &
+    )
+  >;
+
+  static error_t register_scheme(std::string const & scheme,
+      connector_type const & type,
+      connector_options const & default_options,
+      connector_options const & possible_options,
+      scheme_instantiation_function && creator);
 
 private:
   // pimpl

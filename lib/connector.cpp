@@ -43,15 +43,8 @@
 
 #include "macros.h"
 #include "connector_url_params.h"
+#include "connector_schemes.h"
 #include "util/string.h"
-
-#include "detail/connector_anon.h"
-#include "detail/connector_pipe.h"
-#include "detail/connector_tcp.h"
-#include "detail/connector_udp.h"
-#if defined(PACKETEER_POSIX)
-#  include "detail/connector_local.h"
-#endif
 
 namespace packeteer {
 
@@ -61,50 +54,6 @@ namespace packeteer {
 
 namespace {
 
-typedef std::pair<
-          connector_type,
-          std::pair<
-            connector_options,   // Default options
-            connector_options    // All possible options
-          >
-        > conn_spec_t;
-
-inline conn_spec_t
-match_scheme(std::string const & scheme)
-{
-  // Initialize mapping, if not yet done
-  static std::map<std::string, conn_spec_t> mapping;
-  if (mapping.empty()) {
-    mapping["tcp4"]  = std::make_pair(CT_TCP4, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
-    mapping["tcp6"]  = std::make_pair(CT_TCP6, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
-    mapping["tcp"]   = std::make_pair(CT_TCP, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
-    mapping["udp4"]  = std::make_pair(CT_UDP4, std::make_pair(CO_DATAGRAM, CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
-    mapping["udp6"]  = std::make_pair(CT_UDP6, std::make_pair(CO_DATAGRAM, CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
-    mapping["udp"]   = std::make_pair(CT_UDP, std::make_pair(CO_DATAGRAM, CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
-    mapping["anon"]  = std::make_pair(CT_ANON, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
-    mapping["pipe"]  = std::make_pair(CT_PIPE, std::make_pair(CO_STREAM, CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING));
-#if defined(PACKETEER_POSIX)
-    mapping["local"] = std::make_pair(CT_LOCAL, std::make_pair(CO_STREAM, CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING));
-#endif
-  }
-
-  // Find scheme type
-  auto iter = mapping.find(scheme);
-  if (mapping.end() == iter) {
-    throw exception(ERR_INVALID_VALUE, "Unsupported connector scheme requested.");
-  }
-
-  return iter->second;
-}
-
-
-inline void
-connector_schemes_init()
-{
-  LOG("Initializing default connector schemes.");
-  // TODO
-}
-
 inline void
 connector_init()
 {
@@ -113,8 +62,10 @@ connector_init()
     throw exception(err);
   }
 
-  // FIXME
-  connector_schemes_init();
+  err = detail::init_schemes();
+  if (ERR_SUCCESS != err) {
+    throw exception(err);
+  }
 }
 
 } // anonymous namespace
@@ -124,13 +75,15 @@ connector_init()
  **/
 struct connector::connector_impl
 {
-  connector_type            m_type;
-  connector_options         m_default_options;
-  connector_options         m_possible_options;
-  util::url                 m_url;
-  peer_address              m_address;
-  connector_interface *     m_iconn;
-  volatile size_t           m_refcount;
+  connector_type                            m_type;
+  connector_options                         m_default_options;
+  connector_options                         m_possible_options;
+  connector::scheme_instantiation_function  m_creator;
+
+  util::url                                 m_url;
+  peer_address                              m_address;
+  connector_interface *                     m_iconn;
+  volatile size_t                           m_refcount;
 
   connector_impl(util::url const & connect_url, connector_interface * iconn)
     : m_type(CT_UNSPEC)
@@ -146,10 +99,11 @@ struct connector::connector_impl
     // We don't really need to validate the address here any further, because
     // it's not set by an outside caller - it comes directly from this file, or
     // any of the connector_interface implementations.
-    auto spec = match_scheme(m_url.scheme);
-    m_type = spec.first;
-    m_default_options = spec.second.first;
-    m_possible_options = spec.second.second;
+    auto info = detail::info_for_scheme(m_url.scheme);
+    m_type = info.type;
+    m_default_options = info.default_options;
+    m_possible_options = info.possible_options;
+    m_creator = info.creator;
   }
 
 
@@ -166,10 +120,11 @@ struct connector::connector_impl
     connector_init();
 
     // Find the scheme spec
-    auto spec = match_scheme(m_url.scheme);
-    auto ctype = spec.first;
-    m_default_options = spec.second.first;
-    m_possible_options = spec.second.second;
+    auto info = detail::info_for_scheme(m_url.scheme);
+    auto ctype = info.type;
+    m_default_options = info.default_options;
+    m_possible_options = info.possible_options;
+    m_creator = info.creator;
 
     // Set options - this may be overridden.
     connector_options options = m_default_options;
@@ -193,95 +148,14 @@ struct connector::connector_impl
     }
     LOG("Got connector options: " << options << " for type " << ctype);
 
-    // Check connector type
-    if (ctype >= CT_TCP4 && ctype <= CT_UDP)
-    {
-      if (m_url.authority.empty()) {
-        throw exception(ERR_FORMAT, "Require address part in address string.");
-      }
-
-      // Parse socket address.
-      auto addr = net::socket_address(m_url.authority);
-
-      // Make sure the parsed address type matches the protocol.
-      if (net::AT_INET4 == addr.type()) {
-        if (CT_TCP4 != ctype
-            && CT_TCP != ctype
-            && CT_UDP4 != ctype
-            && CT_UDP != ctype)
-        {
-          throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
-        }
-      }
-      else if (net::AT_INET6 == addr.type()) {
-        if (CT_TCP6 != ctype
-            && CT_TCP != ctype
-            && CT_UDP6 != ctype
-            && CT_UDP != ctype)
-        {
-          throw exception(ERR_FORMAT, "IPv6 address provided with IPv4 scheme.");
-        }
-      }
-      else {
-        throw exception(ERR_FORMAT, "Invalid IPv4 or IPv6 address.");
-      }
-
-      // Looks good for TCP/UDP style connectors!
-      m_type = ctype;
-
-      switch (m_type) {
-        case CT_TCP:
-        case CT_TCP4:
-        case CT_TCP6:
-          m_iconn = new detail::connector_tcp(addr, options);
-          break;
-
-        case CT_UDP:
-        case CT_UDP4:
-        case CT_UDP6:
-          m_iconn = new detail::connector_udp(addr, options);
-          break;
-
-        default:
-          PACKETEER_FLOW_CONTROL_GUARD;
-      }
+    // Try to create the implementation
+    auto iconn = m_creator(m_url, ctype, options);
+    if (!iconn) {
+      throw exception(ERR_INITIALIZATION, "Could not instantiate connector scheme.");
     }
 
-    else if (CT_ANON == ctype) {
-      // Looks good for anonymous connectors
-      if (!m_url.path.empty()) {
-        throw exception(ERR_FORMAT, "Path component makes no sense for anon:// connectors.");
-      }
-      m_type = ctype;
-      m_iconn = new detail::connector_anon(options);
-    }
-
-    else {
-      if (m_url.path.empty()) {
-        throw exception(ERR_FORMAT, "Require path in address string.");
-      }
-      // Pass on blocking mode.
-
-      // Looks good for non-TCP/UDP style connectors!
-      m_type = ctype;
-
-      // Instanciate the connector implementation
-      switch (m_type) {
-#if defined(PACKETEER_POSIX)
-        case CT_LOCAL:
-          m_iconn = new detail::connector_local(m_url.path, options);
-          break;
-#endif
-
-        case CT_PIPE:
-          m_iconn = new detail::connector_pipe(m_url.path, options);
-          break;
-
-        default:
-          throw exception(ERR_UNEXPECTED, "This should not happen.");
-          break;
-      }
-    }
+    m_type = ctype;
+    m_iconn = iconn;
   }
 
 
@@ -748,6 +622,19 @@ connector::register_option(std::string const & url_parameter,
 {
   return detail::register_url_param(url_parameter, std::move(mapper));
 }
+
+
+error_t
+connector::register_scheme(std::string const & scheme,
+      connector_type const & type,
+      connector_options const & default_options,
+      connector_options const & possible_options,
+      connector::scheme_instantiation_function && creator)
+{
+  return detail::register_scheme(scheme, type, default_options,
+      possible_options, std::move(creator));
+}
+
 
 
 

@@ -339,6 +339,7 @@ libsrc = [
   'lib' / 'scheduler.cpp',
   'lib' / 'connector.cpp',
   'lib' / 'connector_url_params.cpp',
+  'lib' / 'connector_schemes.cpp',
   'lib' / 'peer_address.cpp',
   'lib' / 'detail' / 'worker.cpp',
   'lib' / 'detail' / 'scheduler_impl.cpp',
@@ -370,6 +371,7 @@ install_headers(
   'include' / 'packeteer' / 'events.h',
   'include' / 'packeteer' / 'connector.h',
   'include' / 'packeteer' / 'connector_specs.h',
+  'include' / 'packeteer' / 'connector_iface.h',
   'include' / 'packeteer' / 'peer_address.h',
   'include' / 'packeteer' / 'scheduler.h',
 
@@ -411,7 +413,7 @@ endif
 
 posixsrc = [
   'lib' / 'posix' / 'handle.cpp',
-  'lib' / 'posix' / 'detail' / 'connector.cpp',
+  'lib' / 'posix' / 'connector_iface.cpp',
   'lib' / 'posix' / 'detail' / 'connector_socket.cpp',
   'lib' / 'posix' / 'detail' / 'connector_pipe.cpp',
   'lib' / 'posix' / 'detail' / 'connector_tcp.cpp',
