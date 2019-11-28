@@ -21,7 +21,7 @@
  **/
 #include <gtest/gtest.h>
 
-#include "../../lib/detail/scheduler_impl.h"
+#include "../../lib/scheduler/scheduler_impl.h"
 
 #include <packeteer/error.h>
 

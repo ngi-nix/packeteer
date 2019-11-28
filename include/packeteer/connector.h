@@ -32,12 +32,14 @@
 #include <functional>
 
 #include <packeteer/handle.h>
-#include <packeteer/connector_specs.h>
-#include <packeteer/connector_iface.h>
-#include <packeteer/peer_address.h>
+
+#include <packeteer/connector/types.h>
+#include <packeteer/connector/interface.h>
+#include <packeteer/connector/peer_address.h>
 
 #include <packeteer/util/operators.h>
 #include <packeteer/util/url.h>
+
 #include <packeteer/net/socket_address.h>
 
 namespace PACKETEER_API packeteer {

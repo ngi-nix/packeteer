@@ -25,8 +25,8 @@
 
 #include <stdexcept>
 
-#include "detail/scheduler_impl.h"
-#include "detail/worker.h"
+#include "scheduler/scheduler_impl.h"
+#include "scheduler/worker.h"
 
 namespace sc = std::chrono;
 

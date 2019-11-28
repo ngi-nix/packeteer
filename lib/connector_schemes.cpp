@@ -24,15 +24,7 @@
 
 #include "macros.h"
 #include "util/string.h"
-
-#include "detail/connector_tcp.h"
-#include "detail/connector_udp.h"
-#include "detail/connector_anon.h"
-#include "detail/connector_pipe.h"
-#if defined(PACKETEER_POSIX)
-#  include "detail/connector_local.h"
-#endif
-
+#include "connector/connectors.h"
 
 namespace PACKETEER_API packeteer {
 namespace detail {

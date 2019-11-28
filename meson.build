@@ -339,25 +339,6 @@ thread = dependency('threads', required: true)
 ##############################################################################
 # Library
 
-libsrc = [
-  'lib' / 'version.cpp',
-  'lib' / 'error.cpp',
-  'lib' / 'packeteer.cpp',
-  'lib' / 'scheduler.cpp',
-  'lib' / 'connector.cpp',
-  'lib' / 'connector_url_params.cpp',
-  'lib' / 'connector_schemes.cpp',
-  'lib' / 'peer_address.cpp',
-  'lib' / 'detail' / 'worker.cpp',
-  'lib' / 'detail' / 'scheduler_impl.cpp',
-  'lib' / 'net' / 'socket_address.cpp',
-  'lib' / 'net' / 'network.cpp',
-  'lib' / 'net' / 'cidr.cpp',
-  'lib' / 'thread' / 'tasklet.cpp',
-  'lib' / 'util' / 'url.cpp',
-  'lib' / 'util' / 'string.cpp',
-]
-
 includes = include_directories(
   'include',
 )
@@ -372,15 +353,15 @@ install_headers(
   'include' / 'packeteer' / 'version.h',
   'include' / 'packeteer' / 'error.h',
   'include' / 'packeteer' / 'types.h',
-  'include' / 'packeteer' / 'scheduler_types.h',
-  'include' / 'packeteer' / 'callback.h',
-  'include' / 'packeteer' / 'handle.h',
-  'include' / 'packeteer' / 'events.h',
-  'include' / 'packeteer' / 'connector.h',
-  'include' / 'packeteer' / 'connector_specs.h',
-  'include' / 'packeteer' / 'connector_iface.h',
-  'include' / 'packeteer' / 'peer_address.h',
   'include' / 'packeteer' / 'scheduler.h',
+  'include' / 'packeteer' / 'scheduler' / 'types.h',
+  'include' / 'packeteer' / 'scheduler' / 'callback.h',
+  'include' / 'packeteer' / 'scheduler' / 'events.h',
+  'include' / 'packeteer' / 'handle.h',
+  'include' / 'packeteer' / 'connector.h',
+  'include' / 'packeteer' / 'connector' / 'types.h',
+  'include' / 'packeteer' / 'connector' / 'interface.h',
+  'include' / 'packeteer' / 'connector' / 'peer_address.h',
 
   subdir: 'packeteer',
 )
@@ -401,36 +382,56 @@ install_headers(
 )
 
 
+libsrc = [
+  'lib' / 'version.cpp',
+  'lib' / 'error.cpp',
+  'lib' / 'packeteer.cpp',
+  'lib' / 'scheduler.cpp',
+  'lib' / 'connector' / 'connector.cpp',
+  'lib' / 'connector_url_params.cpp',  # FIXME context
+  'lib' / 'connector_schemes.cpp',
+  'lib' / 'connector' / 'peer_address.cpp',
+  'lib' / 'scheduler' / 'worker.cpp',
+  'lib' / 'scheduler' / 'scheduler_impl.cpp',
+  'lib' / 'net' / 'socket_address.cpp',
+  'lib' / 'net' / 'network.cpp',
+  'lib' / 'net' / 'cidr.cpp',
+  'lib' / 'thread' / 'tasklet.cpp',
+  'lib' / 'util' / 'url.cpp',
+  'lib' / 'util' / 'string.cpp',
+]
+
 
 if have_epoll_create
-  libsrc += ['lib' / 'detail' / 'io_epoll.cpp']
+  libsrc += ['lib' / 'scheduler' / 'io' / 'epoll.cpp']
 endif
 
 if have_select
-  libsrc += ['lib' / 'detail' / 'io_select.cpp']
+  libsrc += ['lib' / 'scheduler' / 'io' / 'select.cpp']
 endif
 
 if have_poll
-  libsrc +=  ['lib' / 'detail' / 'io_poll.cpp']
+  libsrc +=  ['lib' / 'scheduler' / 'io' / 'poll.cpp']
 endif
 
 if have_kqueue
-  libsrc +=  ['lib' / 'detail' / 'io_kqueue.cpp']
+  libsrc +=  ['lib' / 'scheduler' / 'io' / 'kqueue.cpp']
 endif
 
 posixsrc = [
   'lib' / 'posix' / 'handle.cpp',
-  'lib' / 'posix' / 'connector_iface.cpp',
-  'lib' / 'posix' / 'detail' / 'connector_socket.cpp',
-  'lib' / 'posix' / 'detail' / 'connector_pipe.cpp',
-  'lib' / 'posix' / 'detail' / 'connector_tcp.cpp',
-  'lib' / 'posix' / 'detail' / 'connector_udp.cpp',
-  'lib' / 'posix' / 'detail' / 'connector_anon.cpp',
-  'lib' / 'posix' / 'detail' / 'connector_local.cpp',
+  'lib' / 'connector' / 'posix' / 'interface.cpp',
+  'lib' / 'connector' / 'posix' / 'socket.cpp',
+  'lib' / 'connector' / 'posix' / 'pipe.cpp',
+  'lib' / 'connector' / 'posix' / 'tcp.cpp',
+  'lib' / 'connector' / 'posix' / 'udp.cpp',
+  'lib' / 'connector' / 'posix' / 'anon.cpp',
+  'lib' / 'connector' / 'posix' / 'local.cpp',
 ]
 
 winsrc = [
   'lib' / 'win32' / 'handle.cpp',
+# TODO move to connector/win32
   'lib' / 'win32' / 'detail' / 'connector.cpp',
   'lib' / 'win32' / 'detail' / 'connector_socket.cpp',
   'lib' / 'win32' / 'detail' / 'connector_pipe.cpp',
@@ -488,9 +489,9 @@ if not meson.is_subproject()
     'test' / 'public' / 'test_util_url.cpp',
     'test' / 'public' / 'test_net_network.cpp',
     'test' / 'public' / 'test_net_socket_address.cpp',
-    'test' / 'public' / 'test_callback.cpp',
-    'test' / 'public' / 'test_peer_address.cpp',
+    'test' / 'public' / 'test_scheduler_callback.cpp',
     'test' / 'public' / 'test_scheduler.cpp',
+    'test' / 'public' / 'test_connector_peer_address.cpp',
     'test' / 'public' / 'test_connector.cpp',
     'test' / 'runner.cpp',
   ]

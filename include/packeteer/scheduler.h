@@ -28,11 +28,12 @@
 
 #include <packeteer.h>
 
-#include <packeteer/scheduler_types.h>
-#include <packeteer/callback.h>
 #include <packeteer/error.h>
-#include <packeteer/events.h>
 #include <packeteer/handle.h>
+
+#include <packeteer/scheduler/types.h>
+#include <packeteer/scheduler/callback.h>
+#include <packeteer/scheduler/events.h>
 
 namespace PACKETEER_API packeteer {
 
