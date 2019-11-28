@@ -30,7 +30,7 @@ public:
   std::shared_ptr<packeteer::api> api;
 
   TestEnvironment()
-    : api{std::make_shared<packeteer::api>()}
+    : api{packeteer::api::create()}
   {
   }
 };

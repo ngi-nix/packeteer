@@ -80,7 +80,13 @@ namespace PACKETEER_API packeteer {
 class PACKETEER_API api
 {
 public:
-  api();
+  /**
+   * Create a new API instance.
+   */
+  static std::shared_ptr<api> create()
+  {
+    return std::shared_ptr<api>(new api());
+  }
   ~api();
 
   api(api &&) = delete;
@@ -88,6 +94,8 @@ public:
   api & operator=(api const &) = delete;
 
 private:
+  api();
+
   struct api_impl;
   std::experimental::propagate_const<
     std::unique_ptr<api_impl>
