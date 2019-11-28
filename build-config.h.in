@@ -62,8 +62,6 @@
  * Platform checks
  **/
 #mesondefine PACKETEER_BIGENDIAN
-
-// FIXME detect, ideally
-#define PACKETEER_CACHE_LINE_SIZE 128
+#mesondefine PACKETEER_CACHE_LINE_SIZE
 
 #endif // guard

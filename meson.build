@@ -318,9 +318,11 @@ if have_mkfifo
 endif
 
 
-### Dependencies
+### Set values from options
 
-thread = dependency('threads', required: true)
+cache_line_size = get_option('cache_line_size')
+message('Set cache line size option to: @0@'.format(cache_line_size))
+conf_data.set('PACKETEER_CACHE_LINE_SIZE', cache_line_size)
 
 configure_file(
   input: 'build-config.h.in',
@@ -328,6 +330,11 @@ configure_file(
   configuration: conf_data)
 
 
+
+##############################################################################
+# Dependencies
+
+thread = dependency('threads', required: true)
 
 ##############################################################################
 # Library
