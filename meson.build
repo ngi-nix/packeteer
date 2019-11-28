@@ -386,10 +386,9 @@ libsrc = [
   'lib' / 'version.cpp',
   'lib' / 'error.cpp',
   'lib' / 'packeteer.cpp',
+  'lib' / 'registry.cpp',
   'lib' / 'scheduler.cpp',
   'lib' / 'connector.cpp',
-  'lib' / 'connector_url_params.cpp',  # FIXME context
-  'lib' / 'connector_schemes.cpp',
   'lib' / 'connector' / 'peer_address.cpp',
   'lib' / 'scheduler' / 'worker.cpp',
   'lib' / 'scheduler' / 'scheduler_impl.cpp',
@@ -484,6 +483,7 @@ if not meson.is_subproject()
   # - private_tests include private headers
 
   public_test_src = [
+    'test' / 'public' / 'test_registry.cpp',
     'test' / 'public' / 'test_error.cpp',
     'test' / 'public' / 'test_handle.cpp',
     'test' / 'public' / 'test_util_url.cpp',

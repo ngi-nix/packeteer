@@ -36,6 +36,7 @@
 #include <map>
 
 #include <packeteer/error.h>
+#include <packeteer/registry.h>
 
 #include <packeteer/util/hash.h>
 
@@ -43,49 +44,25 @@
 #include <packeteer/net/socket_address.h>
 
 #include "macros.h"
-#include "connector_url_params.h"
-#include "connector_schemes.h"
 #include "util/string.h"
 
 namespace packeteer {
-
-/*****************************************************************************
- * Helper constructs
- **/
-
-namespace {
-
-inline void
-connector_init()
-{
-  error_t err = detail::init_url_params();
-  if (ERR_SUCCESS != err) {
-    throw exception(err);
-  }
-
-  err = detail::init_schemes();
-  if (ERR_SUCCESS != err) {
-    throw exception(err);
-  }
-}
-
-} // anonymous namespace
 
 /*****************************************************************************
  * Connector implementation
  **/
 struct connector::connector_impl
 {
-  std::shared_ptr<api>                      m_api;
+  std::shared_ptr<api>      m_api;
 
-  connector_type                            m_type;
-  connector_options                         m_default_options;
-  connector_options                         m_possible_options;
-  connector::scheme_instantiation_function  m_creator;
+  connector_type            m_type;
+  connector_options         m_default_options;
+  connector_options         m_possible_options;
+  registry::scheme_creator  m_creator;
 
-  util::url                                 m_url;
-  peer_address                              m_address;
-  connector_interface *                     m_iconn;
+  util::url                 m_url;
+  peer_address              m_address;
+  connector_interface *     m_iconn;
 
   connector_impl(std::shared_ptr<api> api, util::url const & connect_url,
       connector_interface * iconn)
@@ -97,12 +74,10 @@ struct connector::connector_impl
     , m_address(m_url)
     , m_iconn(iconn)
   {
-    connector_init();
-
     // We don't really need to validate the address here any further, because
     // it's not set by an outside caller - it comes directly from this file, or
     // any of the connector_interface implementations.
-    auto info = detail::info_for_scheme(m_url.scheme);
+    auto info = m_api->reg().info_for_scheme(m_url.scheme);
     m_type = info.type;
     m_default_options = info.default_options;
     m_possible_options = info.possible_options;
@@ -120,10 +95,8 @@ struct connector::connector_impl
     , m_address(m_url)
     , m_iconn(nullptr)
   {
-    connector_init();
-
     // Find the scheme spec
-    auto info = detail::info_for_scheme(m_url.scheme);
+    auto info = m_api->reg().info_for_scheme(m_url.scheme);
     auto ctype = info.type;
     m_default_options = info.default_options;
     m_possible_options = info.possible_options;
@@ -133,7 +106,7 @@ struct connector::connector_impl
     connector_options options = m_default_options;
 
     // Check if there is a "options" parameter in the url.
-    auto requested = detail::options_from_url_params(m_url.query);
+    auto requested = m_api->reg().options_from_query(m_url.query);
     if (requested != CO_DEFAULT) {
       // Ensure the requested value is valid.
       if (!(m_possible_options & requested)) {
@@ -567,32 +540,5 @@ connector::hash() const
   }
   return m_impl->hash();
 }
-
-
-
-/***************************************************************************
- * Registry interface
- **/
-error_t
-connector::register_option(std::string const & url_parameter,
-    connector::option_mapping_function && mapper)
-{
-  return detail::register_url_param(url_parameter, std::move(mapper));
-}
-
-
-error_t
-connector::register_scheme(std::string const & scheme,
-      connector_type const & type,
-      connector_options const & default_options,
-      connector_options const & possible_options,
-      connector::scheme_instantiation_function && creator)
-{
-  return detail::register_scheme(scheme, type, default_options,
-      possible_options, std::move(creator));
-}
-
-
-
 
 } // namespace packeteer

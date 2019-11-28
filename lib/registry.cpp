@@ -1,0 +1,379 @@
+/**
+ * This file is part of packeteer.
+ *
+ * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
+ *
+ * Copyright (c) 2019 Jens Finkhaeuser.
+ *
+ * This software is licensed under the terms of the GNU GPLv3 for personal,
+ * educational and non-profit use. For all other uses, alternative license
+ * options are available. Please contact the copyright holder for additional
+ * information, stating your intended usage.
+ *
+ * You can find the full text of the GPLv3 in the COPYING file in this code
+ * distribution.
+ *
+ * This software is distributed on an "AS IS" BASIS, WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE.
+ **/
+#include <packeteer/registry.h>
+
+#include "macros.h"
+#include "util/string.h"
+#include "connector/connectors.h"
+
+
+#define FAIL_FAST(expr) { \
+    auto err = expr; \
+    if (ERR_SUCCESS != err) {\
+      throw exception(err); \
+    } \
+  }
+
+
+namespace packeteer {
+
+namespace {
+
+connector_interface *
+inet_creator(util::url const & url, connector_type const & ctype,
+    connector_options const & options)
+{
+  if (url.authority.empty()) {
+    throw exception(ERR_FORMAT, "Require address part in address string.");
+  }
+
+  // Parse socket address.
+  auto addr = net::socket_address(url.authority);
+
+  // Make sure the parsed address type matches the protocol.
+  if (net::AT_INET4 == addr.type()) {
+    if (CT_TCP4 != ctype
+        && CT_TCP != ctype
+        && CT_UDP4 != ctype
+        && CT_UDP != ctype)
+    {
+      throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
+    }
+  }
+  else if (net::AT_INET6 == addr.type()) {
+    if (CT_TCP6 != ctype
+        && CT_TCP != ctype
+        && CT_UDP6 != ctype
+        && CT_UDP != ctype)
+    {
+      throw exception(ERR_FORMAT, "IPv6 address provided with IPv4 scheme.");
+    }
+  }
+  else {
+    throw exception(ERR_FORMAT, "Invalid IPv4 or IPv6 address.");
+  }
+
+  // Looks good for TCP/UDP style connectors!
+  switch (ctype) {
+    case CT_TCP:
+    case CT_TCP4:
+    case CT_TCP6:
+      return new detail::connector_tcp(addr, options);
+      break;
+
+    case CT_UDP:
+    case CT_UDP4:
+    case CT_UDP6:
+      return new detail::connector_udp(addr, options);
+      break;
+
+    default:
+      PACKETEER_FLOW_CONTROL_GUARD;
+  }
+
+  return nullptr; // Unreachable; just for clarity.
+}
+
+
+} // anonymous namespace
+
+
+
+struct registry::registry_impl
+{
+  registry_impl()
+  {
+    init_params();
+    init_schemes();
+  }
+
+  /***************************************************************************
+   * Query parameter registry
+   */
+  std::map<std::string, registry::option_mapper> option_mappers;
+
+
+  void init_params()
+  {
+    if (!option_mappers.empty()) {
+      return;
+    }
+
+    LOG("Initializing default connector URL parameters.");
+    FAIL_FAST(add_parameter("behaviour",
+        [](std::string const & value) -> connector_options
+        {
+          // Check for valid behaviour value
+          connector_options requested = CO_DEFAULT;
+          if ("datagram" == value or "dgram" == value) {
+            requested = CO_DATAGRAM;
+          } else if ("stream" == value) {
+            requested = CO_STREAM;
+          }
+          return requested;
+        }
+    ));
+
+    FAIL_FAST(add_parameter("blocking",
+        [](std::string const & value) -> connector_options
+        {
+          // Default to non-blocking options.
+          if (value == "1") {
+            return CO_BLOCKING;
+          }
+          return CO_NON_BLOCKING;
+        }
+    ));
+
+  }
+
+
+
+  error_t
+  add_parameter(std::string const & parameter, option_mapper && mapper)
+  {
+    if (parameter.empty()) {
+      LOG("Must specify a URL parameter!");
+      return ERR_INVALID_VALUE;
+    }
+    if (!mapper) {
+      LOG("No mapper function provided!");
+      return ERR_EMPTY_CALLBACK;
+    }
+
+    auto normalized = util::to_lower(parameter);
+
+    auto option = option_mappers.find(normalized);
+    if (option != option_mappers.end()) {
+      LOG("URL parameter already registered!");
+      return ERR_INVALID_VALUE;
+    }
+
+    // All good, so keep this.
+    option_mappers[normalized] = std::move(mapper);
+
+    return ERR_SUCCESS;
+  }
+
+
+
+  connector_options
+  options_from_query(std::map<std::string, std::string> const & query)
+  {
+    connector_options result = CO_DEFAULT;
+    for (auto param : option_mappers) {
+      LOG("Checking known option parameter: " << param.first);
+
+      // Get query value for parameter.
+      auto query_val = query.find(param.first);
+      std::string value;
+      if (query_val != query.end()) {
+        value = query_val->second;
+      }
+
+      // Invoke mapper
+      LOG("Using mapper to convert value: " << value);
+      auto intermediate = param.second(value);
+      LOG("Mapper result is: " << intermediate);
+
+      // Success, so set whatever the mapper set.
+      result |= intermediate;
+    }
+
+    LOG("Merged options are: " << result);
+    return result;
+  }
+
+
+  /***************************************************************************
+   * Scheme registry
+   */
+  std::map<std::string, connector_info> scheme_map;
+
+  void init_schemes()
+  {
+    if (!scheme_map.empty()) {
+      return;
+    }
+
+  // Register TCP and UDP schemes.
+  FAIL_FAST(add_scheme("tcp4", connector_info{CT_TCP4,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
+      inet_creator}));
+  FAIL_FAST(add_scheme("tcp6", connector_info{CT_TCP6,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
+      inet_creator}));
+  FAIL_FAST(add_scheme("tcp", connector_info{CT_TCP,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
+      inet_creator}));
+
+  FAIL_FAST(add_scheme("udp4", connector_info{CT_UDP4,
+      CO_DATAGRAM|CO_NON_BLOCKING,
+      CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
+      inet_creator}));
+  FAIL_FAST(add_scheme("udp6", connector_info{CT_UDP6,
+      CO_DATAGRAM|CO_NON_BLOCKING,
+      CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
+      inet_creator}));
+  FAIL_FAST(add_scheme("udp", connector_info{CT_UDP,
+      CO_DATAGRAM|CO_NON_BLOCKING,
+      CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
+      inet_creator}));
+
+  // Register anonymous scheme
+  FAIL_FAST(add_scheme("anon", connector_info{CT_ANON,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
+      [] (util::url const & url, connector_type const &, connector_options const & options) -> connector_interface *
+      {
+        if (!url.path.empty()) {
+          throw exception(ERR_FORMAT, "Path component makes no sense for anon:// connectors.");
+        }
+        return new detail::connector_anon(options);
+      }}));
+
+  // Register pipe scheme
+  FAIL_FAST(add_scheme("pipe", connector_info{CT_PIPE,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
+      [] (util::url const & url, connector_type const &, connector_options const & options) -> connector_interface *
+      {
+        return new detail::connector_pipe(url.path, options);
+      }}));
+
+#if defined(PACKETEER_POSIX)
+  // Register posix local addresses, if possible.
+  FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
+      [] (util::url const & url, connector_type const &, connector_options const & options) -> connector_interface *
+      {
+        return new detail::connector_local(url.path, options);
+      }}));
+#endif
+  }
+
+
+
+  error_t
+  add_scheme(std::string const & scheme, connector_info const & info)
+  {
+    if (scheme.empty()) {
+      LOG("Must specify a scheme!");
+      return ERR_INVALID_VALUE;
+    }
+
+    if (CT_UNSPEC == info.type) {
+      LOG("Must specify a type!");
+      return ERR_INVALID_VALUE;
+    }
+
+    // Multiple schemes may return the same type.
+
+    // Default options may be empty, meaning CO_DEFAULT should be
+    // passed. possible_options may be empty, meaning CO_DEFAULT is the only
+    // option allowed.
+
+    if (!info.creator) {
+      LOG("Must provide a creator function!");
+      return ERR_EMPTY_CALLBACK;
+    }
+
+
+    auto normalized = util::to_lower(scheme);
+
+    auto scheme_info = scheme_map.find(normalized);
+    if (scheme_info != scheme_map.end()) {
+      LOG("Scheme already registered!");
+      return ERR_INVALID_VALUE;
+    }
+
+    // All good, keep this.
+    scheme_map[normalized] = info;
+    return ERR_SUCCESS;
+  }
+
+
+
+  connector_info
+  info_for_scheme(std::string const & scheme)
+  {
+    auto normalized = util::to_lower(scheme);
+
+    auto scheme_info = scheme_map.find(normalized);
+    if (scheme_info == scheme_map.end()) {
+      throw exception(ERR_INVALID_VALUE, "Unknown scheme: " + scheme);
+    }
+    return scheme_info->second;
+  }
+};
+
+
+
+registry::registry()
+  : m_impl{std::make_unique<registry_impl>()}
+{
+}
+
+
+
+registry::~registry()
+{
+}
+
+
+
+error_t
+registry::add_parameter(std::string const & parameter,
+    registry::option_mapper && mapper)
+{
+  return m_impl->add_parameter(parameter, std::move(mapper));
+}
+
+
+
+connector_options
+registry::options_from_query(
+      std::map<std::string, std::string> const & query)
+{
+  return m_impl->options_from_query(query);
+}
+
+
+
+error_t
+registry::add_scheme(std::string const & scheme, connector_info const & info)
+{
+  return m_impl->add_scheme(scheme, info);
+}
+
+
+
+registry::connector_info
+registry::info_for_scheme(std::string const & scheme)
+{
+  return m_impl->info_for_scheme(scheme);
+}
+
+
+} // namespace packeteer

@@ -75,6 +75,12 @@
 namespace PACKETEER_API packeteer {
 
 /**
+ * Forward
+ */
+class PACKETEER_API registry;
+
+
+/**
  * The primary entry point into a packeteer library instance.
  */
 class PACKETEER_API api
@@ -89,9 +95,17 @@ public:
   }
   ~api();
 
+  /**
+   * Don't copy the instance - share it around, or create a new one.
+   */
   api(api &&) = delete;
   api(api const &) = delete;
   api & operator=(api const &) = delete;
+
+  /**
+   * Access the registry interface.
+   */
+  registry & reg();
 
 private:
   api();

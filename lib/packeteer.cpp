@@ -21,17 +21,21 @@
  **/
 #include <packeteer.h>
 
+#include <packeteer/registry.h>
+
 #include "net/netincludes.h"
 
 namespace packeteer {
 
 struct api::api_impl
 {
+  registry reg;
 };
 
 
 
 api::api()
+  : m_impl{std::make_unique<api_impl>()}
 {
 #if defined(PACKETEER_WIN32)
   WSADATA data;
@@ -43,11 +47,21 @@ api::api()
 #endif // win32
 }
 
+
+
 api::~api()
 {
 #if defined(PACKETEER_WIN32)
   WSACleanup();
 #endif // win32
+}
+
+
+
+registry &
+api::reg()
+{
+  return m_impl->reg;
 }
 
 } // namespace packeteer

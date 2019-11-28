@@ -685,32 +685,3 @@ TEST(ConnectorMisc, anon_connector)
   }
 }
 
-
-/*****************************************************************************
- * ConnectorOptionsRegistry
- */
-
-TEST(ConnectorOptionsRegistry, empty_param)
-{
-  using namespace packeteer;
-  ASSERT_EQ(ERR_INVALID_VALUE, connector::register_option("", nullptr));
-}
-
-TEST(ConnectorOptionsRegistry, empty_mapper)
-{
-  using namespace packeteer;
-  ASSERT_EQ(ERR_EMPTY_CALLBACK, connector::register_option("foo", nullptr));
-}
-
-TEST(ConnectorOptionsRegistry, duplicate_url_param)
-{
-  using namespace packeteer;
-  auto dummy = [] (std::string const &) -> connector_options {
-    // Return CO_DEFAULT to not mess with other tests by always setting
-    // an option.
-    return CO_DEFAULT;
-  };
-
-  ASSERT_EQ(ERR_SUCCESS, connector::register_option("foo", dummy));
-  ASSERT_EQ(ERR_INVALID_VALUE, connector::register_option("foo", dummy));
-}
