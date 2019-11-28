@@ -118,7 +118,7 @@ struct registry::registry_impl
 
     LOG("Initializing default connector URL parameters.");
     FAIL_FAST(add_parameter("behaviour",
-        [](std::string const & value) -> connector_options
+        [](std::string const & value, bool) -> connector_options
         {
           // Check for valid behaviour value
           connector_options requested = CO_DEFAULT;
@@ -132,7 +132,7 @@ struct registry::registry_impl
     ));
 
     FAIL_FAST(add_parameter("blocking",
-        [](std::string const & value) -> connector_options
+        [](std::string const & value, bool) -> connector_options
         {
           // Default to non-blocking options.
           if (value == "1") {
@@ -184,13 +184,14 @@ struct registry::registry_impl
       // Get query value for parameter.
       auto query_val = query.find(param.first);
       std::string value;
-      if (query_val != query.end()) {
+      bool found = query_val != query.end();
+      if (found) {
         value = query_val->second;
       }
 
       // Invoke mapper
       LOG("Using mapper to convert value: " << value);
-      auto intermediate = param.second(value);
+      auto intermediate = param.second(value, found);
       LOG("Mapper result is: " << intermediate);
 
       // Success, so set whatever the mapper set.

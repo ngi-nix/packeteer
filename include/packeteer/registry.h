@@ -77,13 +77,14 @@ public:
    * the runtime of a program.
    *
    * The mapper function is taking a string value of a URL parameter, and
-   * returns a corresponding connector_options value. If a mapping
-   * cannot be done from the value, the mapper must return CO_DEFAULT; this
-   * will be handled as a parse error. On the plus side, the mapper can
-   * return any combination of sensible options if parsing succeeds.
+   * returns a corresponding connector_options value. It also takes a boolean
+   * flag indicating whether the parameter was found at all, allowing to
+   * differentiate between a parameter without value and a missing parameter.
+   *
+   * A mapper may return any valid combination of options.
    */
   using option_mapper = std::function<
-    ::packeteer::connector_options (std::string const &)
+    ::packeteer::connector_options (std::string const &, bool)
   >;
 
   /**
