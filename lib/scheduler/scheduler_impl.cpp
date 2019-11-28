@@ -81,19 +81,20 @@ void clear_interrupt(connector & pipe)
 /*****************************************************************************
  * class scheduler::scheduler_impl
  **/
-scheduler::scheduler_impl::scheduler_impl(size_t num_worker_threads,
-    scheduler_type type)
-  : m_num_worker_threads(num_worker_threads)
-  , m_workers()
-  , m_worker_condition()
-  , m_worker_mutex()
-  , m_main_loop_continue(true)
-  , m_main_loop_thread()
-  , m_main_loop_pipe("anon://")
-  , m_in_queue()
-  , m_out_queue()
-  , m_scheduled_callbacks()
-  , m_io(nullptr)
+scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
+    size_t num_worker_threads, scheduler_type type)
+  : m_api{api}
+  , m_num_worker_threads{num_worker_threads}
+  , m_workers{}
+  , m_worker_condition{}
+  , m_worker_mutex{}
+  , m_main_loop_continue{true}
+  , m_main_loop_thread{}
+  , m_main_loop_pipe{m_api, "anon://"}
+  , m_in_queue{}
+  , m_out_queue{}
+  , m_scheduled_callbacks{}
+  , m_io{nullptr}
 {
   switch (type) {
     case TYPE_AUTOMATIC:

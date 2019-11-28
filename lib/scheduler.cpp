@@ -37,9 +37,9 @@ namespace packeteer {
  * class scheduler
  **/
 
-scheduler::scheduler(size_t num_worker_threads,
+scheduler::scheduler(std::shared_ptr<api> api, size_t num_worker_threads,
     scheduler_type type /* = TYPE_AUTOMATIC */)
-  : m_impl{std::make_unique<scheduler_impl>(num_worker_threads, type)}
+  : m_impl{std::make_unique<scheduler_impl>(api, num_worker_threads, type)}
 {
 }
 

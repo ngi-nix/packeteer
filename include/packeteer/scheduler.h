@@ -92,7 +92,8 @@ public:
    * May throw if the specified type is not supported. Best leave it at
    * TYPE_AUTOMATIC.
    **/
-  scheduler(size_t num_worker_threads, scheduler_type type = TYPE_AUTOMATIC);
+  scheduler(std::shared_ptr<api> api, size_t num_worker_threads,
+      scheduler_type type = TYPE_AUTOMATIC);
 
   // Not default because of std::experimental::propagate_const
   ~scheduler();

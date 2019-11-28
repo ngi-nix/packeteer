@@ -150,7 +150,8 @@ struct scheduler::scheduler_impl
   /***************************************************************************
    * Generic interface
    **/
-  scheduler_impl(size_t num_worker_threads, scheduler_type type);
+  scheduler_impl(std::shared_ptr<api> api, size_t num_worker_threads,
+      scheduler_type type);
   ~scheduler_impl();
 
 
@@ -212,6 +213,9 @@ private:
   /***************************************************************************
    * Generic data
    **/
+  // Context
+  std::shared_ptr<api>            m_api;
+
   // Workers
   std::atomic<size_t>             m_num_worker_threads;
   std::vector<detail::worker *>   m_workers;

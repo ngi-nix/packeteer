@@ -18,7 +18,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <gtest/gtest.h>
+#include "../env.h"
 
 #include <packeteer/connector.h>
 #include <packeteer/scheduler.h>
@@ -173,12 +173,12 @@ TEST_P(ConnectorParsing, parsing)
   // std::cout << "test: " << td.address << std::endl;
 
   if (td.valid) {
-    ASSERT_NO_THROW(auto c = connector(td.address));
-    auto c = connector(td.address);
+    ASSERT_NO_THROW(auto c = connector(test_env->api, td.address));
+    auto c = connector(test_env->api, td.address);
     ASSERT_EQ(td.type, c.type());
   }
   else {
-    ASSERT_THROW(auto c = connector(td.address), std::runtime_error);
+    ASSERT_THROW(auto c = connector(test_env->api, td.address), std::runtime_error);
   }
 }
 
@@ -196,7 +196,7 @@ INSTANTIATE_TEST_CASE_P(net, ConnectorParsing,
 TEST(Connector, value_semantics)
 {
   // We'll use an anon connector, because they're simplest.
-  connector original{"anon://"};
+  connector original{test_env->api, "anon://"};
   ASSERT_EQ(CT_ANON, original.type());
   ASSERT_TRUE(original);
 
@@ -212,7 +212,7 @@ TEST(Connector, value_semantics)
   test_equality(original, copy);
 
   // Hashing and swapping require different types
-  connector different{"pipe:///foo"};
+  connector different{test_env->api, "pipe:///foo"};
   test_hashing_inequality(original, different);
   test_hashing_equality(original, copy);
   test_swapping(original, different);
@@ -244,7 +244,7 @@ TEST(Connector, default_constructed)
   ASSERT_LT(conn2, conn);
 
   // Anonymous connectors are greater than default-constructed ones
-  connector anon("anon://");
+  connector anon{test_env->api, "anon://"};
   ASSERT_TRUE(anon);
   ASSERT_LT(conn, anon);
   ASSERT_GT(anon, conn);
@@ -408,7 +408,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   url.query["behaviour"] = "stream";
 
   // Server
-  connector server(url);
+  connector server{test_env->api, url};
   ASSERT_EQ(td.type, server.type());
 
   ASSERT_FALSE(server.listening());
@@ -427,7 +427,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   // Client
-  connector client(url);
+  connector client{test_env->api, url};
   ASSERT_EQ(td.type, client.type());
 
   ASSERT_FALSE(client.listening());
@@ -468,7 +468,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   url.query["behaviour"] = "stream";
 
   // Server
-  connector server(url);
+  connector server{test_env->api, url};
   ASSERT_EQ(td.type, server.type());
 
   ASSERT_FALSE(server.listening());
@@ -487,7 +487,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   // Client
-  connector client(url);
+  connector client{test_env->api, url};
   ASSERT_EQ(td.type, client.type());
 
   ASSERT_FALSE(client.listening());
@@ -496,7 +496,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   // Connecting must result in ERR_ASYNC. We use a scheduler run to
   // understand when the connection attempt was finished.
   // FIXME own run loop, no background threads.
-  scheduler sched(1);
+  scheduler sched(test_env->api, 1);
   server_connect_callback server_struct(server);
   auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
   sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, server.get_read_handle(),
@@ -612,7 +612,7 @@ TEST_P(ConnectorDGram, messaging)
   curl.query["behaviour"] = "datagram";
 
   // Server
-  connector server(surl);
+  connector server{test_env->api, surl};
   ASSERT_EQ(td.type, server.type());
 
   ASSERT_FALSE(server.listening());
@@ -626,7 +626,7 @@ TEST_P(ConnectorDGram, messaging)
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   // Client
-  connector client(curl);
+  connector client{test_env->api, curl};
   ASSERT_EQ(td.type, client.type());
 
   ASSERT_FALSE(client.listening());
@@ -658,7 +658,7 @@ TEST(ConnectorMisc, anon_connector)
 {
   // Anonymous pipes are special in that they need only one connector for
   // communications.
-  connector conn("anon://");
+  connector conn{test_env->api, "anon://"};
   ASSERT_EQ(CT_ANON, conn.type());
 
   ASSERT_FALSE(conn.listening());

@@ -19,7 +19,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <gtest/gtest.h>
+#include "../env.h"
 
 #include <packeteer/scheduler.h>
 #include <packeteer/connector.h>
@@ -206,7 +206,7 @@ TEST_P(Scheduler, delayed_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source;
   pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -228,7 +228,7 @@ TEST_P(Scheduler, timed_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source;
   pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -250,7 +250,7 @@ TEST_P(Scheduler, repeat_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source;
   pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -277,7 +277,7 @@ TEST_P(Scheduler, infinite_callback)
   // explicitly unscheduled, the callback cannot be invoked any longer.
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source;
   pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -327,7 +327,7 @@ TEST_P(Scheduler, delayed_repeat_callback)
   auto delay = pk::clock::now() + sc::milliseconds(60);
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source;
   pk::callback cb = pk::make_callback(&source, &test_callback::func);
@@ -357,7 +357,7 @@ TEST_P(Scheduler, parallel_callback)
   // thread ids afterwards for this to succeed.
 
   // We need >1 thread to enable parallell processing.
-  pk::scheduler sched(2, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 2, static_cast<pk::scheduler::scheduler_type>(td));
 
   thread_id_callback source1;
   pk::callback cb1 = pk::make_callback(&source1, &thread_id_callback::func);
@@ -391,7 +391,7 @@ TEST_P(Scheduler, user_callback)
   };
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source1;
   pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
@@ -503,11 +503,11 @@ TEST_P(Scheduler, io_callback)
   auto td = GetParam();
 
   // The simplest way to test I/O callbacks is with a pipe.
-  pk::connector pipe("anon://");
+  pk::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source1;
   pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
@@ -564,11 +564,11 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
   auto td = GetParam();
 
   // First case registers read/write callbacks simultaneously.
-  pk::connector pipe("anon://");
+  pk::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   counting_callback source;
   pk::callback cb = pk::make_callback(&source, &counting_callback::func);
@@ -596,11 +596,11 @@ TEST_P(Scheduler, io_callback_registration_sequence)
   auto td = GetParam();
 
   // Second case registers them one after another, which could lead to overwrites.
-  pk::connector pipe("anon://");
+  pk::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
   // We only need one thread for this.
-  pk::scheduler sched(1, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
 
   counting_callback source;
   pk::callback cb = pk::make_callback(&source, &counting_callback::func);
@@ -636,7 +636,7 @@ TEST_P(Scheduler, single_threaded)
   };
 
   // Single-threaded scheduler
-  pk::scheduler sched(0, static_cast<pk::scheduler::scheduler_type>(td));
+  pk::scheduler sched(test_env->api, 0, static_cast<pk::scheduler::scheduler_type>(td));
 
   test_callback source1;
   pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);

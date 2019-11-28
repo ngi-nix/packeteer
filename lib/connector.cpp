@@ -76,6 +76,8 @@ connector_init()
  **/
 struct connector::connector_impl
 {
+  std::shared_ptr<api>                      m_api;
+
   connector_type                            m_type;
   connector_options                         m_default_options;
   connector_options                         m_possible_options;
@@ -85,8 +87,10 @@ struct connector::connector_impl
   peer_address                              m_address;
   connector_interface *                     m_iconn;
 
-  connector_impl(util::url const & connect_url, connector_interface * iconn)
-    : m_type(CT_UNSPEC)
+  connector_impl(std::shared_ptr<api> api, util::url const & connect_url,
+      connector_interface * iconn)
+    : m_api(api)
+    , m_type(CT_UNSPEC)
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
@@ -107,8 +111,9 @@ struct connector::connector_impl
 
 
 
-  connector_impl(util::url const & connect_url)
-    : m_type(CT_UNSPEC)
+  connector_impl(std::shared_ptr<api> api, util::url const & connect_url)
+    : m_api(api)
+    , m_type(CT_UNSPEC)
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
@@ -201,15 +206,15 @@ struct connector::connector_impl
 /*****************************************************************************
  * Implementation
  **/
-connector::connector(std::string const & connect_url)
-  : m_impl{std::make_shared<connector_impl>(util::url::parse(connect_url))}
+connector::connector(std::shared_ptr<api> api, std::string const & connect_url)
+  : m_impl{std::make_shared<connector_impl>(api, util::url::parse(connect_url))}
 {
 }
 
 
 
-connector::connector(util::url const & connect_url)
-  : m_impl{std::make_shared<connector_impl>(connect_url)}
+connector::connector(std::shared_ptr<api> api, util::url const & connect_url)
+  : m_impl{std::make_shared<connector_impl>(api, connect_url)}
 {
 }
 
@@ -330,7 +335,7 @@ connector::accept() const
     }
     else {
       // Address is identical, but connector is not
-      result.m_impl = std::make_shared<connector_impl>(m_impl->m_url, iconn);
+      result.m_impl = std::make_shared<connector_impl>(m_impl->m_api, m_impl->m_url, iconn);
     }
   }
   else {
@@ -344,7 +349,7 @@ connector::accept() const
     }
     LOG("Peer address is: " << peer.full_str() << " - " << iconn);
 
-    result.m_impl = std::make_shared<connector_impl>(util::url::parse(peer.full_str()), iconn);
+    result.m_impl = std::make_shared<connector_impl>(m_impl->m_api, util::url::parse(peer.full_str()), iconn);
   }
 
   return result;

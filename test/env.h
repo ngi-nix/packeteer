@@ -3,9 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2011 Jens Finkhaeuser.
- * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -19,29 +17,24 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <iostream>
+#ifndef PACKETEER_TEST_ENV_H
+#define PACKETEER_TEST_ENV_H
 
 #include <gtest/gtest.h>
 
-#include "env.h"
-
 #include <packeteer.h>
 
-TestEnvironment * test_env = nullptr;
-
-int main(int argc, char **argv)
+class TestEnvironment : public testing::Environment
 {
-  std::cout << packeteer::copyright_string() << std::endl;
+public:
+  std::shared_ptr<packeteer::api> api;
 
-  try {
-    test_env = new TestEnvironment();
-    ::testing::AddGlobalTestEnvironment(test_env);
-  } catch (packeteer::exception const & ex) {
-    test_env = nullptr;
-    std::cerr << ex.what() << std::endl;
-    return 1;
+  TestEnvironment()
+    : api{std::make_shared<packeteer::api>()}
+  {
   }
+};
 
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+extern TestEnvironment * test_env;
+
+#endif // guard

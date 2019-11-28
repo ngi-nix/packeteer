@@ -115,8 +115,8 @@ public:
    * but is assignable and very lightweight - and can therefore be used in
    * place of a connector pointer.
    **/
-  connector(std::string const & connect_url);
-  connector(util::url const & connect_url);
+  connector(std::shared_ptr<api> api, std::string const & connect_url);
+  connector(std::shared_ptr<api> api, util::url const & connect_url);
   connector() = default;
   ~connector() = default;
 
