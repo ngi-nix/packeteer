@@ -68,18 +68,31 @@
 #  pragma comment(lib, "Ws2_32.lib")
 #endif
 
+#include <memory>
+#include <experimental/propagate_const>
+
 
 namespace PACKETEER_API packeteer {
 
 /**
- * Initialize and de-initialize the library. This is required on some
- * platforms; on others, the functions don't do anything. Call them always for
- * portability.
- * If init() returns anything other than true, packeteer is not guaranteed
- * to function properly.
- **/
-PACKETEER_API bool init();
-PACKETEER_API void deinit();
+ * The primary entry point into a packeteer library instance.
+ */
+class PACKETEER_API api
+{
+public:
+  api();
+  ~api();
+
+  api(api &&) = delete;
+  api(api const &) = delete;
+  api & operator=(api const &) = delete;
+
+private:
+  struct api_impl;
+  std::experimental::propagate_const<
+    std::unique_ptr<api_impl>
+  > m_impl;
+};
 
 } // namespace packeteer
 

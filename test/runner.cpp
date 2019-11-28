@@ -25,11 +25,25 @@
 
 #include <packeteer.h>
 
+class TestEnvironment : public testing::Environment
+{
+public:
+  packeteer::api api;
+
+  TestEnvironment()
+    : api()
+  {
+  }
+};
+
 int main(int argc, char **argv)
 {
   std::cout << packeteer::copyright_string() << std::endl;
-  if (!packeteer::init()) {
-    std::cerr << "Error initializing packeteer, aborting!" << std::endl;
+
+  try {
+    ::testing::AddGlobalTestEnvironment(new TestEnvironment());
+  } catch (packeteer::exception const & ex) {
+    std::cerr << ex.what() << std::endl;
     return 1;
   }
 

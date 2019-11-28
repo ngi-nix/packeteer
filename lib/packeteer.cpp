@@ -25,24 +25,29 @@
 
 namespace packeteer {
 
-#if defined(PACKETEER_WIN32)
-bool init()
+struct api::api_impl
 {
+};
+
+
+
+api::api()
+{
+#if defined(PACKETEER_WIN32)
   WSADATA data;
   // Request Winsock 2.2
   int res = WSAStartup(MAKEWORD(2, 2), &data);
-  return (res == 0);
+  if (res != 0) {
+    throw exception(ERR_INITIALIZATION, "WSAStartup failed!");
+  }
+#endif // win32
 }
 
-
-void deinit()
+api::~api()
 {
+#if defined(PACKETEER_WIN32)
   WSACleanup();
+#endif // win32
 }
-
-#else
-bool init() { return true; }
-void deinit() {}
-#endif
 
 } // namespace packeteer
