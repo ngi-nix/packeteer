@@ -58,11 +58,10 @@ class concurrent_queue
 {
 public:
   /***************************************************************************
-   * STL-ish typedefs
+   * STL-ish types
    **/
-  typedef size_t size_type;
-  typedef valueT value_type;
-
+  using size_type = size_t;
+  using value_type = valueT;
 
 
   /***************************************************************************

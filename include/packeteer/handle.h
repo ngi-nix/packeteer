@@ -44,10 +44,10 @@ namespace PACKETEER_API packeteer {
 struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 {
 #if defined(PACKETEER_WIN32)
-  typedef HANDLE  sys_handle_t;
+  using sys_handle_t = HANDLE;
 #  define PACKETEER_INVALID_HANDLE_VALUE INVALID_HANDLE_VALUE
 #elif defined(PACKETEER_POSIX)
-  typedef int     sys_handle_t;
+  using sys_handle_t = int;
 #  define PACKETEER_INVALID_HANDLE_VALUE -1
 #else
 #  error Handles are not supported on this platform!

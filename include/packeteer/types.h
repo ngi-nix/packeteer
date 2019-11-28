@@ -39,7 +39,7 @@
 
 #if defined(PACKETEER_WIN32)
 #  include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
+using ssize_t = SSIZE_T;
 #endif
 
 #endif // guard

@@ -31,7 +31,7 @@ namespace PACKETEER_API packeteer {
 
 // Connector types can be any of the above constants, or a user-defined
 // type. User-defined types must have type values of CT_USER or higher.
-typedef int16_t connector_type;
+using connector_type = int16_t;
 
 // Types of connectors. See connector.h for details, also on the naming scheme
 // for peer addresses. Splitting into connector_type and the anonymous enum
@@ -53,7 +53,7 @@ enum PACKETEER_API : connector_type
 };
 
 // Connector behaviour & underlying type
-typedef uint16_t connector_options;
+using connector_options = uint16_t;
 
 enum PACKETEER_API : connector_options
 {

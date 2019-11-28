@@ -41,7 +41,7 @@
 #if !defined(PACKETEER_START_ERRORS)
 #define PACKETEER_START_ERRORS \
   namespace PACKETEER_API packeteer { \
-  typedef uint32_t error_t; \
+  using error_t = uint32_t; \
   enum PACKETEER_API : error_t {
 #define PACKETEER_ERRDEF(name, code, desc) name = code,
 #define PACKETEER_END_ERRORS PACKETEER_ERROR_LAST }; }

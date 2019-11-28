@@ -30,6 +30,7 @@
 
 #include <typeinfo>
 #include <functional>
+#include <type_traits>
 
 #include <packeteer/handle.h>
 #include <packeteer/events.h>
@@ -86,8 +87,9 @@ public:
    * Types
    **/
   // Typedef for free functions.
-  typedef error_t (*free_function_type)(uint64_t, error_t, handle const &, void *);
-
+  using free_function_type = std::add_pointer<
+      error_t (uint64_t, error_t, handle const &, void *)
+  >::type;
 
   /*****************************************************************************
    * Implementation

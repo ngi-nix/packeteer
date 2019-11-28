@@ -80,7 +80,7 @@ struct scheduled_callback_entry : public callback_entry
 struct scheduled_callbacks_t
 {
 public:
-  typedef std::vector<scheduled_callback_entry *> list_t;
+  using list_t = std::vector<scheduled_callback_entry *>;
 
   scheduled_callbacks_t()
   {
@@ -181,10 +181,10 @@ private:
   }
 
 
-  typedef std::multimap<
+  using timeout_map_t = std::multimap<
     ::packeteer::time_point,
     scheduled_callback_entry *
-  > timeout_map_t;
+  >;
 
   timeout_map_t   m_timeout_map;
 };

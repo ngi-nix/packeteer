@@ -32,7 +32,7 @@ namespace PACKETEER_API packeteer {
 
 // Events are masked together into events_t. All event flags with values equal
 // to or higher than PEV_USER are user-defined event types.
-typedef uint32_t events_t;
+using events_t = uint32_t;
 
 
 // Event types for which callback functions can be registered. The callback

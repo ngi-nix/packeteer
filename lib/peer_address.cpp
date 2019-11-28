@@ -30,7 +30,7 @@ namespace packeteer {
 
 namespace {
 
-typedef std::map<connector_type, std::string> schemes_map_t;
+using schemes_map_t = std::map<connector_type, std::string>;
 static const schemes_map_t sc_schemes =
 {
   { CT_UNSPEC, "" },

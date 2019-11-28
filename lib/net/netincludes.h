@@ -54,7 +54,7 @@
 #endif
 
 #if defined(PACKETEER_WIN32)
-typedef int sa_family_t;
+using sa_family_t = int;
 #endif
 
 #endif // guard

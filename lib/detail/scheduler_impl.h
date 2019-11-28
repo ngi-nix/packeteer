@@ -144,7 +144,7 @@ struct scheduler::scheduler_impl
    * Types
    **/
   // Type for temporary entry containers.
-  typedef std::vector<detail::callback_entry *>   entry_list_t;
+  using entry_list_t = std::vector<detail::callback_entry *>;
 
 
   /***************************************************************************
@@ -171,7 +171,7 @@ private:
    * Types
    **/
   // Entries for the in-queue
-  typedef std::pair<action_type, detail::callback_entry *> in_queue_entry_t;
+  using in_queue_entry_t = std::pair<action_type, detail::callback_entry *>;
 
   /***************************************************************************
    * Generic private functions
