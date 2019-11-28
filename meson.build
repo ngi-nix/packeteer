@@ -387,7 +387,7 @@ libsrc = [
   'lib' / 'error.cpp',
   'lib' / 'packeteer.cpp',
   'lib' / 'scheduler.cpp',
-  'lib' / 'connector' / 'connector.cpp',
+  'lib' / 'connector.cpp',
   'lib' / 'connector_url_params.cpp',  # FIXME context
   'lib' / 'connector_schemes.cpp',
   'lib' / 'connector' / 'peer_address.cpp',

@@ -146,7 +146,7 @@ struct network::network_impl
  * Member functions
  **/
 network::network(std::string const & netspec)
-  : m_impl(new network_impl(netspec))
+  : m_impl{std::make_unique<network_impl>(netspec)}
 {
 }
 
@@ -154,7 +154,6 @@ network::network(std::string const & netspec)
 
 network::~network()
 {
-  delete m_impl;
 }
 
 
@@ -162,8 +161,7 @@ network::~network()
 void
 network::reset(std::string const & netspec)
 {
-  delete m_impl;
-  m_impl = new network_impl(netspec);
+  m_impl = std::make_unique<network_impl>(netspec);
 }
 
 

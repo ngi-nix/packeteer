@@ -29,17 +29,17 @@
 #include <net/netincludes.h>
 #endif // PACKETEER_IS_BUILDING
 
-#include <packeteer/net/socket_address.h>
-
 // *** C++ includes
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include <memory>
+#include <experimental/propagate_const>
 
 // *** Own includes
 #include <packeteer/util/operators.h>
 #include <packeteer/net/address_type.h>
-
+#include <packeteer/net/socket_address.h>
 
 namespace PACKETEER_API packeteer {
 namespace PACKETEER_API net {
@@ -164,7 +164,9 @@ protected:
 private:
   // Pointer to implementation
   struct network_impl;
-  network_impl * m_impl;
+  std::experimental::propagate_const<
+    std::unique_ptr<network_impl>
+  > m_impl;
 
   // Creates a version of the given input address with the netmask applied.
   socket_address make_masked(socket_address const & input) const;

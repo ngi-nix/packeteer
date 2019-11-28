@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <utility>
 #include <functional>
+#include <memory>
+#include <experimental/propagate_const>
 
 #include <packeteer/handle.h>
 
@@ -115,8 +117,8 @@ public:
    **/
   connector(std::string const & connect_url);
   connector(util::url const & connect_url);
-  connector();
-  ~connector();
+  connector() = default;
+  ~connector() = default;
 
   /**
    * Returns the connector type.
@@ -257,9 +259,9 @@ public:
   /**
    * Behave like a value type.
    **/
-  connector(connector const & other);
+  connector(connector const & other) = default;
   connector(connector &&) = default;
-  connector & operator=(connector const & other);
+  connector & operator=(connector const & other) = default;
 
   operator bool() const;
 
@@ -332,7 +334,7 @@ public:
 private:
   // pimpl
   struct connector_impl;
-  connector_impl * m_impl;
+  std::shared_ptr<connector_impl> m_impl;
 };
 
 

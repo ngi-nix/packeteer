@@ -39,7 +39,7 @@ namespace packeteer {
 
 scheduler::scheduler(size_t num_worker_threads,
     scheduler_type type /* = TYPE_AUTOMATIC */)
-  : m_impl(new scheduler_impl(num_worker_threads, type))
+  : m_impl{std::make_unique<scheduler_impl>(num_worker_threads, type)}
 {
 }
 
@@ -47,7 +47,7 @@ scheduler::scheduler(size_t num_worker_threads,
 
 scheduler::~scheduler()
 {
-  delete m_impl;
+  // Not default because of std::experimental::propagate_const
 }
 
 

@@ -35,16 +35,17 @@
 #include <algorithm>
 #include <map>
 
+#include <packeteer/error.h>
+
 #include <packeteer/util/hash.h>
 
-#include <packeteer/error.h>
 #include <packeteer/net/address_type.h>
 #include <packeteer/net/socket_address.h>
 
-#include "../macros.h"
-#include "../connector_url_params.h"
-#include "../connector_schemes.h"
-#include "../util/string.h"
+#include "macros.h"
+#include "connector_url_params.h"
+#include "connector_schemes.h"
+#include "util/string.h"
 
 namespace packeteer {
 
@@ -83,7 +84,6 @@ struct connector::connector_impl
   util::url                                 m_url;
   peer_address                              m_address;
   connector_interface *                     m_iconn;
-  volatile size_t                           m_refcount;
 
   connector_impl(util::url const & connect_url, connector_interface * iconn)
     : m_type(CT_UNSPEC)
@@ -92,7 +92,6 @@ struct connector::connector_impl
     , m_url(connect_url)
     , m_address(m_url)
     , m_iconn(iconn)
-    , m_refcount(1)
   {
     connector_init();
 
@@ -115,7 +114,6 @@ struct connector::connector_impl
     , m_url(connect_url)
     , m_address(m_url)
     , m_iconn(nullptr)
-    , m_refcount(1)
   {
     connector_init();
 
@@ -204,44 +202,16 @@ struct connector::connector_impl
  * Implementation
  **/
 connector::connector(std::string const & connect_url)
-  : m_impl(new connector_impl(util::url::parse(connect_url)))
+  : m_impl{std::make_shared<connector_impl>(util::url::parse(connect_url))}
 {
 }
 
 
 
 connector::connector(util::url const & connect_url)
-  : m_impl(new connector_impl(connect_url))
+  : m_impl{std::make_shared<connector_impl>(connect_url)}
 {
 }
-
-
-
-connector::connector(connector const & other)
-  : m_impl(other.m_impl)
-{
-  if (m_impl) {
-    ++(m_impl->m_refcount);
-  }
-}
-
-
-
-connector::connector()
-  : m_impl(nullptr)
-{
-}
-
-
-
-connector::~connector()
-{
-  if (m_impl && --(m_impl->m_refcount) <= 0) {
-    delete m_impl;
-  }
-  m_impl = nullptr;
-}
-
 
 
 connector_type
@@ -357,11 +327,10 @@ connector::accept() const
     if (iconn == m_impl->m_iconn) {
       // Connectors and address are identical
       result.m_impl = m_impl;
-      ++(m_impl->m_refcount);
     }
     else {
       // Address is identical, but connector is not
-      result.m_impl = new connector_impl(m_impl->m_url, iconn);
+      result.m_impl = std::make_shared<connector_impl>(m_impl->m_url, iconn);
     }
   }
   else {
@@ -375,7 +344,7 @@ connector::accept() const
     }
     LOG("Peer address is: " << peer.full_str() << " - " << iconn);
 
-    result.m_impl = new connector_impl(util::url::parse(peer.full_str()), iconn);
+    result.m_impl = std::make_shared<connector_impl>(util::url::parse(peer.full_str()), iconn);
   }
 
   return result;
@@ -573,23 +542,6 @@ connector::is_less_than(connector const & other) const
     return true;
   }
   return connect_url() < other.connect_url();
-}
-
-
-
-connector &
-connector::operator=(connector const & other)
-{
-  // First decrease the refcount on our existing implementation
-  if (m_impl && --(m_impl->m_refcount) <= 0) {
-    delete m_impl;
-  }
-
-  // Then acept the other's implementation
-  m_impl = other.m_impl;
-  ++(m_impl->m_refcount);
-
-  return *this;
 }
 
 

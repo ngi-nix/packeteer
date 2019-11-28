@@ -28,6 +28,9 @@
 
 #include <packeteer.h>
 
+#include <memory>
+#include <experimental/propagate_const>
+
 #include <packeteer/error.h>
 #include <packeteer/handle.h>
 
@@ -90,8 +93,9 @@ public:
    * TYPE_AUTOMATIC.
    **/
   scheduler(size_t num_worker_threads, scheduler_type type = TYPE_AUTOMATIC);
-  ~scheduler();
 
+  // Not default because of std::experimental::propagate_const
+  ~scheduler();
 
 
   /**
@@ -252,7 +256,9 @@ public:
 private:
   // pimpl
   struct scheduler_impl;
-  scheduler_impl *  m_impl;
+  std::experimental::propagate_const<
+    std::unique_ptr<scheduler_impl>
+  > m_impl;
 };
 
 } // namespace packeteer
