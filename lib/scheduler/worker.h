@@ -34,8 +34,7 @@
 #include "../thread/tasklet.h"
 #include "scheduler_impl.h"
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 /*****************************************************************************
  * Implements a worker thread for the scheduler implementation.
@@ -73,6 +72,6 @@ private:
   concurrent_queue<detail::callback_entry *> &  m_work_queue;
 };
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

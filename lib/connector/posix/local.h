@@ -33,8 +33,7 @@
 
 #include "socket.h"
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 /**
  * Wrapper around the pipe class.
@@ -60,6 +59,6 @@ private:
   connector_local();
 };
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

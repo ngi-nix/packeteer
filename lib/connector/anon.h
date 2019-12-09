@@ -29,8 +29,7 @@
 
 #include <packeteer/connector/interface.h>
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 /**
  * Unidirectional pipe (UNIX)
@@ -63,6 +62,6 @@ private:
   int   m_fds[2];
 };
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

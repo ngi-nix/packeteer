@@ -30,8 +30,7 @@
 
 #include "cidr.h"
 
-namespace packeteer {
-namespace net {
+namespace packeteer::net {
 /*****************************************************************************
  * Helper functions
  **/
@@ -510,4 +509,4 @@ operator<<(std::ostream & os, socket_address const & addr)
 }
 
 
-}} // namespace packeteer::net
+} // namespace packeteer::net

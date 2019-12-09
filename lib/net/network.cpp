@@ -38,8 +38,7 @@
 
 #define NETWORK_LIMIT 64
 
-namespace packeteer {
-namespace net {
+namespace packeteer::net {
 
 /*****************************************************************************
  * Helper functions
@@ -470,4 +469,4 @@ operator<<(std::ostream & os, network const & addr)
 }
 
 
-}} // namespace packeteer::net
+} // namespace packeteer::net

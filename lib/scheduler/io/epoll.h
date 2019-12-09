@@ -62,6 +62,6 @@ private:
 };
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

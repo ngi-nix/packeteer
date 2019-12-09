@@ -40,8 +40,7 @@
 
 #include <packeteer/scheduler/events.h>
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 worker::worker(std::condition_variable_any & condition, std::recursive_mutex & mutex,
     concurrent_queue<detail::callback_entry *> & work_queue)
@@ -130,4 +129,4 @@ worker::execute_callback(detail::callback_entry * entry)
   return err;
 }
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail

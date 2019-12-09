@@ -35,8 +35,7 @@
 #include <packeteer/handle.h>
 #include <packeteer/scheduler/types.h>
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 /**
  * Forward declaration
@@ -64,6 +63,6 @@ public:
 };
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

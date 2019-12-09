@@ -38,8 +38,7 @@
 #include <string.h>
 
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 namespace {
 
@@ -349,4 +348,4 @@ connector_pipe::get_blocking_mode(bool & state) const
 }
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail

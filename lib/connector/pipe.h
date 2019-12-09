@@ -30,8 +30,7 @@
 
 #include <packeteer/net/socket_address.h>
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 /**
  * Wrapper around the pipe class.
@@ -68,6 +67,6 @@ private:
   int                               m_fd;
 };
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

@@ -30,8 +30,7 @@
 
 #include <packeteer/net/socket_address.h>
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 /**
  * Base for socket-style I/O on POSIX systems
@@ -68,6 +67,6 @@ protected:
   int                               m_fd;
 };
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

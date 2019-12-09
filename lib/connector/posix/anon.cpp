@@ -31,8 +31,7 @@
 #include <string.h>
 
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 connector_anon::connector_anon(connector_options const & options)
   : connector_interface(CO_STREAM | (options & CO_BLOCKING))
@@ -207,4 +206,4 @@ connector_anon::get_blocking_mode(bool & state) const
 }
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail

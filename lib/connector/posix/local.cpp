@@ -36,8 +36,7 @@
 #include <string.h>
 
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 namespace {
 
@@ -153,4 +152,4 @@ connector_local::accept(net::socket_address & addr) const
 }
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
