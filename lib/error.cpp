@@ -104,8 +104,15 @@ void combine_error(std::string & result, error_t code, int errnum, std::string c
     result = "[" + std::string{error_name(code)} + "] ";
     result += std::string{error_message(code)};
     if (errnum) {
-      result += " // ";
-      result += ::strerror(errnum);
+      static char buf[1024] = { 0 };
+      errno_t e = ::strerror_s(buf, sizeof(buf), errnum);
+      if (e) {
+        result += " // Error copying error message.";
+      }
+      else {
+        result += " // ";
+	result += buf;
+      }
     }
     if (!details.empty()) {
       result += " // ";
