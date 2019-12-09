@@ -110,7 +110,7 @@ parse_extended_cidr(std::string const & cidr, bool no_mask,
     if (skip_brace) {
       ++parse;
     }
-    detected_port = ::atoi(parse);
+    detected_port = static_cast<uint16_t>(::atoi(parse));
   }
 
   // Now try to parse the cidr as an IPv4 or IPv6 address. One of them will

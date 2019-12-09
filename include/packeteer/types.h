@@ -39,6 +39,7 @@
 #include <memory>
 
 #if defined(PACKETEER_WIN32)
+#  include <iso646.h>
 #  include <BaseTsd.h>
 using ssize_t = SSIZE_T;
 #endif

@@ -30,8 +30,6 @@
 #include <algorithm>
 #include <utility>
 #include <functional>
-#include <memory>
-#include <experimental/propagate_const>
 
 #include <packeteer/handle.h>
 
@@ -274,7 +272,7 @@ public:
 private:
   // pimpl
   struct connector_impl;
-  std::shared_ptr<connector_impl> m_impl;
+  PACKETEER_PROPAGATE_CONST(std::shared_ptr<connector_impl>) m_impl;
 };
 
 

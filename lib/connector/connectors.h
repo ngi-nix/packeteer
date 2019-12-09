@@ -28,7 +28,9 @@
 #  include "posix/udp.h"
 #  include "posix/local.h"
 #else
-// TODO windows includes
+// FIXME
+//#  include "win32/tcp.h"
+//#  include "win32/udp.h"
 #endif
 
 // Common includes

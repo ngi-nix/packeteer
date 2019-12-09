@@ -33,8 +33,6 @@
 #include <string>
 #include <memory>
 #include <stdexcept>
-#include <memory>
-#include <experimental/propagate_const>
 
 // *** Own includes
 #include <packeteer/util/operators.h>
@@ -163,14 +161,12 @@ protected:
 private:
   // Pointer to implementation
   struct network_impl;
-  std::experimental::propagate_const<
-    std::unique_ptr<network_impl>
-  > m_impl;
+  PACKETEER_PROPAGATE_CONST(std::unique_ptr<network_impl>) m_impl;
 
   // Creates a version of the given input address with the netmask applied.
   socket_address make_masked(socket_address const & input) const;
 
-  friend std::ostream & operator<<(std::ostream & os, network const & addr);
+  friend PACKETEER_API_FRIEND std::ostream & operator<<(std::ostream & os, network const & addr);
 };
 
 

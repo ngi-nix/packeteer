@@ -64,7 +64,7 @@ inline std::size_t
 multi_hash(T0 const & t0, Ts && ... ts)
 {
   std::size_t seed = multi_hash(t0);
-  if (0 == sizeof...(ts)) {
+  if constexpr (0 == sizeof...(ts)) {
     return seed;
   }
 
