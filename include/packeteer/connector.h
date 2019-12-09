@@ -272,7 +272,7 @@ public:
 private:
   // pimpl
   struct connector_impl;
-  PACKETEER_PROPAGATE_CONST(std::shared_ptr<connector_impl>) m_impl;
+  std::shared_ptr<connector_impl> m_impl;
 };
 
 
