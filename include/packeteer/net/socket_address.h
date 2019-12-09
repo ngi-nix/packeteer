@@ -207,8 +207,8 @@ public:
 private:
   detail::address_data data;
 
-  friend PACKETEER_API std::ostream & operator<<(std::ostream & os, socket_address const & addr);
-  friend class PACKETEER_API network;
+  friend PACKETEER_API_FRIEND std::ostream & operator<<(std::ostream & os, socket_address const & addr);
+  friend class PACKETEER_API_FRIEND network;
 };
 
 

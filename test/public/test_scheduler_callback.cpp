@@ -29,14 +29,14 @@ namespace pk = packeteer;
 
 namespace {
 
-pk::error_t free_func1(uint64_t events, pk::error_t, pk::handle const &, void *)
+pk::error_t free_func1(pk::events_t events, pk::error_t, pk::handle const &, void *)
 {
   EXPECT_EQ(42, events);
   return pk::error_t(1);
 }
 
 
-pk::error_t free_func2(uint64_t events, pk::error_t, pk::handle const &, void *)
+pk::error_t free_func2(pk::events_t events, pk::error_t, pk::handle const &, void *)
 {
   EXPECT_EQ(666, events);
   return pk::error_t(2);
@@ -45,7 +45,7 @@ pk::error_t free_func2(uint64_t events, pk::error_t, pk::handle const &, void *)
 
 struct functor
 {
-  pk::error_t member_func(uint64_t events, pk::error_t, pk::handle const &, void *)
+  pk::error_t member_func(pk::events_t events, pk::error_t, pk::handle const &, void *)
   {
     EXPECT_EQ(1234, events);
     return pk::error_t(3);
@@ -53,7 +53,7 @@ struct functor
 
 
 
-  pk::error_t operator()(uint64_t events, pk::error_t, pk::handle const &, void *)
+  pk::error_t operator()(pk::events_t events, pk::error_t, pk::handle const &, void *)
   {
     EXPECT_EQ(0xdeadbeef, events);
     return pk::error_t(4);

@@ -360,7 +360,7 @@ struct server_connect_callback
   }
 
   ::packeteer::error_t
-  func(uint64_t mask, ::packeteer::error_t error, handle const & h, void *)
+  func(::packeteer::events_t mask, ::packeteer::error_t error, handle const & h, void *)
   {
     if (!m_conn) {
       LOG(" ***** INCOMING " << mask << ":" << error << ":" << h.sys_handle());
@@ -378,7 +378,7 @@ struct client_post_connect_callback
   bool m_connected = false;
 
   ::packeteer::error_t
-  func(uint64_t mask, ::packeteer::error_t error, handle const & h, void *)
+  func(::packeteer::events_t mask, ::packeteer::error_t error, handle const & h, void *)
   {
     if (!m_connected) {
       m_connected = true;

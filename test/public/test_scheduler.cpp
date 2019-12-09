@@ -44,7 +44,7 @@ namespace {
 struct test_callback
 {
   std::atomic<int>      m_called;
-  std::atomic<uint64_t> m_mask;
+  std::atomic<pk::events_t> m_mask;
 
   test_callback()
     : m_called(0)
@@ -54,7 +54,7 @@ struct test_callback
 
 
   pk::error_t
-  func(uint64_t mask, pk::error_t error, pk::handle const & h, void *)
+  func(pk::events_t mask, pk::error_t error, pk::handle const & h, void *)
   {
     ++m_called;
     m_mask = mask;
@@ -71,7 +71,7 @@ struct counting_callback
   std::atomic<int> m_write_called = 0;
 
   pk::error_t
-  func(uint64_t mask, pk::error_t error [[maybe_unused]],
+  func(pk::events_t mask, pk::error_t error [[maybe_unused]],
       pk::handle const & h [[maybe_unused]], void *)
   {
     if (mask & pk::PEV_IO_READ) {
@@ -98,7 +98,7 @@ struct thread_id_callback
 
 
   pk::error_t
-  func(uint64_t, pk::error_t, pk::handle const &, void *)
+  func(pk::events_t, pk::error_t, pk::handle const &, void *)
   {
     m_tid = std::this_thread::get_id();
 
@@ -126,7 +126,7 @@ struct reading_callback : public test_callback
   }
 
   pk::error_t
-  func(uint64_t mask, pk::error_t error, pk::handle const & h, void *)
+  func(pk::events_t mask, pk::error_t error, pk::handle const & h, void *)
   {
     pk::error_t err = test_callback::func(mask, error, h, nullptr);
     if (err != 0) {
@@ -152,7 +152,7 @@ struct reading_callback : public test_callback
   {                                     \
     int called = cb.m_called;           \
     ASSERT_EQ(expected_called, called); \
-    uint64_t mask = cb.m_mask;          \
+    pk::events_t mask = cb.m_mask;          \
     ASSERT_EQ(expected_mask, mask);     \
     cb.m_mask = 0; /* reset mask */     \
   }
@@ -161,7 +161,7 @@ struct reading_callback : public test_callback
   {                                     \
     int called = cb.m_called;           \
     ASSERT_GT(called, expected_called); \
-    uint64_t mask = cb.m_mask;          \
+    pk::events_t mask = cb.m_mask;          \
     ASSERT_EQ(expected_mask, mask);     \
     cb.m_mask = 0; /* reset mask */     \
   }
@@ -218,7 +218,7 @@ TEST_P(Scheduler, delayed_callback)
   int called = source.m_called;
   ASSERT_EQ(1, called);
 
-  uint64_t mask = source.m_mask;
+  pk::events_t mask = source.m_mask;
   ASSERT_EQ(pk::PEV_TIMEOUT, mask);
 }
 
@@ -240,7 +240,7 @@ TEST_P(Scheduler, timed_callback)
   int called = source.m_called;
   ASSERT_EQ(1, called);
 
-  uint64_t mask = source.m_mask;
+  pk::events_t mask = source.m_mask;
   ASSERT_EQ(pk::PEV_TIMEOUT, mask);
 }
 
@@ -263,7 +263,7 @@ TEST_P(Scheduler, repeat_callback)
   int called = source.m_called;
   ASSERT_EQ(3, called);
 
-  uint64_t mask = source.m_mask;
+  pk::events_t mask = source.m_mask;
   ASSERT_EQ(pk::PEV_TIMEOUT, mask);
 }
 
@@ -293,7 +293,7 @@ TEST_P(Scheduler, infinite_callback)
   int called = source.m_called;
   ASSERT_EQ(3, called);
 
-  uint64_t mask = source.m_mask;
+  pk::events_t mask = source.m_mask;
   ASSERT_EQ(pk::PEV_TIMEOUT, mask);
 
   sched.unschedule(cb);
@@ -340,7 +340,7 @@ TEST_P(Scheduler, delayed_repeat_callback)
   int called = source.m_called;
   ASSERT_EQ(2, called);
 
-  uint64_t mask = source.m_mask;
+  pk::events_t mask = source.m_mask;
   ASSERT_EQ(pk::PEV_TIMEOUT, mask);
 
   sched.unschedule(cb);

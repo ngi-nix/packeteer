@@ -104,15 +104,32 @@ void combine_error(std::string & result, error_t code, int errnum, std::string c
     result = "[" + std::string{error_name(code)} + "] ";
     result += std::string{error_message(code)};
     if (errnum) {
+#ifdef PACKETEER_HAVE_STRERROR_S
       static char buf[1024] = { 0 };
-      errno_t e = ::strerror_s(buf, sizeof(buf), errnum);
+      auto e = ::strerror_s(buf, sizeof(buf), errnum);
       if (e) {
         result += " // Error copying error message.";
       }
       else {
         result += " // ";
-	result += buf;
+        result += buf;
       }
+#elif PACKETEER_HAVE_STRERROR_R
+      static char buf[1024] = { 0 };
+      int e = ::strerror_r(errnum, buf, sizeof(buf));
+      if (e) {
+        result += " // Error copying error message.";
+      }
+      else {
+        result += " // ";
+        result += buf;
+      }
+#else
+      // Fall back to plain strerror
+      result += " // ";
+      result += ::strerror(errnum);
+#endif
+
     }
     if (!details.empty()) {
       result += " // ";

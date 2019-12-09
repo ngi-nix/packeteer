@@ -80,7 +80,7 @@ private:
   bool is_less_than(url const & other) const;
   bool is_equal_to(url const & other) const;
 
-  friend PACKETEER_API std::ostream & operator<<(std::ostream & os, url const & data);
+  friend PACKETEER_API_FRIEND std::ostream & operator<<(std::ostream & os, url const & data);
 };
 
 

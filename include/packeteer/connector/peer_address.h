@@ -132,14 +132,14 @@ private:
   net::socket_address m_sockaddr;
   connector_type      m_connector_type;
 
-  friend std::ostream & operator<<(std::ostream & os, peer_address const & addr);
+  friend PACKETEER_API_FRIEND std::ostream & operator<<(std::ostream & os, peer_address const & addr);
 };
 
 
 /**
  * Formats a peer_address into human-readable form.
  **/
-std::ostream & operator<<(std::ostream & os, peer_address const & addr);
+PACKETEER_API std::ostream & operator<<(std::ostream & os, peer_address const & addr);
 
 
 } // namespace packeteer
