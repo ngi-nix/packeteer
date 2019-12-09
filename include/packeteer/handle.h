@@ -36,7 +36,7 @@
 #include <packeteer/util/operators.h>
 
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * The handle class wraps I/O handles in a platform-independent fashion.
@@ -186,7 +186,7 @@ get_blocking_mode(handle::sys_handle_t const & h, bool & state);
 /**
  * std specializations for handle
  **/
-namespace PACKETEER_API std {
+namespace std {
 
 template <> struct PACKETEER_API hash<::packeteer::handle>
 {

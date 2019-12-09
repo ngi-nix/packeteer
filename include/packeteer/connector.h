@@ -44,7 +44,7 @@
 
 #include <packeteer/net/socket_address.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * The connector class provides a socket-like API for handling I/O.
@@ -283,7 +283,7 @@ private:
 /**
  * std specializations for connector
  **/
-namespace PACKETEER_API std {
+namespace std {
 
 template <> struct PACKETEER_API hash<::packeteer::connector>
 {

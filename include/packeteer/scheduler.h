@@ -28,9 +28,6 @@
 
 #include <packeteer.h>
 
-#include <memory>
-#include <experimental/propagate_const>
-
 #include <packeteer/error.h>
 #include <packeteer/handle.h>
 
@@ -38,7 +35,7 @@
 #include <packeteer/scheduler/callback.h>
 #include <packeteer/scheduler/events.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /*****************************************************************************
  * The scheduler class sits at the core of the packeteer implementation.
@@ -257,9 +254,7 @@ public:
 private:
   // pimpl
   struct scheduler_impl;
-  std::experimental::propagate_const<
-    std::unique_ptr<scheduler_impl>
-  > m_impl;
+  PACKETEER_PROPAGATE_CONST(std::unique_ptr<scheduler_impl>) m_impl;
 };
 
 } // namespace packeteer

@@ -31,8 +31,7 @@
 #include <functional>
 #include <cstddef>
 
-namespace PACKETEER_API packeteer {
-namespace PACKETEER_API util {
+namespace packeteer::util {
 
 /**
  * Combine two hash values.
@@ -76,6 +75,6 @@ multi_hash(T0 const & t0, Ts && ... ts)
 }
 
 
-}} // namespace packeteer::util
+} // namespace packeteer::util
 
 #endif // guard

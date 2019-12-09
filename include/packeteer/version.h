@@ -31,7 +31,7 @@
 #include <utility>
 #include <string>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * XXX Note to developers (and users): consider the following definitions to be

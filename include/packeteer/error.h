@@ -40,7 +40,7 @@
  **/
 #if !defined(PACKETEER_START_ERRORS)
 #define PACKETEER_START_ERRORS \
-  namespace PACKETEER_API packeteer { \
+  namespace packeteer { \
   using error_t = uint32_t; \
   enum PACKETEER_API : error_t {
 #define PACKETEER_ERRDEF(name, code, desc) name = code,
@@ -153,7 +153,7 @@ PACKETEER_END_ERRORS
 
 #if defined(PACKETEER_ERROR_FUNCTIONS)
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /*****************************************************************************
  * Functions

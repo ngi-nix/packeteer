@@ -24,8 +24,7 @@
 // *** Config
 #include <packeteer.h>
 
-namespace PACKETEER_API packeteer {
-namespace PACKETEER_API net {
+namespace packeteer::net {
 
 /**
  * Socket or network address type.
@@ -39,6 +38,6 @@ enum PACKETEER_API address_type : int8_t
 };
 
 
-}} // namespace packeteer::net
+} // namespace packeteer::net
 
 #endif // guard

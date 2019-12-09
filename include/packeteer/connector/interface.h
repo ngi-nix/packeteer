@@ -34,7 +34,7 @@
 
 #include <packeteer/net/socket_address.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * Base class for connector implementations. See the connector proxy class

@@ -40,8 +40,7 @@
 #include <packeteer/util/operators.h>
 #include <packeteer/net/address_type.h>
 
-namespace PACKETEER_API packeteer {
-namespace PACKETEER_API net {
+namespace packeteer::net {
 
 /*****************************************************************************
  * Forward declarations
@@ -208,8 +207,8 @@ public:
 private:
   detail::address_data data;
 
-  friend std::ostream & operator<<(std::ostream & os, socket_address const & addr);
-  friend class network;
+  friend PACKETEER_API std::ostream & operator<<(std::ostream & os, socket_address const & addr);
+  friend class PACKETEER_API network;
 };
 
 
@@ -219,13 +218,13 @@ private:
 PACKETEER_API std::ostream & operator<<(std::ostream & os, socket_address const & addr);
 
 
-}} // namespace packeteer::net
+} // namespace packeteer::net
 
 
 /*******************************************************************************
  * std namespace specializations
  **/
-namespace PACKETEER_API std {
+namespace std {
 
 template <> struct PACKETEER_API hash<packeteer::net::socket_address>
 {

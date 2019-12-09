@@ -41,8 +41,7 @@
 #include <packeteer/net/address_type.h>
 #include <packeteer/net/socket_address.h>
 
-namespace PACKETEER_API packeteer {
-namespace PACKETEER_API net {
+namespace packeteer::net {
 
 /*****************************************************************************
  * Forward declarations
@@ -181,6 +180,6 @@ private:
 PACKETEER_API std::ostream & operator<<(std::ostream & os, network const & addr);
 
 
-}} // namespace packeteer::net
+} // namespace packeteer::net
 
 #endif // guard

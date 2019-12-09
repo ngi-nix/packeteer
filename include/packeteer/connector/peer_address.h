@@ -33,7 +33,7 @@
 #include <packeteer/util/url.h>
 #include <packeteer/util/operators.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * The peer_address extends net::socket_address with a connector type. In
@@ -147,7 +147,7 @@ std::ostream & operator<<(std::ostream & os, peer_address const & addr);
 /*******************************************************************************
  * std namespace specializations
  **/
-namespace PACKETEER_API std {
+namespace std {
 
 template <> struct PACKETEER_API hash<packeteer::peer_address>
 {

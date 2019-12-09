@@ -39,7 +39,7 @@
 #include <packeteer/util/hash.h>
 #include <packeteer/util/operators.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 namespace detail {
 
@@ -69,7 +69,7 @@ struct callback_helper_base
  * Part of the simplification means that callback objects don't hold any type
  * of function, only those conforming to the following prototype:
  *
- *  error_t <name>(uint64_t events, error_t error, handle const & h, void * baton)
+ *  error_t <name>(events_t events, error_t error, handle const & h, void * baton)
  *
  * Much like std::function, however, callback classes can hold pointers to
  * free functions as well as pointers to object functions. Note that for the
@@ -90,7 +90,7 @@ public:
    **/
   // Typedef for free functions.
   using free_function_type = std::add_pointer<
-      error_t (uint64_t, error_t, handle const &, void *)
+      error_t (events_t, error_t, handle const &, void *)
   >::type;
 
   /*****************************************************************************
@@ -213,7 +213,7 @@ public:
    **/
   inline
   error_t
-  operator()(uint64_t events, error_t error, handle const & h, void * baton)
+  operator()(events_t events, error_t error, handle const & h, void * baton)
   {
     if (nullptr != m_free_function) {
       return (*m_free_function)(events, error, h, baton);
@@ -239,7 +239,7 @@ public:
     if (nullptr != m_object_helper) {
       return m_object_helper->hash();
     }
-    return -1;
+    return static_cast<size_t>(-1);
   }
 
 private:
@@ -288,7 +288,7 @@ namespace detail {
 template <typename T>
 struct callback_helper : public callback_helper_base
 {
-  typedef error_t (T::*member_function_type)(uint64_t, error_t, handle const &,
+  typedef error_t (T::*member_function_type)(events_t, error_t, handle const &,
       void *);
 
 
@@ -397,7 +397,7 @@ make_callback(T * object)
  * std namespace specializations
  **/
 
-namespace PACKETEER_API std {
+namespace std {
 
 template <> struct PACKETEER_API hash<packeteer::callback>
 {

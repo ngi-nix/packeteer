@@ -28,7 +28,7 @@
 
 #include <packeteer.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 // Events are masked together into events_t. All event flags with values equal
 // to or higher than PEV_USER are user-defined event types.

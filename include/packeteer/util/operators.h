@@ -26,8 +26,7 @@
 
 #include <packeteer.h>
 
-namespace PACKETEER_API packeteer {
-namespace PACKETEER_API util {
+namespace packeteer::util {
 
 /**
  * Supplement comparison operators when is_equal_to and is_less_than are
@@ -69,6 +68,6 @@ struct PACKETEER_API operators
 };
 
 
-}} // namespace packeteer::util
+} // namespace packeteer::util
 
 #endif // guard

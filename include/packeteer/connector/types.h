@@ -27,7 +27,7 @@
 
 #include <packeteer.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 // Connector types can be any of the above constants, or a user-defined
 // type. User-defined types must have type values of CT_USER or higher.

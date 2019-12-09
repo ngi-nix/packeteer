@@ -28,7 +28,7 @@
 
 #include <chrono>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * Types used in the scheduler, that may be of use elsewhere.

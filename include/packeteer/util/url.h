@@ -31,8 +31,7 @@
 
 #include <packeteer/util/operators.h>
 
-namespace PACKETEER_API packeteer {
-namespace PACKETEER_API util {
+namespace packeteer::util {
 
 /**
  * The URL class provides *minimal* URL parsing for specifying connector.
@@ -81,7 +80,7 @@ private:
   bool is_less_than(url const & other) const;
   bool is_equal_to(url const & other) const;
 
-  friend std::ostream & operator<<(std::ostream & os, url const & data);
+  friend PACKETEER_API std::ostream & operator<<(std::ostream & os, url const & data);
 };
 
 
@@ -91,12 +90,12 @@ private:
 PACKETEER_API std::ostream & operator<<(std::ostream & os, url const & data);
 
 
-}} // namespace packeteer::util
+} // namespace packeteer::util
 
 /*******************************************************************************
  * std namespace specializations
  **/
-namespace PACKETEER_API std {
+namespace std {
 
 template <> struct PACKETEER_API hash<::packeteer::util::url>
 {

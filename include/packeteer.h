@@ -68,11 +68,8 @@
 #  pragma comment(lib, "Ws2_32.lib")
 #endif
 
-#include <memory>
-#include <experimental/propagate_const>
 
-
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * Forward
@@ -111,9 +108,7 @@ private:
   api();
 
   struct api_impl;
-  std::experimental::propagate_const<
-    std::unique_ptr<api_impl>
-  > m_impl;
+  PACKETEER_PROPAGATE_CONST(std::unique_ptr<api_impl>) m_impl;
 };
 
 } // namespace packeteer

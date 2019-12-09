@@ -27,8 +27,6 @@
 #include <packeteer.h>
 
 #include <functional>
-#include <memory>
-#include <experimental/propagate_const>
 #include <map>
 
 #include <packeteer/connector/types.h>
@@ -36,7 +34,7 @@
 
 #include <packeteer/util/url.h>
 
-namespace PACKETEER_API packeteer {
+namespace packeteer {
 
 /**
  * The registry class offers an interface for registering extensions with
@@ -167,9 +165,7 @@ private:
   friend class api;
 
   struct registry_impl;
-  std::experimental::propagate_const<
-    std::unique_ptr<registry_impl>
-  > m_impl;
+  PACKETEER_PROPAGATE_CONST(std::unique_ptr<registry_impl>) m_impl;
 };
 
 } // namespace packeteer

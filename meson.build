@@ -162,6 +162,9 @@ endif
 if compiler.has_header('ws2tcpip.h')
   conf_data.set('PACKETEER_HAVE_WS2TCPIP_H', true)
 endif
+if compiler.has_header('experimental/propagate_const')
+  conf_data.set('PACKETEER_HAVE_EXPERIMENTAL_PROPAGATE_CONST', true)
+endif
 
 
 ### Types
