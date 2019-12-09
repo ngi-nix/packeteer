@@ -19,8 +19,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_SCHEDULER_IMPL_H
-#define PACKETEER_DETAIL_SCHEDULER_IMPL_H
+#ifndef PACKETEER_SCHEDULER_SCHEDULER_IMPL_H
+#define PACKETEER_SCHEDULER_SCHEDULER_IMPL_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file

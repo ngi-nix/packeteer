@@ -17,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_POSIX_CONNECTOR_SOCKET_H
-#define PACKETEER_DETAIL_POSIX_CONNECTOR_SOCKET_H
+#ifndef PACKETEER_CONNECTOR_POSIX_SOCKET_H
+#define PACKETEER_CONNECTOR_POSIX_SOCKET_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file

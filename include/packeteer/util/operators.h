@@ -26,8 +26,8 @@
 
 #include <packeteer.h>
 
-namespace packeteer {
-namespace util {
+namespace PACKETEER_API packeteer {
+namespace PACKETEER_API util {
 
 /**
  * Supplement comparison operators when is_equal_to and is_less_than are
@@ -35,7 +35,7 @@ namespace util {
  * hierarchies where every member uses this template.
  **/
 template <typename T>
-struct operators
+struct PACKETEER_API operators
 {
   inline bool operator==(T const & other) const
   {

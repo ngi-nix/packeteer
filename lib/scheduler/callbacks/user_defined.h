@@ -19,8 +19,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_CALLBACKS_USER_DEFINED_H
-#define PACKETEER_DETAIL_CALLBACKS_USER_DEFINED_H
+#ifndef PACKETEER_SCHEDULER_CALLBACKS_USER_DEFINED_H
+#define PACKETEER_SCHEDULER_CALLBACKS_USER_DEFINED_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -31,8 +31,7 @@
 #include <packeteer/types.h>
 
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 // User-defined callbacks:
 //
@@ -182,6 +181,6 @@ private:
 };
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guardf

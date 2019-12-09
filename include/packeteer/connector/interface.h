@@ -18,8 +18,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_CONNECTOR_IFACE_H
-#define PACKETEER_CONNECTOR_IFACE_H
+#ifndef PACKETEER_CONNECTOR_INTERFACE_H
+#define PACKETEER_CONNECTOR_INTERFACE_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -34,13 +34,13 @@
 
 #include <packeteer/net/socket_address.h>
 
-namespace packeteer {
+namespace PACKETEER_API packeteer {
 
 /**
  * Base class for connector implementations. See the connector proxy class
  * in the main namespace for details.
  **/
-struct connector_interface
+struct PACKETEER_API connector_interface
 {
 public:
   /***************************************************************************

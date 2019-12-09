@@ -31,8 +31,8 @@
 #include <functional>
 #include <cstddef>
 
-namespace packeteer {
-namespace util {
+namespace PACKETEER_API packeteer {
+namespace PACKETEER_API util {
 
 /**
  * Combine two hash values.
@@ -54,13 +54,15 @@ hash_combine(std::size_t & seed, std::size_t const & value)
  * std::hash only exists from C++11 onwards.
  **/
 template <typename T>
-inline std::size_t multi_hash(T const & t)
+inline std::size_t
+multi_hash(T const & t)
 {
   return std::hash<T>()(t);
 }
 
 template <typename T0, typename... Ts>
-inline std::size_t multi_hash(T0 const & t0, Ts && ... ts)
+inline std::size_t
+multi_hash(T0 const & t0, Ts && ... ts)
 {
   std::size_t seed = multi_hash(t0);
   if (0 == sizeof...(ts)) {

@@ -8,15 +8,14 @@ The code is organized as follows:
   - `win32` for files only built on windows derivates. The folder may contain
     subdirectories for grouping files (below).
   - Related files may be grouped into subdirectories, i.e. all I/O subsystem
-    implementations exit in the `io` folder.
-- With the exception of the `posix` and `win32` folders, the relative path of
-  the file corresponds to the namespace within the file:
-  - namespace `packeteer` is in e.g. files `include/packeteer/*.h` and
-    `lib/*.cpp`.
-  - namespace `packeteer::net` is in e.g. files `include/packeteer/net/*.h`
-    and `lib/net/*.cpp`
-  - The same applies to grouped files. The `io` folder contains files defining
-    symbols in the `packeteer::io` namespace.
+    implementations exist in the `scheduler/io` folder.
+- Include guards mirror the file name (for headers).
+- Namespaces are a little more flexible than that:
+  - Public headers within subdirectories (e.g. `net`, `util`) tend to have
+    namespaces corresponding to the relative path.
+  - This does not apply to scheduler and connector related types.
+  - A `detail` namespace is optional. A lot of implementation details can be
+    hidden there.
 
 In order to control visibility:
 

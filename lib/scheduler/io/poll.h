@@ -19,8 +19,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_DETAIL_IO_POLL_H
-#define PACKETEER_DETAIL_IO_POLL_H
+#ifndef PACKETEER_SCHEDULER_IO_POLL_H
+#define PACKETEER_SCHEDULER_IO_POLL_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -38,8 +38,7 @@
 
 #include "../io.h"
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::detail {
 
 // I/O subsystem based on select.
 struct io_poll : public io
@@ -64,6 +63,6 @@ private:
 };
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
 
 #endif // guard

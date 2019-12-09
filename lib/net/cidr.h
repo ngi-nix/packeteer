@@ -19,8 +19,8 @@
  * PARTICULAR PURPOSE.
  **/
 
-#ifndef PACKETEER_NET_DETAIL_CIDR_H
-#define PACKETEER_NET_DETAIL_CIDR_H
+#ifndef PACKETEER_NET_CIDR_H
+#define PACKETEER_NET_CIDR_H
 
 // *** Config
 #include <build-config.h>

@@ -17,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_PEER_ADDRESS_H
-#define PACKETEER_PEER_ADDRESS_H
+#ifndef PACKETEER_CONNECTOR_PEER_ADDRESS_H
+#define PACKETEER_CONNECTOR_PEER_ADDRESS_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file

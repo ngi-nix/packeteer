@@ -43,8 +43,7 @@
 
 namespace sc = std::chrono;
 
-namespace packeteer {
-namespace detail {
+namespace packeteer::io {
 
 
 io_select::io_select()
@@ -204,4 +203,4 @@ io_select::wait_for_events(std::vector<event_data> & events,
 
 
 
-}} // namespace packeteer::detail
+} // namespace packeteer::io

@@ -44,7 +44,9 @@
   using error_t = uint32_t; \
   enum PACKETEER_API : error_t {
 #define PACKETEER_ERRDEF(name, code, desc) name = code,
-#define PACKETEER_END_ERRORS PACKETEER_ERROR_LAST }; }
+#define PACKETEER_END_ERRORS \
+    PACKETEER_ERROR_LAST, \
+    PACKETEER_START_USER_RANGE = 1000 }; }
 #define PACKETEER_ERROR_FUNCTIONS
 #endif
 
