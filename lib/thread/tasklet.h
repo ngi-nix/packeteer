@@ -74,7 +74,7 @@ namespace packeteer::thread {
  *   }
  * }
  **/
-class tasklet
+class PACKETEER_PRIVATE tasklet
 {
 public:
   /***************************************************************************

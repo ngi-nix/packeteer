@@ -67,7 +67,7 @@ namespace packeteer::net::detail {
  * vice versa.
  **/
 
-struct parse_result_t
+struct PACKETEER_PRIVATE parse_result_t
 {
   inline parse_result_t(address_data & data)
     : proto(AF_UNSPEC)
@@ -82,6 +82,7 @@ struct parse_result_t
 };
 
 
+PACKETEER_PRIVATE
 packeteer::error_t
 parse_extended_cidr(std::string const & cidr, bool no_mask,
     parse_result_t & result, uint16_t port = 0);
