@@ -81,7 +81,7 @@ struct callback_helper_base
  *  callback cb = make_callback(&obj, &Object::function);
  *  callback cb = make_callback(&obj); // assumes operator() to be the function
  **/
-class PACKETEER_API callback
+class callback
   : public ::packeteer::util::operators<callback>
 {
 public:
@@ -371,7 +371,6 @@ private:
  * operator().
  **/
 template <typename T>
-PACKETEER_API
 inline detail::callback_helper<T> *
 make_callback(T * object,
     typename detail::callback_helper<T>::member_function_type function)
@@ -382,7 +381,6 @@ make_callback(T * object,
 
 
 template <typename T>
-PACKETEER_API
 inline detail::callback_helper<T> *
 make_callback(T * object)
 {
@@ -399,7 +397,7 @@ make_callback(T * object)
 
 namespace std {
 
-template <> struct PACKETEER_API hash<packeteer::callback>
+template <> struct hash<packeteer::callback>
 {
   size_t operator()(packeteer::callback const & x) const
   {

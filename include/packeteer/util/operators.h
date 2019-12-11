@@ -33,8 +33,9 @@ namespace packeteer::util {
  * defined. Make sure to provide them as protected functions to allow class
  * hierarchies where every member uses this template.
  **/
+	// FIXME not PACKETEER_API on windows, because of inline keyword. what about posix?
 template <typename T>
-struct PACKETEER_API operators
+struct operators
 {
   inline bool operator==(T const & other) const
   {

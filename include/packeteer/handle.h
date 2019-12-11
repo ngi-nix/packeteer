@@ -44,7 +44,7 @@ namespace packeteer {
 struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 {
 #if defined(PACKETEER_WIN32)
-  struct sys_handle_t : public ::packeteer::util::operators<sys_handle_t>
+  struct PACKETEER_API sys_handle_t : public ::packeteer::util::operators<sys_handle_t>
   {
     HANDLE     handle = INVALID_HANDLE_VALUE;
     OVERLAPPED overlapped;
@@ -52,6 +52,11 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
     inline bool is_equal_to(sys_handle_t const & other) const
     {
       return handle == other.handle;
+    }
+
+    inline bool is_less_than(sys_handle_t const & other) const
+    {
+      return handle < other.handle;
     }
   };
   const sys_handle_t PACKETEER_INVALID_HANDLE_VALUE{};
