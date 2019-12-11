@@ -55,8 +55,13 @@ TEST(Error, details_without_errno)
 TEST(Error, details_with_errno)
 {
   // With an errno value
+#ifdef PACKETEER_WIN32
+#define ERROR_CODE ERROR_INVALID_HANDLE
+#else
+#define ERROR_CODE EAGAIN
+#endif
   try {
-    throw packeteer::exception(packeteer::ERR_SUCCESS, EAGAIN, "foo");
+    throw packeteer::exception(packeteer::ERR_SUCCESS, ERROR_CODE, "foo");
   } catch (packeteer::exception const & ex) {
     auto msg = std::string{ex.what()};
     ASSERT_NE(std::string::npos, msg.find("[ERR_SUCCESS] "));
