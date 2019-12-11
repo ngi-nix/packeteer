@@ -59,4 +59,18 @@ to_upper(std::string const & value)
 }
 
 
+#if defined(PACKETEER_WIN32)
+
+std::string
+to_utf8(TCHAR const * source)
+{
+  size_t size = WideCharToMultiByte(CP_UTF8, 0, source, -1, nullptr, 0, nullptr, nullptr);
+  std::vector<char> buf(size, '\0');
+  WideCharToMultiByte(CP_UTF8, 0, source, -1, &buf[0], size, nullptr, nullptr);
+  return {buf.begin(), buf.end()};
+}
+
+#endif // Win32
+
+
 } // namespace packeteer::util

@@ -30,6 +30,15 @@ namespace packeteer::util {
 std::string to_lower(std::string const & other);
 std::string to_upper(std::string const & other);
 
+#if defined(PACKETEER_WIN32)
+
+/**
+ * Convert from Windows UCS-2 to UTF-8
+ */
+std::string to_utf8(TCHAR const * source);
+
+#endif
+
 } // namespace packeteer::util
 
 #endif // guard
