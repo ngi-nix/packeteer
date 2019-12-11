@@ -53,6 +53,7 @@ symbolize_name(std::string const & other)
     for (size_t j = i + 1 ; j < len - 1 ; ++j) {
       if (res[j] == '_') {
         res.erase(res.begin() + j);
+	len = res.length();
       } else {
         break;
       }
