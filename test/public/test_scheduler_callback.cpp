@@ -68,10 +68,10 @@ TEST(Callback, free_functions)
 {
   // Test that a free function is correctly invoked.
   pk::callback cb1 = &free_func1;
-  ASSERT_EQ(pk::error_t(1), cb1(42, pk::error_t(0), 0, nullptr));
+  ASSERT_EQ(pk::error_t(1), cb1(42, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
 
   pk::callback cb2 = &free_func2;
-  ASSERT_EQ(pk::error_t(2), cb2(666, pk::error_t(0), 0, nullptr));
+  ASSERT_EQ(pk::error_t(2), cb2(666, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
 
   // Test for equality.
   ASSERT_NE(cb1, cb2);
@@ -87,10 +87,10 @@ TEST(Callback, member_functions)
   functor f;
 
   pk::callback cb1 = pk::make_callback(&f, &functor::member_func);
-  ASSERT_EQ(pk::error_t(3), cb1(1234, pk::error_t(0), 0, nullptr));
+  ASSERT_EQ(pk::error_t(3), cb1(1234, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
 
   pk::callback cb2 = pk::make_callback(&f);
-  ASSERT_EQ(pk::error_t(4), cb2(0xdeadbeef, pk::error_t(0), 0, nullptr));
+  ASSERT_EQ(pk::error_t(4), cb2(0xdeadbeef, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
 
   // Test for equality.
   ASSERT_NE(cb1, cb2);
@@ -153,13 +153,13 @@ TEST(Callback, assignment)
   cb = &free_func1;
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(pk::error_t(1), cb(42, pk::error_t(0), 0, nullptr));
+  ASSERT_EQ(pk::error_t(1), cb(42, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
 
   functor f;
   cb = pk::make_callback(&f);
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(pk::error_t(4), cb(0xdeadbeef, pk::error_t(0), 0, nullptr));
+  ASSERT_EQ(pk::error_t(4), cb(0xdeadbeef, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
 }
 
 

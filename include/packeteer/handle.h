@@ -44,11 +44,20 @@ namespace packeteer {
 struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 {
 #if defined(PACKETEER_WIN32)
-  using sys_handle_t = HANDLE;
-#  define PACKETEER_INVALID_HANDLE_VALUE INVALID_HANDLE_VALUE
+  struct sys_handle_t : public ::packeteer::util::operators<sys_handle_t>
+  {
+    HANDLE     handle = INVALID_HANDLE_VALUE;
+    OVERLAPPED overlapped;
+
+    inline bool is_equal_to(sys_handle_t const & other) const
+    {
+      return handle == other.handle;
+    }
+  };
+  const sys_handle_t PACKETEER_INVALID_HANDLE_VALUE{};
 #elif defined(PACKETEER_POSIX)
   using sys_handle_t = int;
-#  define PACKETEER_INVALID_HANDLE_VALUE -1
+  const sys_handle_t PACKETEER_INVALID_HANDLE_VALUE{-1};
 #else
 #  error Handles are not supported on this platform!
 #endif
@@ -57,37 +66,32 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
    * Constructors and destructors
    **/
   handle()
-    : m_handle(PACKETEER_INVALID_HANDLE_VALUE)
+    : m_handle{PACKETEER_INVALID_HANDLE_VALUE}
   {
   }
 
   handle(sys_handle_t const & orig)
-    : m_handle(orig)
+    : m_handle{orig}
   {
   }
 
-  handle(handle const & other)
-    : m_handle(other.m_handle)
-  {
-  }
-
+  handle(handle const & other) = default;
   handle(handle &&) = default;
-
-  ~handle()
-  {
-  }
+  ~handle() = default;
 
   /**
    * Handles returned by this function behave like valid handles, but cannot
    * be used for I/O. Don't use this outside of code that requires dummy
    * handles.
    **/
-  static handle make_dummy(size_t value)
+  static handle make_dummy(size_t const & value)
   {
 #if defined(PACKETEER_POSIX)
     return handle(static_cast<sys_handle_t>(value));
 #else
-    return handle(reinterpret_cast<sys_handle_t>(value));
+    sys_handle_t h;
+    h.handle = reinterpret_cast<HANDLE>(value);
+    return handle(h);
 #endif
   }
 
