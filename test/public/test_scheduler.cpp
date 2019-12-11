@@ -54,7 +54,8 @@ struct test_callback
 
 
   pk::error_t
-  func(pk::events_t mask, pk::error_t error, pk::handle const & h, void *)
+  func(pk::events_t mask, [[maybe_unused]] pk::error_t error,
+      [[maybe_unused]] pk::handle const & h, void *)
   {
     ++m_called;
     m_mask = mask;
