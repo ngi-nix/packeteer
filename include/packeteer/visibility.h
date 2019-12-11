@@ -27,13 +27,20 @@
     #define PACKETEER_API __declspec(dllimport)
   #endif
   #define PACKETEER_API_FRIEND PACKETEER_API
-#else
+#else // Windows
   #if __GNUC__ >= 4
     #define PACKETEER_API  [[gnu::visibility("default")]]
   #else
     #define PACKETEER_API
   #endif // GNU C
   #define PACKETEER_API_FRIEND
-#endif // Windows
+#endif // POSIX
+
+// Private symbols may be exported in debug builds for testing purposes.
+#if defined(DEBUG)
+  #define PACKETEER_PRIVATE PACKETEER_API
+#else
+  #define PACKETEER_PRIVATE
+#endif
 
 #endif // guard
