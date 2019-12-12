@@ -179,15 +179,6 @@ operator<<(std::ostream & os, handle const & h)
 
 
 /**
- * Set/get the blocking mode of the file descriptor (on or off).
- */
-PACKETEER_API error_t
-set_blocking_mode(handle::sys_handle_t const & h, bool state);
-
-PACKETEER_API error_t
-get_blocking_mode(handle::sys_handle_t const & h, bool & state);
-
-/**
  * Swappable
  **/
 inline void

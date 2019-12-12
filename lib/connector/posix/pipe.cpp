@@ -26,6 +26,8 @@
 
 #include <packeteer/net/socket_address.h>
 
+#include "fd.h"
+
 #include "../../globals.h"
 #include "../../macros.h"
 
@@ -333,18 +335,16 @@ connector_pipe::close()
 }
 
 
-error_t
-connector_pipe::set_blocking_mode(bool state)
+
+bool
+connector_pipe::is_blocking() const
 {
-  return ::packeteer::set_blocking_mode(m_handle.sys_handle(), state);
-}
-
-
-
-error_t
-connector_pipe::get_blocking_mode(bool & state) const
-{
-  return ::packeteer::get_blocking_mode(m_handle.sys_handle(), state);
+  bool state = false;
+  error_t err = detail::get_blocking_mode(m_handle.sys_handle(), state);
+  if (ERR_SUCCESS != err) {
+    throw exception(err, "Could not determine blocking mode from file descriptor!");
+  }
+  return state;
 }
 
 

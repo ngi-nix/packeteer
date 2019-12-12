@@ -448,24 +448,13 @@ connector::close()
 
 
 
-error_t
-connector::set_blocking_mode(bool state)
+bool
+connector::is_blocking() const
 {
   if (!m_impl || !*m_impl) {
-    return ERR_INITIALIZATION;
+    throw exception(ERR_INITIALIZATION, "Error retrieving blocking mode.");
   }
-  return (*m_impl)->set_blocking_mode(state);
-}
-
-
-
-error_t
-connector::get_blocking_mode(bool & state)
-{
-  if (!m_impl || !*m_impl) {
-    return ERR_INITIALIZATION;
-  }
-  return (*m_impl)->get_blocking_mode(state);
+  return (*m_impl)->is_blocking();
 }
 
 

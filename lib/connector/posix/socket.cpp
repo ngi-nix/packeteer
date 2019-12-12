@@ -25,6 +25,7 @@
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
 
+#include "fd.h"
 #include "../../globals.h"
 #include "../../macros.h"
 
@@ -72,7 +73,7 @@ create_socket(int domain, int type, int & fd, bool blocking)
   }
 
   // Non-blocking
-  error_t err = set_blocking_mode(fd, blocking);
+  error_t err = detail::set_blocking_mode(fd, blocking);
   if (ERR_SUCCESS != err) {
     ::close(fd);
     fd = -1;
@@ -450,7 +451,7 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr) const
   }
 
   // Make new socket nonblocking
-  error_t err = ::packeteer::set_blocking_mode(new_fd, m_options & CO_BLOCKING);
+  error_t err = detail::set_blocking_mode(new_fd, m_options & CO_BLOCKING);
   if (ERR_SUCCESS != err) {
     ::close(new_fd);
     new_fd = -1;
@@ -462,18 +463,16 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr) const
 }
 
 
-error_t
-connector_socket::set_blocking_mode(bool state)
+
+bool
+connector_socket::is_blocking() const
 {
-  return ::packeteer::set_blocking_mode(m_fd, state);
-}
-
-
-
-error_t
-connector_socket::get_blocking_mode(bool & state) const
-{
-  return ::packeteer::get_blocking_mode(m_fd, state);
+  bool state = false;
+  error_t err = detail::get_blocking_mode(m_fd, state);
+  if (ERR_SUCCESS != err) {
+    throw exception(err, "Could not determine blocking mode from file descriptor!");
+  }
+  return state;
 }
 
 

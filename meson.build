@@ -477,7 +477,7 @@ if have_kqueue
 endif
 
 posixsrc = [
-  'lib' / 'posix' / 'handle.cpp',
+  'lib' / 'connector' / 'posix' / 'fd.cpp',
   'lib' / 'connector' / 'posix' / 'interface.cpp',
   'lib' / 'connector' / 'posix' / 'anon.cpp',
   'lib' / 'connector' / 'posix' / 'pipe.cpp',

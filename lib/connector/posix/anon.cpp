@@ -22,6 +22,7 @@
 
 #include "../anon.h"
 
+#include "fd.h"
 #include "../../macros.h"
 
 #include <packeteer/handle.h>
@@ -74,13 +75,13 @@ connector_anon::create_pipe()
   }
 
   // Optionally make the read and write end non-blocking
-  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[0],
+  if (ERR_SUCCESS != detail::set_blocking_mode(m_fds[0],
         m_options & CO_BLOCKING))
   {
     close();
     return ERR_UNEXPECTED;
   }
-  if (ERR_SUCCESS != ::packeteer::set_blocking_mode(m_fds[1],
+  if (ERR_SUCCESS != detail::set_blocking_mode(m_fds[1],
         m_options & CO_BLOCKING))
   {
     close();
@@ -171,38 +172,24 @@ connector_anon::close()
 
 
 
-error_t
-connector_anon::set_blocking_mode(bool state)
-{
-  error_t err = ::packeteer::set_blocking_mode(m_fds[0], state);
-  if (err != ERR_SUCCESS) {
-    return err;
-  }
-  return ::packeteer::set_blocking_mode(m_fds[1], state);
-}
-
-
-
-error_t
-connector_anon::get_blocking_mode(bool & state) const
+bool
+connector_anon::is_blocking() const
 {
   bool states[2] = { false, false };
-  error_t err = ::packeteer::get_blocking_mode(m_fds[0], states[0]);
-  if (err != ERR_SUCCESS) {
-    return err;
+  error_t err = detail::get_blocking_mode(m_fds[0], states[0]);
+  if (ERR_SUCCESS != err) {
+    throw exception(err, "Could not determine blocking mode from file descriptor!");
   }
-  err = ::packeteer::get_blocking_mode(m_fds[1], states[1]);
-  if (err != ERR_SUCCESS) {
-    return err;
+  err = detail::get_blocking_mode(m_fds[1], states[1]);
+  if (ERR_SUCCESS != err) {
+    throw exception(err, "Could not determine blocking mode from file descriptor!");
   }
 
   if (states[0] != states[1]) {
-    LOG("The two file descriptors had differing blocking modes.");
-    return ERR_UNEXPECTED;
+    throw exception(ERR_UNEXPECTED, "The two file descriptors had differing blocking modes.");
   }
 
-  state = states[0];
-  return ERR_SUCCESS;
+  return states[0];
 }
 
 

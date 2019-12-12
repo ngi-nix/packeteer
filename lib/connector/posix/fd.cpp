@@ -17,15 +17,16 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#include <build-config.h>
 
-#include <packeteer/handle.h>
+#include "fd.h"
 
-#include "../macros.h"
+#include "../../macros.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 
-namespace packeteer {
+namespace packeteer::detail {
 
 namespace {
 
@@ -102,4 +103,4 @@ get_blocking_mode(handle::sys_handle_t const & fd, bool & state)
 
 
 
-} // namespace packeteer
+} // namespace packeteer::detail

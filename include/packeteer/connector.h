@@ -216,10 +216,9 @@ public:
       peer_address const & recipient);
 
   /**
-   * Get or set blocking mode on the connector.
+   * Get blocking mode of the connector.
    **/
-  error_t set_blocking_mode(bool state);
-  error_t get_blocking_mode(bool & state);
+  bool is_blocking() const;
 
   /**
    * Get the connector option flags.
