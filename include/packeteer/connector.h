@@ -280,9 +280,18 @@ private:
 };
 
 
+/**
+ * Swappable
+ **/
+inline void
+swap(connector & first, connector & second)
+{
+  return first.swap(second);
+}
+
 } // namespace packeteer
 
-/**
+/*******************************************************************************
  * std specializations for connector
  **/
 namespace std {
@@ -296,16 +305,7 @@ template <> struct PACKETEER_API hash<::packeteer::connector>
 };
 
 
-template <>
-PACKETEER_API
-inline void
-swap<::packeteer::connector>(::packeteer::connector & first, ::packeteer::connector & second)
-{
-  return first.swap(second);
-}
-
 } // namespace std
-
 
 
 #endif // guard

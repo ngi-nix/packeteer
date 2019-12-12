@@ -71,7 +71,8 @@ public:
   // Convert back to string
   std::string str() const;
 
-  // Calculate hash
+  // Calculate hash/make Swappable
+  void swap(url & other);
   size_t hash() const;
 
 private:
@@ -89,6 +90,14 @@ private:
  **/
 PACKETEER_API std::ostream & operator<<(std::ostream & os, url const & data);
 
+/**
+ * Swappable
+ **/
+inline void
+swap(url & first, url & second)
+{
+  return first.swap(second);
+}
 
 } // namespace packeteer::util
 

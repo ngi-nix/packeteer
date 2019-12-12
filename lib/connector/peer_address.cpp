@@ -304,11 +304,8 @@ peer_address::hash() const
 void
 peer_address::swap(peer_address & other)
 {
-  m_sockaddr.swap(other.m_sockaddr);
-
-  connector_type tmp = other.m_connector_type;
-  other.m_connector_type = m_connector_type;
-  m_connector_type = tmp;
+  std::swap(m_sockaddr, other.m_sockaddr);
+  std::swap(m_connector_type, other.m_connector_type);
 }
 
 

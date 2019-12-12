@@ -141,6 +141,14 @@ private:
  **/
 PACKETEER_API std::ostream & operator<<(std::ostream & os, peer_address const & addr);
 
+/**
+ * Swappable
+ **/
+inline void
+swap(peer_address & first, peer_address & second)
+{
+  return first.swap(second);
+}
 
 } // namespace packeteer
 
@@ -157,18 +165,8 @@ template <> struct PACKETEER_API hash<packeteer::peer_address>
   }
 };
 
-template <>
-PACKETEER_API
-inline void
-swap<::packeteer::peer_address>(::packeteer::peer_address & first, ::packeteer::peer_address & second)
-  noexcept(
-      is_nothrow_move_constructible<::packeteer::peer_address>::value
-      && is_nothrow_move_assignable<::packeteer::peer_address>::value
-  )
-{
-  return first.swap(second);
-}
 
 } // namespace std
+
 
 #endif // guard

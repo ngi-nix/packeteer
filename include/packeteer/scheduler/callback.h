@@ -405,6 +405,7 @@ template <> struct hash<packeteer::callback>
   }
 };
 
+
 } // namespace std
 
 

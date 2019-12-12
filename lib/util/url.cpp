@@ -240,6 +240,18 @@ url::str() const
 
 
 
+void
+url::swap(url & other)
+{
+  std::swap(scheme, other.scheme);
+  std::swap(authority, other.authority);
+  std::swap(path, other.path);
+  std::swap(query, other.query);
+  std::swap(fragment, other.fragment);
+}
+
+
+
 size_t
 url::hash() const
 {

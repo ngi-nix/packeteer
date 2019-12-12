@@ -114,9 +114,7 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
    **/
   void swap(handle & other)
   {
-    sys_handle_t tmp = m_handle;
-    m_handle = other.m_handle;
-    other.m_handle = tmp;
+    std::swap(m_handle, other.m_handle);
   }
 
   size_t hash() const
@@ -189,10 +187,20 @@ set_blocking_mode(handle::sys_handle_t const & h, bool state);
 PACKETEER_API error_t
 get_blocking_mode(handle::sys_handle_t const & h, bool & state);
 
+/**
+ * Swappable
+ **/
+inline void
+swap(::packeteer::handle & first, ::packeteer::handle & second)
+{
+  return first.swap(second);
+}
+
 
 } // namespace packeteer
 
-/**
+
+/*******************************************************************************
  * std specializations for handle
  **/
 namespace std {
@@ -206,16 +214,7 @@ template <> struct PACKETEER_API hash<::packeteer::handle>
 };
 
 
-template <>
-PACKETEER_API 
-inline void
-swap<::packeteer::handle>(::packeteer::handle & first, ::packeteer::handle & second)
-{
-  return first.swap(second);
-}
-
 } // namespace std
-
 
 
 #endif // guard
