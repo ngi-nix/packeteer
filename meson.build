@@ -77,7 +77,7 @@ if bt in ['debug', 'debugoptimized']
   elif compiler_id == 'msvc'
     # HAHAHA, VC tries to default to non-permissive mode via /permissive-, but
     # Windows SDK headers are non-conforming.
-    cpp_args += ['/Zi', '/FS', '/permissive']
+    cpp_args += ['/Zi', '/FS', '/permissive', '/DDEBUG=1']
   endif
 else
   posix_release_args = [
@@ -89,7 +89,9 @@ else
   elif compiler_id == 'gcc'
     cpp_args += posix_release_args
   elif compiler_id == 'msvc'
-    cpp_args += ['/Oi']
+    # HAHAHA, VC tries to default to non-permissive mode via /permissive-, but
+    # Windows SDK headers are non-conforming.
+    cpp_args += ['/Oi', '/permissive', '/DNDEBUG=1']
   endif
 endif
 
@@ -161,6 +163,9 @@ if compiler.has_header('winsock2.h')
 endif
 if compiler.has_header('ws2tcpip.h')
   conf_data.set('PACKETEER_HAVE_WS2TCPIP_H', true)
+endif
+if compiler.has_header('afunix.h')
+  conf_data.set('PACKETEER_HAVE_AFUNIX_H', true)
 endif
 if compiler.has_header('experimental/propagate_const')
   conf_data.set('PACKETEER_HAVE_EXPERIMENTAL_PROPAGATE_CONST', true)
@@ -454,23 +459,25 @@ endif
 posixsrc = [
   'lib' / 'posix' / 'handle.cpp',
   'lib' / 'connector' / 'posix' / 'interface.cpp',
-  'lib' / 'connector' / 'posix' / 'socket.cpp',
+  'lib' / 'connector' / 'posix' / 'anon.cpp',
   'lib' / 'connector' / 'posix' / 'pipe.cpp',
+  'lib' / 'connector' / 'posix' / 'socket.cpp',
   'lib' / 'connector' / 'posix' / 'tcp.cpp',
   'lib' / 'connector' / 'posix' / 'udp.cpp',
-  'lib' / 'connector' / 'posix' / 'anon.cpp',
   'lib' / 'connector' / 'posix' / 'local.cpp',
 ]
 
 winsrc = [
+# TODO iocp scheduler/io
   'lib' / 'win32' / 'handle.cpp',
+  'lib' / 'connector' / 'win32' / 'interface.cpp',
+  'lib' / 'connector' / 'win32' / 'anon.cpp',
+  'lib' / 'connector' / 'win32' / 'pipe.cpp',
 # TODO move to connector/win32
-  'lib' / 'win32' / 'detail' / 'connector.cpp',
-  'lib' / 'win32' / 'detail' / 'connector_socket.cpp',
-  'lib' / 'win32' / 'detail' / 'connector_pipe.cpp',
-  'lib' / 'win32' / 'detail' / 'connector_tcp.cpp',
-  'lib' / 'win32' / 'detail' / 'connector_udp.cpp',
-  'lib' / 'win32' / 'detail' / 'connector_anon.cpp',
+#  'lib' / 'win32' / 'detail' / 'connector.cpp',
+#  'lib' / 'win32' / 'detail' / 'connector_socket.cpp',
+#  'lib' / 'win32' / 'detail' / 'connector_tcp.cpp',
+#  'lib' / 'win32' / 'detail' / 'connector_udp.cpp',
 ]
 
 
@@ -479,6 +486,7 @@ if host_type == 'posix' or host_type == 'android'
 elif host_type == 'win32'
   libsrc += winsrc
 endif
+
 
 lib = library('packeteer', libsrc,
     include_directories: [includes, libincludes],
