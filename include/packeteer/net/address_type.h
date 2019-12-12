@@ -34,7 +34,8 @@ enum PACKETEER_API address_type : int8_t
   AT_UNSPEC = -1,
   AT_INET4 = 0,
   AT_INET6,
-  AT_LOCAL, // Only works on POSIX, and not for networks.
+  AT_LOCAL, // Only works for pipes, and not for networks. 
+  AT_UNIX = AT_LOCAL, // For people who prefer that name.
 };
 
 

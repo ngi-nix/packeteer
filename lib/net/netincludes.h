@@ -34,10 +34,12 @@
 
 #if defined(PACKETEER_HAVE_LINUX_UN_H)
 #  include <linux/un.h>
+#  define PACKETEER_HAVE_SOCKADDR_UN
 #else
 #  if defined(PACKETEER_HAVE_SYS_UN_H)
 #    include <sys/un.h>
 #    define UNIX_PATH_MAX 108
+#    define PACKETEER_HAVE_SOCKADDR_UN
 #  endif
 #endif
 
@@ -53,8 +55,13 @@
 #  include <ws2tcpip.h>
 #endif
 
+#if defined(PACKETEER_HAVE_AFUNIX_H)
+#  include <afunix.h>
+#  define PACKETEER_HAVE_SOCKADDR_UN
+#endif
+
 #if defined(PACKETEER_WIN32)
-using sa_family_t = int;
+using sa_family_t = ADDRESS_FAMILY;
 #endif
 
 #endif // guard

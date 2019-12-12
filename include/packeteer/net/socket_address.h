@@ -63,9 +63,9 @@ union address_data
   sockaddr_in       sa_in;
   sockaddr_in6      sa_in6;
   sockaddr_storage  sa_storage;
-#if defined(PACKETEER_POSIX)
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
   sockaddr_un       sa_un;
-#endif // PACKETEER_POSIX
+#endif
 #endif // PACKETEER_IS_BUILDING
   // For the padding/dummy, see e.g.
   // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms740504(v=vs.85)

@@ -63,11 +63,11 @@ parse_address(detail::address_data & data, T const & source, uint16_t port)
     return;
   }
 
-#if defined(PACKETEER_POSIX)
-  // If parsing got aborted, we either have AF_LOCAL or AF_UNSPEC as the
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
+  // If parsing got aborted, we either have AF_UNIX or AF_UNSPEC as the
   // actual socket type.
   ::memset(&data.sa_storage, 0, sizeof(data));
-  data.sa_un.sun_family = ::strlen(unwrap(source)) > 0 ? AF_LOCAL : AF_UNSPEC;
+  data.sa_un.sun_family = ::strlen(unwrap(source)) > 0 ? AF_UNIX : AF_UNSPEC;
   ::snprintf(data.sa_un.sun_path, UNIX_PATH_MAX, "%s", unwrap(source));
 #endif
 }
@@ -204,8 +204,8 @@ socket_address::full_str() const
       s << "[" << cidr_str() << "]:" << port();
       break;
 
-#if defined(PACKETEER_POSIX)
-    case AF_LOCAL:
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
+    case AF_UNIX:
       s << data.sa_un.sun_path;
       break;
 #endif
@@ -229,8 +229,8 @@ socket_address::bufsize() const
     case AF_INET6:
       return sizeof(sockaddr_in6);
 
-#if defined(PACKETEER_POSIX)
-    case AF_LOCAL:
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
+    case AF_UNIX:
       {
         socklen_t size = offsetof(sockaddr_un, sun_path) + ::strlen(data.sa_un.sun_path) + 1;
         return size;
@@ -328,7 +328,7 @@ socket_address::is_equal_to(socket_address const & other) const
     compare_buf_other = &(other.data.sa_in6.sin6_addr);
   }
 
-#if defined(PACKETEER_POSIX)
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
   // UNIX
   else {
     compare_size = UNIX_PATH_MAX;
@@ -371,7 +371,7 @@ socket_address::is_less_than(socket_address const & other) const
     return (ntohs(data.sa_in6.sin6_port) < ntohs(other.data.sa_in6.sin6_port));
   }
 
-#if defined(PACKETEER_POSIX)
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
   // Unix paths are simple again.
   else {
     return 0 > ::memcmp(data.sa_un.sun_path, other.data.sa_un.sun_path, UNIX_PATH_MAX);
@@ -392,7 +392,7 @@ socket_address::operator++()
     uint32_t ip = ntohl(data.sa_in.sin_addr.s_addr);
     data.sa_in.sin_addr.s_addr = htonl(ip + 1);
   }
-  else if (AF_INET6) {
+  else if (AF_INET6 == data.sa_storage.ss_family) {
     // IPv6 is still simple enough, we just have to handle overflow from one
     // byte into the next.
     bool done = false;
@@ -420,8 +420,8 @@ socket_address::type() const
     case AF_INET6:
       return AT_INET6;
 
-#if defined(PACKETEER_POSIX)
-    case AF_LOCAL:
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
+    case AF_UNIX:
       return AT_LOCAL;
 #endif
 
@@ -455,7 +455,7 @@ socket_address::hash() const
     port = data.sa_in6.sin6_port;
   }
 
-#if defined(PACKETEER_POSIX)
+#if defined(PACKETEER_HAVE_SOCKADDR_UN)
   // UNIX
   else {
     hash_size = ::strlen(data.sa_un.sun_path);
