@@ -540,6 +540,13 @@ if not meson.is_subproject()
     test_args += ['-D_POSIX_C_SOURCE=200809L']
   endif
 
+  # Google test issues this warning; disable it in *test* code only.
+  if compiler_id == 'msvc'
+    test_args = [
+      '/wd4389',
+    ]
+  endif
+
   # We're building two tests:
   # - public_tests include *only* public headers
   # - private_tests include private headers
