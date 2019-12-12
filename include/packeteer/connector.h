@@ -79,7 +79,7 @@ public:
    *  - anon: anonymous pipe, similar to the pipe class. Mostly usable for
    *      IPC between processes that inherit the file descriptors. Anonymous
    *      pipes are unidirectional.
-   *  - local: UNIX domain sockets (POSIX)
+   *  - local: UNIX domain sockets (POSIX only)
    *  - pipe: UNIX named pipe or Windows named pipe
    *
    * Of these, the first six expect the address string to have the format:
@@ -104,6 +104,10 @@ public:
    * The scheme part is not case sensitive. The address for IPv6 is not case
    * sensitive. Path names are case sensitive on operating systems where path
    * names generally are.
+   *
+   * Path names should follow URL standards with forard slashes delimiting
+   * path segments. Unescaped forward slashes will be translated to
+   * backslashes on Windows as necessary.
    *
    * The constructor will throw if an address could not be parsed. Note that
    * paths will not be parsed immediately, but only when the connection
