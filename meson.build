@@ -43,6 +43,24 @@ elif host_machine.system().startswith('android')
   host_type = 'android'
 endif
 
+
+# For Windows, try to determine the SDK version.
+winsdk_ver = -1
+if compiler.has_header('ntverp.h')
+  code = '''#include <iostream>
+#include <ntverp.h>
+
+int main()
+{
+  std::cout << VER_PRODUCTMAJORVERSION;
+}
+'''
+  result = compiler.run(code, name: 'Windows SDK version check.')
+  winsdk_ver = result.stdout().to_int()
+  message('Windows SDK major version is: @0@'.format(winsdk_ver))
+endif
+
+
 ### Compiler flags
 compiler_id = compiler.get_id()
 
@@ -63,7 +81,7 @@ elif compiler_id == 'gcc'
   cpp_lib_args = ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'msvc'
   cpp_args = [
-    '/W4', '/wd4250', '/wd4251', '/wd4275',
+    '/wd4250', '/wd4251', '/wd4275',
   ]
   cpp_lib_args = ['/DPACKETEER_IS_BUILDING=1']
 endif
@@ -75,9 +93,7 @@ if bt in ['debug', 'debugoptimized']
   elif compiler_id == 'gcc'
     cpp_args += ['-g3', '-DDEBUG']
   elif compiler_id == 'msvc'
-    # HAHAHA, VC tries to default to non-permissive mode via /permissive-, but
-    # Windows SDK headers are non-conforming.
-    cpp_args += ['/Zi', '/FS', '/permissive', '/DDEBUG=1']
+    cpp_args += ['/FS', '/DDEBUG=1']
   endif
 else
   posix_release_args = [
@@ -89,9 +105,7 @@ else
   elif compiler_id == 'gcc'
     cpp_args += posix_release_args
   elif compiler_id == 'msvc'
-    # HAHAHA, VC tries to default to non-permissive mode via /permissive-, but
-    # Windows SDK headers are non-conforming.
-    cpp_args += ['/Oi', '/permissive', '/DNDEBUG=1']
+    cpp_args += ['/Oi', '/DNDEBUG=1']
   endif
 endif
 
@@ -105,6 +119,12 @@ if host_type == 'android'
   link_args = [
     '-lstdc++', '-lm',
   ]
+endif
+
+
+# Make things work with MSVC and Windows SDK <10
+if compiler_id == 'msvc' and winsdk_ver < 10
+  cpp_args += ['/permissive']
 endif
 
 add_project_arguments(cpp_args, language: 'cpp')
