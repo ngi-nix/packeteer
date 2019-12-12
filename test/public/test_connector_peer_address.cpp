@@ -53,10 +53,8 @@ struct test_data
   { "udp6",  "udp6://::1",         packeteer::CT_UDP6,  pnet::AT_INET6,  "udp6://[::1]:0",       },
   { "udp6",  "udp://::1",          packeteer::CT_UDP6,  pnet::AT_INET6,  "udp6://[::1]:0",       },
   { "anon",  "anon://",            packeteer::CT_ANON,  pnet::AT_UNSPEC, "anon://",              },
-#if defined(PACKETEER_POSIX)
   { "pipe",  "pipe:///foo",        packeteer::CT_PIPE,  pnet::AT_LOCAL,  "pipe:///foo",          },
   { "local", "local:///foo",       packeteer::CT_LOCAL, pnet::AT_LOCAL,  "local:///foo",         },
-#endif
 
   // ports
   { "tcp4",  "tcp://192.168.0.1:1234", packeteer::CT_TCP4,  pnet::AT_INET4,  "tcp4://192.168.0.1:1234", },
