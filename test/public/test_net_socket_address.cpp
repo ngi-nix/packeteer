@@ -65,10 +65,8 @@ struct parsing_test_data
   { AF_INET6, pnet::AT_INET6, "::1", "::1", 12345, },
   { AF_INET6, pnet::AT_INET6, "0:0:0:0:0:0:0:0", "::", 12345, },
   { AF_INET6, pnet::AT_INET6, "::", "::", 12345, },
-#if defined(PACKETEER_POSIX)
-  { AF_LOCAL, pnet::AT_LOCAL, "/foo/bar", "/foo/bar", 0 },
-  { AF_LOCAL, pnet::AT_LOCAL, "something else", "something else", 0 },
-#endif
+  { AF_UNIX,  pnet::AT_LOCAL, "/foo/bar", "/foo/bar", 0 },
+  { AF_UNIX,  pnet::AT_LOCAL, "something else", "something else", 0 },
 };
 
 
@@ -137,16 +135,12 @@ pnet::socket_address create_address(parsing_test_data const & data)
     return socket_address(&addr, sizeof(addr));
   }
 
-#if defined(PACKETEER_POSIX)
-  // UNIX
+  // Pipes
   sockaddr_un addr;
-  addr.sun_family = AF_LOCAL;
+  addr.sun_family = AF_UNIX;
   ::snprintf(addr.sun_path, UNIX_PATH_MAX, "%s", data.address);
 
   return socket_address(&addr, sizeof(addr));
-#endif
-
-  throw std::runtime_error("Should not be reached.");
 }
 
 
@@ -307,10 +301,8 @@ struct value_test_data
     pnet::socket_address{"192.168.0.1", 4321} },
   { pnet::socket_address{"2001:0db8:85a3::8a2e:0370:7334", 1234},
     pnet::socket_address{"2001:0db8:85a3::8a2e:0370:7334", 4321} },
-#if defined(PACKETEER_POSIX)
   { pnet::socket_address{"/foo/bar"},
     pnet::socket_address{"/foo/baz"} },
-#endif
 };
 
 
@@ -333,7 +325,7 @@ std::string generate_name_value(testing::TestParamInfo<value_test_data> const & 
       break;
 
     default:
-      ADD_FAILURE() << "Untestable spec";
+      ADD_FAILURE() << "Untestable spec: " << info.param.addr1.full_str();
       break;
   }
 
@@ -417,7 +409,12 @@ TEST_P(SocketAddressOperators, incrementing)
   using namespace pnet;
   auto td = GetParam();
 
-  test_incrementing(td.addr1);
+  if (td.addr1.type() == AT_LOCAL) {
+    GTEST_SKIP();
+  }
+  else {
+    test_incrementing(td.addr1);
+  }
 }
 
 
