@@ -21,7 +21,8 @@
 
 #include <packeteer/net/socket_address.h>
 
-// For AF_UNSPEC, etc.
+// XXX This header is technically private; we use it only because it provides
+//     platform-independent includes for AF_UNIX, AF_INET, etc.
 #include "../lib/net/netincludes.h"
 
 #include <gtest/gtest.h>
