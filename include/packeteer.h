@@ -58,6 +58,9 @@
 #    define __UNDEF_LEAN_AND_MEAN
 #  endif
 #  define NOMINMAX
+// Unicode builds
+#  define UNICODE
+#  define _UNICODE
 #  include <windows.h>
 #  include <WinDef.h>
 #  ifdef __UNDEF_LEAN_AND_MEAN
