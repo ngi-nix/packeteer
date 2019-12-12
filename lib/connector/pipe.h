@@ -58,8 +58,7 @@ public:
 
   error_t close();
 
-  error_t set_blocking_mode(bool state);
-  error_t get_blocking_mode(bool & state) const;
+  bool is_blocking() const;
 
 private:
   connector_pipe();

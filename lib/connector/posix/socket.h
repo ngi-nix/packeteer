@@ -48,8 +48,7 @@ public:
   handle get_read_handle() const;
   handle get_write_handle() const;
 
-  error_t set_blocking_mode(bool state);
-  error_t get_blocking_mode(bool & state) const;
+  bool is_blocking() const;
 
   // Socket-specific versions of connect() and accept()
   error_t socket_create(int domain, int type, int & fd);

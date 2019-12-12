@@ -134,8 +134,7 @@ struct test_connector : packeteer::connector_interface
 
   virtual packeteer::error_t close() { return packeteer::ERR_SUCCESS; }
 
-  virtual packeteer::error_t get_blocking_mode(bool &) const { return packeteer::ERR_SUCCESS; }
-  virtual packeteer::error_t set_blocking_mode(bool) { return packeteer::ERR_SUCCESS; }
+  virtual bool is_blocking() const { return true; }
 };
 
 } // anonymous namespace

@@ -3,8 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2019 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -18,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_CONNECTOR_ANON_H
-#define PACKETEER_CONNECTOR_ANON_H
+#ifndef PACKETEER_CONNECTOR_POSIX_FD_H
+#define PACKETEER_CONNECTOR_POSIX_FD_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -27,39 +26,19 @@
 
 #include <packeteer.h>
 
-#include <packeteer/connector/interface.h>
+#include <packeteer/handle.h>
 
 namespace packeteer::detail {
 
 /**
- * Unidirectional pipe (UNIX)
- **/
-struct connector_anon : public ::packeteer::connector_interface
-{
-public:
-  connector_anon(connector_options const & options);
-  ~connector_anon();
+ * Set/get blocking modes on file descriptors.
+ */
+error_t
+set_blocking_mode(handle::sys_handle_t const & fd, bool state = false);
 
-  error_t listen();
-  bool listening() const;
+error_t
+get_blocking_mode(handle::sys_handle_t const & fd, bool & state);
 
-  error_t connect();
-  bool connected() const;
-
-  connector_interface * accept(net::socket_address & addr) const;
-
-  handle get_read_handle() const;
-  handle get_write_handle() const;
-
-  error_t close();
-
-  bool is_blocking() const;
-
-private:
-  error_t create_pipe();
-
-  int   m_fds[2];
-};
 
 } // namespace packeteer::detail
 

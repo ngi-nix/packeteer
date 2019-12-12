@@ -80,13 +80,11 @@ public:
    * (Abstract) setting accessors
    **/
   /**
-   * When setting the blocking mode, be sure to also set it in m_options, or
-   * get_blocking_mode() and get_options() may have different opinions.
+   * Retrieve connector options. is_blocking() may return the blocking mode
+   * set on a file descriptor instead of from the options.
    */
-  virtual error_t get_blocking_mode(bool & state) const = 0;
-  virtual error_t set_blocking_mode(bool state) = 0;
-
   virtual connector_options get_options() const;
+  virtual bool is_blocking() const = 0;
 
   /***************************************************************************
    * Default (POSIX-oriented) implementations; may be subclassed if necessary.

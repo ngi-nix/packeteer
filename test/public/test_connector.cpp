@@ -229,8 +229,8 @@ TEST(Connector, default_constructed)
   ASSERT_THROW(auto url = conn.connect_url(), exception);
 
   // Most functions should just return ERR_INITIALIZATION
-  bool mode = false;
-  ASSERT_EQ(ERR_INITIALIZATION, conn.get_blocking_mode(mode));
+  ASSERT_THROW(conn.is_blocking(), exception);
+  ASSERT_THROW(conn.get_options(), exception);
 
   // Comparison should always yield the unspecified connector to be smaller.
   connector conn2;
@@ -423,9 +423,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   ASSERT_TRUE(server.listening());
   ASSERT_FALSE(server.connected());
 
-  bool mode = false;
-  ASSERT_EQ(ERR_SUCCESS, server.get_blocking_mode(mode));
-  ASSERT_EQ(true, mode);
+  ASSERT_TRUE(server.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_BLOCKING, server.get_options());
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -446,12 +444,10 @@ TEST_P(ConnectorStream, blocking_messaging)
   ASSERT_TRUE(client.connected());
   ASSERT_TRUE(server_conn.listening());
 
-  ASSERT_EQ(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
-  ASSERT_EQ(true, mode);
+  ASSERT_TRUE(server_conn.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_BLOCKING, server_conn.get_options());
 
-  ASSERT_EQ(ERR_SUCCESS, client.get_blocking_mode(mode));
-  ASSERT_EQ(true, mode);
+  ASSERT_TRUE(client.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_BLOCKING, client.get_options());
 
   // Communications
@@ -483,9 +479,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   ASSERT_TRUE(server.listening());
   ASSERT_FALSE(server.connected());
 
-  bool mode = false;
-  ASSERT_EQ(ERR_SUCCESS, server.get_blocking_mode(mode));
-  ASSERT_EQ(false, mode);
+  ASSERT_FALSE(server.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, server.get_options());
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -530,12 +524,10 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   ASSERT_TRUE(client.connected());
   ASSERT_TRUE(server_conn.listening());
 
-  ASSERT_EQ(ERR_SUCCESS, server_conn.get_blocking_mode(mode));
-  ASSERT_EQ(false, mode);
+  ASSERT_FALSE(server_conn.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, server_conn.get_options());
 
-  ASSERT_EQ(ERR_SUCCESS, client.get_blocking_mode(mode));
-  ASSERT_EQ(false, mode);
+  ASSERT_FALSE(client.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, client.get_options());
 
   // Communications
