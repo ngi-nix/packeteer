@@ -159,9 +159,9 @@ translate_open_error()
 connector_pipe::connector_pipe(std::string const & path,
     connector_options const & options)
   : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
-  , m_addr(path)
-  , m_server(false)
-  , m_fd(-1)
+  , m_addr{path}
+  , m_server{false}
+  , m_handle{}
 {
 }
 
@@ -170,9 +170,9 @@ connector_pipe::connector_pipe(std::string const & path,
 connector_pipe::connector_pipe(net::socket_address const & addr,
     connector_options const & options)
   : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
-  , m_addr(addr)
-  , m_server(false)
-  , m_fd(-1)
+  , m_addr{addr}
+  , m_server{false}
+  , m_handle{}
 {
 }
 
@@ -214,7 +214,7 @@ connector_pipe::connect()
     return err;
   }
 
-  m_fd = fd;
+  m_handle = handle{fd};
   m_server = false;
 
   if (m_options & CO_NON_BLOCKING) {
@@ -260,7 +260,7 @@ connector_pipe::listen()
     return err;
   }
 
-  m_fd = fd;
+  m_handle = handle{fd};
   m_server = true;
 
   return ERR_SUCCESS;
@@ -271,7 +271,7 @@ connector_pipe::listen()
 bool
 connector_pipe::listening() const
 {
-  return m_fd != -1 && m_server;
+  return m_handle != handle{} && m_server;
 }
 
 
@@ -279,7 +279,7 @@ connector_pipe::listening() const
 bool
 connector_pipe::connected() const
 {
-  return m_fd != -1 && !m_server;
+  return m_handle != handle{} && !m_server;
 }
 
 
@@ -299,7 +299,7 @@ connector_pipe::accept(net::socket_address & /* unused */) const
 handle
 connector_pipe::get_read_handle() const
 {
-  return handle(m_fd);
+  return m_handle;
 }
 
 
@@ -307,7 +307,7 @@ connector_pipe::get_read_handle() const
 handle
 connector_pipe::get_write_handle() const
 {
-  return handle(m_fd);
+  return m_handle;
 }
 
 
@@ -321,12 +321,12 @@ connector_pipe::close()
 
   // We ignore errors from close() here. This is a problem with NFS, as the man
   // pages state, but it's the price of the abstraction.
-  ::close(m_fd);
+  ::close(m_handle.sys_handle());
   if (m_server) {
     ::unlink(m_addr.full_str().c_str());
   }
 
-  m_fd = -1;
+  m_handle = handle{};
   m_server = false;
 
   return ERR_SUCCESS;
@@ -336,7 +336,7 @@ connector_pipe::close()
 error_t
 connector_pipe::set_blocking_mode(bool state)
 {
-  return ::packeteer::set_blocking_mode(m_fd, state);
+  return ::packeteer::set_blocking_mode(m_handle.sys_handle(), state);
 }
 
 
@@ -344,7 +344,7 @@ connector_pipe::set_blocking_mode(bool state)
 error_t
 connector_pipe::get_blocking_mode(bool & state) const
 {
-  return ::packeteer::get_blocking_mode(m_fd, state);
+  return ::packeteer::get_blocking_mode(m_handle.sys_handle(), state);
 }
 
 

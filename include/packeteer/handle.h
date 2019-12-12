@@ -59,10 +59,10 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
       return handle < other.handle;
     }
   };
-  const sys_handle_t PACKETEER_INVALID_HANDLE_VALUE{};
+  const sys_handle_t INVALID_SYS_HANDLE{};
 #elif defined(PACKETEER_POSIX)
   using sys_handle_t = int;
-  const sys_handle_t PACKETEER_INVALID_HANDLE_VALUE{-1};
+  const sys_handle_t INVALID_SYS_HANDLE{-1};
 #else
 #  error Handles are not supported on this platform!
 #endif
@@ -71,7 +71,7 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
    * Constructors and destructors
    **/
   handle()
-    : m_handle{PACKETEER_INVALID_HANDLE_VALUE}
+    : m_handle{INVALID_SYS_HANDLE}
   {
   }
 
@@ -119,7 +119,7 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 
   size_t hash() const
   {
-    if (m_handle == PACKETEER_INVALID_HANDLE_VALUE) {
+    if (m_handle == INVALID_SYS_HANDLE) {
       return 0;
     }
 
@@ -141,7 +141,7 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 
   bool valid() const
   {
-    return (m_handle != PACKETEER_INVALID_HANDLE_VALUE);
+    return (m_handle != INVALID_SYS_HANDLE);
   }
 
 

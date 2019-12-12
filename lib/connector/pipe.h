@@ -26,6 +26,8 @@
 
 #include <packeteer.h>
 
+#include <packeteer/handle.h>
+
 #include <packeteer/connector/interface.h>
 
 #include <packeteer/net/socket_address.h>
@@ -64,7 +66,7 @@ private:
 
   ::packeteer::net::socket_address  m_addr;
   bool                              m_server;
-  int                               m_fd;
+  ::packeteer::handle               m_handle;
 };
 
 } // namespace packeteer::detail
