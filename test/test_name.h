@@ -29,33 +29,39 @@ symbolize_name(std::string const & other)
 {
   std::string res;
 
-  // Replace non-symbol with a sequence
-  for (auto c : other) {
-    switch (c) {
-      REPLACE_HELPER('.', "_dot_");
-      REPLACE_HELPER(':', "_colon_");
-      REPLACE_HELPER('/', "_slash_");
-      REPLACE_HELPER('[', "_open_");
-      REPLACE_HELPER(']', "_close_");
-      REPLACE_HELPER(' ', "_");
-
-      default:
-        res += c;
-        break;
-    }
+  if (other.empty()) {
+    res = "_empty_";
   }
+  else {
+    // Replace non-symbol with a sequence
+    for (auto c : other) {
+      switch (c) {
+        REPLACE_HELPER('.', "_dot_");
+        REPLACE_HELPER(':', "_colon_");
+        REPLACE_HELPER('/', "_slash_");
+        REPLACE_HELPER('[', "_open_");
+        REPLACE_HELPER(']', "_close_");
+        REPLACE_HELPER(' ', "_");
+        REPLACE_HELPER('\\', "_backslash_");
 
-  // Replace consecutive _ with a single
-  auto len = res.length();
-  for (size_t i = 0 ; i < len - 1 ; ++i) {
-    if (res[i] != '_') continue;
+        default:
+          res += c;
+          break;
+      }
+    }
 
-    for (size_t j = i + 1 ; j < len - 1 ; ++j) {
-      if (res[j] == '_') {
-        res.erase(res.begin() + j);
-	len = res.length();
-      } else {
-        break;
+    // Replace consecutive _ with a single
+    auto len = res.length();
+    for (size_t i = 0 ; i < len - 1 ; ++i) {
+      if (res[i] != '_') continue;
+
+      for (size_t j = i + 1 ; j < len - 1 ; ++j) {
+        if (res[j] == '_') {
+          res.erase(res.begin() + j);
+          len = res.length();
+        } else {
+          break;
+        }
       }
     }
   }
