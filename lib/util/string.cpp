@@ -59,6 +59,44 @@ to_upper(std::string const & value)
 }
 
 
+namespace {
+
+//
+// Templates case-insensitive equal
+//
+template <typename T>
+struct case_insensitive_equal
+{
+  std::locale const & m_loc;
+
+  case_insensitive_equal(std::locale const & loc)
+    : m_loc(loc)
+  {
+  } 
+
+  bool operator()(T const & first, T const & second)
+  {
+    return std::tolower(first, m_loc) == std::tolower(second, m_loc);
+  }
+};
+
+} // anonymous namespace
+
+
+
+ssize_t
+ifind(std::string const & haystack, std::string const & needle)
+{
+  auto it = std::search(haystack.begin(), haystack.end(),
+      needle.begin(), needle.end(),
+      case_insensitive_equal<std::string::value_type>(std::locale()));
+  if (it == haystack.end()) {
+    return -1;
+  }
+  return it - haystack.begin();
+}
+
+
 #if defined(PACKETEER_WIN32)
 
 std::string

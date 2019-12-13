@@ -27,14 +27,25 @@ namespace packeteer::util {
 /**
  * Lower- and uppercase strings.
  */
+PACKETEER_PRIVATE
 std::string to_lower(std::string const & other);
+
+PACKETEER_PRIVATE
 std::string to_upper(std::string const & other);
+
+
+/**
+ * Perform case-insensitive search.
+ */
+PACKETEER_PRIVATE
+ssize_t ifind(std::string const & haystack, std::string const & needle);
 
 #if defined(PACKETEER_WIN32)
 
 /**
  * Convert from Windows UCS-2 to UTF-8
  */
+PACKETEER_PRIVATE
 std::string to_utf8(TCHAR const * source);
 
 #endif
