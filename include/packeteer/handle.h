@@ -46,8 +46,11 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 #if defined(PACKETEER_WIN32)
   struct PACKETEER_API sys_handle_t : public ::packeteer::util::operators<sys_handle_t>
   {
-    HANDLE     handle = INVALID_HANDLE_VALUE;
-    OVERLAPPED overlapped;
+    HANDLE                      handle = INVALID_HANDLE_VALUE;
+    // If an OVERLAPPED structure is present, it indicates non-blocking I/O is
+    // to be used in the form of Win32's OVERLAPPED I/O. If it is not present,
+    // blocking I/O is to be used.
+    std::shared_ptr<OVERLAPPED> overlapped;
 
     inline bool is_equal_to(sys_handle_t const & other) const
     {
