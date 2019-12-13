@@ -232,8 +232,7 @@ socket_address::bufsize() const
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
     case AF_UNIX:
       {
-        socklen_t size = offsetof(sockaddr_un, sun_path) + ::strlen(data.sa_un.sun_path) + 1;
-        return size;
+        return offsetof(sockaddr_un, sun_path) + ::strlen(data.sa_un.sun_path) + 1;
       }
 #endif
 
