@@ -518,8 +518,8 @@ scheduler::scheduler_impl::main_scheduler_loop()
       // - It would not make sense for user/scheduled callbacks to be triggered at
       //   different resolution on different platforms.
       entry_list_t to_schedule;
-      // FIXME magic constant
-      wait_for_events(sc::milliseconds(20), to_schedule);
+      wait_for_events(sc::nanoseconds(PACKETEER_EVENT_WAIT_INTERVAL_USEC),
+          to_schedule);
       LOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
       // After callbacks of all kinds have been added to to_schedule, we can push

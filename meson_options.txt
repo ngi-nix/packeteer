@@ -4,4 +4,16 @@ objects in memory on cache line boundaries. The typical value is 64. Set to
 zero to disable.''',
   value: 64,
 )
-
+option('event_wait_interval_usec', type: 'integer',
+  description: '''Interval in usec for waiting for events. On OSX with 
+select(), there is a builtin minimum resolution of 20msec, hence the default.
+It doesnt make much sense to have different timer resolutions on different
+platforms, so the recommendation is not to change this.''',
+  value: 20000,
+)
+option('io_buffer_size', type: 'integer',
+  description: '''On systems that support it, set the default I/O buffer size.
+On Windows, the value may be advisory only. The value is not used everywhere,
+and the default of 16K is probably the right one when it is used.''',
+  value: 16384,
+)

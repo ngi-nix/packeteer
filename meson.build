@@ -383,6 +383,14 @@ cache_line_size = get_option('cache_line_size')
 message('Set cache line size option to: @0@'.format(cache_line_size))
 conf_data.set('PACKETEER_CACHE_LINE_SIZE', cache_line_size)
 
+event_wait_interval_usec = get_option('event_wait_interval_usec')
+message('Set event wait interval to @0@usec.'.format(event_wait_interval_usec))
+conf_data.set('PACKETEER_EVENT_WAIT_INTERVAL_USEC', event_wait_interval_usec)
+
+io_buffer_size = get_option('io_buffer_size')
+message('Set I/O buffers to @0@ Bytes.'.format(io_buffer_size))
+conf_data.set('PACKETEER_IO_BUFFER_SIZE', io_buffer_size)
+
 configure_file(
   input: 'build-config.h.in',
   output: 'build-config.h',
@@ -489,7 +497,8 @@ posixsrc = [
 
 winsrc = [
 # TODO iocp scheduler/io
-  'lib' / 'win32' / 'handle.cpp',
+  'lib' / 'win32' / 'handle.cpp',  # FIXME probably remove
+  'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
   'lib' / 'connector' / 'win32' / 'interface.cpp',
   'lib' / 'connector' / 'win32' / 'anon.cpp',
   'lib' / 'connector' / 'win32' / 'pipe.cpp',
@@ -569,10 +578,17 @@ if not meson.is_subproject()
     'test' / 'private' / 'test_concurrent_queue.cpp',
     'test' / 'private' / 'test_scheduler_containers.cpp',
     'test' / 'private' / 'test_net_cidr.cpp',
+    'test' / 'private' / 'test_util_string.cpp',
     'test' / 'private' / 'test_thread_binder.cpp',
     'test' / 'private' / 'test_thread_tasklet.cpp',
     'test' / 'runner.cpp',
   ]
+
+  if host_type == 'win32'
+    private_test_src += [
+      'test' / 'private' / 'test_pipe_operations.cpp',
+    ]
+  endif
 
   public_tests = executable('public_tests', public_test_src,
       include_directories: [includes],  # public headers only!
