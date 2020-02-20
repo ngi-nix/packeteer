@@ -286,14 +286,6 @@ struct streaming_test_data
   { CT_PIPE,
     "pipe:///tmp/test-connector-pipe-block?blocking=1",
     "pipe:///tmp/test-connector-pipe-noblock", },
-
-
-// testDGramConnector(CT_LOCAL, "local:///tmp/test-connector-local-dgram-first",
-//     "local:///tmp/test-connector-local-dgram-second");
-// testDGramConnector(CT_UDP4, "udp4://127.0.0.1:54321", "udp4://127.0.0.1:54322");
-// testDGramConnector(CT_UDP6, "udp6://[::1]:54321", "udp6://[::1]:54322");
-
-
 };
 
 template <typename T>
@@ -327,9 +319,13 @@ std::string connector_name(testing::TestParamInfo<T> const & info)
 }
 
 
-void send_message_streaming(connector & sender, connector & receiver)
+void send_message_streaming(connector & sender, connector & receiver,
+    int marker = -1)
 {
-  std::string msg = "hello, world!";
+  std::string msg = "Hello, world!";
+  if (marker >= 0) {
+    msg += " [" + std::to_string(marker) + "]";
+  }
   size_t amount = 0;
   ASSERT_EQ(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
   ASSERT_EQ(msg.size(), amount);
@@ -341,10 +337,11 @@ void send_message_streaming(connector & sender, connector & receiver)
   ASSERT_EQ(ERR_SUCCESS, receiver.read(&result[0], result.capacity(),
         amount));
   ASSERT_EQ(msg.size(), amount);
+  result.resize(amount);
 
-  for (size_t i = 0 ; i < msg.size() ; ++i) {
-    ASSERT_EQ(msg[i], result[i]);
-  }
+  std::string received{result.begin(), result.end()};
+  LOG("Sent '" << msg << "' and received '" << received << "'");
+  ASSERT_EQ(msg, received);
 }
 
 
@@ -536,6 +533,87 @@ TEST_P(ConnectorStream, non_blocking_messaging)
 }
 
 
+TEST_P(ConnectorStream, multiple_clients)
+{
+  // Test multiple clients connect to a single server, and can exchange
+  // messages.
+  auto td = GetParam();
+
+  auto url = ::packeteer::util::url::parse(td.stream_blocking);
+  url.query["behaviour"] = "stream";
+
+  // Server
+  connector server{test_env->api, url};
+  EXPECT_EQ(td.type, server.type());
+
+  EXPECT_FALSE(server.listening());
+  EXPECT_FALSE(server.connected());
+
+  EXPECT_EQ(ERR_SUCCESS, server.listen());
+
+  EXPECT_TRUE(server.listening());
+  EXPECT_FALSE(server.connected());
+
+  EXPECT_TRUE(server.is_blocking());
+  EXPECT_EQ(CO_STREAM|CO_BLOCKING, server.get_options());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Client #1
+  connector client1{test_env->api, url};
+  EXPECT_EQ(td.type, client1.type());
+
+  EXPECT_FALSE(client1.listening());
+  EXPECT_FALSE(client1.connected());
+
+  EXPECT_EQ(ERR_SUCCESS, client1.connect());
+  connector server_conn1 = server.accept();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  EXPECT_FALSE(client1.listening());
+  EXPECT_TRUE(client1.connected());
+  EXPECT_TRUE(server_conn1.listening());
+
+  EXPECT_TRUE(server_conn1.is_blocking());
+  EXPECT_EQ(CO_STREAM|CO_BLOCKING, server_conn1.get_options());
+
+  EXPECT_TRUE(client1.is_blocking());
+  EXPECT_EQ(CO_STREAM|CO_BLOCKING, client1.get_options());
+
+  // Client #2
+  connector client2{test_env->api, url};
+  EXPECT_EQ(td.type, client2.type());
+
+  EXPECT_FALSE(client2.listening());
+  EXPECT_FALSE(client2.connected());
+
+  EXPECT_EQ(ERR_SUCCESS, client2.connect());
+  connector server_conn2 = server.accept();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  EXPECT_FALSE(client2.listening());
+  EXPECT_TRUE(client2.connected());
+  EXPECT_TRUE(server_conn2.listening());
+
+  EXPECT_TRUE(server_conn2.is_blocking());
+  EXPECT_EQ(CO_STREAM|CO_BLOCKING, server_conn2.get_options());
+
+  EXPECT_TRUE(client2.is_blocking());
+  EXPECT_EQ(CO_STREAM|CO_BLOCKING, client2.get_options());
+
+  // Communications with client #1
+  send_message_streaming(client1, server_conn1, 1);
+  send_message_streaming(server_conn1, client1, 2);
+
+  // Communications with client #2
+  send_message_streaming(client2, server_conn2, 3);
+  send_message_streaming(server_conn2, client2, 4);
+}
+
+
+
 INSTANTIATE_TEST_CASE_P(net, ConnectorStream,
     testing::ValuesIn(streaming_tests),
     connector_name<streaming_test_data>);
@@ -551,22 +629,30 @@ struct dgram_test_data
   connector_type  type;
   char const *    dgram_first;
   char const *    dgram_second;
+  char const *    dgram_third;
 } dgram_tests[] = {
   { CT_LOCAL,
     "local:///tmp/test-connector-local-dgram-first",
-    "local:///tmp/test-connector-local-dgram-second", },
+    "local:///tmp/test-connector-local-dgram-second",
+    "local:///tmp/test-connector-local-dgram-third", },
   { CT_UDP4,
     "udp4://127.0.0.1:54321",
-    "udp4://127.0.0.1:54322", },
+    "udp4://127.0.0.1:54322",
+    "udp4://127.0.0.1:54323", },
   { CT_UDP6,
     "udp6://[::1]:54321",
-    "udp6://[::1]:54322", },
+    "udp6://[::1]:54322",
+    "udp6://[::1]:54323", },
 };
 
 
-void send_message_dgram(connector & sender, connector & receiver)
+void send_message_dgram(connector & sender, connector & receiver,
+    int marker = -1)
 {
   std::string msg = "hello, world!";
+  if (marker >= 0) {
+    msg += " [" + std::to_string(marker) + "]";
+  }
   size_t amount = 0;
   ASSERT_EQ(ERR_SUCCESS, sender.send(msg.c_str(), msg.size(), amount,
       receiver.peer_addr()));
@@ -581,10 +667,11 @@ void send_message_dgram(connector & sender, connector & receiver)
         amount, sendaddr));
   ASSERT_EQ(msg.size(), amount);
   ASSERT_EQ(sender.peer_addr(), sendaddr);
+  result.resize(amount);
 
-  for (size_t i = 0 ; i < msg.size() ; ++i) {
-    ASSERT_EQ(msg[i], result[i]);
-  }
+  std::string received{result.begin(), result.end()};
+  LOG("Sent '" << msg << "' and received '" << received << "'");
+  ASSERT_EQ(msg, received);
 }
 
 
@@ -639,6 +726,69 @@ TEST_P(ConnectorDGram, messaging)
   send_message_dgram(client, server);
   send_message_dgram(server, client);
 }
+
+
+TEST_P(ConnectorDGram, multiple_clients)
+{
+  // Test multiple clients connect to a single server, and can exchange
+  // messages.
+  auto td = GetParam();
+
+  auto surl = ::packeteer::util::url::parse(td.dgram_first);
+  surl.query["behaviour"] = "datagram";
+  auto curl1 = ::packeteer::util::url::parse(td.dgram_second);
+  curl1.query["behaviour"] = "datagram";
+  auto curl2 = ::packeteer::util::url::parse(td.dgram_third);
+  curl2.query["behaviour"] = "datagram";
+
+  // Server
+  connector server{test_env->api, surl};
+  ASSERT_EQ(td.type, server.type());
+
+  ASSERT_FALSE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, server.listen());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Client #1
+  connector client1{test_env->api, curl1};
+  ASSERT_EQ(td.type, client1.type());
+
+  ASSERT_FALSE(client1.listening());
+  ASSERT_FALSE(client1.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, client1.listen());
+
+  ASSERT_TRUE(client1.listening());
+  ASSERT_FALSE(client1.connected());
+
+  // Client #2
+  connector client2{test_env->api, curl2};
+  ASSERT_EQ(td.type, client2.type());
+
+  ASSERT_FALSE(client2.listening());
+  ASSERT_FALSE(client2.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, client2.listen());
+
+  ASSERT_TRUE(client2.listening());
+
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  // Communications #1 and #2
+  send_message_dgram(client1, server, 1);
+  send_message_dgram(server, client1, 2);
+
+  send_message_dgram(client2, server, 3);
+  send_message_dgram(server, client2, 4);
+}
+
 
 
 INSTANTIATE_TEST_CASE_P(net, ConnectorDGram,
