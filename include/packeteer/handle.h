@@ -137,7 +137,12 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
   /**
    * Get underlying handle type
    **/
-  sys_handle_t sys_handle() const
+  sys_handle_t const & sys_handle() const
+  {
+    return m_handle;
+  }
+
+  sys_handle_t & sys_handle()
   {
     return m_handle;
   }
