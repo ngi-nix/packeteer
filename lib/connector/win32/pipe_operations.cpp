@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2019 Jens Finkhaeuser.
+ * Copyright (c) 2019-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -21,6 +21,7 @@
 
 #include "pipe_operations.h"
 #include "../../util/string.h"
+#include "../../macros.h"
 
 namespace packeteer::detail {
 
@@ -125,7 +126,7 @@ create_named_pipe(std::string const & name,
       nullptr);
 
   if (INVALID_HANDLE_VALUE == res.handle) {
-    auto err = GetLastError();
+    auto err = WSAGetLastError();
     switch (err) {
       case ERROR_INVALID_PARAMETER:
         throw exception(ERR_INVALID_OPTION, err);
@@ -137,6 +138,91 @@ create_named_pipe(std::string const & name,
   }
 
   return res;
+}
+
+
+
+error_t
+poll_for_connection(handle const & handle)
+{
+  if (!handle.sys_handle().overlapped) {
+    LOG("Non-blocking handle required.");
+    return ERR_UNSUPPORTED_ACTION;
+  }
+
+  BOOL res = ConnectNamedPipe(handle.sys_handle().handle,
+      handle.sys_handle().overlapped.get());
+  if (res) {
+    return ERR_SUCCESS;
+  }
+
+  switch (WSAGetLastError()) {
+    case ERROR_IO_PENDING:
+      return ERR_REPEAT_ACTION;
+
+    case ERROR_PIPE_CONNECTED:
+      return ERR_SUCCESS;
+
+    default:
+      ERRNO_LOG("Unexpected result of ConnectNamedPipe.");
+      return ERR_CONNECTION_ABORTED;
+  }
+}
+
+
+
+error_t
+connect_to_pipe(handle & handle, std::string const & name, bool blocking,
+    bool readonly)
+{
+  std::string normalized = normalize_pipe_path(name);
+
+  // Handle blocking flag
+  DWORD connect_flags = 0;
+
+  if (!blocking) {
+    connect_flags |= FILE_FLAG_OVERLAPPED;
+    if (!handle.sys_handle().overlapped) {
+      handle.sys_handle().overlapped = std::make_shared<OVERLAPPED>();
+    }
+  }
+
+  // Read-only
+  DWORD mode = GENERIC_READ;
+  DWORD share = FILE_SHARE_READ;
+  if (!readonly) {
+    mode |= GENERIC_WRITE;
+    share |= FILE_SHARE_WRITE;
+  }
+
+  // Try to connect
+  HANDLE result = CreateFileA(
+      normalized.c_str(),
+      mode,
+      share,
+      nullptr, // LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+      OPEN_EXISTING,
+      connect_flags, 
+      nullptr // template handle?
+  );
+
+  // Success!
+  if (result != INVALID_HANDLE_VALUE) {
+    handle.sys_handle().handle = result;
+    return ERR_SUCCESS;
+  }
+
+  switch (WSAGetLastError()) {
+    case ERROR_FILE_NOT_FOUND:
+      return ERR_FS_ERROR;
+
+    case ERROR_PIPE_BUSY:
+      return ERR_REPEAT_ACTION;
+
+    default:
+      ERRNO_LOG("Unexpected result of CreateFileA.");
+      return ERR_CONNECTION_ABORTED;
+  }
 }
 
 } // namespace packeteer::detail

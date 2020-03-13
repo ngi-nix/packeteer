@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2019 Jens Finkhaeuser.
+ * Copyright (c) 2019-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -28,6 +28,8 @@
 
 #include <packeteer/handle.h>
 
+#include "../../net/netincludes.h"
+
 namespace packeteer::detail {
 
 /**
@@ -49,8 +51,25 @@ PACKETEER_PRIVATE
 handle create_named_pipe(std::string const & name,
     bool blocking, bool readonly, bool remoteok = false);
 
+
+/**
+ * Server function for serving connections from a pipe. Requires a non-blocking
+ * handle, and will return ERR_UNSUPPORTED_ACTION when a blocking handle is
+ * passed.
+ **/
+PACKETEER_PRIVATE
+error_t poll_for_connection(handle const & handle);
+
+/**
+ * Connect to a named pipe from a client. Expected result values are:
+ * - ERR_SUCCESS
+ * - ERR_FS_ERROR (pipe was not created)
+ * - ERR_REPEAT_ACTION (pipe was created, but we can't connect right now)
+ **/
+PACKETEER_PRIVATE
+error_t connect_to_pipe(handle & handle, std::string const & name, bool blocking);
+
 // TODO:
-// - Connect to pipe (from client and server)
 // - Helper for anonymous pipes (see stackexchange)
 
 } // namespace packeteer::detail
