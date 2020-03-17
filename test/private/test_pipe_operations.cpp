@@ -191,7 +191,7 @@ TEST(PipeOperations, open_nonexistent_pipe)
   namespace pd = packeteer::detail;
 
   packeteer::handle h;
-  auto err = pd::connect_to_pipe(h, "foo", false);
+  auto err = pd::connect_to_pipe(h, "foo", false, false);
 
   ASSERT_EQ(packeteer::ERR_FS_ERROR, err);
   ASSERT_FALSE(h.valid());
@@ -215,7 +215,7 @@ TEST(PipeOperations, open_pipe)
 
   // Client
   packeteer::handle client;
-  auto err = pd::connect_to_pipe(client, "foo", false);
+  auto err = pd::connect_to_pipe(client, "foo", false, false);
 
   ASSERT_EQ(packeteer::ERR_SUCCESS, err);
   ASSERT_TRUE(client.valid());

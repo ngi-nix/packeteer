@@ -67,7 +67,8 @@ error_t poll_for_connection(handle const & handle);
  * - ERR_REPEAT_ACTION (pipe was created, but we can't connect right now)
  **/
 PACKETEER_PRIVATE
-error_t connect_to_pipe(handle & handle, std::string const & name, bool blocking);
+error_t connect_to_pipe(handle & handle, std::string const & name, bool blocking,
+    bool readonly);
 
 // TODO:
 // - Helper for anonymous pipes (see stackexchange)
