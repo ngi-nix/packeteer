@@ -182,13 +182,9 @@ create_named_pipe(std::string const & name,
 error_t
 poll_for_connection(handle const & handle)
 {
-  if (!handle.sys_handle().overlapped) {
-    LOG("Non-blocking handle required.");
-    return ERR_UNSUPPORTED_ACTION;
-  }
-
   BOOL res = ConnectNamedPipe(handle.sys_handle().handle,
       handle.sys_handle().overlapped.get());
+
   if (res) {
     return ERR_SUCCESS;
   }
