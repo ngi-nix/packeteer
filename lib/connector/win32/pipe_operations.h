@@ -37,8 +37,10 @@ namespace packeteer::detail {
  * function is used by create_named_pipe() internally, so there is no need to
  * pass normalized paths there.
  *
- * Path normalization replaces all *unquoted* forward slashes '/' with
- * backslashes '\' - escaped so that they can be passed to Win32 APIs.
+ * Path normalization preserves a pipe namespace prefix if it exists, and
+ * adds it if it doesn't. It then replaces all backslashes in the unprefixed
+ * names with forward slashes, mimicking UNIX path hierarchies - because pipe
+ * names on Win32 cannot have hierarchy.
  **/
 PACKETEER_PRIVATE
 std::string normalize_pipe_path(std::string const & original);

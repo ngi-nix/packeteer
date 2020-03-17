@@ -34,12 +34,21 @@ struct test_data
   // Simple name
   { "foo", "\\\\.\\pipe\\foo", false },
 
-  // Name with slash, and escaped slash
-  { "foo/bar", "", true },
+  // Name with slash, and escaped slash, and backslash
+  { "foo/bar", "\\\\.\\pipe\\foo/bar", false },
   { "bar\\/foo", "\\\\.\\pipe\\bar/foo", false },
+  { "foo\\bar", "\\\\.\\pipe\\foo/bar", false }, // Can't have path components.
+
+  // Preserve pipe prefix
+  { "\\\\.\\PiPe\\asdf", "\\\\.\\PiPe\\asdf", false },
+
+  // But convert pipe prefix if it's in slashes
+  { "//./PiPe/slashed", "\\\\.\\PiPe\\slashed", false },
+  { "//./PiPe/slashed/two", "\\\\.\\PiPe\\slashed/two", false },
+  { "//./PiPe/slashed\/two+", "\\\\.\\PiPe\\slashed/two+", false },
+  { "//./PiPe/slashed\\three", "\\\\.\\PiPe\\slashed/three", false },
 
   // Other errors
-  { "foo\\bar", "", true }, // Can't have path components.
   { "", "", true }, // Can't have no name.
 };
 

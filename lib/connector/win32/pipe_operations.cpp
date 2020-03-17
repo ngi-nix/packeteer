@@ -33,58 +33,93 @@ normalize_pipe_path(std::string const & original)
   if (original.empty()) {
     throw exception(ERR_INVALID_VALUE, "Cannot have empty pipe names.");
   }
+  // std::cout << "Original: " << original << std::endl;
 
-  // First, replace all *unescaped* occurrences of '/' in the original string
-  // with an *escaped* backslash. We're allocating twice the space of the
-  // original to be on the safe side (plus '\0').
-  std::vector<char> copy(original.length() * 2 + 1);
+  // This is somewhat complex, because we're doing a bunch of things that can
+  // interfere with each other if done differently:
+  // - Preserve any \\\\.\\pipe\\ prefix, if it exists.
+  // - Also preserve it if it uses slashes
+  // - Then ensure that the remainder after the prefix is backslash free
+  //
+  // The difficulty lies in understanding which '/' to convert to '\\' (any
+  // in the prefix), and which '\\' to convert to '/' (any in the name).
+  //
+  // We do this in two passes:
+  // 1. We convert any '/' to '//' - that way, we have the string normalized
+  //    enough to reason about what is part of the prefix and what isn't.
+  // 2. We convert any '//' after the prefix to '/'.
+  //
+  // But the actual algorithm is more complex because we may or may not
+  // have said prefix in the string, and want to preserve as much of the
+  // original as possible.
+
+  // Create a buffer to work on. The worst case is that all characters are
+  // '/' and must be replaced by '\\', so we double the length (plus trailing
+  // NUL byte).
+  std::vector<char> buffer(original.length() * 2 + 1);
+
+  // In the first pass, convert '/' to '\\' (and buffer into the buffer).
   char const * cur = original.c_str();
-  char * insert = &copy[0];
-
-  // The first character can't be escaped; at best it can be an escape sign, so let's keep it.
-  *insert++ = *cur++;
+  char const * start = cur;
+  char * insert = &buffer[0];
 
   while (*cur) {
     if (*cur == '/') {
-      if (*(cur - 1) != '\\') {
+      if (cur == start || *(cur - 1) != '\\') {
         // Unescaped, so replace.
         *insert++ = '\\';
         ++cur;
       }
       else {
-	// Escaped, so keep - but we can strip the escape sequence.
-	*(insert - 1) = '/';
-	++cur;
+        // Escaped, so keep - but we can strip the escape sequence.
+        *(insert - 1) = '/';
+        ++cur;
       }
     }
     else {
       *insert++ = *cur++;
     }
   }
+  *insert = '\0'; // NUL-terminate
+  size_t copylen = insert - &buffer[0];
 
-  auto copied = insert - &copy[0];
-  copy.resize(copied);
-  auto escaped = std::string{copy.begin(), copy.end()};
+  // std::cout << "First pass: " << std::string{&buffer[0], &buffer[0] + copylen} << std::endl;
 
-  // Now that we've escaped everything, we can case-insensitively check if the
-  // required named pipe prefix is already added.
+  // Detect if we have a prefix
   static const std::string pipe_prefix = "\\\\.\\pipe\\";
-  auto offset = ::packeteer::util::ifind(escaped, pipe_prefix);
+  static const size_t prefix_len = pipe_prefix.length();
 
-  // If we've found the prefix *at the beginning* we're fine. Otherwise, we prepend it.
-  if (0 != offset) {
-    escaped = pipe_prefix + escaped;
+  auto tmp = std::string{&buffer[0], &buffer[0] + copylen};
+  auto prefix_offset = ::packeteer::util::ifind(tmp, pipe_prefix);
+  size_t name_offset = 0;
+  if (prefix_offset == 0) {
+    name_offset = prefix_len;
   }
 
-  // Now we can't find any more backslashes past the prefix.
-  auto unprefixed = std::string{escaped.begin() + pipe_prefix.length(),
-      escaped.end()};
-  auto backslash = ::packeteer::util::ifind(unprefixed, "\\");
-  if (backslash >= 0) {
-    throw exception(ERR_INVALID_VALUE, "Cannot have backslashes in pipe names.");
+  // std::cout << "Name offset at: " << name_offset << std::endl;
+
+  // In the second pass, start at the name_offset, and convert any '\\' to '/'.
+  // This is in the same buffer, and the size doesn't change, so we can use the
+  // same pointer for reading and writing.
+  insert = &buffer[0] + name_offset;
+
+  while (*insert) {
+    if (*insert == '\\') {
+      *insert++ = '/';
+    }
+    else {
+      ++insert; // No copying
+    }
   }
 
-  return escaped;
+  // std::cout << "Second pass: " << std::string{&buffer[0], &buffer[0] + copylen} << std::endl;
+
+  // If we had a prefix, use it from the buffer. Otherwise, prepend it.
+  std::string stringified{&buffer[0], &buffer[0] + copylen};
+  if (name_offset) {
+    return stringified;
+  }
+  return pipe_prefix + stringified;
 }
 
 
@@ -132,7 +167,7 @@ create_named_pipe(std::string const & name,
     switch (err) {
       case ERROR_INVALID_PARAMETER:
         throw exception(ERR_INVALID_OPTION, err);
-	break;
+  break;
       case ERROR_ACCESS_DENIED:
         throw exception(ERR_ACCESS_VIOLATION, err);
     }
