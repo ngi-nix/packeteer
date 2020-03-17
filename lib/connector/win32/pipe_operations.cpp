@@ -19,6 +19,8 @@
  **/
 #include <build-config.h>
 
+#include <random>
+
 #include "pipe_operations.h"
 #include "../../util/string.h"
 #include "../../macros.h"
@@ -223,6 +225,32 @@ connect_to_pipe(handle & handle, std::string const & name, bool blocking,
       ERRNO_LOG("Unexpected result of CreateFileA.");
       return ERR_CONNECTION_ABORTED;
   }
+}
+
+
+
+std::string
+create_anonymous_pipe_name(std::string const & prefix /* = "" */)
+{
+  // Random initializer
+  std::random_device rd;
+  std::uniform_int_distribution<uint32_t> dist(0); // [0, MAX)
+  static volatile uint32_t serial = dist(rd);
+
+  std::string pref = prefix;
+  if (!pref.length()) {
+    pref = "PacketeerAnon";
+  }
+
+  char buf[MAX_PATH];
+  size_t len = ::snprintf(buf, MAX_PATH, "\\\\.\\Pipe\\%s.%08lx.%08lx",
+      pref.c_str(),
+      GetCurrentProcessId(),
+      InterlockedIncrement(&serial)
+  );
+
+  // Normalize, because the prefix might not be.
+  return normalize_pipe_path({buf, len});
 }
 
 } // namespace packeteer::detail

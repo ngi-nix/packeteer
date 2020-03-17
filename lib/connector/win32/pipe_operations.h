@@ -70,8 +70,12 @@ PACKETEER_PRIVATE
 error_t connect_to_pipe(handle & handle, std::string const & name, bool blocking,
     bool readonly);
 
-// TODO:
-// - Helper for anonymous pipes (see stackexchange)
+
+/**
+ * Create anonymous pipe name.
+ */
+PACKETEER_PRIVATE
+std::string create_anonymous_pipe_name(std::string const & prefix = std::string());
 
 } // namespace packeteer::detail
 

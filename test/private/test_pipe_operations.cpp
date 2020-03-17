@@ -222,24 +222,149 @@ TEST(PipeOperations, open_pipe)
 
   // Poll for connection again
   created = pd::poll_for_connection(server);
-  EXPECT_EQ(packeteer::ERR_SUCCESS, created);
+  ASSERT_EQ(packeteer::ERR_SUCCESS, created);
 
   CloseHandle(server_sys_handle.handle);
   CloseHandle(client.sys_handle().handle);
 }
 
-// TODO:
-// - Anonymous pipe functionality - might need different access rights passed to it.
-// 
-// Basically:
-// - create named pipe, N instances
-// - whenever an instance connects, it's blocked and will
-//   eventually have to be discarded
-// - ensure there are walways N free instances by creating new
-//   ones.
-// - do non-blocking poll_for_connection() so that we can listen
-//   on all free N instances
-//   - REQUIRES overlapped I/O, always
-//   - that is, poll_for_connection needs to always loop on
-//     ConnectNamedPipe() if the correct WSAGetLastError is set
-//     -> make it a polling function, effectively.
+
+
+TEST(PipeOperations, open_pipe_multiple_clients_fail)
+{
+  namespace pd = packeteer::detail;
+
+  // Make non-blocking, because the Windows APIs want you to connect from the
+  // client before connecting to the server.
+  auto server = pd::create_named_pipe("foo", false, false);
+  auto server_sys_handle = server.sys_handle();
+
+  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
+  EXPECT_TRUE(server_sys_handle.overlapped);
+
+  auto created = pd::poll_for_connection(server);
+  EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+
+  // Client #1
+  packeteer::handle client1;
+  auto err = pd::connect_to_pipe(client1, "foo", false, false);
+
+  EXPECT_EQ(packeteer::ERR_SUCCESS, err);
+  EXPECT_TRUE(client1.valid());
+
+  // Poll for connection again
+  created = pd::poll_for_connection(server);
+  EXPECT_EQ(packeteer::ERR_SUCCESS, created);
+
+  // Client #2
+  packeteer::handle client2;
+  err = pd::connect_to_pipe(client2, "foo", false, false);
+
+  ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, err);
+  ASSERT_FALSE(client2.valid());
+
+
+  CloseHandle(server_sys_handle.handle);
+  CloseHandle(client1.sys_handle().handle);
+  CloseHandle(client2.sys_handle().handle);
+}
+
+
+TEST(PipeOperations, messaging)
+{
+  namespace pd = packeteer::detail;
+
+  // Make non-blocking, because the Windows APIs want you to connect from the
+  // client before connecting to the server.
+  auto server = pd::create_named_pipe("foo", false, false);
+  auto server_sys_handle = server.sys_handle();
+
+  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
+  EXPECT_TRUE(server_sys_handle.overlapped);
+
+  auto created = pd::poll_for_connection(server);
+  EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+
+  // Client #1
+  packeteer::handle client1;
+  auto err = pd::connect_to_pipe(client1, "foo", false, false);
+
+  EXPECT_EQ(packeteer::ERR_SUCCESS, err);
+  EXPECT_TRUE(client1.valid());
+
+  // Write server
+  auto test = "foo";
+  DWORD written = 0;
+  auto write_res = WriteFile(server.sys_handle().handle,
+    test, 3, &written, nullptr);
+
+  ASSERT_TRUE(write_res);
+  ASSERT_EQ(written, 3);
+
+  // Read client
+  char buf[200] = { 0 };
+  DWORD read = 0;
+  auto read_res = ReadFile(client1.sys_handle().handle,
+      buf, sizeof(buf), &read, nullptr);
+
+  ASSERT_TRUE(read_res);
+  ASSERT_EQ(read, 3);
+
+  for (int i = 0 ; i < read ; ++i) {
+    ASSERT_EQ(test[i], buf[i]);
+  }
+
+  // Write client
+  test = "bar";
+  written = 0;
+  write_res = WriteFile(client1.sys_handle().handle,
+    test, 3, &written, nullptr);
+
+  ASSERT_TRUE(write_res);
+  ASSERT_EQ(written, 3);
+
+  // Read server
+  read = 0;
+  read_res = ReadFile(server.sys_handle().handle,
+      buf, sizeof(buf), &read, nullptr);
+
+  ASSERT_TRUE(read_res);
+  ASSERT_EQ(read, 3);
+
+  for (int i = 0 ; i < read ; ++i) {
+    ASSERT_EQ(test[i], buf[i]);
+  }
+
+
+  CloseHandle(server_sys_handle.handle);
+  CloseHandle(client1.sys_handle().handle);
+}
+
+
+
+TEST(PipeOperations, anonymous_pipe_name)
+{
+  namespace pd = packeteer::detail;
+
+  auto name1 = pd::create_anonymous_pipe_name();
+  ASSERT_FALSE(name1.empty());
+
+  // Check that it's canonical
+  auto normalized = pd::normalize_pipe_path(name1);
+  ASSERT_EQ(name1, normalized);
+
+  // Check that multiple calls never yield the same name.
+  std::string names[10];
+  for (int i = 0 ; i < 10 ; ++i) {
+    names[i] = pd::create_anonymous_pipe_name();
+  }
+
+  // Check all against each other.
+  for (int i = 0 ; i < 10 ; ++i) {
+    for (int j = 0 ; j < 10 ; ++j) {
+      if (i == j) continue; // No need to compare to self
+      ASSERT_NE(name1, names[i]);
+      ASSERT_NE(names[i], names[j]);
+    }
+  }
+}
