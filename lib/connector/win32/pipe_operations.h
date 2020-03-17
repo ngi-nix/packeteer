@@ -72,7 +72,8 @@ error_t connect_to_pipe(handle & handle, std::string const & name, bool blocking
 
 
 /**
- * Create anonymous pipe name.
+ * Create anonymous pipe name. Optionally set the name prefix (it's not
+ * necessary).
  */
 PACKETEER_PRIVATE
 std::string create_anonymous_pipe_name(std::string const & prefix = std::string());
