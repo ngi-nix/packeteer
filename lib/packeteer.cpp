@@ -25,6 +25,8 @@
 
 #include "net/netincludes.h"
 
+#include "macros.h"
+
 namespace packeteer {
 
 struct api::api_impl
@@ -41,8 +43,10 @@ api::api()
   WSADATA data;
   // Request Winsock 2.2
   int res = WSAStartup(MAKEWORD(2, 2), &data);
+  LOG("WSA Description: " << data.szDescription);
   if (res != 0) {
-    throw exception(ERR_INITIALIZATION, "WSAStartup failed!");
+    LOG("WSA System Status: " << data.szSystemStatus);
+    throw exception(ERR_INITIALIZATION, WSAGetLastError(), "WSAStartup failed!");
   }
 #endif // win32
 }
@@ -53,6 +57,7 @@ api::~api()
 {
 #if defined(PACKETEER_WIN32)
   WSACleanup();
+  LOG("WSA cleanup finished.");
 #endif // win32
 }
 
