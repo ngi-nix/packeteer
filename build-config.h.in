@@ -73,5 +73,6 @@
 #mesondefine PACKETEER_CACHE_LINE_SIZE
 #mesondefine PACKETEER_EVENT_WAIT_INTERVAL_USEC
 #mesondefine PACKETEER_IO_BUFFER_SIZE
+#mesondefine PACKETEER_IO_SIGNATURE_SIZE
 
 #endif // guard
