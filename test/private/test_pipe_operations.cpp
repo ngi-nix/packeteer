@@ -45,7 +45,7 @@ struct test_data
   // But convert pipe prefix if it's in slashes
   { "//./PiPe/slashed", "\\\\.\\PiPe\\slashed", false },
   { "//./PiPe/slashed/two", "\\\\.\\PiPe\\slashed/two", false },
-  { "//./PiPe/slashed\/two+", "\\\\.\\PiPe\\slashed/two+", false },
+  { "//./PiPe/slashed\\/two+", "\\\\.\\PiPe\\slashed/two+", false },
   { "//./PiPe/slashed\\three", "\\\\.\\PiPe\\slashed/three", false },
 
   // Other errors
