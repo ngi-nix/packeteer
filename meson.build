@@ -391,6 +391,10 @@ io_buffer_size = get_option('io_buffer_size')
 message('Set I/O buffers to @0@ Bytes.'.format(io_buffer_size))
 conf_data.set('PACKETEER_IO_BUFFER_SIZE', io_buffer_size)
 
+io_signature_size = get_option('io_signature_size')
+message('Set I/O signature size to @0@ Bytes.'.format(io_signature_size))
+conf_data.set('PACKETEER_IO_SIGNATURE_SIZE', io_signature_size)
+
 configure_file(
   input: 'build-config.h.in',
   output: 'build-config.h',
@@ -499,6 +503,7 @@ winsrc = [
 # TODO iocp scheduler/io
   'lib' / 'win32' / 'handle.cpp',  # FIXME probably remove
   'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
+  'lib' / 'connector' / 'win32' / 'overlapped.cpp',
   'lib' / 'connector' / 'win32' / 'interface.cpp',
   'lib' / 'connector' / 'win32' / 'anon.cpp',
   'lib' / 'connector' / 'win32' / 'pipe.cpp',
@@ -587,6 +592,7 @@ if not meson.is_subproject()
   if host_type == 'win32'
     private_test_src += [
       'test' / 'private' / 'test_pipe_operations.cpp',
+      'test' / 'private' / 'test_overlapped.cpp',
     ]
   endif
 

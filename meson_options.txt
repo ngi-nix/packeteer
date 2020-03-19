@@ -17,3 +17,11 @@ On Windows, the value may be advisory only. The value is not used everywhere,
 and the default of 16K is probably the right one when it is used.''',
   value: 16384,
 )
+option('io_signature_size', type: 'integer',
+  description: '''On Windows, overlapped I/O means we have to ensure not to
+schedule the same write request multiple times. For this reason, we calculate
+a checksum on the data to be written. This value determines how many of the
+data bytes should be in the checksum. A value of zero or below uses the entire
+data block.''',
+  value: 64,
+)
