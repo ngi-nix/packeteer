@@ -43,6 +43,7 @@ symbolize_name(std::string const & other)
         REPLACE_HELPER(']', "_close_");
         REPLACE_HELPER(' ', "_");
         REPLACE_HELPER('\\', "_backslash_");
+        REPLACE_HELPER('+', "_plus_");
 
         default:
           res += c;
