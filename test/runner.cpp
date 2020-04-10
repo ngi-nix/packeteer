@@ -35,13 +35,13 @@ int main(int argc, char **argv)
 
   try {
     test_env = new TestEnvironment();
-    ::testing::AddGlobalTestEnvironment(test_env);
   } catch (packeteer::exception const & ex) {
-    test_env = nullptr;
     std::cerr << ex.what() << std::endl;
     return 1;
   }
 
+  // Ownership passes to gtest here.
+  ::testing::AddGlobalTestEnvironment(test_env);
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
