@@ -78,8 +78,6 @@ manager::schedule_overlapped(HANDLE * handle, io_type type,
     size_t buflen /* = -1*/,
     void * source /* = nullptr*/)
 {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
   switch (type) {
     case CONNECT:
       return schedule_connect(handle, std::move(callback));
@@ -126,7 +124,7 @@ manager::schedule_connect(HANDLE * handle,
     }
 
     // If we found a free one, remember the index.
-    if (!context.handle) {
+    if (!context.handle && found < 0) {
       found = i;
     }
   }
@@ -264,7 +262,7 @@ manager::schedule_write(HANDLE * handle,
       found_same = true;
     }
 
-    // We have a read on this handle already, check progress.
+    // We have a write on this handle already, check progress.
     auto err = free_on_success(id, callback(CHECK_PROGRESS, context));
     switch (err) {
       case ERR_SUCCESS:
@@ -370,8 +368,6 @@ manager::signature(void * source, size_t buflen)
 error_t
 manager::cancel(HANDLE * handle)
 {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
   // Cancel all I/O
   auto ret = CancelIoEx(handle, nullptr);
 
@@ -403,8 +399,6 @@ manager::cancel(HANDLE * handle)
 void
 manager::cancel_all()
 {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
   // First find all unique handles.
   std::set<HANDLE *> unique;
   for (size_t i = 0 ; i < m_contexts.size() ; ++i) {

@@ -26,8 +26,6 @@
 
 #include <packeteer.h>
 
-#include <mutex>
-
 #include <packeteer/handle.h>
 
 #include "../../net/netincludes.h"
@@ -61,10 +59,26 @@ namespace packeteer::detail::overlapped {
  *
  * This file contains functionality for handling this in a way that is not
  * tied to any specific connector.
+ *
+ * OverlappedManager needs to be instanciated once per HANDLE used in
+ * overlapped I/O. Sharing a connector between multiple threads would either
+ * require an OverlappedManager per thread, or some kind of synchronized
+ * access to the manager.
+ *
+ * An OverlappedManager per thread is not a great idea; if you schedule two
+ * reads on two different threads, each OverlappedManager would reserve an
+ * OVERLAPPED structure for the read. But if there is only enough data for
+ * one read, the other's reservation stays unused and effectively leaks memory.
+ *
+ * It's better to either lock access to the OverlappedManager so that does
+ * not happen, or duplicate the handle, and give each handle its own manager.
+ * TODO: see how that works with the scheduler, etc.
  */
 
 /**
  * Overlapped operation types
+ * TODO use PEV_IO_* *values* for easier mapping back to what the scheduler
+ * knows
  */
 enum PACKETEER_PRIVATE io_type : uint8_t
 {
@@ -238,20 +252,9 @@ private:
   size_t                  m_initial;
   ssize_t                 m_grow_by;
 
-
-  // Mutex for the members below.
-  std::recursive_mutex    m_mutex;
-
   std::vector<io_context> m_contexts;
   std::list<context_id>   m_order;
 };
-
-
-/**
- * Packeteer actually uses this singleton instance, but the manager class is
- * separate for test purposes.
- * FIXME tie to API
- */
 
 } // namespace packeteer::detail::overlapped
 
