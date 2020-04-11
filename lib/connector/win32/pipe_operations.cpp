@@ -132,14 +132,13 @@ create_named_pipe(std::string const & name,
 
   std::string normalized = normalize_pipe_path(name);
 
-  // Open mode
+  // Open mode. Always use overlapped I/O
   DWORD open_mode = readonly ? PIPE_ACCESS_INBOUND 
                              : PIPE_ACCESS_DUPLEX;
+  open_mode |= FILE_FLAG_OVERLAPPED;
 
-  if (!blocking) {
-    open_mode |= FILE_FLAG_OVERLAPPED;
-    res.overlapped = std::make_shared<OVERLAPPED>();
-  }
+  // Mark handle as (non-)blocking.
+  res.blocking = blocking;
 
   // Options
   DWORD options = PIPE_TYPE_BYTE | PIPE_WAIT | PIPE_READMODE_BYTE;
@@ -167,7 +166,7 @@ create_named_pipe(std::string const & name,
     switch (err) {
       case ERROR_INVALID_PARAMETER:
         throw exception(ERR_INVALID_OPTION, err);
-  break;
+
       case ERROR_ACCESS_DENIED:
         throw exception(ERR_ACCESS_VIOLATION, err);
     }
@@ -180,45 +179,57 @@ create_named_pipe(std::string const & name,
 
 
 error_t
-poll_for_connection(handle const & handle)
+poll_for_connection(overlapped::manager & manager, handle & handle)
 {
-  BOOL res = ConnectNamedPipe(handle.sys_handle().handle,
-      handle.sys_handle().overlapped.get());
+  auto err = manager.schedule_overlapped(&(handle.sys_handle().handle), overlapped::CONNECT,
+      [](overlapped::io_action action, overlapped::io_context & ctx) -> error_t
+      {
+        BOOL res = FALSE;
 
-  if (res) {
-    return ERR_SUCCESS;
+        if (overlapped::CHECK_PROGRESS == action) {
+          DWORD dummy;
+          res = GetOverlappedResult(*(ctx.handle), &(ctx.overlapped), &dummy,
+              FALSE);
+        }
+        else {
+          res = ConnectNamedPipe(*(ctx.handle), &(ctx.overlapped));
+        }
+
+        if (res) {
+          return ERR_SUCCESS;
+        }
+
+        switch (WSAGetLastError()) {
+          case ERROR_IO_PENDING:
+          case ERROR_IO_INCOMPLETE: // GetOverlappedResult
+            return ERR_ASYNC;
+
+          case ERROR_PIPE_CONNECTED:
+            return ERR_SUCCESS;
+
+          default:
+            ERRNO_LOG("Unexpected result of ConnectNamedPipe.");
+            return ERR_CONNECTION_ABORTED;
+        }
+      });
+
+  // Translate, because this function should be called again in the same way.
+  if (err == ERR_ASYNC) {
+    err = ERR_REPEAT_ACTION;
   }
-
-  switch (WSAGetLastError()) {
-    case ERROR_IO_PENDING:
-      return ERR_REPEAT_ACTION;
-
-    case ERROR_PIPE_CONNECTED:
-      return ERR_SUCCESS;
-
-    default:
-      ERRNO_LOG("Unexpected result of ConnectNamedPipe.");
-      return ERR_CONNECTION_ABORTED;
-  }
+  return err;
 }
 
 
 
 error_t
-connect_to_pipe(handle & handle, std::string const & name, bool blocking,
-    bool readonly)
+connect_to_pipe(handle & handle,
+    std::string const & name, bool blocking, bool readonly)
 {
   std::string normalized = normalize_pipe_path(name);
 
   // Handle blocking flag
-  DWORD connect_flags = 0;
-
-  if (!blocking) {
-    connect_flags |= FILE_FLAG_OVERLAPPED;
-    if (!handle.sys_handle().overlapped) {
-      handle.sys_handle().overlapped = std::make_shared<OVERLAPPED>();
-    }
-  }
+  DWORD connect_flags = FILE_FLAG_OVERLAPPED;
 
   // Read-only
   DWORD mode = GENERIC_READ;
@@ -227,6 +238,8 @@ connect_to_pipe(handle & handle, std::string const & name, bool blocking,
     mode |= GENERIC_WRITE;
     share |= FILE_SHARE_WRITE;
   }
+
+  handle.sys_handle().blocking = blocking;
 
   // Try to connect
   HANDLE result = CreateFileA(

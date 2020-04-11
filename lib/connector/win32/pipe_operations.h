@@ -30,6 +30,8 @@
 
 #include "../../net/netincludes.h"
 
+#include "overlapped.h"
+
 namespace packeteer::detail {
 
 /**
@@ -60,7 +62,8 @@ handle create_named_pipe(std::string const & name,
  * passed.
  **/
 PACKETEER_PRIVATE
-error_t poll_for_connection(handle const & handle);
+error_t poll_for_connection(overlapped::manager & manager,
+    handle & handle);
 
 /**
  * Connect to a named pipe from a client. Expected result values are:
@@ -69,8 +72,8 @@ error_t poll_for_connection(handle const & handle);
  * - ERR_REPEAT_ACTION (pipe was created, but we can't connect right now)
  **/
 PACKETEER_PRIVATE
-error_t connect_to_pipe(handle & handle, std::string const & name, bool blocking,
-    bool readonly);
+error_t connect_to_pipe(handle & handle, std::string const & name,
+    bool blocking, bool readonly);
 
 
 /**

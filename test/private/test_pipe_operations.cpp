@@ -108,7 +108,7 @@ TEST(PipeOperations, create_named_blocking)
   auto sys_handle = res.sys_handle();
 
   ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  ASSERT_FALSE(sys_handle.overlapped);
+  ASSERT_TRUE(sys_handle.blocking);
 
   CloseHandle(sys_handle.handle);
 }
@@ -122,7 +122,7 @@ TEST(PipeOperations, create_named_non_blocking)
   auto sys_handle = res.sys_handle();
 
   ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  ASSERT_TRUE(sys_handle.overlapped);
+  ASSERT_FALSE(sys_handle.blocking);
 
   CloseHandle(sys_handle.handle);
 }
@@ -136,7 +136,7 @@ TEST(PipeOperations, write_writable)
   auto sys_handle = res.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  EXPECT_FALSE(sys_handle.overlapped);
+  EXPECT_TRUE(sys_handle.blocking);
 
   // Write to the handle.
   auto test = "foo";
@@ -160,7 +160,7 @@ TEST(PipeOperations, write_readonly)
   auto sys_handle = res.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  EXPECT_FALSE(sys_handle.overlapped);
+  EXPECT_TRUE(sys_handle.blocking);
 
   // Write to the handle.
   auto test = "foo";
@@ -179,6 +179,7 @@ TEST(PipeOperations, write_readonly)
 TEST(PipeOperations, poll_for_connection)
 {
   namespace pd = packeteer::detail;
+  pd::overlapped::manager manager;
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
@@ -186,9 +187,13 @@ TEST(PipeOperations, poll_for_connection)
   auto sys_handle = res.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  EXPECT_TRUE(sys_handle.overlapped);
+  EXPECT_FALSE(sys_handle.blocking);
 
-  auto created = pd::poll_for_connection(res);
+  auto created = pd::poll_for_connection(manager, res);
+  ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+
+  // Calling this again should not be any different.
+  created = pd::poll_for_connection(manager, res);
   ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, created);
 
   CloseHandle(sys_handle.handle);
@@ -207,9 +212,11 @@ TEST(PipeOperations, open_nonexistent_pipe)
 }
 
 
+
 TEST(PipeOperations, open_pipe)
 {
   namespace pd = packeteer::detail;
+  pd::overlapped::manager manager;
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
@@ -217,9 +224,9 @@ TEST(PipeOperations, open_pipe)
   auto server_sys_handle = server.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
-  EXPECT_TRUE(server_sys_handle.overlapped);
+  EXPECT_FALSE(server_sys_handle.blocking);
 
-  auto created = pd::poll_for_connection(server);
+  auto created = pd::poll_for_connection(manager, server);
   EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
 
   // Client
@@ -230,7 +237,7 @@ TEST(PipeOperations, open_pipe)
   ASSERT_TRUE(client.valid());
 
   // Poll for connection again
-  created = pd::poll_for_connection(server);
+  created = pd::poll_for_connection(manager, server);
   ASSERT_EQ(packeteer::ERR_SUCCESS, created);
 
   CloseHandle(server_sys_handle.handle);
@@ -242,6 +249,7 @@ TEST(PipeOperations, open_pipe)
 TEST(PipeOperations, open_pipe_multiple_clients_fail)
 {
   namespace pd = packeteer::detail;
+  pd::overlapped::manager manager;
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
@@ -249,9 +257,9 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
   auto server_sys_handle = server.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
-  EXPECT_TRUE(server_sys_handle.overlapped);
+  EXPECT_FALSE(server_sys_handle.blocking);
 
-  auto created = pd::poll_for_connection(server);
+  auto created = pd::poll_for_connection(manager, server);
   EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
 
   // Client #1
@@ -262,7 +270,7 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
   EXPECT_TRUE(client1.valid());
 
   // Poll for connection again
-  created = pd::poll_for_connection(server);
+  created = pd::poll_for_connection(manager, server);
   EXPECT_EQ(packeteer::ERR_SUCCESS, created);
 
   // Client #2
@@ -279,9 +287,11 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
 }
 
 
+
 TEST(PipeOperations, messaging)
 {
   namespace pd = packeteer::detail;
+  pd::overlapped::manager manager;
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
@@ -289,9 +299,9 @@ TEST(PipeOperations, messaging)
   auto server_sys_handle = server.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
-  EXPECT_TRUE(server_sys_handle.overlapped);
+  EXPECT_FALSE(server_sys_handle.blocking);
 
-  auto created = pd::poll_for_connection(server);
+  auto created = pd::poll_for_connection(manager, server);
   EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
 
   // Client #1
