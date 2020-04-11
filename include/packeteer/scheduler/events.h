@@ -42,9 +42,12 @@ enum PACKETEER_API : events_t
   PEV_IO_READ    = (1 <<  0),  // A handle is ready for reading
   PEV_IO_WRITE   = (1 <<  1),  // A handle is ready for writing
   PEV_IO_ERROR   = (1 <<  2),  // A handle has produced errors
-  PEV_IO_CLOSE   = (1 <<  3),  // A handle has been closed. This event
-                               // cannot be reliably reported.
-                               //
+  PEV_IO_OPEN    = (1 <<  3),  // A handle has been opened. This event only
+                               // gets sent on some platforms.
+  PEV_IO_CLOSE   = (1 <<  4),  // A handle has been closed. This event
+                               // cannot be reliably reported, consider it
+                               // informative only.
+
   PEV_TIMEOUT    = (1 <<  7),  // A timout has been reached that the callback was
                                // registered for.
   PEV_ERROR      = (1 <<  8),  // Internal scheduler error.
