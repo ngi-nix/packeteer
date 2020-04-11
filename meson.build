@@ -395,6 +395,14 @@ io_signature_size = get_option('io_signature_size')
 message('Set I/O signature size to @0@ Bytes.'.format(io_signature_size))
 conf_data.set('PACKETEER_IO_SIGNATURE_SIZE', io_signature_size)
 
+io_num_overlapped = get_option('io_num_overlapped')
+message('Set I/O signature size to @0@ Bytes.'.format(io_num_overlapped))
+conf_data.set('PACKETEER_IO_NUM_OVERLAPPED', io_num_overlapped)
+
+io_overlapped_grow_by = get_option('io_overlapped_grow_by')
+message('Set I/O signature size to @0@ Bytes.'.format(io_overlapped_grow_by))
+conf_data.set('PACKETEER_IO_OVERLAPPED_GROW_BY', io_overlapped_grow_by)
+
 configure_file(
   input: 'build-config.h.in',
   output: 'build-config.h',
@@ -504,6 +512,7 @@ winsrc = [
   'lib' / 'win32' / 'handle.cpp',  # FIXME probably remove
   'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
   'lib' / 'connector' / 'win32' / 'overlapped.cpp',
+  'lib' / 'connector' / 'win32' / 'io_operations.cpp',
   'lib' / 'connector' / 'win32' / 'interface.cpp',
   'lib' / 'connector' / 'win32' / 'anon.cpp',
   'lib' / 'connector' / 'win32' / 'pipe.cpp',
@@ -593,6 +602,7 @@ if not meson.is_subproject()
     private_test_src += [
       'test' / 'private' / 'test_pipe_operations.cpp',
       'test' / 'private' / 'test_overlapped.cpp',
+      'test' / 'private' / 'test_io_operations.cpp',
     ]
   endif
 

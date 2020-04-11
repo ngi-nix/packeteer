@@ -114,7 +114,6 @@ manager::schedule_connect(HANDLE * handle,
       // Since we bail out on any other slot type, this must not only be the
       // only CONNECT slot, but actually the only slot in use.
       if (CONNECT == context.type) {
-        LOG("Connect already scheduled for handle, check progress.");
         found = i;
         connecting = true;
         break;
@@ -131,7 +130,7 @@ manager::schedule_connect(HANDLE * handle,
 
   // If we're already connecting, let's check the progress on the operation.
   if (connecting) {
-    LOG("Invoking callback to check progress.");
+    LOG("Connect already scheduled for handle, check progress.");
     auto & context = m_contexts[found];
     return free_on_success(found, callback(CHECK_PROGRESS, context));
   }
@@ -368,6 +367,10 @@ manager::signature(void * source, size_t buflen)
 error_t
 manager::cancel(HANDLE * handle)
 {
+  if (!handle) {
+    return ERR_INVALID_VALUE;
+  }
+
   // Cancel all I/O
   auto ret = CancelIoEx(handle, nullptr);
 
@@ -402,7 +405,9 @@ manager::cancel_all()
   // First find all unique handles.
   std::set<HANDLE *> unique;
   for (size_t i = 0 ; i < m_contexts.size() ; ++i) {
-    unique.insert(m_contexts[i].handle);
+    if (m_contexts[i].handle) {
+      unique.insert(m_contexts[i].handle);
+    }
   }
 
   // Cancel I/O on all handles
@@ -416,7 +421,7 @@ manager::cancel_all()
   }
   m_order.clear();
 
-  LOG("Cancelled all pending I/O.");
+  LOG("Cancelled all pending I/O on " << unique.size() << " handle(s).");
 }
 
 

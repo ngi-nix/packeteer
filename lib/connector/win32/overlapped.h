@@ -27,6 +27,7 @@
 #include <packeteer.h>
 
 #include <packeteer/handle.h>
+#include <packeteer/scheduler/events.h>
 
 #include "../../net/netincludes.h"
 
@@ -60,32 +61,32 @@ namespace packeteer::detail::overlapped {
  * This file contains functionality for handling this in a way that is not
  * tied to any specific connector.
  *
- * OverlappedManager needs to be instanciated once per HANDLE used in
+ * The manager needs to be instanciated once per HANDLE used in
  * overlapped I/O. Sharing a connector between multiple threads would either
- * require an OverlappedManager per thread, or some kind of synchronized
+ * require an manager per thread, or some kind of synchronized
  * access to the manager.
  *
- * An OverlappedManager per thread is not a great idea; if you schedule two
- * reads on two different threads, each OverlappedManager would reserve an
+ * A manager per thread is not a great idea; if you schedule two
+ * reads on two different threads, each manager would reserve an
  * OVERLAPPED structure for the read. But if there is only enough data for
  * one read, the other's reservation stays unused and effectively leaks memory.
  *
- * It's better to either lock access to the OverlappedManager so that does
+ * It's better to either lock access to the manager so that does
  * not happen, or duplicate the handle, and give each handle its own manager.
  * TODO: see how that works with the scheduler, etc.
  */
 
 /**
- * Overlapped operation types
- * TODO use PEV_IO_* *values* for easier mapping back to what the scheduler
- * knows
+ * Overlapped operation types.
+ *
+ * Re-uses some PEV_IO_* values, because that simplifies the scheduler somewhat.
  */
 enum PACKETEER_PRIVATE io_type : uint8_t
 {
-  CONNECT = 0,
-  // TODO: DISCONNECT?
-  READ = 1,
-  WRITE = 2,
+  CONNECT     = PEV_IO_OPEN,
+  DISCONNECT  = PEV_IO_CLOSE,
+  READ        = PEV_IO_READ,
+  WRITE       = PEV_IO_WRITE,
 };
 
 
@@ -148,7 +149,7 @@ using context_id = size_t;
  *   possible the error code is passed on to the caller.
  */
 using request_callback = std::function<
-  error_t (io_action, io_context const &)
+  error_t (io_action, io_context &)
 >;
 
 
@@ -165,7 +166,8 @@ public:
    * should grow when there are no free ones available. Specify -1 for grow_by to
    * double the current size, and 0 to disable growing altogether.
    */
-  manager(size_t initial, ssize_t grow_by);
+  manager(size_t initial = PACKETEER_IO_NUM_OVERLAPPED,
+      ssize_t grow_by = PACKETEER_IO_OVERLAPPED_GROW_BY);
   ~manager();
 
 

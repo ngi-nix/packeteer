@@ -25,3 +25,18 @@ data bytes should be in the checksum. A value of zero or below uses the entire
 data block.''',
   value: 64,
 )
+option('io_num_overlapped', type: 'integer',
+  description: '''On Windows, sets how many structures for overlapped I/O
+operations are allocated for a handle. This value determines how many I/O
+operations can be scheduled concurrently. See also io_overlapped_grow_by
+below.''',
+  value: 8,
+)
+option('io_overlapped_grow_by', type: 'string',
+  description: '''On Windows, determines by how much overlapped I/O structures
+are grown when the handle runs out of them. Specify -1 to double the current
+amount, and 0 to disable growth. Unfortunately, meson does not like negative
+numbers in these options, so we need to pass this as a string. See
+https://github.com/mesonbuild/meson/issues/6948''',
+  value: '-1',
+)
