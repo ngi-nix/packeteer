@@ -26,6 +26,8 @@
 
 #include <packeteer.h>
 
+#include <mutex>
+
 #include <packeteer/handle.h>
 #include <packeteer/scheduler/events.h>
 
@@ -62,18 +64,16 @@ namespace packeteer::detail::overlapped {
  * tied to any specific connector.
  *
  * The manager needs to be instanciated once per HANDLE used in
- * overlapped I/O. Sharing a connector between multiple threads would either
- * require an manager per thread, or some kind of synchronized
- * access to the manager.
+ * overlapped I/O. In order for this handle/manager combination to be shareable
+ * across multiple threads, access to the manager is synchronized with a mutex.
  *
- * A manager per thread is not a great idea; if you schedule two
- * reads on two different threads, each manager would reserve an
- * OVERLAPPED structure for the read. But if there is only enough data for
- * one read, the other's reservation stays unused and effectively leaks memory.
- *
- * It's better to either lock access to the manager so that does
- * not happen, or duplicate the handle, and give each handle its own manager.
- * TODO: see how that works with the scheduler, etc.
+ * Note that this lock should typically not be contented, unless you explicitly
+ * share a handle between threads. The scheduler typically alerts a single
+ * (worker) thread that I/O can happen on a handle, and expects said thread to
+ * perform all necessary I/O. The only reason the lock might get contented (if
+ * the scheduler is used) is * if one thread still handles I/O, and another
+ * thread gets woken to also perform I/O. In that case, it's also good to have
+ * the synchronization.
  */
 
 /**
@@ -84,7 +84,6 @@ namespace packeteer::detail::overlapped {
 enum PACKETEER_PRIVATE io_type : uint8_t
 {
   CONNECT     = PEV_IO_OPEN,
-  DISCONNECT  = PEV_IO_CLOSE,
   READ        = PEV_IO_READ,
   WRITE       = PEV_IO_WRITE,
 };
@@ -256,6 +255,8 @@ private:
 
   std::vector<io_context> m_contexts;
   std::list<context_id>   m_order;
+
+  std::mutex              m_mutex;
 };
 
 } // namespace packeteer::detail::overlapped

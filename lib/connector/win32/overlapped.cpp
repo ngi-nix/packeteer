@@ -78,6 +78,8 @@ manager::schedule_overlapped(HANDLE * handle, io_type type,
     size_t buflen /* = -1*/,
     void * source /* = nullptr*/)
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
   switch (type) {
     case CONNECT:
       return schedule_connect(handle, std::move(callback));
@@ -170,30 +172,23 @@ manager::schedule_read(HANDLE * handle,
     request_callback && callback,
     size_t buflen)
 {
-  // Scheduling reads is fine even if other reads are scheduled. The important
-  // part is that we also check progress on previous reads on the same handle.
-  // And we should do so in order, until the first one that is not completed.
-  for (auto id : m_order) {
+  // When reading, we want to check if there are other reads in flight. If so,
+  // their status should be the result of the function. If the in-flight read
+  // is still pending, let the caller try again later. If it's done, let the
+  // caller schedule the next read. etc.
+  auto order_copy = m_order; // So we can run free_on_success() within the loop
+  for (auto id : order_copy) {
     auto & context = m_contexts[id];
     if (context.handle != handle || context.type != READ) {
       continue;
     }
 
-    // We have a read on this handle already, check progress.
-    auto err = free_on_success(id, callback(CHECK_PROGRESS, context));
-    switch (err) {
-      case ERR_SUCCESS:
-        continue;
-
-      case ERR_ASYNC:
-        break;
-
-      default:
-        return err;
-    }
+    // We have a read on this handle already, check progress and return the
+    // result.
+    return free_on_success(id, callback(CHECK_PROGRESS, context));
   }
 
-  // Now find the first free slot; grow if necessary.
+  // Nothing scheduled, so let's find the first free slot; grow if necessary.
   ssize_t found = -1;
   for (size_t i = 0 ; i < m_contexts.size() ; ++i) {
     auto & context = m_contexts[i];
@@ -249,7 +244,8 @@ manager::schedule_write(HANDLE * handle,
 
   // After that, we can check existing writes.
   bool found_same = false;
-  for (auto id : m_order) {
+  auto order_copy = m_order; // So we can run free_on_success() in the loop
+  for (auto id : order_copy) {
     auto & context = m_contexts[id];
     if (context.handle != handle || context.type != WRITE) {
       continue;
@@ -264,6 +260,7 @@ manager::schedule_write(HANDLE * handle,
     // We have a write on this handle already, check progress.
     auto err = free_on_success(id, callback(CHECK_PROGRESS, context));
     switch (err) {
+      // Continue scheduling writes until we get errors.
       case ERR_SUCCESS:
       case ERR_ASYNC:
         continue;
@@ -367,9 +364,11 @@ manager::signature(void * source, size_t buflen)
 error_t
 manager::cancel(HANDLE * handle)
 {
-  if (!handle) {
+  if (!handle || *handle == INVALID_HANDLE_VALUE) {
     return ERR_INVALID_VALUE;
   }
+
+  std::lock_guard<std::mutex> lock(m_mutex);
 
   // Cancel all I/O
   auto ret = CancelIoEx(handle, nullptr);
@@ -402,6 +401,8 @@ manager::cancel(HANDLE * handle)
 void
 manager::cancel_all()
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
   // First find all unique handles.
   std::set<HANDLE *> unique;
   for (size_t i = 0 ; i < m_contexts.size() ; ++i) {
