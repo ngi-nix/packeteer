@@ -34,7 +34,7 @@ namespace packeteer::detail::io {
 
 /**
  * Functions here simulate POSIX-style I/O functions, using an
- * OverlappedManager in addition to the handle.
+ * OverlappedManager in the handle.
  *
  * The interface is different, returning an error_t and passing
  * the amount read/written/etc. as an out-parameter. But otherwise, they should
@@ -42,14 +42,12 @@ namespace packeteer::detail::io {
  */
 PACKETEER_PRIVATE
 error_t read(
-    ::packeteer::handle & handle,
-    ::packeteer::detail::overlapped::manager & manager,
+    ::packeteer::handle handle,
     void * buf, size_t amount, ssize_t & read);
 
 PACKETEER_PRIVATE
 error_t write(
-    ::packeteer::handle & handle,
-    ::packeteer::detail::overlapped::manager & manager,
+    ::packeteer::handle handle,
     void const * buf, size_t amount, ssize_t & written);
 
 

@@ -39,10 +39,7 @@ namespace {
 struct pipe_context
 {
   p7r::handle server;
-  pd::overlapped::manager server_manager;
-
   p7r::handle client;
-  pd::overlapped::manager client_manager;
 
   pipe_context(std::string const & name, bool blocking)
   {
@@ -53,7 +50,7 @@ struct pipe_context
     EXPECT_EQ(p7r::ERR_SUCCESS, err);
     EXPECT_TRUE(client.valid());
   
-    err = pd::poll_for_connection(server_manager, server);
+    err = pd::poll_for_connection(server);
     EXPECT_EQ(p7r::ERR_SUCCESS, err);
   }
   
@@ -74,21 +71,19 @@ struct pipe_context
 inline auto
 read_write_non_blocking(
     p7r::handle & first, 
-    pd::overlapped::manager & first_manager,
-    p7r::handle & second,
-    pd::overlapped::manager & second_manager
+    p7r::handle & second
 )
 {
   char buf[200] = { 0 };
   ssize_t read = 0;
-  auto err = io::read(first, first_manager,
+  auto err = io::read(first,
       buf, sizeof(buf), read);
   ASSERT_EQ(p7r::ERR_REPEAT_ACTION, err);
   ASSERT_EQ(-1, read);
 
   // A subsequent call should return the same.
   read = 0;
-  err = io::read(first, first_manager,
+  err = io::read(first,
       buf, sizeof(buf), read);
   ASSERT_EQ(p7r::ERR_REPEAT_ACTION, err);
   ASSERT_EQ(-1, read);
@@ -97,14 +92,14 @@ read_write_non_blocking(
   // results.
   std::string msg = "Hello, world!";
   ssize_t written = -1;
-  err = io::write(second, second_manager,
+  err = io::write(second,
       msg.c_str(), msg.length(), written);
   ASSERT_EQ(p7r::ERR_SUCCESS, err);
   ASSERT_EQ(msg.length(), written);
 
   // If it's written, we should be able to read it.
   read = 0;
-  err = io::read(first, first_manager,
+  err = io::read(first,
       buf, sizeof(buf), read);
   ASSERT_EQ(p7r::ERR_SUCCESS, err);
   ASSERT_EQ(msg.length(), read);
@@ -115,9 +110,7 @@ read_write_non_blocking(
 inline auto
 read_write_blocking(
     p7r::handle & first, 
-    pd::overlapped::manager & first_manager,
-    p7r::handle & second,
-    pd::overlapped::manager & second_manager
+    p7r::handle & second
 )
 {
   // Launch a blocking writer thread, and a blocking reader thread. They must
@@ -126,11 +119,11 @@ read_write_blocking(
   std::string result;
 
   // Reader
-  std::thread reader([msg, &result, &first, &first_manager]()
+  std::thread reader([msg, &result, &first]()
   {
     char buf[200] = { 0 };
     ssize_t read = 0;
-    auto err = io::read(first, first_manager,
+    auto err = io::read(first,
         buf, sizeof(buf), read);
     ASSERT_EQ(p7r::ERR_SUCCESS, err);
     ASSERT_EQ(msg.length(), read);
@@ -143,10 +136,10 @@ read_write_blocking(
   std::this_thread::sleep_for(sc::milliseconds(50));
 
   // Writer
-  std::thread writer([msg, &second, &second_manager]() 
+  std::thread writer([msg, &second]() 
   {
     ssize_t written = -1;
-    auto err = io::write(second, second_manager,
+    auto err = io::write(second,
         msg.c_str(), msg.length(), written);
     ASSERT_EQ(p7r::ERR_SUCCESS, err);
     ASSERT_EQ(msg.length(), written);
@@ -168,26 +161,26 @@ read_write_blocking(
 TEST(IOOperations, read_client_write_server_non_blocking)
 {
   pipe_context ctx{"read_client_write_server_non_blocking", false};
-  read_write_non_blocking(ctx.client, ctx.client_manager, ctx.server, ctx.server_manager);
+  read_write_non_blocking(ctx.client, ctx.server);
 }
 
 
 TEST(IOOperations, read_server_write_client_non_blocking)
 {
   pipe_context ctx{"read_server_write_client_non_blocking", false};
-  read_write_non_blocking(ctx.server, ctx.server_manager, ctx.client, ctx.client_manager);
+  read_write_non_blocking(ctx.server, ctx.client);
 }
 
 
 TEST(IOOperations, read_client_write_server_blocking)
 {
   pipe_context ctx{"read_client_write_server_blocking", true};
-  read_write_blocking(ctx.client, ctx.client_manager, ctx.server, ctx.server_manager);
+  read_write_blocking(ctx.client, ctx.server);
 }
 
 
 TEST(IOOperations, read_server_write_client_blocking)
 {
   pipe_context ctx{"read_server_write_client_blocking", true};
-  read_write_blocking(ctx.server, ctx.server_manager, ctx.client, ctx.client_manager);
+  read_write_blocking(ctx.server, ctx.client);
 }

@@ -28,10 +28,13 @@ namespace o = ::packeteer::detail::overlapped;
 
 error_t
 read(
-    ::packeteer::handle & handle,
-    o::manager & manager,
+    ::packeteer::handle handle,
     void * buf, size_t amount, ssize_t & read)
 {
+  if (!handle.valid() || !handle.sys_handle().overlapped_manager) {
+    return ERR_INVALID_VALUE;
+  }
+
   // Initialize to error
   read = -1;
 
@@ -89,9 +92,10 @@ read(
   // not ideal.
   error_t err = ERR_UNEXPECTED;
   do {
-    err = manager.schedule_overlapped(&(handle.sys_handle().handle),
-      overlapped::READ,
-      callback, amount);
+    err = handle.sys_handle().overlapped_manager->schedule_overlapped(
+        &(handle.sys_handle().handle),
+        overlapped::READ,
+        callback, amount);
   } while (handle.sys_handle().blocking && ERR_ASYNC == err);
 
   if (ERR_ASYNC == err) {
@@ -104,10 +108,13 @@ read(
 
 error_t
 write(
-    ::packeteer::handle & handle,
-    ::packeteer::detail::overlapped::manager & manager,
+    ::packeteer::handle handle,
     void const * buf, size_t amount, ssize_t & written)
 {
+  if (!handle.valid() || !handle.sys_handle().overlapped_manager) {
+    return ERR_INVALID_VALUE;
+  }
+
   // Initialize to error
   written = -1;
 
@@ -162,9 +169,10 @@ write(
   // not ideal.
   error_t err = ERR_UNEXPECTED;
   do {
-    err = manager.schedule_overlapped(&(handle.sys_handle().handle),
-       overlapped::WRITE,
-       callback, amount, const_cast<void *>(buf));
+    err = handle.sys_handle().overlapped_manager->schedule_overlapped(
+        &(handle.sys_handle().handle),
+        overlapped::WRITE,
+        callback, amount, const_cast<void *>(buf));
   } while (handle.sys_handle().blocking && ERR_ASYNC == err);
 
   if (ERR_ASYNC == err) {
