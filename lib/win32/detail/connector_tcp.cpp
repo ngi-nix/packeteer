@@ -96,7 +96,7 @@ connector_tcp::close()
 
 
 connector *
-connector_tcp::accept(net::socket_address & addr) const
+connector_tcp::accept(net::socket_address & addr)
 {
 //  int fd = -1;
 //  error_t err = connector_socket::socket_accept(fd, addr);

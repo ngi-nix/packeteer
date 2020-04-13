@@ -51,7 +51,7 @@ public:
 
   error_t connect();
 
-  connector_interface * accept(net::socket_address & addr) const;
+  connector_interface * accept(net::socket_address & addr);
 
   error_t close();
 

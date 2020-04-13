@@ -89,12 +89,12 @@ connector_udp::close()
 
 
 connector *
-connector_udp::accept(net::socket_address & /* addr*/) const
+connector_udp::accept(net::socket_address & /* addr*/)
 {
   if (!listening()) {
     return nullptr;
   }
-  return const_cast<connector_udp *>(this);
+  return this;
 }
 
 

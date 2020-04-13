@@ -287,13 +287,13 @@ connector_pipe::connected() const
 
 
 connector_interface *
-connector_pipe::accept(net::socket_address & /* unused */) const
+connector_pipe::accept(net::socket_address & /* unused */)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!listening()) {
     return nullptr;
   }
-  return const_cast<connector_pipe *>(this);
+  return this;
 }
 
 

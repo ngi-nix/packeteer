@@ -69,7 +69,7 @@ public:
    * instance will be deleted only when all connector instances referring to
    * it are gone.
    */
-  virtual connector_interface * accept(net::socket_address & addr) const = 0;
+  virtual connector_interface * accept(net::socket_address & addr) = 0;
 
   virtual handle get_read_handle() const = 0;
   virtual handle get_write_handle() const = 0;

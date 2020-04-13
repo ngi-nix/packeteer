@@ -126,13 +126,13 @@ connector_anon::connected() const
 
 
 connector_interface *
-connector_anon::accept(net::socket_address & /* unused */) const
+connector_anon::accept(net::socket_address & /* unused */)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!connected()) {
     return nullptr;
   }
-  return const_cast<connector_anon*>(this);
+  return this;
 }
 
 

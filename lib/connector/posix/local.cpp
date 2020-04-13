@@ -133,7 +133,7 @@ connector_local::close()
 
 
 connector_interface *
-connector_local::accept(net::socket_address & addr) const
+connector_local::accept(net::socket_address & addr)
 {
   int fd = -1;
   error_t err = connector_socket::socket_accept(fd, addr);

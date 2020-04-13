@@ -386,7 +386,7 @@ connector_socket::socket_close()
 
 
 error_t
-connector_socket::socket_accept(int & new_fd, net::socket_address & addr) const
+connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!listening()) {

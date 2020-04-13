@@ -118,7 +118,7 @@ struct test_connector : packeteer::connector_interface
   virtual bool connected() const { return false; }
 
   virtual packeteer::connector_interface *
-  accept(packeteer::net::socket_address &) const
+  accept(packeteer::net::socket_address &)
   {
     return nullptr;
   }
