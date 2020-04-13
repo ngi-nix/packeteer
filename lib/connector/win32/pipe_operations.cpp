@@ -22,6 +22,8 @@
 #include <random>
 
 #include "pipe_operations.h"
+#include "overlapped.h"
+
 #include "../../util/string.h"
 #include "../../macros.h"
 
@@ -173,15 +175,24 @@ create_named_pipe(std::string const & name,
     throw exception(ERR_INITIALIZATION, err);
   }
 
+  // Create the overlapped manager for the handle.
+  res.overlapped_manager = std::make_shared<overlapped::manager>();
+
   return res;
 }
 
 
 
 error_t
-poll_for_connection(overlapped::manager & manager, handle & handle)
+poll_for_connection(handle & handle)
 {
-  auto err = manager.schedule_overlapped(&(handle.sys_handle().handle), overlapped::CONNECT,
+  if (!handle.valid() || !handle.sys_handle().overlapped_manager) {
+    LOG("Invalid handle: need an overlapped manager");
+    return ERR_INVALID_VALUE;
+  }
+
+  auto err = handle.sys_handle().overlapped_manager->schedule_overlapped(
+      &(handle.sys_handle().handle), overlapped::CONNECT,
       [](overlapped::io_action action, overlapped::io_context & ctx) -> error_t
       {
         BOOL res = FALSE;
@@ -255,6 +266,7 @@ connect_to_pipe(handle & handle,
   // Success!
   if (result != INVALID_HANDLE_VALUE) {
     handle.sys_handle().handle = result;
+    handle.sys_handle().overlapped_manager = std::make_shared<overlapped::manager>();
     return ERR_SUCCESS;
   }
 

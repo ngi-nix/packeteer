@@ -30,8 +30,6 @@
 
 #include "../../net/netincludes.h"
 
-#include "overlapped.h"
-
 namespace packeteer::detail {
 
 /**
@@ -57,13 +55,11 @@ handle create_named_pipe(std::string const & name,
 
 
 /**
- * Server function for serving connections from a pipe. Requires a non-blocking
- * handle, and will return ERR_UNSUPPORTED_ACTION when a blocking handle is
- * passed.
+ * Server function for serving connections from a pipe. Requires a valid handle
+ * with an overlapped_manager, as returned by create_named_pipe() on success.
  **/
 PACKETEER_PRIVATE
-error_t poll_for_connection(overlapped::manager & manager,
-    handle & handle);
+error_t poll_for_connection(handle & handle);
 
 /**
  * Connect to a named pipe from a client. Expected result values are:
