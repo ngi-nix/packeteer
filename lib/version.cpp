@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -42,7 +42,7 @@ char const * copyright_string()
     PACKETEER_PACKAGE_NAME " " PACKETEER_PACKAGE_VERSION " " PACKETEER_PACKAGE_URL "\n"
     "Copyright (c) 2011 Jens Finkhaeuser.\n"
     "Copyright (c) 2012-2014 Unwesen Ltd.\n"
-    "Copyright (c) 2015-2019 Jens Finkhaeuser.\n"
+    "Copyright (c) 2015-2020 Jens Finkhaeuser.\n"
     "Licensed under the the GPLv3 for personal, educational or non-profit use.\n"
     "Other licensing options available; please contact the copyright holder for\n"
     "information."
