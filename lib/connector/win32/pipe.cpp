@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2019 Jens Finkhaeuser.
+ * Copyright (c) 2019-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -17,38 +17,88 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include <packeteer/detail/connector_pipe.h>
+#include <build-config.h>
+
+#include "../pipe.h"
 
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
 
 #include <packeteer/net/socket_address.h>
 
-#include <packeteer/detail/globals.h>
+#include "../../globals.h"
+#include "../../macros.h"
+
+#include "pipe_operations.h"
 
 
-namespace packeteer {
-namespace detail {
+
+namespace packeteer::detail {
 
 namespace {
 
+error_t
+create_new_pipe_instance(handle & handle, std::string const & path, bool blocking)
+{
+  LOG("Create new " << (blocking ? "blocking" : "non-blocking")
+      << " pipe instance at path " << path);
+
+  packeteer::handle h;
+  try {
+    h = detail::create_named_pipe(path, blocking,
+        false, // R+W
+        true   // Remote ok. XXX: we can change this into an option
+    );
+  } catch (packeteer::exception const & ex) {
+    ERR_LOG("Could not create named pipe", ex);
+    return ex.code();
+  } catch (std::exception const & ex) {
+    ERR_LOG("Could not create named pipe", ex);
+    return ERR_ABORTED;
+  } catch (...) {
+    LOG("Could not create named pipe due to an unknown error.");
+    return ERR_ABORTED;
+  }
+
+  // Poll for connection. Note that the polling is always asynchronous; it can
+  // return success only if a client already started to connect.
+  auto err = detail::poll_for_connection(h);
+  switch (err) {
+    case ERR_SUCCESS:
+    case ERR_REPEAT_ACTION:
+      handle = h;
+      LOG("Successfully created new pipe instance!");
+      return ERR_SUCCESS;
+
+    default:
+      ERRNO_LOG("Unknown error when trying to listen().");
+
+      // Cleanup
+      DisconnectNamedPipe(h.sys_handle().handle);
+      CloseHandle(h.sys_handle().handle);
+      return ERR_ABORTED;
+  }
+}
+
 } // anonymous namespace
 
-connector_pipe::connector_pipe(std::string const & path, bool blocking)
-//  : connector(blocking, CO_STREAM)
-//  , m_addr(path)
-//  , m_server(false)
-//  , m_fd(-1)
+connector_pipe::connector_pipe(std::string const & path,
+    connector_options const & options)
+  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  , m_addr(path)
+  , m_server(false)
+  , m_handle()
 {
 }
 
 
 
-connector_pipe::connector_pipe(net::socket_address const & addr, bool blocking)
-//  : connector(blocking, CO_STREAM)
-//  , m_addr(addr)
-//  , m_server(false)
-//  , m_fd(-1)
+connector_pipe::connector_pipe(net::socket_address const & addr,
+    connector_options const & options)
+  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  , m_addr(addr)
+  , m_server(false)
+  , m_handle()
 {
 }
 
@@ -64,39 +114,16 @@ connector_pipe::~connector_pipe()
 error_t
 connector_pipe::connect()
 {
-//  if (connected() || listening()) {
-//    return ERR_INITIALIZATION;
-//  }
-//
-//  // If the file exists, open it.
-//  int mode = O_RDWR | O_CLOEXEC | O_ASYNC;
-//  if (!m_blocking) {
-//    mode |= O_NONBLOCK;
-//  }
-//  int fd = -1;
-//  while (true) {
-//    fd = ::open(m_addr.full_str().c_str(), mode);
-//    if (fd >= 0) {
-//      // All good!
-//      break;
-//    }
-//
-//    ERRNO_LOG("connect() named pipe connector failed to open pipe");
-//    error_t err = translate_open_error();
-//    if (ERR_SUCCESS == err) {
-//      // signal interrupt handling
-//      continue;
-//    }
-//    return err;
-//  }
-//
-//  m_fd = fd;
-//  m_server = false;
-//
-//  if (!m_blocking) {
-//    return ERR_ASYNC;
-//  }
-  return ERR_SUCCESS;
+  if (connected() || listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  auto err = detail::connect_to_pipe(m_handle,
+      m_addr.full_str(),
+      is_blocking(),
+      false // R+W
+  );
+  return err;
 }
 
 
@@ -108,38 +135,13 @@ connector_pipe::listen()
     return ERR_INITIALIZATION;
   }
 
-//  // First, create pipe
-//  error_t err = create_pipe(m_addr.full_str());
-//  if (ERR_SUCCESS != err) {
-//    return err;
-//  }
-//
-//  // If the file exists, open it.
-//  int mode = O_RDWR | O_CLOEXEC | O_ASYNC;
-//  if (!m_blocking) {
-//    mode |= O_NONBLOCK;
-//  }
-//  int fd = -1;
-//  while (true) {
-//    fd = ::open(m_addr.full_str().c_str(), mode);
-//    if (fd >= 0) {
-//      // All good!
-//      break;
-//    }
-//
-//    ERRNO_LOG("listen() named pipe connector failed to open pipe");
-//    error_t err = translate_open_error();
-//    if (ERR_SUCCESS == err) {
-//      // signal interrupt handling
-//      continue;
-//    }
-//    return err;
-//  }
-//
-//  m_fd = fd;
-//  m_server = true;
+  error_t err = create_new_pipe_instance(m_handle, m_addr.full_str(),
+      is_blocking());
 
-  return ERR_SUCCESS;
+  if (ERR_SUCCESS == err) {
+    m_server = true;
+  }
+  return err;
 }
 
 
@@ -147,8 +149,7 @@ connector_pipe::listen()
 bool
 connector_pipe::listening() const
 {
-//  return m_fd != -1 && m_server;
-	return false; // FIXME
+  return m_handle.valid() && m_server;
 }
 
 
@@ -156,20 +157,64 @@ connector_pipe::listening() const
 bool
 connector_pipe::connected() const
 {
-//  return m_fd != -1 && !m_server;
-	return false; // FIXME
+  return m_handle.valid() && !m_server;
 }
 
 
 
-connector *
-connector_pipe::accept(net::socket_address & /* unused */) const
+connector_interface *
+connector_pipe::accept(net::socket_address & /* unused */)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!listening()) {
     return nullptr;
   }
-  return const_cast<connector_pipe *>(this);
+
+  // Accept is blocking by definition. Calling poll_for_connection() either
+  // completes the previously outstanding call, or schedules a new one. Either
+  // way, we have to wait here until we have a connection.
+  bool loop = true;
+  do {
+    auto err = detail::poll_for_connection(*const_cast<handle *>(&m_handle));
+    switch (err) {
+      case ERR_SUCCESS:
+        loop = false;
+        break;
+
+      case ERR_REPEAT_ACTION:
+        continue; // Try again.
+
+      default:
+        ERRNO_LOG("Unknown error when trying to accept().");
+
+        // Cleanup
+        DisconnectNamedPipe(m_handle.sys_handle().handle);
+        CloseHandle(m_handle.sys_handle().handle);
+        return nullptr;
+    }
+  } while (loop);
+
+  // If we reached here, we've got a connection on our handle. This is great;
+  // we need to pass the handle out as the return value. But we *also* have to
+  // create a new pipe instance, because the old one will be busy.
+  auto ret = new connector_pipe(m_addr, m_options);
+  ret->m_handle = m_handle;
+  ret->m_server = true;
+
+  // Reset self, then create new pipe instance.
+  m_handle = handle{};
+  m_server = false;
+
+  error_t err = create_new_pipe_instance(m_handle, m_addr.full_str(),
+      is_blocking());
+  if (ERR_SUCCESS == err) {
+    m_server = true;
+  }
+  else {
+    ERR_LOG("Could not create new pipe", packeteer::exception(err));
+  }
+
+  return ret;
 }
 
 
@@ -177,8 +222,7 @@ connector_pipe::accept(net::socket_address & /* unused */) const
 handle
 connector_pipe::get_read_handle() const
 {
-//  return handle(m_fd);
-	return handle(); // FIXME
+  return m_handle;
 }
 
 
@@ -186,8 +230,7 @@ connector_pipe::get_read_handle() const
 handle
 connector_pipe::get_write_handle() const
 {
-//  return handle(m_fd);
-	return handle(); // FIXME
+  return m_handle;
 }
 
 
@@ -199,35 +242,22 @@ connector_pipe::close()
     return ERR_INITIALIZATION;
   }
 
-//  // We ignore errors from close() here. This is a problem with NFS, as the man
-//  // pages state, but it's the price of the abstraction.
-//  ::close(m_fd);
-//  if (m_server) {
-//    ::unlink(m_addr.full_str().c_str());
-//  }
-//
-//  m_fd = -1;
-//  m_server = false;
+  if (m_server) {
+    DisconnectNamedPipe(m_handle.sys_handle().handle);
+  }
+  CloseHandle(m_handle.sys_handle().handle);
+
+  m_handle = handle();
+  m_server = false;
 
   return ERR_SUCCESS;
 }
 
 
-error_t
-connector_pipe::set_blocking_mode(bool state)
+bool
+connector_pipe::is_blocking() const
 {
-//  return ::packeteer::set_blocking_mode(m_fd, state);
-	return ERR_SUCCESS; // FIXME
+  return m_options & CO_BLOCKING;
 }
 
-
-
-error_t
-connector_pipe::get_blocking_mode(bool & state) const
-{
-//  return ::packeteer::get_blocking_mode(m_fd, state);
-	return ERR_SUCCESS; // FIXME
-}
-
-
-}} // namespace packeteer::detail
+} // namespace packeteer::detail
