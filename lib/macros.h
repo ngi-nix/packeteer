@@ -29,6 +29,7 @@
 #include <build-config.h>
 
 #include <sstream>
+#include <iomanip>
 
 /**
  * Stringify the symbol passed to PACKETEER_SPRINGIFY()
@@ -53,10 +54,16 @@
   std::cerr << s.str(); \
 }
 #define LOG(msg) _LOG_BASE("DEBUG", msg)
+#if defined(PACKETEER_WIN32)
+#define ERRNO_LOG(msg) _LOG_BASE("ERROR", msg << " // [0x" \
+  << std::setw(16) << std::setfill('0') << std::hex << WSAGetLastError() << std::dec << "] " \
+  << ::strerror(WSAGetLastError()))
+#else
 #define ERRNO_LOG(msg) _LOG_BASE("ERROR", msg << " // " \
   << ::strerror(errno))
-#define ERR_LOG(msg, exc) _LOG_BASE("ERROR", msg << ex.what())
-#else
+#endif // PACKETEER_WIN32
+#define ERR_LOG(msg, exc) _LOG_BASE("ERROR", msg << " // " << exc.what())
+#else // DEBUG
 #define LOG(msg)
 #define ERRNO_LOG(msg)
 #define ERR_LOG(msg, exc)
