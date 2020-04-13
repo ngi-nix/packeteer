@@ -31,12 +31,26 @@
 #include <functional>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
 #include <packeteer/util/hash.h>
 #include <packeteer/util/operators.h>
 
 
 namespace packeteer {
+
+#if defined(PACKETEER_WIN32)
+/**
+ * As an implementation detail, on WIN32, system handles include a manager
+ * component for OVERLAPPED I/O structures.
+ */
+namespace detail::overlapped {
+
+class manager;
+
+} // namespace detail::overlapped
+
+#endif
 
 /**
  * The handle class wraps I/O handles in a platform-independent fashion.
@@ -48,6 +62,7 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
   {
     HANDLE                      handle = INVALID_HANDLE_VALUE;
     bool                        blocking = true;
+    std::shared_ptr<detail::overlapped::manager> overlapped_manager;
 
     inline bool is_equal_to(sys_handle_t const & other) const
     {
