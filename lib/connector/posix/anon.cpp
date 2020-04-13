@@ -37,7 +37,6 @@ namespace packeteer::detail {
 connector_anon::connector_anon(connector_options const & options)
   : connector_interface(CO_STREAM | (options & CO_BLOCKING))
 {
-  m_fds[0] = m_fds[1] = -1;
 }
 
 
@@ -57,7 +56,9 @@ connector_anon::create_pipe()
   }
 
   // Create pipe
-  int ret = ::pipe(m_fds);
+  int fds[2] = { -1, -1 };
+
+  int ret = ::pipe(fds);
   if (-1 == ret) {
     ERRNO_LOG("connector_anon pipe failed!");
     switch (errno) {
@@ -75,18 +76,21 @@ connector_anon::create_pipe()
   }
 
   // Optionally make the read and write end non-blocking
-  if (ERR_SUCCESS != detail::set_blocking_mode(m_fds[0],
+  if (ERR_SUCCESS != detail::set_blocking_mode(fds[0],
         m_options & CO_BLOCKING))
   {
     close();
     return ERR_UNEXPECTED;
   }
-  if (ERR_SUCCESS != detail::set_blocking_mode(m_fds[1],
+  if (ERR_SUCCESS != detail::set_blocking_mode(fds[1],
         m_options & CO_BLOCKING))
   {
     close();
     return ERR_UNEXPECTED;
   }
+
+  m_handles[0] = handle{fds[0]};
+  m_handles[1] = handle{fds[1]};
 
   return ERR_SUCCESS;
 }
@@ -120,7 +124,7 @@ connector_anon::connect()
 bool
 connector_anon::connected() const
 {
-  return (m_fds[0] != -1 && m_fds[1] != -1);
+  return m_handles[0].valid() && m_handles[1].valid();
 }
 
 
@@ -140,7 +144,7 @@ connector_anon::accept(net::socket_address & /* unused */)
 handle
 connector_anon::get_read_handle() const
 {
-  return handle(m_fds[0]);
+  return m_handles[0];
 }
 
 
@@ -148,7 +152,7 @@ connector_anon::get_read_handle() const
 handle
 connector_anon::get_write_handle() const
 {
-  return handle(m_fds[1]);
+  return m_handles[1];
 }
 
 
@@ -162,10 +166,10 @@ connector_anon::close()
 
   // We ignore errors from close() here. This is a problem with NFS, as the man
   // pages state, but it's the price of the abstraction.
-  ::close(m_fds[0]);
-  ::close(m_fds[1]);
+  ::close(m_handles[0].sys_handle());
+  ::close(m_handles[1].sys_handle());
 
-  m_fds[0] = m_fds[1] = -1;
+  m_handles[0] = m_handles[1] = handle{};
 
   return ERR_SUCCESS;
 }
@@ -176,11 +180,11 @@ bool
 connector_anon::is_blocking() const
 {
   bool states[2] = { false, false };
-  error_t err = detail::get_blocking_mode(m_fds[0], states[0]);
+  error_t err = detail::get_blocking_mode(m_handles[0].sys_handle(), states[0]);
   if (ERR_SUCCESS != err) {
     throw exception(err, "Could not determine blocking mode from file descriptor!");
   }
-  err = detail::get_blocking_mode(m_fds[1], states[1]);
+  err = detail::get_blocking_mode(m_handles[1].sys_handle(), states[1]);
   if (ERR_SUCCESS != err) {
     throw exception(err, "Could not determine blocking mode from file descriptor!");
   }
