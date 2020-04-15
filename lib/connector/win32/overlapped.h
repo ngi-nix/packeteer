@@ -95,8 +95,7 @@ enum PACKETEER_PRIVATE io_type : uint8_t
 struct PACKETEER_PRIVATE io_context
 {
   OVERLAPPED overlapped;        // The overlapped structure
-  HANDLE *   handle = nullptr;  // The file, etc. for which we manage context.
-                                // Pointer, because the application owns it.
+  HANDLE      handle = INVALID_HANDLE_VALUE; // The file, etc.
 
   io_type    type;              // Buffers are only used for READ/WRITE
 
@@ -211,7 +210,7 @@ public:
    *   A callback has determined that the schedule_overlapped() function
    *   should error out prematurely.
    */
-  error_t schedule_overlapped(HANDLE * handle, io_type type,
+  error_t schedule_overlapped(HANDLE handle, io_type type,
       request_callback && callback,
       size_t buflen = -1,
       void * source = nullptr);
@@ -220,7 +219,7 @@ public:
    * Cancel I/O requests for the given handle. We don't distinguish further,
    * because that does not seem very useful.
    */
-  error_t cancel(HANDLE * handle);
+  error_t cancel(HANDLE handle);
 
   /**
    * Cancel all I/O requests.
@@ -232,14 +231,14 @@ private:
   // All private functions are *unlocked*. Lock in the public functions.
   bool grow();
 
-  error_t schedule_connect(HANDLE * handle,
+  error_t schedule_connect(HANDLE handle,
       request_callback && callback);
 
-  error_t schedule_read(HANDLE * handle,
+  error_t schedule_read(HANDLE handle,
       request_callback && callback,
       size_t buflen);
 
-  error_t schedule_write(HANDLE * handle,
+  error_t schedule_write(HANDLE handle,
       request_callback && callback,
       size_t buflen,
       void * source);

@@ -73,7 +73,7 @@ manager::grow()
 
 
 error_t
-manager::schedule_overlapped(HANDLE * handle, io_type type,
+manager::schedule_overlapped(HANDLE handle, io_type type,
     request_callback && callback,
     size_t buflen /* = -1*/,
     void * source /* = nullptr*/)
@@ -99,7 +99,7 @@ manager::schedule_overlapped(HANDLE * handle, io_type type,
 
 
 error_t
-manager::schedule_connect(HANDLE * handle,
+manager::schedule_connect(HANDLE handle,
     request_callback && callback)
 {
   // If there are any slots in use for this handle, return an error. Also
@@ -125,7 +125,7 @@ manager::schedule_connect(HANDLE * handle,
     }
 
     // If we found a free one, remember the index.
-    if (!context.handle && found < 0) {
+    if (INVALID_HANDLE_VALUE == context.handle && found < 0) {
       found = i;
     }
   }
@@ -168,7 +168,7 @@ manager::schedule_connect(HANDLE * handle,
 
 
 error_t
-manager::schedule_read(HANDLE * handle,
+manager::schedule_read(HANDLE handle,
     request_callback && callback,
     size_t buflen)
 {
@@ -192,7 +192,7 @@ manager::schedule_read(HANDLE * handle,
   ssize_t found = -1;
   for (size_t i = 0 ; i < m_contexts.size() ; ++i) {
     auto & context = m_contexts[i];
-    if (!context.handle) {
+    if (INVALID_HANDLE_VALUE == context.handle) {
       found = i;
       break;
     }
@@ -221,7 +221,7 @@ manager::schedule_read(HANDLE * handle,
 
 
 error_t
-manager::schedule_write(HANDLE * handle,
+manager::schedule_write(HANDLE handle,
     request_callback && callback,
     size_t buflen,
     void * source)
@@ -280,7 +280,7 @@ manager::schedule_write(HANDLE * handle,
   ssize_t found = -1;
   for (size_t i = 0 ; i < m_contexts.size() ; ++i) {
     auto & context = m_contexts[i];
-    if (!context.handle) {
+    if (INVALID_HANDLE_VALUE == context.handle) {
       found = i;
       break;
     }
@@ -313,7 +313,7 @@ void
 manager::initialize(context_id id)
 {
   auto & ctx = m_contexts[id];
-  ctx.handle = nullptr;
+  ctx.handle = INVALID_HANDLE_VALUE;
 
   delete [] ctx.buf;
   ctx.buf = nullptr;
@@ -362,9 +362,9 @@ manager::signature(void * source, size_t buflen)
 
 
 error_t
-manager::cancel(HANDLE * handle)
+manager::cancel(HANDLE handle)
 {
-  if (!handle || *handle == INVALID_HANDLE_VALUE) {
+  if (INVALID_HANDLE_VALUE == handle) {
     return ERR_INVALID_VALUE;
   }
 
@@ -404,15 +404,16 @@ manager::cancel_all()
   std::lock_guard<std::mutex> lock(m_mutex);
 
   // First find all unique handles.
-  std::set<HANDLE *> unique;
+  std::set<HANDLE> unique;
   for (size_t i = 0 ; i < m_contexts.size() ; ++i) {
-    if (m_contexts[i].handle) {
+    if (INVALID_HANDLE_VALUE != m_contexts[i].handle) {
       unique.insert(m_contexts[i].handle);
     }
   }
 
   // Cancel I/O on all handles
   for (auto handle : unique) {
+    LOG("CANCEL ON UNIQUE HANDLE: " << std::hex << handle << std::dec);
     CancelIoEx(handle, nullptr);
   }
 
