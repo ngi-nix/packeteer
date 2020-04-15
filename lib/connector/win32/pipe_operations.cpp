@@ -192,18 +192,18 @@ poll_for_connection(handle & handle)
   }
 
   auto err = handle.sys_handle().overlapped_manager->schedule_overlapped(
-      &(handle.sys_handle().handle), overlapped::CONNECT,
+      handle.sys_handle().handle, overlapped::CONNECT,
       [](overlapped::io_action action, overlapped::io_context & ctx) -> error_t
       {
         BOOL res = FALSE;
 
         if (overlapped::CHECK_PROGRESS == action) {
           DWORD dummy;
-          res = GetOverlappedResult(*(ctx.handle), &(ctx.overlapped), &dummy,
+          res = GetOverlappedResult(ctx.handle, &(ctx.overlapped), &dummy,
               FALSE);
         }
         else {
-          res = ConnectNamedPipe(*(ctx.handle), &(ctx.overlapped));
+          res = ConnectNamedPipe(ctx.handle, &(ctx.overlapped));
         }
 
         if (res) {
