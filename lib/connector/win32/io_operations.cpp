@@ -45,12 +45,12 @@ read(
     DWORD have_read = 0;
     BOOL res = FALSE;
     if (overlapped::CHECK_PROGRESS == action) {
-      res = GetOverlappedResultEx(*(ctx.handle), &(ctx.overlapped), &have_read,
+      res = GetOverlappedResultEx(ctx.handle, &(ctx.overlapped), &have_read,
           blocking ? PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000 : 0,
           FALSE);
     }
     else {
-      res = ReadFile(*(ctx.handle), ctx.buf, ctx.buflen, &have_read, &(ctx.overlapped));
+      res = ReadFile(ctx.handle, ctx.buf, ctx.buflen, &have_read, &(ctx.overlapped));
     }
 
     if (res) {
@@ -93,10 +93,10 @@ read(
   error_t err = ERR_UNEXPECTED;
   do {
     err = handle.sys_handle().overlapped_manager->schedule_overlapped(
-        &(handle.sys_handle().handle),
+        handle.sys_handle().handle,
         overlapped::READ,
         callback, amount);
-  } while (handle.sys_handle().blocking && ERR_ASYNC == err);
+  } while (blocking && ERR_ASYNC == err);
 
   if (ERR_ASYNC == err) {
     err = ERR_REPEAT_ACTION;
@@ -125,12 +125,12 @@ write(
     DWORD have_written = 0;
     BOOL res = FALSE;
     if (overlapped::CHECK_PROGRESS == action) {
-      res = GetOverlappedResultEx(*(ctx.handle), &(ctx.overlapped), &have_written,
+      res = GetOverlappedResultEx(ctx.handle, &(ctx.overlapped), &have_written,
           blocking ? PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000 : 0,
           FALSE);
     }
     else {
-      res = WriteFile(*(ctx.handle), ctx.buf, ctx.buflen, &have_written, &(ctx.overlapped));
+      res = WriteFile(ctx.handle, ctx.buf, ctx.buflen, &have_written, &(ctx.overlapped));
     }
 
     if (res) {
@@ -170,10 +170,10 @@ write(
   error_t err = ERR_UNEXPECTED;
   do {
     err = handle.sys_handle().overlapped_manager->schedule_overlapped(
-        &(handle.sys_handle().handle),
+        handle.sys_handle().handle,
         overlapped::WRITE,
         callback, amount, const_cast<void *>(buf));
-  } while (handle.sys_handle().blocking && ERR_ASYNC == err);
+  } while (blocking && ERR_ASYNC == err);
 
   if (ERR_ASYNC == err) {
     err = ERR_REPEAT_ACTION;
