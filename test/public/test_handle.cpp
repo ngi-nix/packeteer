@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2017-2019 Jens Finkhaeuser.
+ * Copyright (c) 2017-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -64,4 +64,8 @@ TEST(Handle, test_dummy)
   ASSERT_TRUE(h1.valid());
   ASSERT_TRUE(h2.valid());
   ASSERT_NE(h1, h2);
+
+  auto h3 = h2;
+  ASSERT_NE(h1, h3);
+  ASSERT_EQ(h2, h3);
 }

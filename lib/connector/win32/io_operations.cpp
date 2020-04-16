@@ -21,6 +21,7 @@
 #include "io_operations.h"
 
 #include ",,/../macros.h"
+#include "../../lib/win32/sys_handle.h"
 
 namespace packeteer::detail::io {
 
@@ -31,14 +32,16 @@ read(
     ::packeteer::handle handle,
     void * buf, size_t amount, ssize_t & read)
 {
-  if (!handle.valid() || !handle.sys_handle().overlapped_manager) {
+  if (!handle.valid()) {
     return ERR_INVALID_VALUE;
   }
 
   // Initialize to error
   read = -1;
 
-  const bool blocking = handle.sys_handle().blocking;
+  // Copy increments refcount
+  auto sys_handle = handle.sys_handle();
+  const bool blocking = sys_handle->blocking;
 
   auto callback = [&buf, &read, blocking](o::io_action action, o::io_context & ctx) -> error_t
   {
@@ -92,8 +95,8 @@ read(
   // not ideal.
   error_t err = ERR_UNEXPECTED;
   do {
-    err = handle.sys_handle().overlapped_manager->schedule_overlapped(
-        handle.sys_handle().handle,
+    err = sys_handle->overlapped_manager.schedule_overlapped(
+        sys_handle->handle,
         overlapped::READ,
         callback, amount);
   } while (blocking && ERR_ASYNC == err);
@@ -111,14 +114,16 @@ write(
     ::packeteer::handle handle,
     void const * buf, size_t amount, ssize_t & written)
 {
-  if (!handle.valid() || !handle.sys_handle().overlapped_manager) {
+  if (!handle.valid()) {
     return ERR_INVALID_VALUE;
   }
 
   // Initialize to error
   written = -1;
 
-  const bool blocking = handle.sys_handle().blocking;
+  // Copy increments refcount
+  auto sys_handle = handle.sys_handle();
+  const bool blocking = sys_handle->blocking;
 
   auto callback = [&buf, &written, blocking](o::io_action action, o::io_context & ctx) -> error_t
   {
@@ -169,8 +174,8 @@ write(
   // not ideal.
   error_t err = ERR_UNEXPECTED;
   do {
-    err = handle.sys_handle().overlapped_manager->schedule_overlapped(
-        handle.sys_handle().handle,
+    err = sys_handle->overlapped_manager.schedule_overlapped(
+        sys_handle->handle,
         overlapped::WRITE,
         callback, amount, const_cast<void *>(buf));
   } while (blocking && ERR_ASYNC == err);

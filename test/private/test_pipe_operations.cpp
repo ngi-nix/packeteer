@@ -18,6 +18,7 @@
  * PARTICULAR PURPOSE.
  **/
 #include "../../lib/connector/win32/pipe_operations.h"
+#include "../../lib/win32/sys_handle.h"
 
 #include <gtest/gtest.h>
 
@@ -107,10 +108,11 @@ TEST(PipeOperations, create_named_blocking)
   auto res = pd::create_named_pipe("foo", true, false);
   auto sys_handle = res.sys_handle();
 
-  ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  ASSERT_TRUE(sys_handle.blocking);
+  ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
+  ASSERT_TRUE(sys_handle->blocking);
 
-  CloseHandle(sys_handle.handle);
+  DisconnectNamedPipe(sys_handle->handle);
+  CloseHandle(sys_handle->handle);
 }
 
 
@@ -121,10 +123,11 @@ TEST(PipeOperations, create_named_non_blocking)
   auto res = pd::create_named_pipe("foo", false, false);
   auto sys_handle = res.sys_handle();
 
-  ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  ASSERT_FALSE(sys_handle.blocking);
+  ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
+  ASSERT_FALSE(sys_handle->blocking);
 
-  CloseHandle(sys_handle.handle);
+  DisconnectNamedPipe(sys_handle->handle);
+  CloseHandle(sys_handle->handle);
 }
 
 
@@ -135,20 +138,21 @@ TEST(PipeOperations, write_writable)
   auto res = pd::create_named_pipe("foo", true, false);
   auto sys_handle = res.sys_handle();
 
-  EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  EXPECT_TRUE(sys_handle.blocking);
+  EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
+  EXPECT_TRUE(sys_handle->blocking);
 
   // Write to the handle.
   auto test = "foo";
   DWORD written = 0;
-  auto write_res = WriteFile(sys_handle.handle,
+  auto write_res = WriteFile(sys_handle->handle,
     test, 3, &written, nullptr);
 
   // Writing should "work" in the sense that we should get an error back that the pipe is listening.
   ASSERT_FALSE(write_res);
   ASSERT_EQ(ERROR_PIPE_LISTENING, WSAGetLastError());
 
-  CloseHandle(sys_handle.handle);
+  DisconnectNamedPipe(sys_handle->handle);
+  CloseHandle(sys_handle->handle);
 }
 
 
@@ -159,20 +163,21 @@ TEST(PipeOperations, write_readonly)
   auto res = pd::create_named_pipe("foo", true, true);
   auto sys_handle = res.sys_handle();
 
-  EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  EXPECT_TRUE(sys_handle.blocking);
+  EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
+  EXPECT_TRUE(sys_handle->blocking);
 
   // Write to the handle.
   auto test = "foo";
   DWORD written = 0;
-  auto write_res = WriteFile(sys_handle.handle,
+  auto write_res = WriteFile(sys_handle->handle,
     test, 3, &written, nullptr);
 
   // Writing should not work - it was opened for reading only, so we need to get an error.
   ASSERT_FALSE(write_res);
   ASSERT_EQ(ERROR_ACCESS_DENIED, WSAGetLastError());
 
-  CloseHandle(sys_handle.handle);
+  DisconnectNamedPipe(sys_handle->handle);
+  CloseHandle(sys_handle->handle);
 }
 
 
@@ -185,8 +190,8 @@ TEST(PipeOperations, poll_for_connection)
   auto res = pd::create_named_pipe("foo", false, false);
   auto sys_handle = res.sys_handle();
 
-  EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle.handle);
-  EXPECT_FALSE(sys_handle.blocking);
+  EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
+  EXPECT_FALSE(sys_handle->blocking);
 
   auto created = pd::poll_for_connection(res);
   ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, created);
@@ -195,7 +200,8 @@ TEST(PipeOperations, poll_for_connection)
   created = pd::poll_for_connection(res);
   ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, created);
 
-  CloseHandle(sys_handle.handle);
+  DisconnectNamedPipe(sys_handle->handle);
+  CloseHandle(sys_handle->handle);
 }
 
 
@@ -221,8 +227,8 @@ TEST(PipeOperations, open_pipe)
   auto server = pd::create_named_pipe("foo", false, false);
   auto server_sys_handle = server.sys_handle();
 
-  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
-  EXPECT_FALSE(server_sys_handle.blocking);
+  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle->handle);
+  EXPECT_FALSE(server_sys_handle->blocking);
 
   auto created = pd::poll_for_connection(server);
   EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
@@ -238,8 +244,9 @@ TEST(PipeOperations, open_pipe)
   created = pd::poll_for_connection(server);
   ASSERT_EQ(packeteer::ERR_SUCCESS, created);
 
-  CloseHandle(server_sys_handle.handle);
-  CloseHandle(client.sys_handle().handle);
+  DisconnectNamedPipe(server_sys_handle->handle);
+  CloseHandle(server_sys_handle->handle);
+  CloseHandle(client.sys_handle()->handle);
 }
 
 
@@ -253,8 +260,8 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
   auto server = pd::create_named_pipe("foo", false, false);
   auto server_sys_handle = server.sys_handle();
 
-  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
-  EXPECT_FALSE(server_sys_handle.blocking);
+  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle->handle);
+  EXPECT_FALSE(server_sys_handle->blocking);
 
   auto created = pd::poll_for_connection(server);
   EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
@@ -277,10 +284,11 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
   ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, err);
   ASSERT_FALSE(client2.valid());
 
-
-  CloseHandle(server_sys_handle.handle);
-  CloseHandle(client1.sys_handle().handle);
-  CloseHandle(client2.sys_handle().handle);
+  DisconnectNamedPipe(server_sys_handle->handle);
+  CloseHandle(server_sys_handle->handle);
+  CloseHandle(client1.sys_handle()->handle);
+  // client2 never connected, can't close
+  // CloseHandle(client2.sys_handle()->handle);
 }
 
 
@@ -294,8 +302,8 @@ TEST(PipeOperations, messaging)
   auto server = pd::create_named_pipe("foo", false, false);
   auto server_sys_handle = server.sys_handle();
 
-  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle.handle);
-  EXPECT_FALSE(server_sys_handle.blocking);
+  EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle->handle);
+  EXPECT_FALSE(server_sys_handle->blocking);
 
   auto created = pd::poll_for_connection(server);
   EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
@@ -310,7 +318,7 @@ TEST(PipeOperations, messaging)
   // Write server
   auto test = "foo";
   DWORD written = 0;
-  auto write_res = WriteFile(server.sys_handle().handle,
+  auto write_res = WriteFile(server_sys_handle->handle,
     test, 3, &written, nullptr);
 
   ASSERT_TRUE(write_res);
@@ -319,7 +327,7 @@ TEST(PipeOperations, messaging)
   // Read client
   char buf[200] = { 0 };
   DWORD read = 0;
-  auto read_res = ReadFile(client1.sys_handle().handle,
+  auto read_res = ReadFile(client1.sys_handle()->handle,
       buf, sizeof(buf), &read, nullptr);
 
   ASSERT_TRUE(read_res);
@@ -332,7 +340,7 @@ TEST(PipeOperations, messaging)
   // Write client
   test = "bar";
   written = 0;
-  write_res = WriteFile(client1.sys_handle().handle,
+  write_res = WriteFile(client1.sys_handle()->handle,
     test, 3, &written, nullptr);
 
   ASSERT_TRUE(write_res);
@@ -340,7 +348,7 @@ TEST(PipeOperations, messaging)
 
   // Read server
   read = 0;
-  read_res = ReadFile(server.sys_handle().handle,
+  read_res = ReadFile(server_sys_handle->handle,
       buf, sizeof(buf), &read, nullptr);
 
   ASSERT_TRUE(read_res);
@@ -350,9 +358,9 @@ TEST(PipeOperations, messaging)
     ASSERT_EQ(test[i], buf[i]);
   }
 
-
-  CloseHandle(server_sys_handle.handle);
-  CloseHandle(client1.sys_handle().handle);
+  DisconnectNamedPipe(server_sys_handle->handle);
+  CloseHandle(server_sys_handle->handle);
+  CloseHandle(client1.sys_handle()->handle);
 }
 
 

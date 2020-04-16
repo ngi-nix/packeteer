@@ -28,6 +28,7 @@
 
 #include "../../globals.h"
 #include "../../macros.h"
+#include "../../win32/sys_handle.h"
 
 #include "pipe_operations.h"
 
@@ -74,8 +75,8 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
       ERRNO_LOG("Unknown error when trying to listen().");
 
       // Cleanup
-      DisconnectNamedPipe(h.sys_handle().handle);
-      CloseHandle(h.sys_handle().handle);
+      DisconnectNamedPipe(h.sys_handle()->handle);
+      CloseHandle(h.sys_handle()->handle);
       return ERR_ABORTED;
   }
 }
@@ -188,8 +189,8 @@ connector_pipe::accept(net::socket_address & /* unused */)
         ERRNO_LOG("Unknown error when trying to accept().");
 
         // Cleanup
-        DisconnectNamedPipe(m_handle.sys_handle().handle);
-        CloseHandle(m_handle.sys_handle().handle);
+        DisconnectNamedPipe(m_handle.sys_handle()->handle);
+        CloseHandle(m_handle.sys_handle()->handle);
         return nullptr;
     }
   } while (loop);
@@ -243,9 +244,9 @@ connector_pipe::close()
   }
 
   if (m_server) {
-    DisconnectNamedPipe(m_handle.sys_handle().handle);
+    DisconnectNamedPipe(m_handle.sys_handle()->handle);
   }
-  CloseHandle(m_handle.sys_handle().handle);
+  CloseHandle(m_handle.sys_handle()->handle);
 
   m_handle = handle();
   m_server = false;

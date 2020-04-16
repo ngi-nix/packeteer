@@ -26,6 +26,7 @@
 
 #include "../../util/string.h"
 #include "../../macros.h"
+#include "../../win32/sys_handle.h"
 
 namespace packeteer::detail {
 
@@ -130,7 +131,7 @@ handle
 create_named_pipe(std::string const & name,
     bool blocking, bool readonly, bool remoteok /* = false */)
 {
-  handle::sys_handle_t res;
+  handle::sys_handle_t res = std::make_shared<handle::opaque_handle>();
 
   std::string normalized = normalize_pipe_path(name);
 
@@ -140,7 +141,7 @@ create_named_pipe(std::string const & name,
   open_mode |= FILE_FLAG_OVERLAPPED;
 
   // Mark handle as (non-)blocking.
-  res.blocking = blocking;
+  res->blocking = blocking;
 
   // Options
   DWORD options = PIPE_TYPE_BYTE | PIPE_WAIT | PIPE_READMODE_BYTE;
@@ -153,7 +154,7 @@ create_named_pipe(std::string const & name,
   }
 
   // Try running create
-  res.handle = CreateNamedPipeA(
+  res->handle = CreateNamedPipeA(
       normalized.c_str(),
       open_mode,
       options,
@@ -163,7 +164,7 @@ create_named_pipe(std::string const & name,
       PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000,
       nullptr);
 
-  if (INVALID_HANDLE_VALUE == res.handle) {
+  if (INVALID_HANDLE_VALUE == res->handle) {
     auto err = WSAGetLastError();
     switch (err) {
       case ERROR_INVALID_PARAMETER:
@@ -175,9 +176,6 @@ create_named_pipe(std::string const & name,
     throw exception(ERR_INITIALIZATION, err);
   }
 
-  // Create the overlapped manager for the handle.
-  res.overlapped_manager = std::make_shared<overlapped::manager>();
-
   return res;
 }
 
@@ -186,13 +184,16 @@ create_named_pipe(std::string const & name,
 error_t
 poll_for_connection(handle & handle)
 {
-  if (!handle.valid() || !handle.sys_handle().overlapped_manager) {
+  if (!handle.valid()) {
     LOG("Invalid handle: need an overlapped manager");
     return ERR_INVALID_VALUE;
   }
 
-  auto err = handle.sys_handle().overlapped_manager->schedule_overlapped(
-      handle.sys_handle().handle, overlapped::CONNECT,
+  // Copy increments refcount
+  auto sys_handle = handle.sys_handle();
+
+  auto err = sys_handle->overlapped_manager.schedule_overlapped(
+      sys_handle->handle, overlapped::CONNECT,
       [](overlapped::io_action action, overlapped::io_context & ctx) -> error_t
       {
         BOOL res = FALSE;
@@ -250,7 +251,9 @@ connect_to_pipe(handle & handle,
     share |= FILE_SHARE_WRITE;
   }
 
-  handle.sys_handle().blocking = blocking;
+  // Create sys_handle - we overwrite the existing one.
+  auto sys_handle = std::make_shared<handle::opaque_handle>();
+  sys_handle->blocking = blocking;
 
   // Try to connect
   HANDLE result = CreateFileA(
@@ -265,8 +268,8 @@ connect_to_pipe(handle & handle,
 
   // Success!
   if (result != INVALID_HANDLE_VALUE) {
-    handle.sys_handle().handle = result;
-    handle.sys_handle().overlapped_manager = std::make_shared<overlapped::manager>();
+    sys_handle->handle = result;
+    handle.sys_handle() = sys_handle;
     return ERR_SUCCESS;
   }
 

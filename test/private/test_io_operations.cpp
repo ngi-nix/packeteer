@@ -18,6 +18,7 @@
  * PARTICULAR PURPOSE.
  **/
 #include "../../lib/connector/win32/io_operations.h"
+#include "../../lib/win32/sys_handle.h"
 
 #include <gtest/gtest.h>
 
@@ -57,12 +58,12 @@ struct pipe_context
 
   ~pipe_context()
   {
-    DisconnectNamedPipe(server.sys_handle().handle);
-    CloseHandle(server.sys_handle().handle);
-    server.sys_handle().handle = INVALID_HANDLE_VALUE;
+    DisconnectNamedPipe(server.sys_handle()->handle);
+    CloseHandle(server.sys_handle()->handle);
+    server.sys_handle()->handle = INVALID_HANDLE_VALUE;
 
-    CloseHandle(client.sys_handle().handle);
-    client.sys_handle().handle = INVALID_HANDLE_VALUE;
+    CloseHandle(client.sys_handle()->handle);
+    client.sys_handle()->handle = INVALID_HANDLE_VALUE;
   }
 };
 
