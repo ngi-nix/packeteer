@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2017-2019 Jens Finkhaeuser.
+ * Copyright (c) 2017-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -39,42 +39,26 @@
 
 namespace packeteer {
 
-#if defined(PACKETEER_WIN32)
-/**
- * As an implementation detail, on WIN32, system handles include a manager
- * component for OVERLAPPED I/O structures.
- */
-namespace detail::overlapped {
-
-class manager;
-
-} // namespace detail::overlapped
-
-#endif
-
 /**
  * The handle class wraps I/O handles in a platform-independent fashion.
  **/
 struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
 {
 #if defined(PACKETEER_WIN32)
-  struct PACKETEER_API sys_handle_t : public ::packeteer::util::operators<sys_handle_t>
-  {
-    HANDLE                      handle = INVALID_HANDLE_VALUE;
-    bool                        blocking = true;
-    std::shared_ptr<detail::overlapped::manager> overlapped_manager;
-
-    inline bool is_equal_to(sys_handle_t const & other) const
-    {
-      return handle == other.handle;
-    }
-
-    inline bool is_less_than(sys_handle_t const & other) const
-    {
-      return handle < other.handle;
-    }
-  };
+  // The WIN32 definition of sys_handle_t is an opaque, reference counted
+  // pointer.
+  struct opaque_handle;
+  using sys_handle_t = std::shared_ptr<opaque_handle>;
   const sys_handle_t INVALID_SYS_HANDLE{};
+
+  // A few functions on the opaque structure are needed for the implementaiton
+  // of the outer handle class.
+private:
+  static sys_handle_t sys_make_dummy(size_t const & value);
+  static size_t sys_handle_hash(sys_handle_t const & handle);
+  static bool sys_equal(sys_handle_t const & first, sys_handle_t const & second);
+  static bool sys_less(sys_handle_t const & first, sys_handle_t const & second);
+public:
 #elif defined(PACKETEER_POSIX)
   using sys_handle_t = int;
   const sys_handle_t INVALID_SYS_HANDLE{-1};
@@ -107,11 +91,9 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
   static handle make_dummy(size_t const & value)
   {
 #if defined(PACKETEER_POSIX)
-    return handle(static_cast<sys_handle_t>(value));
-#else
-    sys_handle_t h;
-    h.handle = reinterpret_cast<HANDLE>(value);
-    return handle(h);
+    return static_cast<sys_handle_t>(value);
+#elif defined(PACKETEER_WIN32)
+    return sys_make_dummy(value);
 #endif
   }
 
@@ -137,13 +119,17 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
     if (m_handle == INVALID_SYS_HANDLE) {
       return 0;
     }
-
-    char const * p = reinterpret_cast<char const *>(&m_handle);
+ 
+#if defined(PACKETEER_POSIX)
+   char const * p = reinterpret_cast<char const *>(&m_handle);
     size_t state = std::hash<char>()(p[0]);
     for (size_t i = 1 ; i < sizeof(sys_handle_t) ; ++i) {
       packeteer::util::hash_combine(state, p[i]);
     }
     return state;
+#elif defined(PACKETEER_WIN32)
+    return sys_handle_hash(m_handle);
+#endif // PACKETEER_POSIX
   }
 
   /**
@@ -175,12 +161,20 @@ private:
 
   inline bool is_equal_to(handle const & other) const
   {
+#if defined(PACKETEER_POSIX)
     return (0 == ::memcmp(&m_handle, &(other.m_handle), sizeof(sys_handle_t)));
+#elif defined(PACKETEER_WIN32)
+    return sys_equal(m_handle, other.m_handle);
+#endif // PACKETEER_POSIX
   }
 
   inline bool is_less_than(handle const & other) const
   {
+#if defined(PACKETEER_POSIX)
     return (::memcmp(&m_handle, &(other.m_handle), sizeof(sys_handle_t)) < 0);
+#elif defined(PACKETEER_WIN32)
+    return sys_less(m_handle, other.m_handle);
+#endif // PACKETEER_POSIX
   }
 
   sys_handle_t  m_handle;

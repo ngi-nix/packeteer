@@ -509,7 +509,7 @@ posixsrc = [
 
 winsrc = [
 # TODO iocp scheduler/io
-  'lib' / 'win32' / 'handle.cpp',  # FIXME probably remove
+  'lib' / 'win32' / 'handle.cpp',
   'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
   'lib' / 'connector' / 'win32' / 'overlapped.cpp',
   'lib' / 'connector' / 'win32' / 'io_operations.cpp',
