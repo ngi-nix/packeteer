@@ -181,10 +181,6 @@ struct io_callbacks_t
 
     // Try to find callbacks matching the file descriptor
     auto range = m_callback_map.equal_range(h);
-    if (range.first == m_callback_map.end()) {
-      // Nothing matches this file descriptor
-      return result;
-    }
 
     // Try to find entries matching the event mask
     auto iter = range.first;
