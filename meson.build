@@ -58,7 +58,7 @@ int main()
 '''
   result = compiler.run(code, name: 'Windows SDK version check.')
   winsdk_ver = result.stdout().to_int()
-  summary('Windows SDK major version', '@0'.format(winsdk_ver), section: 'Platform')
+  summary('Windows SDK major version', winsdk_ver, section: 'Platform')
 endif
 
 
