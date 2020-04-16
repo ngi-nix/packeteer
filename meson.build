@@ -3,6 +3,7 @@
 project('packeteer', 'cpp',
   version: '0.1.0',
   license: 'GPLv3',
+  meson_version: '>=0.53.0',
   default_options: [
     'cpp_std=c++17',
     'default_library=both',
@@ -42,7 +43,7 @@ elif host_machine.system() == 'windows'
 elif host_machine.system().startswith('android')
   host_type = 'android'
 endif
-
+summary('Host platform', host_type, section: 'Platform')
 
 # For Windows, try to determine the SDK version.
 winsdk_ver = -1
@@ -57,7 +58,7 @@ int main()
 '''
   result = compiler.run(code, name: 'Windows SDK version check.')
   winsdk_ver = result.stdout().to_int()
-  message('Windows SDK major version is: @0@'.format(winsdk_ver))
+  summary('Windows SDK major version', '@0'.format(winsdk_ver), section: 'Platform')
 endif
 
 
@@ -71,7 +72,7 @@ posix_common_args = [
 ]
 if compiler_id == 'clang'
   cpp_args = posix_common_args + [
-    '-Wabi'
+    '-Wabi',
   ]
   cpp_lib_args = ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'gcc'
@@ -380,27 +381,27 @@ endif
 ### Set values from options
 
 cache_line_size = get_option('cache_line_size')
-message('Set cache line size option to: @0@'.format(cache_line_size))
+summary('Cache line size (Bytes)', cache_line_size, section: 'Build options')
 conf_data.set('PACKETEER_CACHE_LINE_SIZE', cache_line_size)
 
 event_wait_interval_usec = get_option('event_wait_interval_usec')
-message('Set event wait interval to @0@usec.'.format(event_wait_interval_usec))
+summary('Event wait interval (usec)', event_wait_interval_usec, section: 'Build options')
 conf_data.set('PACKETEER_EVENT_WAIT_INTERVAL_USEC', event_wait_interval_usec)
 
 io_buffer_size = get_option('io_buffer_size')
-message('Set I/O buffers to @0@ Bytes.'.format(io_buffer_size))
+summary('I/O buffers (Bytes)', io_buffer_size, section: 'Build options')
 conf_data.set('PACKETEER_IO_BUFFER_SIZE', io_buffer_size)
 
 io_signature_size = get_option('io_signature_size')
-message('Set I/O signature size to @0@ Bytes.'.format(io_signature_size))
+summary('I/O signature size (Bytes)', io_signature_size, section: 'Build options')
 conf_data.set('PACKETEER_IO_SIGNATURE_SIZE', io_signature_size)
 
 io_num_overlapped = get_option('io_num_overlapped')
-message('Set I/O signature size to @0@ Bytes.'.format(io_num_overlapped))
+summary('Initial number of OVERLAPPED entries per handle', io_num_overlapped, section: 'Build options')
 conf_data.set('PACKETEER_IO_NUM_OVERLAPPED', io_num_overlapped)
 
 io_overlapped_grow_by = get_option('io_overlapped_grow_by')
-message('Set I/O signature size to @0@ Bytes.'.format(io_overlapped_grow_by))
+summary('Grow number of OVERLAPPED entries by', io_overlapped_grow_by, section: 'Build options')
 conf_data.set('PACKETEER_IO_OVERLAPPED_GROW_BY', io_overlapped_grow_by)
 
 configure_file(
