@@ -205,11 +205,11 @@ poll_for_connection(handle & handle)
 
         if (overlapped::CHECK_PROGRESS == action) {
           DWORD dummy;
-          res = GetOverlappedResult(ctx.handle, &(ctx.overlapped), &dummy,
+          res = GetOverlappedResult(ctx.handle, &ctx, &dummy,
               FALSE);
         }
         else {
-          res = ConnectNamedPipe(ctx.handle, &(ctx.overlapped));
+          res = ConnectNamedPipe(ctx.handle, &ctx);
         }
 
         if (res) {

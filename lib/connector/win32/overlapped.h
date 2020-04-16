@@ -80,6 +80,7 @@ namespace packeteer::detail::overlapped {
  * Overlapped operation types.
  *
  * Re-uses some PEV_IO_* values, because that simplifies the scheduler somewhat.
+ * XXX: see scheduler/io/iocp.cpp
  */
 enum PACKETEER_PRIVATE io_type : uint8_t
 {
@@ -92,10 +93,9 @@ enum PACKETEER_PRIVATE io_type : uint8_t
 /**
  * Overlapped context
  */
-struct PACKETEER_PRIVATE io_context
+struct PACKETEER_PRIVATE io_context : public OVERLAPPED
 {
-  OVERLAPPED overlapped;        // The overlapped structure
-  HANDLE      handle = INVALID_HANDLE_VALUE; // The file, etc.
+  HANDLE     handle = INVALID_HANDLE_VALUE; // The file, etc.
 
   io_type    type;              // Buffers are only used for READ/WRITE
 

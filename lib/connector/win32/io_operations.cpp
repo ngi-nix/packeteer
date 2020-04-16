@@ -48,12 +48,12 @@ read(
     DWORD have_read = 0;
     BOOL res = FALSE;
     if (overlapped::CHECK_PROGRESS == action) {
-      res = GetOverlappedResultEx(ctx.handle, &(ctx.overlapped), &have_read,
+      res = GetOverlappedResultEx(ctx.handle, &ctx, &have_read,
           blocking ? PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000 : 0,
           FALSE);
     }
     else {
-      res = ReadFile(ctx.handle, ctx.buf, ctx.buflen, &have_read, &(ctx.overlapped));
+      res = ReadFile(ctx.handle, ctx.buf, ctx.buflen, &have_read, &ctx);
     }
 
     if (res) {
@@ -130,12 +130,12 @@ write(
     DWORD have_written = 0;
     BOOL res = FALSE;
     if (overlapped::CHECK_PROGRESS == action) {
-      res = GetOverlappedResultEx(ctx.handle, &(ctx.overlapped), &have_written,
+      res = GetOverlappedResultEx(ctx.handle, &ctx, &have_written,
           blocking ? PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000 : 0,
           FALSE);
     }
     else {
-      res = WriteFile(ctx.handle, ctx.buf, ctx.buflen, &have_written, &(ctx.overlapped));
+      res = WriteFile(ctx.handle, ctx.buf, ctx.buflen, &have_written, &ctx);
     }
 
     if (res) {
