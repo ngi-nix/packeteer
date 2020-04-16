@@ -47,7 +47,8 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
   packeteer::handle h;
   try {
     h = detail::create_named_pipe(path, blocking,
-        false, // R+W
+        true,  // Readable
+        true,  // Writable
         true   // Remote ok. XXX: we can change this into an option
     );
   } catch (packeteer::exception const & ex) {
@@ -122,7 +123,8 @@ connector_pipe::connect()
   auto err = detail::connect_to_pipe(m_handle,
       m_addr.full_str(),
       is_blocking(),
-      false // R+W
+      true, // Readable
+      true  // Writable
   );
   return err;
 }

@@ -51,7 +51,7 @@ std::string normalize_pipe_path(std::string const & original);
  **/
 PACKETEER_PRIVATE
 handle create_named_pipe(std::string const & name,
-    bool blocking, bool readonly, bool remoteok = false);
+    bool blocking, bool readable, bool writable, bool remoteok);
 
 
 /**
@@ -69,7 +69,7 @@ error_t poll_for_connection(handle & handle);
  **/
 PACKETEER_PRIVATE
 error_t connect_to_pipe(handle & handle, std::string const & name,
-    bool blocking, bool readonly);
+    bool blocking, bool readable, bool writable);
 
 
 /**

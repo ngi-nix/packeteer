@@ -129,15 +129,20 @@ normalize_pipe_path(std::string const & original)
 
 handle
 create_named_pipe(std::string const & name,
-    bool blocking, bool readonly, bool remoteok /* = false */)
+    bool blocking, bool readable, bool writable, bool remoteok /* = false */)
 {
   handle::sys_handle_t res = std::make_shared<handle::opaque_handle>();
 
   std::string normalized = normalize_pipe_path(name);
 
   // Open mode. Always use overlapped I/O
-  DWORD open_mode = readonly ? PIPE_ACCESS_INBOUND 
-                             : PIPE_ACCESS_DUPLEX;
+  DWORD open_mode = 0;
+  if (readable) {
+    open_mode |= PIPE_ACCESS_INBOUND;
+  }
+  if (writable) {
+    open_mode |= PIPE_ACCESS_OUTBOUND;
+  }
   open_mode |= FILE_FLAG_OVERLAPPED;
 
   // Mark handle as (non-)blocking.
@@ -236,7 +241,7 @@ poll_for_connection(handle & handle)
 
 error_t
 connect_to_pipe(handle & handle,
-    std::string const & name, bool blocking, bool readonly)
+    std::string const & name, bool blocking, bool readable, bool writable)
 {
   std::string normalized = normalize_pipe_path(name);
 
@@ -244,9 +249,13 @@ connect_to_pipe(handle & handle,
   DWORD connect_flags = FILE_FLAG_OVERLAPPED;
 
   // Read-only
-  DWORD mode = GENERIC_READ;
-  DWORD share = FILE_SHARE_READ;
-  if (!readonly) {
+  DWORD mode = 0;
+  DWORD share = 0;
+  if (readable) {
+    mode |= GENERIC_READ;
+    share |= FILE_SHARE_READ;
+  }
+  if (writable) {
     mode |= GENERIC_WRITE;
     share |= FILE_SHARE_WRITE;
   }

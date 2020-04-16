@@ -97,7 +97,7 @@ TEST(PipeOperations, create_named_bad_name)
 {
   namespace pd = packeteer::detail;
 
-  ASSERT_THROW(pd::create_named_pipe("", true, true), packeteer::exception);
+  ASSERT_THROW(pd::create_named_pipe("", true, true, false, true), packeteer::exception);
 }
 
 
@@ -105,7 +105,7 @@ TEST(PipeOperations, create_named_blocking)
 {
   namespace pd = packeteer::detail;
 
-  auto res = pd::create_named_pipe("foo", true, false);
+  auto res = pd::create_named_pipe("foo", true, true, true, false);
   auto sys_handle = res.sys_handle();
 
   ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
@@ -120,7 +120,7 @@ TEST(PipeOperations, create_named_non_blocking)
 {
   namespace pd = packeteer::detail;
 
-  auto res = pd::create_named_pipe("foo", false, false);
+  auto res = pd::create_named_pipe("foo", false, true, true, false);
   auto sys_handle = res.sys_handle();
 
   ASSERT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
@@ -135,7 +135,7 @@ TEST(PipeOperations, write_writable)
 {
   namespace pd = packeteer::detail;
 
-  auto res = pd::create_named_pipe("foo", true, false);
+  auto res = pd::create_named_pipe("foo", true, true, true, false);
   auto sys_handle = res.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
@@ -160,7 +160,7 @@ TEST(PipeOperations, write_readonly)
 {
   namespace pd = packeteer::detail;
 
-  auto res = pd::create_named_pipe("foo", true, true);
+  auto res = pd::create_named_pipe("foo", true, true, false, false);
   auto sys_handle = res.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
@@ -187,7 +187,7 @@ TEST(PipeOperations, poll_for_connection)
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
-  auto res = pd::create_named_pipe("foo", false, false);
+  auto res = pd::create_named_pipe("foo", false, true, true, false);
   auto sys_handle = res.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, sys_handle->handle);
@@ -210,7 +210,7 @@ TEST(PipeOperations, open_nonexistent_pipe)
   namespace pd = packeteer::detail;
 
   packeteer::handle h;
-  auto err = pd::connect_to_pipe(h, "foo", false, false);
+  auto err = pd::connect_to_pipe(h, "foo", false, true, true);
 
   ASSERT_EQ(packeteer::ERR_FS_ERROR, err);
   ASSERT_FALSE(h.valid());
@@ -224,7 +224,7 @@ TEST(PipeOperations, open_pipe)
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
-  auto server = pd::create_named_pipe("foo", false, false);
+  auto server = pd::create_named_pipe("foo", false, true, true, false);
   auto server_sys_handle = server.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle->handle);
@@ -235,7 +235,7 @@ TEST(PipeOperations, open_pipe)
 
   // Client
   packeteer::handle client;
-  auto err = pd::connect_to_pipe(client, "foo", false, false);
+  auto err = pd::connect_to_pipe(client, "foo", false, true, true);
 
   ASSERT_EQ(packeteer::ERR_SUCCESS, err);
   ASSERT_TRUE(client.valid());
@@ -257,7 +257,7 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
-  auto server = pd::create_named_pipe("foo", false, false);
+  auto server = pd::create_named_pipe("foo", false, true, true, false);
   auto server_sys_handle = server.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle->handle);
@@ -268,7 +268,7 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
 
   // Client #1
   packeteer::handle client1;
-  auto err = pd::connect_to_pipe(client1, "foo", false, false);
+  auto err = pd::connect_to_pipe(client1, "foo", false, true, true);
 
   EXPECT_EQ(packeteer::ERR_SUCCESS, err);
   EXPECT_TRUE(client1.valid());
@@ -279,7 +279,7 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
 
   // Client #2
   packeteer::handle client2;
-  err = pd::connect_to_pipe(client2, "foo", false, false);
+  err = pd::connect_to_pipe(client2, "foo", false, true, true);
 
   ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, err);
   ASSERT_FALSE(client2.valid());
@@ -299,7 +299,7 @@ TEST(PipeOperations, messaging)
 
   // Make non-blocking, because the Windows APIs want you to connect from the
   // client before connecting to the server.
-  auto server = pd::create_named_pipe("foo", false, false);
+  auto server = pd::create_named_pipe("foo", false, true, true, false);
   auto server_sys_handle = server.sys_handle();
 
   EXPECT_NE(INVALID_HANDLE_VALUE, server_sys_handle->handle);
@@ -310,7 +310,7 @@ TEST(PipeOperations, messaging)
 
   // Client #1
   packeteer::handle client1;
-  auto err = pd::connect_to_pipe(client1, "foo", false, false);
+  auto err = pd::connect_to_pipe(client1, "foo", false, true, true);
 
   EXPECT_EQ(packeteer::ERR_SUCCESS, err);
   EXPECT_TRUE(client1.valid());

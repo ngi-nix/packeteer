@@ -44,10 +44,10 @@ struct pipe_context
 
   pipe_context(std::string const & name, bool blocking)
   {
-    server = pd::create_named_pipe(name, blocking, false);
+    server = pd::create_named_pipe(name, blocking, true, true, false);
     EXPECT_TRUE(server.valid());
   
-    auto err = pd::connect_to_pipe(client, name, blocking, false);
+    auto err = pd::connect_to_pipe(client, name, blocking, true, true);
     EXPECT_EQ(p7r::ERR_SUCCESS, err);
     EXPECT_TRUE(client.valid());
   
