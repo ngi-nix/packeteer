@@ -413,7 +413,6 @@ manager::cancel_all()
 
   // Cancel I/O on all handles
   for (auto handle : unique) {
-    LOG("CANCEL ON UNIQUE HANDLE: " << std::hex << handle << std::dec);
     CancelIoEx(handle, nullptr);
   }
 
