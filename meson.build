@@ -214,6 +214,7 @@ int main(int, char**)
 if have_epoll_create
   conf_data.set('PACKETEER_HAVE_EPOLL_CREATE1', true)
 endif
+summary('epoll', have_epoll_create, bool_yn: true, section: 'I/O subsystems')
 
 
 have_select = compiler.compiles('''
@@ -228,6 +229,7 @@ int main(int, char**)
 if have_select
   conf_data.set('PACKETEER_HAVE_SELECT', true)
 endif
+summary('select', have_select, bool_yn: true, section: 'I/O subsystems')
 
 
 have_pselect = compiler.compiles('''
@@ -242,6 +244,7 @@ int main(int, char**)
 if have_pselect
   conf_data.set('PACKETEER_HAVE_PSELECT', true)
 endif
+summary('pselect', have_pselect, bool_yn: true, section: 'I/O subsystems')
 
 
 have_poll = compiler.compiles('''
@@ -256,6 +259,7 @@ int main(int, char**)
 if have_poll
   conf_data.set('PACKETEER_HAVE_POLL', true)
 endif
+summary('poll', have_poll, bool_yn: true, section: 'I/O subsystems')
 
 
 have_ppoll = compiler.compiles('''
@@ -270,6 +274,7 @@ int main(int, char**)
 if have_ppoll
   conf_data.set('PACKETEER_HAVE_PPOLL', true)
 endif
+summary('ppoll', have_ppoll, bool_yn: true, section: 'I/O subsystems')
 
 
 have_pollrdhup = compiler.compiles('''
@@ -313,6 +318,26 @@ int main(int, char **)
 if have_kqueue
   conf_data.set('PACKETEER_HAVE_KQUEUE', true)
 endif
+summary('kqueue', have_kqueue, bool_yn: true, section: 'I/O subsystems')
+
+
+have_iocp = compiler.compiles('''
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define UNICODE
+#define _UNICODE
+#include <windows.h>
+#include <WinDef.h>
+
+int main(int, char **)
+{
+  HANDLE iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 3);
+}
+''', name: 'I/O completion ports')
+if have_iocp
+  conf_data.set('PACKETEER_HAVE_IOCP', true)
+endif
+summary('iocp', have_iocp, bool_yn: true, section: 'I/O subsystems')
 
 
 have_mknod = compiler.compiles('''
@@ -387,6 +412,10 @@ conf_data.set('PACKETEER_CACHE_LINE_SIZE', cache_line_size)
 event_wait_interval_usec = get_option('event_wait_interval_usec')
 summary('Event wait interval (usec)', event_wait_interval_usec, section: 'Build options')
 conf_data.set('PACKETEER_EVENT_WAIT_INTERVAL_USEC', event_wait_interval_usec)
+
+event_max = get_option('event_max')
+summary('Maximum number of events to dequeue at once', event_max, section: 'Build options')
+conf_data.set('PACKETEER_EVENT_MAX', event_max)
 
 io_buffer_size = get_option('io_buffer_size')
 summary('I/O buffers (Bytes)', io_buffer_size, section: 'Build options')
@@ -495,6 +524,10 @@ endif
 
 if have_kqueue
   libsrc +=  ['lib' / 'scheduler' / 'io' / 'kqueue.cpp']
+endif
+
+if have_iocp
+  libsrc +=  ['lib' / 'scheduler' / 'io' / 'iocp.cpp']
 endif
 
 posixsrc = [

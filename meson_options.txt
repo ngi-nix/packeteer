@@ -11,6 +11,11 @@ It doesnt make much sense to have different timer resolutions on different
 platforms, so the recommendation is not to change this.''',
   value: 20000,
 )
+option('event_max', type: 'integer',
+  description: '''Maximum number of events to dequeue from the kernel on I/O
+subsystems that support this.''',
+  value: 512,
+)
 option('io_buffer_size', type: 'integer',
   description: '''On systems that support it, set the default I/O buffer size.
 On Windows, the value may be advisory only. The value is not used everywhere,

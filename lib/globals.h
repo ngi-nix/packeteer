@@ -24,6 +24,8 @@
 #error You are trying to include a C++ only header file
 #endif
 
+#include <build-config.h>
+
 /*****************************************************************************
  * *Internal* global definitions.
  **/
@@ -37,9 +39,10 @@
 
 
 /**
- * Maximum number of events to read with Epoll/KQueue at a single call.
+ * Maximum number of events to read with Epoll/KQueue/IOCP at a single call.
  **/
-#define PACKETEER_EPOLL_MAXEVENTS   256
-#define PACKETEER_KQUEUE_MAXEVENTS  PACKETEER_EPOLL_MAXEVENTS
+#define PACKETEER_EPOLL_MAXEVENTS   PACKETEER_EVENT_MAX
+#define PACKETEER_KQUEUE_MAXEVENTS  PACKETEER_EVENT_MAX
+#define PACKETEER_IOCP_MAXEVENTS    PACKETEER_EVENT_MAX
 
 #endif // guard
