@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -217,10 +217,8 @@ scheduler::scheduler_impl::start_main_loop()
     throw exception(err, "Could not connect main loop pipe.");
   }
 
-  m_io->register_handle(m_main_loop_pipe.get_read_handle(),
+  m_io->register_connector(m_main_loop_pipe,
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
-  // m_io->register_handle(m_main_loop_pipe.get_write_handle(),
-  //     PEV_IO_WRITE | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_thread = std::thread(&scheduler_impl::main_scheduler_loop, this);
 }
@@ -237,7 +235,7 @@ scheduler::scheduler_impl::stop_main_loop()
     m_main_loop_thread.join();
   }
 
-  m_io->unregister_handle(m_main_loop_pipe.get_read_handle(),
+  m_io->unregister_connector(m_main_loop_pipe,
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   m_main_loop_pipe.close();
@@ -322,7 +320,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       {
         // Add the callback for the event mask
         auto updated = m_io_callbacks.add(io);
-        m_io->register_handle(updated->m_handle, updated->m_events);
+        m_io->register_connector(updated->m_connector, updated->m_events);
       }
       break;
 
@@ -331,7 +329,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       {
         // Add the callback from the event mask
         auto updated = m_io_callbacks.remove(io);
-        m_io->unregister_handle(updated->m_handle, updated->m_events);
+        m_io->unregister_connector(updated->m_connector, updated->m_events);
         delete io;
       }
       break;
@@ -419,18 +417,17 @@ scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data>
       entry_list_t & to_schedule)
 {
   LOG("I/O callbacks");
-  handle own_pipe = m_main_loop_pipe.get_read_handle();
 
   // Process events, and try to find a callback for each of them.
   for (auto event : events) {
-    if (own_pipe == event.m_handle) {
+    if (m_main_loop_pipe == event.m_connector) {
       // We just got interrupted; clear the interrupt
       detail::clear_interrupt(m_main_loop_pipe);
       continue;
     }
 
     // Find callback(s).
-    auto callbacks = m_io_callbacks.copy_matching(event.m_handle, event.m_events);
+    auto callbacks = m_io_callbacks.copy_matching(event.m_connector, event.m_events);
     to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
   }
 }
@@ -581,7 +578,7 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
   std::vector<detail::event_data> events;
   m_io->wait_for_events(events, timeout);
   //for (auto event : events) {
-  //  LOG("got events " << event.m_events << " for " << event.m_handle);
+  //  LOG("got events " << event.m_events << " for " << event.m_connector);
   //}
 
   // Process all callbacks that want to be invoked now. Since we can't have

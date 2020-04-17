@@ -29,7 +29,7 @@
 #include <packeteer.h>
 
 #include <packeteer/error.h>
-#include <packeteer/handle.h>
+#include <packeteer/connector.h>
 
 #include <packeteer/scheduler/types.h>
 #include <packeteer/scheduler/callback.h>
@@ -42,13 +42,13 @@ namespace packeteer {
  *
  * It's a cross between an efficient I/O poller and a (statically sized)
  * thread pool implementation. Functions can be scheduled to run on one of the
- * worker threads at a specified time, or when a handle becomes ready for I/O.
+ * worker threads at a specified time, or when a connector becomes ready for I/O.
  *
  * As with other thread pool implementations, you must take care to avoid
  * performing blocking or long-running tasks in callbacks or risk reducing the
  * efficiency of the scheduler as a whole.
  *
- * For I/O events, callbacks will be invoked once per handle for which any I/O
+ * For I/O events, callbacks will be invoked once per connector for which any I/O
  * event occurred, e.g. once for (PEV_IO_READ | PEV_IO_WRITE). For other events,
  * callbacks will be invoked once per event that occurred.
  **/
@@ -95,34 +95,34 @@ public:
   // Not default because of std::experimental::propagate_const
   ~scheduler();
 
-
   /**
-   * Register a function for the given events on the given file descriptor.
+   * Register a function for the given events on the given connector.
    *
    * You can pass non-I/O events here, but PEV_TIMEOUT will be ignored as there
    * is no timeout value specified.
    *
    * It is not recommended that you register a callback for PEV_IO_WRITE for a
-   * long time. All non-blocking file descriptors will generally always be ready
-   * for writing, which means these callbacks will be fired all the time.
+   * long time. All non-blocking connectors will generally always be ready for
+   * writing, which means these callbacks will be fired all the time.
    *
    * It is much better to register callbacks only when you have data to write,
    * and writing is not currently possible - then unregister the callback again
    * when it's called, and all data could be written.
+   *
+   * Note that PEV_IO_READ will only be registered for the read handle of a
+   * connector, whereas PEV_IO_WRITE only applies to write handles. Other
+   * event types are applied to both.
    **/
-  error_t register_handle(events_t const & events, handle const & h,
+  error_t register_connector(events_t const & events, connector const & conn,
       callback const & callback);
-
 
 
   /**
-   * Stop listening to the given events on the given file descriptor. If no
-   * more events are listened to, the file descriptor and callback will be
-   * forgotten.
+   * Stop listening to the given events on the given connector. If no more
+   * events are listened to, the connector and callback will be forgotten.
    **/
-  error_t unregister_handle(events_t const & events, handle const & h,
+  error_t unregister_connector(events_t const & events, connector const & conn,
       callback const & callback);
-
 
 
   /**

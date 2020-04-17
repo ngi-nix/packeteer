@@ -45,11 +45,11 @@ public:
   io_epoll();
   ~io_epoll();
 
-  void register_handle(handle const & handle, events_t const & events);
-  void register_handles(handle const * handles, size_t amount, events_t const & events);
+  void register_connector(connector const & conn, events_t const & events);
+  void register_connectors(connector const * conns, size_t amount, events_t const & events);
 
-  void unregister_handle(handle const & handle, events_t const & events);
-  void unregister_handles(handle const * handles, size_t amount, events_t const & events);
+  void unregister_connector(connector const & conn, events_t const & events);
+  void unregister_connectors(connector const * conns, size_t amount, events_t const & events);
 
   virtual void wait_for_events(std::vector<event_data> & events,
       duration const & timeout);
@@ -58,7 +58,7 @@ private:
   /***************************************************************************
    * Data
    **/
-  int       m_epoll_fd;
+  int m_epoll_fd;
 };
 
 

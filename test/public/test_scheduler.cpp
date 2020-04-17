@@ -32,7 +32,7 @@
 #include <thread>
 #include <chrono>
 
-namespace pk = packeteer;
+namespace p7r = packeteer;
 namespace sc = std::chrono;
 
 namespace {
@@ -43,8 +43,8 @@ namespace {
  **/
 struct test_callback
 {
-  std::atomic<int>          m_called;
-  std::atomic<pk::events_t> m_mask;
+  std::atomic<int>            m_called;
+  std::atomic<p7r::events_t>  m_mask;
 
   test_callback()
     : m_called(0)
@@ -53,15 +53,15 @@ struct test_callback
   }
 
 
-  pk::error_t
-  func(pk::events_t mask, [[maybe_unused]] pk::error_t error,
-      [[maybe_unused]] pk::handle const & h, void *)
+  p7r::error_t
+  func(p7r::events_t mask, [[maybe_unused]] p7r::error_t error,
+      p7r::connector const & conn [[maybe_unused]], void *)
   {
     ++m_called;
     m_mask = mask;
-    LOG("callback called: " << error << " - " << h << " - " << mask);
+    LOG("callback called: " << error << " - " << conn << " - " << mask);
 
-    return pk::error_t(0);
+    return p7r::error_t(0);
   }
 };
 
@@ -71,17 +71,17 @@ struct counting_callback
   std::atomic<int> m_read_called = 0;
   std::atomic<int> m_write_called = 0;
 
-  pk::error_t
-  func(pk::events_t mask, pk::error_t error [[maybe_unused]],
-      pk::handle const & h [[maybe_unused]], void *)
+  p7r::error_t
+  func(p7r::events_t mask, p7r::error_t error [[maybe_unused]],
+      p7r::connector const & conn [[maybe_unused]], void *)
   {
-    if (mask & pk::PEV_IO_READ) {
+    if (mask & p7r::PEV_IO_READ) {
       ++m_read_called;
     }
-    if (mask & pk::PEV_IO_WRITE) {
+    if (mask & p7r::PEV_IO_WRITE) {
       ++m_write_called;
     }
-    return pk::error_t(0);
+    return p7r::error_t(0);
   }
 
 };
@@ -98,8 +98,8 @@ struct thread_id_callback
   }
 
 
-  pk::error_t
-  func(pk::events_t, pk::error_t, pk::handle const &, void *)
+  p7r::error_t
+  func(p7r::events_t, p7r::error_t, p7r::connector const &, void *)
   {
     m_tid = std::this_thread::get_id();
 
@@ -107,18 +107,18 @@ struct thread_id_callback
     std::this_thread::sleep_for(sc::milliseconds(50));
     LOG("callback ended");
 
-    return pk::error_t(0);
+    return p7r::error_t(0);
   }
 };
 
 
 struct reading_callback : public test_callback
 {
-  pk::connector & m_conn;
+  p7r::connector & m_conn;
   size_t m_read;
   int m_called_before_read;
 
-  reading_callback(pk::connector & conn)
+  reading_callback(p7r::connector & conn)
     : test_callback()
     , m_conn(conn)
     , m_read(0)
@@ -126,10 +126,10 @@ struct reading_callback : public test_callback
   {
   }
 
-  pk::error_t
-  func(pk::events_t mask, pk::error_t error, pk::handle const & h, void *)
+  p7r::error_t
+  func(p7r::events_t mask, p7r::error_t error, p7r::connector const & h, void *)
   {
-    pk::error_t err = test_callback::func(mask, error, h, nullptr);
+    p7r::error_t err = test_callback::func(mask, error, h, nullptr);
     if (err != 0) {
       return err;
     }
@@ -153,7 +153,7 @@ struct reading_callback : public test_callback
   {                                     \
     int called = cb.m_called;           \
     ASSERT_EQ(expected_called, called); \
-    pk::events_t mask = cb.m_mask;          \
+    p7r::events_t mask = cb.m_mask;          \
     ASSERT_EQ(expected_mask, mask);     \
     cb.m_mask = 0; /* reset mask */     \
   }
@@ -162,7 +162,7 @@ struct reading_callback : public test_callback
   {                                     \
     int called = cb.m_called;           \
     ASSERT_GT(called, expected_called); \
-    pk::events_t mask = cb.m_mask;          \
+    p7r::events_t mask = cb.m_mask;          \
     ASSERT_EQ(expected_mask, mask);     \
     cb.m_mask = 0; /* reset mask */     \
   }
@@ -210,10 +210,10 @@ TEST_P(Scheduler, delayed_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  pk::callback cb = pk::make_callback(&source, &test_callback::func);
+  p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
   sched.schedule_once(sc::milliseconds(50), cb);
 
@@ -222,8 +222,8 @@ TEST_P(Scheduler, delayed_callback)
   int called = source.m_called;
   ASSERT_EQ(1, called);
 
-  pk::events_t mask = source.m_mask;
-  ASSERT_EQ(pk::PEV_TIMEOUT, mask);
+  p7r::events_t mask = source.m_mask;
+  ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
 }
 
 
@@ -232,20 +232,20 @@ TEST_P(Scheduler, timed_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  pk::callback cb = pk::make_callback(&source, &test_callback::func);
+  p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
-  sched.schedule_at(pk::clock::now() + sc::milliseconds(50), cb);
+  sched.schedule_at(p7r::clock::now() + sc::milliseconds(50), cb);
 
   std::this_thread::sleep_for(sc::milliseconds(100));
 
   int called = source.m_called;
   ASSERT_EQ(1, called);
 
-  pk::events_t mask = source.m_mask;
-  ASSERT_EQ(pk::PEV_TIMEOUT, mask);
+  p7r::events_t mask = source.m_mask;
+  ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
 }
 
 
@@ -254,12 +254,12 @@ TEST_P(Scheduler, repeat_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  pk::callback cb = pk::make_callback(&source, &test_callback::func);
+  p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
-  sched.schedule(pk::clock::now(), sc::milliseconds(50),
+  sched.schedule(p7r::clock::now(), sc::milliseconds(50),
       3, cb);
 
   std::this_thread::sleep_for(sc::milliseconds(200));
@@ -267,8 +267,8 @@ TEST_P(Scheduler, repeat_callback)
   int called = source.m_called;
   ASSERT_EQ(3, called);
 
-  pk::events_t mask = source.m_mask;
-  ASSERT_EQ(pk::PEV_TIMEOUT, mask);
+  p7r::events_t mask = source.m_mask;
+  ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
 }
 
 
@@ -281,12 +281,12 @@ TEST_P(Scheduler, infinite_callback)
   // explicitly unscheduled, the callback cannot be invoked any longer.
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  pk::callback cb = pk::make_callback(&source, &test_callback::func);
+  p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
-  auto now = pk::clock::now();
+  auto now = p7r::clock::now();
 
   sched.schedule(now, sc::milliseconds(50), cb);
 
@@ -297,8 +297,8 @@ TEST_P(Scheduler, infinite_callback)
   int called = source.m_called;
   ASSERT_EQ(3, called);
 
-  pk::events_t mask = source.m_mask;
-  ASSERT_EQ(pk::PEV_TIMEOUT, mask);
+  p7r::events_t mask = source.m_mask;
+  ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
 
   sched.unschedule(cb);
 
@@ -310,7 +310,7 @@ TEST_P(Scheduler, infinite_callback)
   ASSERT_EQ(3, called);
 
   mask = source.m_mask;
-  ASSERT_EQ(pk::PEV_TIMEOUT, mask);
+  ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
 }
 
 
@@ -328,13 +328,13 @@ TEST_P(Scheduler, delayed_repeat_callback)
   sc::milliseconds interval = sc::milliseconds(80);
   // Now the initial delay needs to be just higher than the difference between
   // the wait time and two intervals, i.e. delay > wait - 2 * interval
-  auto delay = pk::clock::now() + sc::milliseconds(60);
+  auto delay = p7r::clock::now() + sc::milliseconds(60);
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  pk::callback cb = pk::make_callback(&source, &test_callback::func);
+  p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
   sched.schedule(delay, interval, -1, cb);
 
@@ -344,8 +344,8 @@ TEST_P(Scheduler, delayed_repeat_callback)
   int called = source.m_called;
   ASSERT_EQ(2, called);
 
-  pk::events_t mask = source.m_mask;
-  ASSERT_EQ(pk::PEV_TIMEOUT, mask);
+  p7r::events_t mask = source.m_mask;
+  ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
 
   sched.unschedule(cb);
 }
@@ -361,12 +361,12 @@ TEST_P(Scheduler, parallel_callback)
   // thread ids afterwards for this to succeed.
 
   // We need >1 thread to enable parallell processing.
-  pk::scheduler sched(test_env->api, 2, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 2, static_cast<p7r::scheduler::scheduler_type>(td));
 
   thread_id_callback source1;
-  pk::callback cb1 = pk::make_callback(&source1, &thread_id_callback::func);
+  p7r::callback cb1 = p7r::make_callback(&source1, &thread_id_callback::func);
   thread_id_callback source2;
-  pk::callback cb2 = pk::make_callback(&source2, &thread_id_callback::func);
+  p7r::callback cb2 = p7r::make_callback(&source2, &thread_id_callback::func);
 
   sched.schedule_once(sc::milliseconds(50), cb1);
   sched.schedule_once(sc::milliseconds(50), cb2);
@@ -389,20 +389,20 @@ TEST_P(Scheduler, user_callback)
   // to only be invoked for the other.
   enum user_events
   {
-    EVENT_1 = 1 * pk::PEV_USER,
-    EVENT_2 = 2 * pk::PEV_USER,
-    EVENT_3 = 4 * pk::PEV_USER,
+    EVENT_1 = 1 * p7r::PEV_USER,
+    EVENT_2 = 2 * p7r::PEV_USER,
+    EVENT_3 = 4 * p7r::PEV_USER,
   };
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source1;
-  pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
+  p7r::callback cb1 = p7r::make_callback(&source1, &test_callback::func);
   sched.register_event(EVENT_1 | EVENT_2 | EVENT_3, cb1);
 
   test_callback source2;
-  pk::callback cb2 = pk::make_callback(&source2, &test_callback::func);
+  p7r::callback cb2 = p7r::make_callback(&source2, &test_callback::func);
   sched.register_event(EVENT_2 | EVENT_3, cb2);
 
   ASSERT_NE(cb1, cb2);
@@ -497,8 +497,8 @@ TEST_P(Scheduler, user_callback)
 
 
   // Also ensure that fire_event() does not work with system events.
-  ASSERT_EQ(pk::ERR_INVALID_VALUE,
-      sched.fire_events(pk::PEV_IO_READ));
+  ASSERT_EQ(p7r::ERR_INVALID_VALUE,
+      sched.fire_events(p7r::PEV_IO_READ));
 }
 
 
@@ -507,38 +507,38 @@ TEST_P(Scheduler, io_callback)
   auto td = GetParam();
 
   // The simplest way to test I/O callbacks is with a pipe.
-  pk::connector pipe{test_env->api, "anon://"};
+  p7r::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source1;
-  pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
-  sched.register_handle(pk::PEV_IO_READ, pipe.get_read_handle(), cb1);
+  p7r::callback cb1 = p7r::make_callback(&source1, &test_callback::func);
+  sched.register_connector(p7r::PEV_IO_READ, pipe, cb1);
 
   test_callback source2;
-  pk::callback cb2 = pk::make_callback(&source2, &test_callback::func);
-  sched.register_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb2);
+  p7r::callback cb2 = p7r::make_callback(&source2, &test_callback::func);
+  sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb2);
 
   std::this_thread::sleep_for(sc::milliseconds(50));
 
-  sched.unregister_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb2);
+  sched.unregister_connector(p7r::PEV_IO_WRITE, pipe, cb2);
 
   std::this_thread::sleep_for(sc::milliseconds(50));
 
   // The second callback must have been invoked multiple times, because the
   // pipe is always (at this level of I/O load) writeable.
-  ASSERT_CALLBACK_GREATER(source2, 0, pk::PEV_IO_WRITE);
+  ASSERT_CALLBACK_GREATER(source2, 0, p7r::PEV_IO_WRITE);
 
   // On the other hand, without writing to the pipe, we should not have any
   // callbacks for reading.
   ASSERT_CALLBACK(source1, 0, 0);
-  sched.unregister_handle(pk::PEV_IO_WRITE, pipe.get_write_handle(), cb1);
+  sched.unregister_connector(p7r::PEV_IO_WRITE, pipe, cb1);
 
   reading_callback reading(pipe);
-  pk::callback rd = pk::make_callback(&reading, &reading_callback::func);
-  sched.register_handle(pk::PEV_IO_READ, pipe.get_read_handle(), rd);
+  p7r::callback rd = p7r::make_callback(&reading, &reading_callback::func);
+  sched.register_connector(p7r::PEV_IO_READ, pipe, rd);
 
   // So let's write something to the pipe. This will trigger the read callback
   // until we're reading from the pipe again.
@@ -550,7 +550,7 @@ TEST_P(Scheduler, io_callback)
   std::this_thread::sleep_for(sc::milliseconds(50));
 
   // After writing, there must be a callback
-  ASSERT_CALLBACK_GREATER(reading, 0, pk::PEV_IO_READ);
+  ASSERT_CALLBACK_GREATER(reading, 0, p7r::PEV_IO_READ);
 
   // We may have been called multiple times, but we should only have been
   // called once before reading from the pipe.
@@ -568,15 +568,15 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
   auto td = GetParam();
 
   // First case registers read/write callbacks simultaneously.
-  pk::connector pipe{test_env->api, "anon://"};
+  p7r::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   counting_callback source;
-  pk::callback cb = pk::make_callback(&source, &counting_callback::func);
-  sched.register_handle(pk::PEV_IO_READ|pk::PEV_IO_WRITE, pipe.get_read_handle(), cb);
+  p7r::callback cb = p7r::make_callback(&source, &counting_callback::func);
+  sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
 
   std::this_thread::sleep_for(sc::milliseconds(50));
 
@@ -600,16 +600,15 @@ TEST_P(Scheduler, io_callback_registration_sequence)
   auto td = GetParam();
 
   // Second case registers them one after another, which could lead to overwrites.
-  pk::connector pipe{test_env->api, "anon://"};
+  p7r::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
   // We only need one thread for this.
-  pk::scheduler sched(test_env->api, 1, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   counting_callback source;
-  pk::callback cb = pk::make_callback(&source, &counting_callback::func);
-  sched.register_handle(pk::PEV_IO_READ, pipe.get_read_handle(), cb);
-  sched.register_handle(pk::PEV_IO_WRITE, pipe.get_read_handle(), cb);
+  p7r::callback cb = p7r::make_callback(&source, &counting_callback::func);
+  sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_READ, pipe, cb);
 
   std::this_thread::sleep_for(sc::milliseconds(50));
 
@@ -636,14 +635,14 @@ TEST_P(Scheduler, single_threaded)
   // We use a single user-triggered event here for simplicity.
   enum user_events
   {
-    EVENT_1 = 1 * pk::PEV_USER,
+    EVENT_1 = 1 * p7r::PEV_USER,
   };
 
   // Single-threaded scheduler
-  pk::scheduler sched(test_env->api, 0, static_cast<pk::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source1;
-  pk::callback cb1 = pk::make_callback(&source1, &test_callback::func);
+  p7r::callback cb1 = p7r::make_callback(&source1, &test_callback::func);
   sched.register_event(EVENT_1, cb1);
 
   // EVENT_1

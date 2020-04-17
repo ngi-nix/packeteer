@@ -77,8 +77,8 @@ public:
    *  - udp6: IPv6 UDP connection
    *  - udp: IPv4 or IPv6 UDP connection, depending on availability
    *  - anon: anonymous pipe, similar to the pipe class. Mostly usable for
-   *      IPC between processes that inherit the file descriptors. Anonymous
-   *      pipes are unidirectional.
+   *      IPC between processes that inherit the underlying system handles.
+   *      Anonymous pipes are unidirectional.
    *  - local: UNIX domain sockets (POSIX only)
    *  - pipe: UNIX named pipe or Windows named pipe
    *
@@ -187,14 +187,13 @@ public:
   connector accept() const;
 
   /**
-   * Connectors, once bound or connected, have one or more file descriptors
-   * associated with them. Normally, there is one file descriptor for reading,
-   * and one file descriptor for writing.
-   *
-   * You typically want to use these file descriptors together with the
-   * scheduler class.
+   * Connectors, once bound or connected, have one or more handles associated
+   * with them. Normally, there is one handle for reading, and one handle for
+   * writing. They may both be the same handle.
    *
    * Return an invalid handle if the connector is neither bound nor connected.
+   *
+   * This function is mainly for internal use.
    **/
   handle get_read_handle() const;
   handle get_write_handle() const;

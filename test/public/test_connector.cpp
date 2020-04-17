@@ -357,10 +357,10 @@ struct server_connect_callback
   ::packeteer::error_t
   func([[maybe_unused]] ::packeteer::events_t mask,
       [[maybe_unused]] ::packeteer::error_t error,
-      [[maybe_unused]] handle const & h, void *)
+      [[maybe_unused]] connector const & conn, void *)
   {
     if (!m_conn) {
-      LOG(" ***** INCOMING " << mask << ":" << error << ":" << h.sys_handle());
+      LOG(" ***** INCOMING " << mask << ":" << error << ":" << conn);
       // The accept() function clears the event.
       m_conn = m_server.accept();
       EXPECT_TRUE(m_conn);
@@ -377,11 +377,11 @@ struct client_post_connect_callback
   ::packeteer::error_t
   func([[maybe_unused]] ::packeteer::events_t mask,
       [[maybe_unused]] ::packeteer::error_t error,
-      [[maybe_unused]] handle const & h, void *)
+      [[maybe_unused]] connector const & conn, void *)
   {
     if (!m_connected) {
       m_connected = true;
-      LOG(" ***** CONNECTED! " << mask << ":" << error << ":" << h.sys_handle());
+      LOG(" ***** CONNECTED! " << mask << ":" << error << ":" << conn);
     }
 
     return ERR_SUCCESS;
@@ -492,17 +492,15 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   scheduler sched(test_env->api, 1);
   server_connect_callback server_struct(server);
   auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
-  sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, server.get_read_handle(),
-      server_cb);
+  sched.register_connector(PEV_IO_READ|PEV_IO_WRITE, server, server_cb);
 
-  // Give scheduler a chance to register handlers
+  // Give scheduler a chance to register connectors
   std::this_thread::sleep_for(std::chrono::milliseconds(20));
   ASSERT_EQ(ERR_ASYNC, client.connect());
 
   client_post_connect_callback client_struct;
   auto client_cb = make_callback(&client_struct, &client_post_connect_callback::func);
-  sched.register_handle(PEV_IO_READ|PEV_IO_WRITE, client.get_read_handle(),
-      client_cb);
+  sched.register_connector(PEV_IO_READ|PEV_IO_WRITE, client, client_cb);
 
   // Wait for all callbacks to be invoked.
   std::this_thread::sleep_for(std::chrono::milliseconds(50));

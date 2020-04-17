@@ -35,7 +35,7 @@
 
 #include <packeteer/error.h>
 #include <packeteer/types.h>
-#include <packeteer/handle.h>
+#include <packeteer/connector.h>
 
 namespace sc = std::chrono;
 
@@ -152,6 +152,36 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
 }
 
 
+inline void
+modify_conn_set(int epoll_fd, int action, connector const * conns, size_t size,
+    events_t const & events)
+{
+  // We treat error, etc. events as applying to both the read and write end of
+  // each connector, but apply PEV_IO_READ only to the read end, and
+  // PEV_IO_WRITE only to the write end. If both handles are the same, we let
+  // the system figure that out.
+  std::vector<int> readers;
+  readers.reserve(size);
+  std::vector<int> writers;
+  writers.reserve(size);
+
+  for (size_t i = 0 ; i < size ; ++i) {
+    connector const & conn = conns[i];
+    if (events & PEV_IO_READ) {
+      readers.push_back(conn.get_read_handle().sys_handle());
+    }
+    if (events & PEV_IO_WRITE) {
+      writers.push_back(conn.get_write_handle().sys_handle());
+    }
+  }
+
+  modify_fd_set(epoll_fd, action, &readers[0], readers.size(),
+      events | ~PEV_IO_WRITE);
+  modify_fd_set(epoll_fd, action, &writers[0], writers.size(),
+      events | ~PEV_IO_READ);
+}
+
+
 } // anonymous namespace
 
 
@@ -197,48 +227,52 @@ io_epoll::~io_epoll()
 
 
 void
-io_epoll::register_handle(handle const & h, events_t const & events)
+io_epoll::register_connector(connector const & conn, events_t const & events)
 {
-  int fds[] = { h.sys_handle() };
-  modify_fd_set(m_epoll_fd, EPOLL_CTL_ADD, fds, sizeof(fds) / sizeof(int),
-      events);
+  connector conns[] = { conn };
+  constexpr auto size = sizeof(conns) / sizeof(connector);
+
+  io::register_connectors(conns, size, events);
+
+  modify_conn_set(m_epoll_fd, EPOLL_CTL_ADD, conns,
+      sizeof(conns) / sizeof(connector), events);
 }
 
 
 
 void
-io_epoll::register_handles(handle const * handles, size_t size,
+io_epoll::register_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
-  std::vector<int> fds(size);
-  for (size_t i = 0 ; i < size ; ++i) {
-    fds[i] = handles[i].sys_handle();
-  }
-  modify_fd_set(m_epoll_fd, EPOLL_CTL_ADD, &fds[0], size, events);
+  io::register_connectors(conns, size, events);
+
+  modify_conn_set(m_epoll_fd, EPOLL_CTL_ADD, conns, size, events);
 }
 
 
 
 
 void
-io_epoll::unregister_handle(handle const & h, events_t const & events)
+io_epoll::unregister_connector(connector const & conn, events_t const & events)
 {
-  int fds[] = { h.sys_handle() };
-  modify_fd_set(m_epoll_fd, EPOLL_CTL_DEL, fds, sizeof(fds) / sizeof(int),
-      events);
+  connector conns[] = { conn };
+  constexpr auto size = sizeof(conns) / sizeof(connector);
+
+  io::unregister_connectors(conns, size, events);
+
+  modify_conn_set(m_epoll_fd, EPOLL_CTL_DEL, conns,
+      sizeof(conns) / sizeof(connector), events);
 }
 
 
 
 void
-io_epoll::unregister_handles(handle const * handles, size_t size,
+io_epoll::unregister_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
-  std::vector<int> fds(size);
-  for (size_t i = 0 ; i < size ; ++i) {
-    fds[i] = handles[i].sys_handle();
-  }
-  modify_fd_set(m_epoll_fd, EPOLL_CTL_DEL, &fds[0], size, events);
+  io::unregister_connectors(conns, size, events);
+
+  modify_conn_set(m_epoll_fd, EPOLL_CTL_DEL, conns, size, events);
 }
 
 
@@ -278,7 +312,7 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
   // Translate events
   for (int i = 0 ; i < ready ; ++i) {
     event_data data = {
-      handle(epoll_events[i].data.fd),
+      m_connectors[epoll_events[i].data.fd],
       translate_os_to_events(epoll_events[i].events)
     };
     events.push_back(data);

@@ -113,69 +113,16 @@ io_poll::~io_poll()
 
 
 void
-io_poll::register_handle(handle const & h, events_t const & events)
-{
-  m_fds[h.sys_handle()] |= events;
-}
-
-
-
-void
-io_poll::register_handles(handle const * handles, size_t size,
-    events_t const & events)
-{
-  for (size_t i = 0 ; i < size ; ++i) {
-    m_fds[handles[i].sys_handle()] |= events;
-  }
-}
-
-
-
-
-void
-io_poll::unregister_handle(handle const & h, events_t const & events)
-{
-  auto iter = m_fds.find(h.sys_handle());
-  if (iter == m_fds.end()) {
-    return;
-  }
-  iter->second &= ~events;
-  if (!iter->second) {
-    m_fds.erase(iter);
-  }
-}
-
-
-
-void
-io_poll::unregister_handles(handle const * handles, size_t size,
-    events_t const & events)
-{
-  for (size_t i = 0 ; i < size ; ++i) {
-    auto iter = m_fds.find(handles[i].sys_handle());
-    if (iter == m_fds.end()) {
-      continue;
-    }
-    iter->second &= ~events;
-    if (!iter->second) {
-      m_fds.erase(iter);
-    }
-  }
-}
-
-
-
-void
 io_poll::wait_for_events(std::vector<event_data> & events,
       duration const & timeout)
 {
   // Prepare FD set
-  size_t size = m_fds.size();
+  size_t size = m_sys_handles.size();
   std::vector<::pollfd> fds;
   fds.resize(size);
 
   size_t i = 0;
-  for (auto entry : m_fds) {
+  for (auto entry : m_sys_handles) {
     fds[i].fd = entry.first;
     fds[i].events = translate_events_to_os(entry.second);
     fds[i].revents = 0;
@@ -221,11 +168,12 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   // (conceivably, we could just use the subset in the FD sets, but that uses
   // additional memory).
   for (i = 0 ; i < size ; ++i) {
-    int translated = translate_os_to_events(fds[i].revents);
+    events_t translated = translate_os_to_events(fds[i].revents);
     if (translated) {
-      event_data ev;
-      ev.m_handle = handle(fds[i].fd);
-      ev.m_events = translated;
+      event_data ev = {
+        m_connectors[fds[i].fd],
+        translated
+      };
       events.push_back(ev);
     }
   }

@@ -29,7 +29,7 @@
 #include <packeteer.h>
 
 #include <packeteer/types.h>
-#include <packeteer/handle.h>
+#include <packeteer/connector.h>
 
 #include <map>
 
@@ -43,16 +43,17 @@ namespace packeteer::detail {
 //    The above comments on callback uniqueness hold.
 //  - We do not care about the ordering of (callback, eventmask).
 //  - (callback, eventmask) needs to be modifyable, as users can register
-//    and unregister multiple events for the same (callback, handle) tuple.
+//    and unregister multiple events for the same (callback, connector) tuple.
 
 struct io_callback_entry : public callback_entry
 {
-  handle        m_handle;
+  connector     m_connector;
   events_t      m_events;
 
-  io_callback_entry(callback const & cb, handle const & h, events_t const & events)
+  io_callback_entry(callback const & cb, connector const & conn,
+      events_t const & events)
     : callback_entry(CB_ENTRY_IO, cb)
-    , m_handle(h)
+    , m_connector(conn)
     , m_events(events)
   {
   }
@@ -87,7 +88,7 @@ struct io_callbacks_t
   add(io_callback_entry * cb)
   {
     // Try to find callbacks matching the file descriptor.
-    auto range = m_callback_map.equal_range(cb->m_handle);
+    auto range = m_callback_map.equal_range(cb->m_connector);
 
     // Within these, try to find an entry matching the callback already.
     auto c_iter = range.first;
@@ -98,7 +99,7 @@ struct io_callbacks_t
       }
     }
 
-    // Let's see if we found the callback/handle combination
+    // Let's see if we found the callback/connector combination
     if (m_callback_map.end() != c_iter) {
       // Yep, found it. Merge event mask.
       c_iter->second->m_events |= cb->m_events;
@@ -107,7 +108,7 @@ struct io_callbacks_t
     }
     else {
       // Nope, new entry
-      auto ret = m_callback_map.insert(std::make_pair(cb->m_handle, cb));
+      auto ret = m_callback_map.insert(std::make_pair(cb->m_connector, cb));
       return ret->second;
     }
   }
@@ -125,7 +126,7 @@ struct io_callbacks_t
   remove(io_callback_entry * cb)
   {
     // Try to find callbacks matching the file descriptor
-    auto range = m_callback_map.equal_range(cb->m_handle);
+    auto range = m_callback_map.equal_range(cb->m_connector);
     if (range.first == m_callback_map.end()) {
       // Nothing matches this file descriptor
       return cb;
@@ -140,7 +141,7 @@ struct io_callbacks_t
       }
     }
 
-    // Let's see if we found the callback/handle combination
+    // Let's see if we found the callback/connector combination
     if (range.second != c_iter) {
       // Yep. Remove the event mask bits
       c_iter->second->m_events &= ~(cb->m_events);
@@ -172,15 +173,15 @@ struct io_callbacks_t
   /**
    * As the name implies, this function creates a copy (ownership goes to the
    * caller) of all entries matching one or more of the events in the passed
-   * event mask for the given handle.
+   * event mask for the given connector.
    **/
   std::vector<io_callback_entry *>
-  copy_matching(handle const & h, events_t const & events) const
+  copy_matching(connector const & conn, events_t const & events) const
   {
     std::vector<io_callback_entry *> result;
 
     // Try to find callbacks matching the file descriptor
-    auto range = m_callback_map.equal_range(h);
+    auto range = m_callback_map.equal_range(conn);
 
     // Try to find entries matching the event mask
     auto iter = range.first;
@@ -199,7 +200,7 @@ struct io_callbacks_t
 
 private:
   // For the same file descriptor, we may have multiple callback entries.
-  std::multimap<handle, io_callback_entry *> m_callback_map;
+  std::multimap<connector, io_callback_entry *> m_callback_map;
 };
 
 

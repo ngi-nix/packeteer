@@ -112,7 +112,7 @@ struct callback_entry
 // Events are reported with this structure.
 struct event_data
 {
-  handle    m_handle;
+  connector m_connector;
   events_t  m_events;
 };
 

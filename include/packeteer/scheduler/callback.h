@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -32,7 +32,7 @@
 #include <functional>
 #include <type_traits>
 
-#include <packeteer/handle.h>
+#include <packeteer/connector.h>
 
 #include <packeteer/scheduler/events.h>
 
@@ -49,7 +49,7 @@ namespace detail {
 struct callback_helper_base
 {
   virtual ~callback_helper_base() {}
-  virtual error_t invoke(events_t const & events, error_t error, handle const & h, void * baton) = 0;
+  virtual error_t invoke(events_t const & events, error_t error, connector const & conn, void * baton) = 0;
   virtual bool equal_to(callback_helper_base const * other) const = 0;
   virtual bool less_than(callback_helper_base const * other) const = 0;
   virtual size_t hash() const = 0;
@@ -69,7 +69,7 @@ struct callback_helper_base
  * Part of the simplification means that callback objects don't hold any type
  * of function, only those conforming to the following prototype:
  *
- *  error_t <name>(events_t events, error_t error, handle const & h, void * baton)
+ *  error_t <name>(events_t events, error_t error, connector const & conn, void * baton)
  *
  * Much like std::function, however, callback classes can hold pointers to
  * free functions as well as pointers to object functions. Note that for the
@@ -90,7 +90,7 @@ public:
    **/
   // Typedef for free functions.
   using free_function_type = std::add_pointer<
-      error_t (events_t, error_t, handle const &, void *)
+      error_t (events_t, error_t, connector const &, void *)
   >::type;
 
   /*****************************************************************************
@@ -213,13 +213,13 @@ public:
    **/
   inline
   error_t
-  operator()(events_t events, error_t error, handle const & h, void * baton)
+  operator()(events_t events, error_t error, connector const & conn, void * baton)
   {
     if (nullptr != m_free_function) {
-      return (*m_free_function)(events, error, h, baton);
+      return (*m_free_function)(events, error, conn, baton);
     }
     else if (nullptr != m_object_helper) {
-      return m_object_helper->invoke(events, error, h, baton);
+      return m_object_helper->invoke(events, error, conn, baton);
     }
     else {
       throw exception(ERR_EMPTY_CALLBACK);
@@ -288,7 +288,7 @@ namespace detail {
 template <typename T>
 struct callback_helper : public callback_helper_base
 {
-  typedef error_t (T::*member_function_type)(events_t, error_t, handle const &,
+  typedef error_t (T::*member_function_type)(events_t, error_t, connector const &,
       void *);
 
 
@@ -300,10 +300,10 @@ struct callback_helper : public callback_helper_base
 
 
 
-  virtual error_t invoke(events_t const & events, error_t error, handle const & h,
-      void * baton)
+  virtual error_t invoke(events_t const & events, error_t error,
+      connector const & conn, void * baton)
   {
-    return (m_object->*m_function)(events, error, h, baton);
+    return (m_object->*m_function)(events, error, conn, baton);
   }
 
 

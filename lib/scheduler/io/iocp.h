@@ -35,11 +35,12 @@
 #include <packeteer/scheduler/events.h>
 
 #include "../io.h"
+#include "event_map.h"
 
 namespace packeteer::detail {
 
 // I/O subsystem based on select.
-struct io_iocp : public io
+struct io_iocp : public event_map
 {
 public:
   io_iocp();
@@ -48,17 +49,6 @@ public:
   void init();
   void deinit();
 
-  virtual void register_handle(handle const & handle, events_t const & events);
-  virtual void register_handles(handle const * handles, size_t amount,
-      events_t const & events);
-
-  virtual void unregister_handle(handle const & handle, events_t const & events);
-  virtual void unregister_handles(handle const * handles, size_t amount,
-      events_t const & events);
-
-  virtual void wait_for_events(std::vector<event_data> & events,
-      packeteer::duration const & timeout);
-
 private:
   using handle_key_t = size_t;
 
@@ -66,7 +56,6 @@ private:
    * Data
    **/
   HANDLE                      m_iocp;
-  std::map<handle, events_t>  m_registered;
 };
 
 

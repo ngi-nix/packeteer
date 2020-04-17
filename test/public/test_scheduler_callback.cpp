@@ -25,38 +25,38 @@
 
 #include <functional>
 
-namespace pk = packeteer;
+namespace p7r = packeteer;
 
 namespace {
 
-pk::error_t free_func1(pk::events_t events, pk::error_t, pk::handle const &, void *)
+p7r::error_t free_func1(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
 {
   EXPECT_EQ(42, events);
-  return pk::error_t(1);
+  return p7r::error_t(1);
 }
 
 
-pk::error_t free_func2(pk::events_t events, pk::error_t, pk::handle const &, void *)
+p7r::error_t free_func2(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
 {
   EXPECT_EQ(666, events);
-  return pk::error_t(2);
+  return p7r::error_t(2);
 }
 
 
 struct functor
 {
-  pk::error_t member_func(pk::events_t events, pk::error_t, pk::handle const &, void *)
+  p7r::error_t member_func(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
   {
     EXPECT_EQ(1234, events);
-    return pk::error_t(3);
+    return p7r::error_t(3);
   }
 
 
 
-  pk::error_t operator()(pk::events_t events, pk::error_t, pk::handle const &, void *)
+  p7r::error_t operator()(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
   {
     EXPECT_EQ(0xdeadbeef, events);
-    return pk::error_t(4);
+    return p7r::error_t(4);
   }
 };
 
@@ -67,15 +67,15 @@ struct functor
 TEST(Callback, free_functions)
 {
   // Test that a free function is correctly invoked.
-  pk::callback cb1 = &free_func1;
-  ASSERT_EQ(pk::error_t(1), cb1(42, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
+  p7r::callback cb1 = &free_func1;
+  ASSERT_EQ(p7r::error_t(1), cb1(42, p7r::error_t(0), p7r::connector{}, nullptr));
 
-  pk::callback cb2 = &free_func2;
-  ASSERT_EQ(pk::error_t(2), cb2(666, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
+  p7r::callback cb2 = &free_func2;
+  ASSERT_EQ(p7r::error_t(2), cb2(666, p7r::error_t(0), p7r::connector{}, nullptr));
 
   // Test for equality.
   ASSERT_NE(cb1, cb2);
-  pk::callback cb3 = &free_func1;
+  p7r::callback cb3 = &free_func1;
   ASSERT_EQ(cb1, cb3);
 }
 
@@ -86,15 +86,15 @@ TEST(Callback, member_functions)
   // Test that member functions are correctly invoked.
   functor f;
 
-  pk::callback cb1 = pk::make_callback(&f, &functor::member_func);
-  ASSERT_EQ(pk::error_t(3), cb1(1234, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
+  p7r::callback cb1 = p7r::make_callback(&f, &functor::member_func);
+  ASSERT_EQ(p7r::error_t(3), cb1(1234, p7r::error_t(0), p7r::connector{}, nullptr));
 
-  pk::callback cb2 = pk::make_callback(&f);
-  ASSERT_EQ(pk::error_t(4), cb2(0xdeadbeef, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
+  p7r::callback cb2 = p7r::make_callback(&f);
+  ASSERT_EQ(p7r::error_t(4), cb2(0xdeadbeef, p7r::error_t(0), p7r::connector{}, nullptr));
 
   // Test for equality.
   ASSERT_NE(cb1, cb2);
-  pk::callback cb3 = pk::make_callback(&f, &functor::member_func);
+  p7r::callback cb3 = p7r::make_callback(&f, &functor::member_func);
   ASSERT_EQ(cb1, cb3);
 }
 
@@ -106,24 +106,24 @@ TEST(Callback, comparison)
   // compare equal.
   functor f;
 
-  pk::callback cb1 = pk::make_callback(&f, &functor::member_func);
-  pk::callback cb2 = &free_func1;
+  p7r::callback cb1 = p7r::make_callback(&f, &functor::member_func);
+  p7r::callback cb2 = &free_func1;
 
   ASSERT_NE(cb1, cb2);
   ASSERT_NE(cb2, cb1);
 
   // Also check whether two callbacks encapsulating the same function/
   // functor compare equal.
-  pk::callback cb3 = pk::make_callback(&f, &functor::member_func);
+  p7r::callback cb3 = p7r::make_callback(&f, &functor::member_func);
   ASSERT_EQ(cb1, cb3);
 
-  pk::callback cb4 = &free_func1;
+  p7r::callback cb4 = &free_func1;
   ASSERT_EQ(cb2, cb4);
 
   // It's equally important that a callback constructed from a different
   // instance of the same functor class compares not equal.
   functor f2;
-  pk::callback cb5 = pk::make_callback(&f2, &functor::member_func);
+  p7r::callback cb5 = p7r::make_callback(&f2, &functor::member_func);
   ASSERT_NE(cb1, cb5);
   ASSERT_NE(cb3, cb5);
 }
@@ -132,14 +132,14 @@ TEST(Callback, comparison)
 TEST(Callback, empty)
 {
   // Empty/un-assigned callbacks should behave sanely
-  pk::callback cb;
+  p7r::callback cb;
 
   ASSERT_EQ(true, cb.empty());
   ASSERT_FALSE(cb);
 
-  ASSERT_THROW(cb(0, pk::error_t(1), pk::handle(), nullptr), pk::exception);
+  ASSERT_THROW(cb(0, p7r::error_t(1), p7r::connector{}, nullptr), p7r::exception);
 
-  pk::callback cb2 = &free_func1;
+  p7r::callback cb2 = &free_func1;
   ASSERT_NE(cb, cb2);
 }
 
@@ -147,46 +147,46 @@ TEST(Callback, empty)
 TEST(Callback, assignment)
 {
   // Ensure that empty callbacks can be assigned later on.
-  pk::callback cb;
+  p7r::callback cb;
   ASSERT_FALSE(cb);
 
   cb = &free_func1;
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(pk::error_t(1), cb(42, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
+  ASSERT_EQ(p7r::error_t(1), cb(42, p7r::error_t(0), p7r::connector{}, nullptr));
 
   functor f;
-  cb = pk::make_callback(&f);
+  cb = p7r::make_callback(&f);
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(pk::error_t(4), cb(0xdeadbeef, pk::error_t(0), pk::handle::make_dummy(0), nullptr));
+  ASSERT_EQ(p7r::error_t(4), cb(0xdeadbeef, p7r::error_t(0), p7r::connector{}, nullptr));
 }
 
 
 TEST(Callback, hash)
 {
-  std::hash<pk::callback> hasher;
+  std::hash<p7r::callback> hasher;
 
   // Callbacks made from the same free function should have the same hash.
-  pk::callback cb1 = &free_func1;
-  pk::callback cb2 = &free_func1;
+  p7r::callback cb1 = &free_func1;
+  p7r::callback cb2 = &free_func1;
   ASSERT_EQ(hasher(cb1), hasher(cb2));
 
   // But they can't have the same hash as a callback made from a different
   // free function.
-  pk::callback cb3 = &free_func2;
+  p7r::callback cb3 = &free_func2;
   ASSERT_NE(hasher(cb1), hasher(cb3));
   ASSERT_NE(hasher(cb2), hasher(cb3));
 
   // The equality constraint also applies to functors.
   functor f1;
-  pk::callback cb4 = pk::make_callback(&f1, &functor::member_func);
-  pk::callback cb5 = pk::make_callback(&f1, &functor::member_func);
+  p7r::callback cb4 = p7r::make_callback(&f1, &functor::member_func);
+  p7r::callback cb5 = p7r::make_callback(&f1, &functor::member_func);
   ASSERT_EQ(hasher(cb4), hasher(cb5));
 
   // And the same applies to the non-equality
   functor f2;
-  pk::callback cb6 = pk::make_callback(&f2, &functor::member_func);
+  p7r::callback cb6 = p7r::make_callback(&f2, &functor::member_func);
   ASSERT_NE(hasher(cb4), hasher(cb6));
   ASSERT_NE(hasher(cb5), hasher(cb6));
 }
@@ -195,12 +195,12 @@ TEST(Callback, hash)
 TEST(Callback, copy)
 {
   // Copy ctor
-  pk::callback cb1 = &free_func1;
-  pk::callback cb2 = cb1;
+  p7r::callback cb1 = &free_func1;
+  p7r::callback cb2 = cb1;
   ASSERT_EQ(cb1, cb2);
 
   // Assign
-  pk::callback cb3;
+  p7r::callback cb3;
   cb3 = cb1;
   ASSERT_EQ(cb1, cb3);
 }

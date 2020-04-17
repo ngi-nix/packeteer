@@ -45,7 +45,6 @@ namespace sc = std::chrono;
 
 namespace packeteer::detail {
 
-
 io_select::io_select()
 {
   LOG("Select based I/O subsystem created.");
@@ -55,59 +54,6 @@ io_select::io_select()
 
 io_select::~io_select()
 {
-}
-
-
-
-void
-io_select::register_handle(handle const & h, events_t const & events)
-{
-  m_fds[h.sys_handle()] |= events;
-}
-
-
-
-void
-io_select::register_handles(handle const * handles, size_t size,
-    events_t const & events)
-{
-  for (size_t i = 0 ; i < size ; ++i) {
-    m_fds[handles[i].sys_handle()] |= events;
-  }
-}
-
-
-
-
-void
-io_select::unregister_handle(handle const & h, events_t const & events)
-{
-  auto iter = m_fds.find(h.sys_handle());
-  if (iter == m_fds.end()) {
-    return;
-  }
-  iter->second &= ~events;
-  if (!iter->second) {
-    m_fds.erase(iter);
-  }
-}
-
-
-
-void
-io_select::unregister_handles(handle const * handles, size_t size,
-    events_t const & events)
-{
-  for (size_t i = 0 ; i < size ; ++i) {
-    auto iter = m_fds.find(handles[i].sys_handle());
-    if (iter == m_fds.end()) {
-      continue;
-    }
-    iter->second &= ~events;
-    if (!iter->second) {
-      m_fds.erase(iter);
-    }
-  }
 }
 
 
@@ -129,7 +75,7 @@ io_select::wait_for_events(std::vector<event_data> & events,
 
     // Populate FD sets.
     int max_fd = 0;
-    for (auto entry : m_fds) {
+    for (auto entry : m_sys_handles) {
       if (entry.first > max_fd) {
         max_fd = entry.first;
       }
@@ -180,8 +126,8 @@ io_select::wait_for_events(std::vector<event_data> & events,
   // Map events; we'll need to iterate over the available file descriptors again
   // (conceivably, we could just use the subset in the FD sets, but that uses
   // additional memory).
-  for (auto entry : m_fds) {
-    int mask = 0;
+  for (auto entry : m_sys_handles) {
+    events_t mask = 0;
     if (FD_ISSET(entry.first, &read_fds)) {
       mask |= PEV_IO_READ;
     }
@@ -193,9 +139,10 @@ io_select::wait_for_events(std::vector<event_data> & events,
     }
 
     if (mask) {
-      event_data ev;
-      ev.m_handle = handle(entry.first);
-      ev.m_events = mask;
+      event_data ev = {
+        m_connectors[entry.first],
+        mask
+      };
       events.push_back(ev);
     }
   }
