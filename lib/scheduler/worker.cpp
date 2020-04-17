@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -67,7 +67,7 @@ worker::worker_loop(packeteer::thread::tasklet & _1 [[maybe_unused]], void * _2 
     LOG("worker woke up");
     detail::callback_entry * entry = nullptr;
     while (m_work_queue.pop(entry)) {
-      LOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this) << std::dec << "] picked up entry of type: " << entry->m_type);
+      LOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this) << std::dec << "] picked up entry of type: " << (int) entry->m_type);
       try {
         error_t err = execute_callback(entry);
         if (ERR_SUCCESS != err) {
