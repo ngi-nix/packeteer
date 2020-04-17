@@ -85,18 +85,9 @@ connector_anon::create_pipe()
     return ERR_ABORTED;
   }
 
-  // We poll for a connection, and expect that the result is ERR_REPEAT_ACTION
-  auto err = detail::poll_for_connection(server);
-  if (ERR_REPEAT_ACTION != err) {
-    ERRNO_LOG("Unknown error when trying to poll for a connection.");
-    DisconnectNamedPipe(server.sys_handle()->handle);
-    CloseHandle(server.sys_handle()->handle);
-    return ERR_ABORTED;
-  }
-
   // Now connect the client side.
   handle client;
-  err = detail::connect_to_pipe(client, addr, is_blocking(),
+  auto err = detail::connect_to_pipe(client, addr, is_blocking(),
       true, // Readable,
       false // Non-writable
   );
@@ -104,6 +95,26 @@ connector_anon::create_pipe()
     ERRNO_LOG("Could not connect to anonymous pipe");
     return err;
   }
+
+  // We poll for a connection, in a loop - this can block.
+  bool loop = true;
+  do {
+    err = detail::poll_for_connection(server);
+    switch (err) {
+      case ERR_SUCCESS:
+        loop = false;
+        break;
+
+      case ERR_REPEAT_ACTION:
+        continue;
+
+      default:
+        ERRNO_LOG("Unknown error when trying to poll for a connection.");
+        DisconnectNamedPipe(server.sys_handle()->handle);
+        CloseHandle(server.sys_handle()->handle);
+        return ERR_ABORTED;
+    }
+  } while (loop);
 
   // All good - keep the handles!
   m_handles[0] = client;
