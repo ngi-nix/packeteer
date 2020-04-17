@@ -45,6 +45,10 @@
 #include "io/kqueue.h"
 #endif
 
+#if defined(PACKETEER_HAVE_IOCP)
+#include "io/iocp.h"
+#endif
+
 namespace pdt = packeteer::detail;
 namespace sc = std::chrono;
 
@@ -102,6 +106,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       m_io = new detail::io_epoll();
 #elif defined(PACKETEER_HAVE_KQUEUE)
       m_io = new detail::io_kqueue();
+#elif defined(PACKETEER_HAVE_IOCP)
+      m_io = new detail::io_iocp();
 #elif defined(PACKETEER_HAVE_POLL)
       m_io = new detail::io_poll();
 #elif defined(PACKETEER_HAVE_SELECT)
@@ -147,6 +153,14 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 #endif
       break;
 
+
+    case TYPE_IOCP:
+#if !defined(PACKETEER_HAVE_IOCP)
+      throw exception(ERR_INVALID_OPTION, "I/O completion ports are not supported on this platform.");
+#else
+      m_io = new detail::io_iocp();
+#endif
+      break;
 
     default:
       throw exception(ERR_INVALID_OPTION, "unsupported scheduler type.");
@@ -200,7 +214,7 @@ scheduler::scheduler_impl::start_main_loop()
 
   error_t err = m_main_loop_pipe.connect();
   if (ERR_SUCCESS != err) {
-    throw exception(err, "Could not connect pipe.");
+    throw exception(err, "Could not connect main loop pipe.");
   }
 
   m_io->register_handle(m_main_loop_pipe.get_read_handle(),

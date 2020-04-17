@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -43,7 +43,7 @@ namespace {
  **/
 struct test_callback
 {
-  std::atomic<int>      m_called;
+  std::atomic<int>          m_called;
   std::atomic<pk::events_t> m_mask;
 
   test_callback()
@@ -185,6 +185,9 @@ std::string scheduler_name(testing::TestParamInfo<packeteer::scheduler::schedule
 
     case packeteer::scheduler::TYPE_SELECT:
       return "select";
+
+    case packeteer::scheduler::TYPE_IOCP:
+      return "iocp";
 
     default:
       ADD_FAILURE_AT(__FILE__, __LINE__) << "Test not defined for scheduler type " << info.param;
@@ -666,6 +669,9 @@ namespace {
 #endif
 #if defined(PACKETEER_HAVE_SELECT)
       , packeteer::scheduler::TYPE_SELECT
+#endif
+#if defined(PACKETEER_HAVE_IOCP)
+      , packeteer::scheduler::TYPE_IOCP
 #endif
     );
   };
