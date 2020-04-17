@@ -67,7 +67,9 @@ worker::worker_loop(packeteer::thread::tasklet & _1 [[maybe_unused]], void * _2 
     LOG("worker woke up");
     detail::callback_entry * entry = nullptr;
     while (m_work_queue.pop(entry)) {
-      LOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this) << std::dec << "] picked up entry of type: " << (int) entry->m_type);
+      LOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this)
+          << std::dec << "] picked up entry of type: "
+          << static_cast<int>(entry->m_type));
       try {
         error_t err = execute_callback(entry);
         if (ERR_SUCCESS != err) {
