@@ -30,17 +30,16 @@
 #error I/O completion ports not detected
 #endif
 
-#include <map>
+#include <set>
 
 #include <packeteer/scheduler/events.h>
 
 #include "../io.h"
-#include "event_map.h"
 
 namespace packeteer::detail {
 
 // I/O subsystem based on select.
-struct io_iocp : public event_map
+struct io_iocp : public io
 {
 public:
   io_iocp();
@@ -49,6 +48,23 @@ public:
   void init();
   void deinit();
 
+  virtual void
+  register_connector(connector const & conn, events_t const & events);
+
+  virtual void
+  register_connectors(connector const * conns, size_t size,
+      events_t const & events);
+
+  virtual void
+  unregister_connector(connector const & conn, events_t const & events);
+
+  virtual void
+  unregister_connectors(connector const * conns, size_t size,
+      events_t const & events);
+
+  virtual void wait_for_events(std::vector<event_data> & events,
+      duration const & timeout);
+
 private:
   using handle_key_t = size_t;
 
@@ -56,6 +72,7 @@ private:
    * Data
    **/
   HANDLE                      m_iocp;
+  std::set<HANDLE>            m_associated;
 };
 
 

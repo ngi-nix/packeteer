@@ -40,6 +40,35 @@ namespace sc = std::chrono;
 
 namespace packeteer::detail {
 
+namespace {
+
+inline bool
+register_handle(HANDLE iocp, std::set<HANDLE> & associated, handle const & handle)
+{
+  ULONG_PTR completion_key = handle.hash();
+  auto ret = CreateIoCompletionPort(handle.sys_handle()->handle,
+      iocp, completion_key, 0);
+  if (!ret) {
+    switch (WSAGetLastError()) {
+      case ERROR_INVALID_PARAMETER:
+        {
+          auto iter = associated.find(handle.sys_handle()->handle);
+          if (iter != associated.end()) {
+            return true; // Already associated
+          }
+        }
+        // Fall through
+
+      default:
+        ERRNO_LOG("Failed to associate handle " << handle << " with I/O completion port!");
+        return false;
+    }
+  }
+  return true;
+}
+
+} // anonymous namespace
+
 
 io_iocp::io_iocp()
   : m_iocp(INVALID_HANDLE_VALUE)
@@ -51,7 +80,7 @@ io_iocp::io_iocp()
   }
 
   m_iocp = h;
-  LOG("I/O completion port subsystem created.");
+  DLOG("I/O completion port subsystem created.");
 }
 
 
@@ -65,43 +94,59 @@ io_iocp::~io_iocp()
 
 
 void
-io_iocp::register_handle(handle const & handle, events_t const & events)
+io_iocp::register_connector(connector const & conn, events_t const & events)
 {
-  LOG("REG #1: " << handle);
-  struct handle handles[1] = { handle };
-  register_handles(handles, 1, events);
+  connector conns[1] = { conn };
+  register_connectors(conns, 1, events);
 }
 
 
 
 void
-io_iocp::register_handles(handle const * handles, size_t size,
+io_iocp::register_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
   for (size_t i = 0 ; i < size ; ++i) {
-    handle const & handle = handles[i];
-  LOG("REG #2: " << handle);
+    connector const & conn = conns[i];
 
-    // Try to find the handle in our registered set.
-    auto iter = m_registered.find(handle);
-    if (iter == m_registered.end()) {
-      // New handle.
-      LOG("Associate handle " << handle << " with I/O completion port.");
-      LOG("HANDLE HASH "<< handle.hash());
-      ULONG_PTR f = handle.hash();
-      LOG("ULONGD "<<f);
-      auto ret = CreateIoCompletionPort(handle.sys_handle()->handle,
-          m_iocp, handle.hash(), 0);
-      if (!ret) {
-        ERRNO_LOG("Failed to associate handle " << handle << " with I/O completion port!");
+    DLOG("Registering connector " << conn << " for events " << events);
+
+    // Try to find the connector in our registered set. If it's not yet found, we
+    // have to add it to the IOCP.
+    // XXX an implementation detail of the super class is that it does not matter
+    //     if the connector was added for read or write events; both handles will
+    //     be in the map.
+    auto iter = m_connectors.find(conn.get_read_handle().sys_handle());
+    if (iter == m_connectors.end()) {
+      // New handle!
+      if (!register_handle(m_iocp, m_associated, conn.get_read_handle().sys_handle())) {
+        io::unregister_connector(conn, events);
         continue;
       }
-      m_registered[handle] = events;
+      m_associated.insert(conn.get_read_handle().sys_handle()->handle);
+
+      if (!register_handle(m_iocp, m_associated, conn.get_write_handle().sys_handle())) {
+        io::unregister_connector(conn, events);
+        continue;
+      }
+      m_associated.insert(conn.get_write_handle().sys_handle()->handle);
     }
-    else {
-      // Existing handle; just modify the event set.
-      LOG("Update events on previously registered handle " << handle);
-      iter->second |= events;
+
+    // Either way, use the super class functionality to remember which events the
+    // connector was registered for.
+    io::register_connector(conn, events);
+
+    // If we've registered the connector for read handle for read events, we
+    // should schedule a PEEK... otherwise we won't be notified when a write
+    // occurs.
+    if (m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
+      char buf[PACKETEER_IO_BUFFER_SIZE];
+      // TODO turn into PEEK
+      size_t actually_read = 0;
+      // FIXME don't const_cast, make non-const.
+      auto cn = const_cast<connector *>(&conn);
+      auto err = cn->read(buf, PACKETEER_IO_BUFFER_SIZE, actually_read);
+      // XXX ignore result; if we're just peeking, it doesn't matter.
     }
   }
 }
@@ -110,39 +155,22 @@ io_iocp::register_handles(handle const * handles, size_t size,
 
 
 void
-io_iocp::unregister_handle(handle const & handle, events_t const & events)
+io_iocp::unregister_connector(connector const & conn, events_t const & events)
 {
-  struct handle handles[1] = { handle };
-  unregister_handles(handles, 1, events);
+  // We can't actually unregister any conns - we can just filter here; the OS will
+  // keep the connector associated with the IOCP.
+  io::unregister_connector(conn, events);
 }
 
 
 
 void
-io_iocp::unregister_handles(handle const * handles, size_t size,
+io_iocp::unregister_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
-  // We can't actually unregister any handles - we can just filter here; the OS will
-  // keep the handle associated with the IOCP.
-  for (size_t i = 0 ; i < size ; ++i) {
-    handle const & handle = handles[i];
-
-    // Find handle. If it doesn't exist, just ignore it.
-    auto iter = m_registered.find(handle);
-    if (iter == m_registered.end()) {
-      continue;
-    }
-
-    // So we found it - unset all the flags we received.
-    iter->second |= ~events;
-    LOG("Updated handle events.");
-
-    // If there are no more events now, we can remove the entire entry.
-    if (!iter->second) {
-      LOG("Erased handle complete from registered set.");
-      m_registered.erase(iter);
-    }
-  }
+  // We can't actually unregister any conns - we can just filter here; the OS will
+  // keep the connector associated with the IOCP.
+  io::unregister_connectors(conns, size, events);
 }
 
 
@@ -177,92 +205,87 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
         return;
     }
   } 
-  LOG("Dequeued " << read << " I/O events.");
-
-  // FIXME - we're never getting read events, because no reads have been scheduled.
-  //       - we can fix that by preemptively scheduling a read for every handle
-  //         registered for reading...
-  //       - HOWEVER, because the send/receive/etc. functionality may be different
-  //         for different handles, this means we need to work on connector, not
-  //         on handle granularity. That's fine, really, and we can make handles
-  //         disappear entirely in the public interface.
+  DLOG("Dequeued " << read << " I/O events.");
 
   // Every handle is writable with OVERLAPPED I/O. We need to add a PEV_IO_WRITE
   // for every handle registered for write events. But we can also process events
   // we received.
-  for (auto & [registered, registered_events] : m_registered) {
-    LOG("Processing events for handle " << registered);
-    event_data data = {
-      registered,
-      0, // Nothing for now.
-    };
+  std::map<connector, events_t> tmp_events;
+  for (size_t i = 0 ; i < read ; ++i) {
+    // Our OVERLAPPED are always io_context
+    detail::overlapped::io_context * ctx = reinterpret_cast<
+        detail::overlapped::io_context *
+      >(entries[i].lpOverlapped);
 
-    // The handle is registered for write events, so report that we got one.
-    if (registered_events & PEV_IO_WRITE) {
-      data.m_events |= PEV_IO_WRITE;
-    }
-
-    // Also check for real events.
-    for (size_t i = 0 ; i < read ; ++i) {
-      handle_key_t key = entries[i].lpCompletionKey;
-      LOG("Got event " << i << " for handle " << key);
-      // FIXME if (registered.hash() != key) {
-      // FIXME   continue;
-      // FIXME }
-
-      // Looks like we have an event on this handle. Let's see what the
-      // handle is registered for.
-      LOG("OVERLAPPED: " << entries[i].lpOverlapped);
-      detail::overlapped::io_context * ctx = reinterpret_cast<
-          detail::overlapped::io_context *
-        >(entries[i].lpOverlapped);
-      LOG("SYSTEM HANDLE: " << ctx->handle);
-      LOG("Handle was registered for " << ctx->type);
-      // TODO
-      // -> Add all that had ANY event to the marked_writable set
-      //    - If not in response to a write OVERLAPPED, mark the handle as
-      //      writable (that's overlapped for you).
-      //    - afterwards, mark all handles without events also as 
-      //      writable.
-    }
-
-    // Now if the event data contains any event flags, we want to return
-    // it.
-    if (data.m_events) {
-      events.push_back(data);
-    }
-  }
-
-  LOG("Got " << events.size() << " event entries to report.");
-#if 0
-  // Map events
-  for (int i = 0 ; i < ret ; ++i) {
-    if (kqueue_events[i].flags & EV_ERROR) {
-      event_data data = {
-        handle(kqueue_events[i].ident),
-        PEV_IO_ERROR
-      };
-      events.push_back(data);
-    }
-    else if (kqueue_events[i].flags & EV_EOF) {
-      event_data data = {
-        handle(kqueue_events[i].ident),
-        PEV_IO_CLOSE
-      };
-      events.push_back(data);
-    }
-    else {
-      events_t translated = translate_os_to_events(kqueue_events[i].filter);
-      if (translated >= 0) {
-        event_data data = {
-          handle(kqueue_events[i].ident),
-          translated
-        };
-        events.push_back(data);
+    // Find the connector for the system handle stored in the context.
+    connector conn;
+    for (auto & [sys_handle, c] : m_connectors) {
+      if (sys_handle->handle == ctx->handle) {
+        conn = c;
+        break;
       }
     }
+    if (!conn) {
+      // FIXME I'm not sure why this happens. The event was handled successfully
+      //       in overlapped manager or its usage, but it seems to pop up here
+      //       anyway.
+      DLOG("Got event on a handle that is not related to a known connector!");
+      continue;
+    }
+
+    events_t ev = 0; // Nothing yet
+
+    // Read the status - this now returns immediately, as the OVERLAPPED
+    // structure contains everything the function needs.
+    DWORD num_transferred = 0;
+    BOOL res = GetOverlappedResult(ctx->handle, ctx, &num_transferred, FALSE);
+
+    if (!res) {
+      ERRNO_LOG("IOCP reports error for operation: " << static_cast<int>(ctx->type));
+      ev |= PEV_IO_ERROR;
+    }
+    else {
+      DLOG("CTX TYPE: " << (int) ctx->type);
+      // The values of ctx->type have the same values as events_t
+      ev |= ctx->type;
+
+      // TODO maybe repoort PEV_IO_CLOSE if ctx->type was PEV_IO_READ and
+      //      num_transferred is zero?
+    }
+
+    DLOG("Events for connector " << conn << " are " << ev);
+    tmp_events[conn] = ev;
   }
-#endif
+
+  // The temporary events now hold all *actual* events. Let's now add a write
+  // event for all valid and error free connectors that were *registered* for
+  // write events, too.
+  for (auto & [sys_handle, conn] : m_connectors) {
+    if (!conn) {
+      continue;
+    }
+
+    auto ev = m_sys_handles[sys_handle];
+    if (!(ev & PEV_IO_WRITE)) {
+      continue;
+    }
+
+    auto iter = tmp_events.find(conn);
+    if (iter == tmp_events.end()) {
+      tmp_events[conn] = PEV_IO_WRITE;
+    }
+    else if (!(iter->second & PEV_IO_ERROR)) {
+      iter->second |= PEV_IO_WRITE;
+    }
+  }
+
+  // Add all temporarily collected events to the out queue.
+  for (auto & [conn, ev] : tmp_events) {
+    DLOG("Final events for connector " << conn << " are " << ev);
+    events.push_back({ conn, ev });
+  }
+
+  DLOG("Got " << events.size() << " event entries to report.");
 }
 
 
