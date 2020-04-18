@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <utility>
 #include <functional>
+#include <iostream>
 
 #include <packeteer/handle.h>
 
@@ -285,6 +286,19 @@ inline void
 swap(connector & first, connector & second)
 {
   return first.swap(second);
+}
+
+
+/**
+ * Output
+ **/
+inline std::ostream &
+operator<<(std::ostream & os, connector const & conn)
+{
+  os << "[" << conn.peer_addr() << "]<" << conn.hash()
+    << ">(R " << conn.get_read_handle() << " / W "
+    << conn.get_write_handle() << ")";
+  return os;
 }
 
 } // namespace packeteer
