@@ -43,9 +43,9 @@ api::api()
   WSADATA data;
   // Request Winsock 2.2
   int res = WSAStartup(MAKEWORD(2, 2), &data);
-  LOG("WSA Description: " << data.szDescription);
+  DLOG("WSA Description: " << data.szDescription);
   if (res != 0) {
-    LOG("WSA System Status: " << data.szSystemStatus);
+    DLOG("WSA System Status: " << data.szSystemStatus);
     throw exception(ERR_INITIALIZATION, WSAGetLastError(), "WSAStartup failed!");
   }
 #endif // win32
@@ -57,7 +57,7 @@ api::~api()
 {
 #if defined(PACKETEER_WIN32)
   WSACleanup();
-  LOG("WSA cleanup finished.");
+  DLOG("WSA cleanup finished.");
 #endif // win32
 }
 

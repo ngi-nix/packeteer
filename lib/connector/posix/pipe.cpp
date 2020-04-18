@@ -59,7 +59,7 @@ create_pipe(std::string const & path)
 #elif defined(PACKETEER_HAVE_MKNOD)
   ret = ::mknod(path.c_str(), mode, 0);
 #else
-  LOG("platform does not support named pipes!");
+  DLOG("platform does not support named pipes!");
   return ERR_UNEXPECTED;
 #endif
 

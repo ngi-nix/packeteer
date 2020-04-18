@@ -52,17 +52,9 @@ connector_anon::create_pipe()
     return ERR_INITIALIZATION;
   }
 
-  // TODO: a single read/write handle is not sufficient for transmitting
-  //       data from the write end to the read end.
-  //       - Need a write-only handle
-  //       - also a read-only handle
-  //       - connect the two
-  //       - pipe_operations.h may not be entirely sufficient for this
-  //         (only has a bool readonly flag)
-
   // Generate a unique address for the pipe
   auto addr = detail::create_anonymous_pipe_name("packeteer-anonymous");
-  LOG("Anonymous pipe address is: " << addr);
+  DLOG("Anonymous pipe address is: " << addr);
 
   // It doesn't really matter whether we make the pipe server the read or
   // the write handle. Arbitrarily we write from the pipe server to the pipe
@@ -75,13 +67,13 @@ connector_anon::create_pipe()
         false  // No remote connections
     );
   } catch (packeteer::exception const & ex) {
-    ERR_LOG("Could not create anonymous pipe", ex);
+    EXC_LOG("Could not create anonymous pipe", ex);
     return ex.code();
   } catch (std::exception const & ex) {
-    ERR_LOG("Could not create anonymous pipe", ex);
+    EXC_LOG("Could not create anonymous pipe", ex);
     return ERR_ABORTED;
   } catch (...) {
-    LOG("Could not create anonymous pipe due to an unknown error.");
+    ELOG("Could not create anonymous pipe due to an unknown error.");
     return ERR_ABORTED;
   }
 
@@ -92,7 +84,7 @@ connector_anon::create_pipe()
       false // Non-writable
   );
   if (ERR_SUCCESS != err) {
-    ERRNO_LOG("Could not connect to anonymous pipe");
+    ET_LOG("Could not connect to anonymous pipe", err);
     return err;
   }
 
@@ -109,7 +101,7 @@ connector_anon::create_pipe()
         continue;
 
       default:
-        ERRNO_LOG("Unknown error when trying to poll for a connection.");
+        ET_LOG("Unknown error when trying to poll for a connection.", err);
         DisconnectNamedPipe(server.sys_handle()->handle);
         CloseHandle(server.sys_handle()->handle);
         return ERR_ABORTED;

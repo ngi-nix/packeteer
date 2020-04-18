@@ -216,6 +216,9 @@ scheduler::scheduler_impl::start_main_loop()
   if (ERR_SUCCESS != err) {
     throw exception(err, "Could not connect main loop pipe.");
   }
+  DLOG("Main loop pipe is " << m_main_loop_pipe.hash() << "[R "
+      << m_main_loop_pipe.get_read_handle() << "/W "
+      << m_main_loop_pipe.get_write_handle() << "]");
 
   m_io->register_connector(m_main_loop_pipe,
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
@@ -249,7 +252,7 @@ scheduler::scheduler_impl::adjust_workers(size_t num_workers)
   size_t have = m_workers.size();
 
   if (num_workers < have) {
-    LOG("Decreasing worker count from " << have << " to " << num_workers << ".");
+    DLOG("Decreasing worker count from " << have << " to " << num_workers << ".");
     size_t to_stop = have - num_workers;
     size_t remain = have - to_stop;
 
@@ -264,7 +267,7 @@ scheduler::scheduler_impl::adjust_workers(size_t num_workers)
     m_workers.resize(remain);
   }
   else if (num_workers > have) {
-    LOG("Increasing worker count from " << have << " to " << num_workers << ".");
+    DLOG("Increasing worker count from " << have << " to " << num_workers << ".");
     for (size_t i = have ; i < num_workers ; ++i) {
       auto worker = new pdt::worker(m_worker_condition, m_worker_mutex, m_out_queue);
       worker->start();
@@ -338,7 +341,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
     case ACTION_TRIGGER:
     default:
       delete io;
-      LOG("Ignoring invalid TRIGGER action for I/O callback.");
+      DLOG("Ignoring invalid TRIGGER action for I/O callback.");
       break;
   }
 }
@@ -374,7 +377,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
     case ACTION_TRIGGER:
     default:
       delete scheduled;
-      LOG("Ignoring invalid TRIGGER action for scheduled callback.");
+      DLOG("Ignoring invalid TRIGGER action for scheduled callback.");
       break;
   }
 }
@@ -416,7 +419,7 @@ void
 scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data> const & events,
       entry_list_t & to_schedule)
 {
-  LOG("I/O callbacks");
+  DLOG("I/O callbacks");
 
   // Process events, and try to find a callback for each of them.
   for (auto event : events) {
@@ -438,7 +441,7 @@ void
 scheduler::scheduler_impl::dispatch_scheduled_callbacks(
     time_point const & now, entry_list_t & to_schedule)
 {
-  LOG("scheduled callbacks at: " << now.time_since_epoch().count());
+  DLOG("scheduled callbacks at: " << now.time_since_epoch().count());
 
   // Scheduled callbacks are due if their timeout is older than now(). That's
   // the simplest way to deal with them.
@@ -447,11 +450,11 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(
   detail::scheduled_callbacks_t::list_t to_update;
 
   for (auto entry : range) {
-    LOG("scheduled callback expired at " << now.time_since_epoch().count());
+    DLOG("scheduled callback expired at " << now.time_since_epoch().count());
     if (duration(0) == entry->m_interval) {
       // If it's a one shot event, we want to *move* it into the to_schedule
       // vector thereby granting ownership to the worker that picks it up.
-      LOG("one-shot callback, handing over to worker");
+      DLOG("one-shot callback, handing over to worker");
       to_schedule.push_back(entry);
       to_erase.push_back(entry);
     }
@@ -459,14 +462,14 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(
       // Depending on whether the entry gets rescheduled (more repeats) or not
       // (last invocation), we either *copy* or *move* the entry into the
       // to_schedule vector.
-      LOG("interval callback, handing over to worker & rescheduling");
+      DLOG("interval callback, handing over to worker & rescheduling");
       if (entry->m_count > 0) {
         --entry->m_count;
       }
 
       if (0 == entry->m_count) {
         // Last invocation; can *move*
-        LOG("last invocation");
+        DLOG("last invocation");
         to_schedule.push_back(entry);
         to_erase.push_back(entry);
       }
@@ -492,16 +495,16 @@ void
 scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggered,
     entry_list_t & to_schedule)
 {
-  LOG("triggered callbacks");
+  DLOG("triggered callbacks");
 
   for (auto e : triggered) {
     if (pdt::CB_ENTRY_USER != e->m_type) {
-      LOG("invalid user callback!");
+      DLOG("invalid user callback!");
       continue;
     }
 
     auto entry = reinterpret_cast<pdt::user_callback_entry *>(e);
-    LOG("triggered: " << entry->m_events);
+    DLOG("triggered: " << entry->m_events);
 
     // We ignore the callback from the entry, because it's not set. However, for
     // each entry we'll have to scour the user callbacks for any callbacks that
@@ -519,7 +522,7 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
 void
 scheduler::scheduler_impl::main_scheduler_loop()
 {
-  LOG("CPUS: " << std::thread::hardware_concurrency());
+  DLOG("CPUS: " << std::thread::hardware_concurrency());
 
   try {
     while (m_main_loop_continue) {
@@ -531,7 +534,7 @@ scheduler::scheduler_impl::main_scheduler_loop()
       entry_list_t to_schedule;
       wait_for_events(sc::nanoseconds(PACKETEER_EVENT_WAIT_INTERVAL_USEC),
           to_schedule);
-      LOG("Got " << to_schedule.size() << " callbacks to invoke.");
+      DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
       // After callbacks of all kinds have been added to to_schedule, we can push
       // those entries to the out queue and wake workers.
@@ -544,22 +547,22 @@ scheduler::scheduler_impl::main_scheduler_loop()
         std::lock_guard<std::recursive_mutex> lock(m_worker_mutex);
         size_t interrupts = std::min(to_schedule.size(), m_workers.size());
         while (interrupts--) {
-          LOG("interrupting worker pipe");
+          DLOG("interrupting worker pipe");
           m_worker_condition.notify_one();
         }
       }
     }
   } catch (exception const & ex) {
-    ERR_LOG("Error in main loop", ex);
+    EXC_LOG("Error in main loop", ex);
   } catch (std::exception const & ex) {
-    LOG("Error in main loop: " << ex.what());
+    EXC_LOG("Error in main loop: ", ex);
   } catch (std::string const & str) {
-    LOG("Error in main loop: " << str);
+    ELOG("Error in main loop: " << str);
   } catch (...) {
-    LOG("Error in main loop.");
+    ELOG("Error in main loop.");
   }
 
-  LOG("scheduler main loop terminated.");
+  DLOG("scheduler main loop terminated.");
 }
 
 

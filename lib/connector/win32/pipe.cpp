@@ -41,7 +41,7 @@ namespace {
 error_t
 create_new_pipe_instance(handle & handle, std::string const & path, bool blocking)
 {
-  LOG("Create new " << (blocking ? "blocking" : "non-blocking")
+  DLOG("Create new " << (blocking ? "blocking" : "non-blocking")
       << " pipe instance at path " << path);
 
   packeteer::handle h;
@@ -52,13 +52,13 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
         true   // Remote ok. XXX: we can change this into an option
     );
   } catch (packeteer::exception const & ex) {
-    ERR_LOG("Could not create named pipe", ex);
+    EXC_LOG("Could not create named pipe", ex);
     return ex.code();
   } catch (std::exception const & ex) {
-    ERR_LOG("Could not create named pipe", ex);
+    EXC_LOG("Could not create named pipe", ex);
     return ERR_ABORTED;
   } catch (...) {
-    LOG("Could not create named pipe due to an unknown error.");
+    ELOG("Could not create named pipe due to an unknown error.");
     return ERR_ABORTED;
   }
 
@@ -69,7 +69,7 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
     case ERR_SUCCESS:
     case ERR_REPEAT_ACTION:
       handle = h;
-      LOG("Successfully created new pipe instance!");
+      DLOG("Successfully created new pipe instance!");
       return ERR_SUCCESS;
 
     default:
@@ -188,7 +188,7 @@ connector_pipe::accept(net::socket_address & /* unused */)
         continue; // Try again.
 
       default:
-        ERRNO_LOG("Unknown error when trying to accept().");
+        ET_LOG("Unknown error when trying to accept().", err);
 
         // Cleanup
         DisconnectNamedPipe(m_handle.sys_handle()->handle);
@@ -214,7 +214,7 @@ connector_pipe::accept(net::socket_address & /* unused */)
     m_server = true;
   }
   else {
-    ERR_LOG("Could not create new pipe", packeteer::exception(err));
+    ET_LOG("Could not create new pipe", err);
   }
 
   return ret;

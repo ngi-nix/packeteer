@@ -31,7 +31,7 @@ namespace packeteer {
 connector_interface::connector_interface(connector_options const & options)
   : m_options(options)
 {
-  LOG("connector_interface::connector_interface(" << options << ")");
+  DLOG("connector_interface::connector_interface(" << options << ")");
 }
 
 

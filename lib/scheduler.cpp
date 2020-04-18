@@ -182,7 +182,7 @@ scheduler::process_events(duration const & timeout,
   // First, get events to schedule to workers.
   scheduler_impl::entry_list_t to_schedule;
   m_impl->wait_for_events(timeout, to_schedule);
-  LOG("Got " << to_schedule.size() << " callbacks to invoke.");
+  DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
   if (to_schedule.empty()) {
     // No events

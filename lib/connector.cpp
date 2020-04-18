@@ -122,7 +122,7 @@ struct connector::connector_impl
     if (options & CO_BLOCKING and options & CO_NON_BLOCKING) {
       throw exception(ERR_INVALID_OPTION, "Cannot choose both blocking and non-blocking mode!");
     }
-    LOG("Got connector options: " << options << " for type " << ctype);
+    DLOG("Got connector options: " << options << " for type " << ctype);
 
     // Try to create the implementation
     auto iconn = m_creator(m_url, ctype, options);
@@ -320,7 +320,7 @@ connector::accept() const
       iconn = nullptr;
       throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
     }
-    LOG("Peer address is: " << peer.full_str() << " - " << iconn);
+    DLOG("Peer address is: " << peer.full_str() << " - " << iconn);
 
     result.m_impl = std::make_shared<connector_impl>(m_impl->m_api, util::url::parse(peer.full_str()), iconn);
   }

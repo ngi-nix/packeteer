@@ -53,21 +53,30 @@
   << __LINE__ << "] " << severity << ": " << msg << std::endl; \
   std::cerr << s.str(); \
 }
-#define LOG(msg) _LOG_BASE("DEBUG", msg)
-#if defined(PACKETEER_WIN32)
-#define ERRNO_LOG(msg) _LOG_BASE("ERROR", msg << " // [0x" \
-  << std::setw(16) << std::setfill('0') << std::hex << WSAGetLastError() << std::dec << "] " \
-  << ::strerror(WSAGetLastError()))
-#else
-#define ERRNO_LOG(msg) _LOG_BASE("ERROR", msg << " // " \
-  << ::strerror(errno))
-#endif // PACKETEER_WIN32
-#define ERR_LOG(msg, exc) _LOG_BASE("ERROR", msg << " // " << exc.what())
+#define DLOG(msg) _LOG_BASE("DEBUG", msg)
+#define ELOG(msg) _LOG_BASE("ERROR", msg)
 #else // DEBUG
-#define LOG(msg)
-#define ERRNO_LOG(msg)
-#define ERR_LOG(msg, exc)
-#endif
+#define DLOG(msg)
+#define ELOG(msg)
+#endif // DEBUG
+
+// Specific log macros - error codes and system errors
+#if defined(PACKETEER_WIN32)
+#define ERR_LOG(msg, code) ELOG(msg \
+    << " // [0x" << std::setw(16) << std::setfill('0') << std::hex << code << std::dec << "] " \
+    << ::strerror(code))
+#define ERRNO_LOG(msg) ERR_LOG(msg, WSAGetLastError())
+#else // PACKETEER_WIN32
+#define ERR_LOG(msg, code) ELOG(msg << " // " << ::strerror(code))
+#define ERRNO_LOG(msg) ERR_LOG(msg, errno)
+#endif // PACKETEER_WIN32
+
+// Exception logging
+#define EXC_LOG(msg, exc) ELOG(msg << " // " << exc.what())
+
+// error_t logging
+#define ET_LOG(msg, code) ELOG(msg << " // " << error_name(code) << ": " \
+    << error_message(code));
 
 /**
  * Token concatenation

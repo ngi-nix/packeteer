@@ -120,7 +120,7 @@ manager::schedule_connect(HANDLE handle,
         connecting = true;
         break;
       }
-      LOG("Other pending operations for handle, cannot connect.");
+      DLOG("Other pending operations for handle, cannot connect.");
       return ERR_INVALID_VALUE;
     }
 
@@ -132,7 +132,7 @@ manager::schedule_connect(HANDLE handle,
 
   // If we're already connecting, let's check the progress on the operation.
   if (connecting) {
-    LOG("Connect already scheduled for handle, check progress.");
+    DLOG("Connect already scheduled for handle, check progress.");
     auto & context = m_contexts[found];
     return free_on_success(found, callback(CHECK_PROGRESS, context));
   }
@@ -140,10 +140,10 @@ manager::schedule_connect(HANDLE handle,
   // We're good, so let's see if we found a free slot. If not, we need to grow.
   // If we grow, the next free slot is the current size.
   if (found < 0) {
-    LOG("No free slot found, try growing the pool.");
+    DLOG("No free slot found, try growing the pool.");
     found = m_contexts.size();
     if (!grow()) {
-      LOG("Cannot grow pool!");
+      DLOG("Cannot grow pool!");
       return ERR_OUT_OF_MEMORY;
     }
   }
@@ -158,7 +158,7 @@ manager::schedule_connect(HANDLE handle,
   context.source_sig = 0;
 
   m_order.push_back(found);
-  LOG("Invoking callback to connect handle; currently " << m_order.size()
+  DLOG("Invoking callback to connect handle; currently " << m_order.size()
       << " operations are pending in total.");
 
   // Callback for the actual connection.
@@ -235,11 +235,11 @@ manager::schedule_write(HANDLE handle,
   // So first calculate our source_sig.
   size_t source_sig = 0;
   if (!source || !buflen) {
-    LOG("Can't write without anything to write.");
+    DLOG("Can't write without anything to write.");
     return ERR_INVALID_VALUE;
   }
   source_sig = signature(source, buflen);
-  LOG("Source signature for WRITE on handle " << std::hex << handle
+  DLOG("Source signature for WRITE on handle " << std::hex << handle
       << " is: " << source_sig << std::dec);
 
   // After that, we can check existing writes.
@@ -334,7 +334,7 @@ manager::free_on_success(context_id id, error_t code)
   initialize(id);
   m_order.remove(id);
 
-  LOG("Freed completed slot " << id << "; currently "<< m_order.size()
+  DLOG("Freed completed slot " << id << "; currently "<< m_order.size()
       << " operations are pending in total.");
 
   return ERR_SUCCESS;
@@ -385,7 +385,7 @@ manager::cancel(HANDLE handle)
     m_order.remove(id);
   }
 
-  LOG("Cancelled all I/O for handle; currently "<< m_order.size()
+  DLOG("Cancelled all I/O for handle; currently "<< m_order.size()
       << " operations are pending in total.");
 
   if (ret || GetLastError() == ERROR_NOT_FOUND) {
@@ -422,7 +422,7 @@ manager::cancel_all()
   }
   m_order.clear();
 
-  LOG("Cancelled all pending I/O on " << unique.size() << " handle(s).");
+  DLOG("Cancelled all pending I/O on " << unique.size() << " handle(s).");
 }
 
 

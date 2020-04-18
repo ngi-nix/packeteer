@@ -64,7 +64,7 @@ connector_tcp::connector_tcp(net::socket_address const & addr,
   // TODO options & CO_BLOCKING does not set CO_NON_BLOCKING, leading to follow-on
   //      results.
   // FIXME remove
-  LOG("connector_tcp::connector_tcp(" << options << " -> " << m_options << ")");
+  DLOG("connector_tcp::connector_tcp(" << options << " -> " << m_options << ")");
 }
 
 

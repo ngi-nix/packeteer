@@ -190,7 +190,7 @@ error_t
 poll_for_connection(handle & handle)
 {
   if (!handle.valid()) {
-    LOG("Invalid handle: need an overlapped manager");
+    DLOG("Invalid handle: need an overlapped manager");
     return ERR_INVALID_VALUE;
   }
 

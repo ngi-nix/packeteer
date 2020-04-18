@@ -44,7 +44,7 @@ namespace {
 error_t
 create_socket(int domain, int type, int & fd, bool blocking)
 {
-  LOG("create_socket(" << blocking << ")");
+  DLOG("create_socket(" << blocking << ")");
   fd = ::socket(domain, type, 0);
   if (fd < 0) {
     ERRNO_LOG("create_socket socket failed!");
