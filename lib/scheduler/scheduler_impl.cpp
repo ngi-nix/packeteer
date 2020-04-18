@@ -216,9 +216,7 @@ scheduler::scheduler_impl::start_main_loop()
   if (ERR_SUCCESS != err) {
     throw exception(err, "Could not connect main loop pipe.");
   }
-  DLOG("Main loop pipe is " << m_main_loop_pipe.hash() << "[R "
-      << m_main_loop_pipe.get_read_handle() << "/W "
-      << m_main_loop_pipe.get_write_handle() << "]");
+  DLOG("Main loop pipe is " << m_main_loop_pipe);
 
   m_io->register_connector(m_main_loop_pipe,
       PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
