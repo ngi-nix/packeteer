@@ -62,36 +62,36 @@ worker::~worker()
 void
 worker::worker_loop(packeteer::thread::tasklet & _1 [[maybe_unused]], void * _2 [[maybe_unused]])
 {
-  LOG("worker started");
+  DLOG("worker started");
   do {
-    LOG("worker woke up");
+    DLOG("worker woke up");
     detail::callback_entry * entry = nullptr;
     while (m_work_queue.pop(entry)) {
-      LOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this)
+      DLOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this)
           << std::dec << "] picked up entry of type: "
           << static_cast<int>(entry->m_type));
       try {
         error_t err = execute_callback(entry);
         if (ERR_SUCCESS != err) {
-          LOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
+          DLOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
         }
 
       } catch (exception const & ex) {
-        ERR_LOG("Error in callback", ex);
+        EXC_LOG("Error in callback", ex);
       } catch (std::exception const & ex) {
-        LOG("Error in callback: " << ex.what());
+        EXC_LOG("Error in callback: ", ex);
         delete entry;
       } catch (std::string const & str) {
-        LOG("Error in callback: " << str);
+        ELOG("Error in callback: " << str);
         delete entry;
       } catch (...) {
-        LOG("Error in callback.");
+        ELOG("Error in callback.");
         delete entry;
       }
     }
-    LOG("worker going to sleep");
+    DLOG("worker going to sleep");
   } while (packeteer::thread::tasklet::sleep());
-  LOG("worker stopped");
+  DLOG("worker stopped");
 }
 
 

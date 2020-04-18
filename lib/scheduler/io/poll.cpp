@@ -101,7 +101,7 @@ translate_os_to_events(int os)
 
 io_poll::io_poll()
 {
-  LOG("Poll based I/O subsystem created.");
+  DLOG("Poll based I/O subsystem created.");
 }
 
 

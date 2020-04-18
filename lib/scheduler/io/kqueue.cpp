@@ -170,7 +170,7 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
         for (size_t i = 0 ; i < amount ; ++i) {
           bool ret = modify_kqueue(add, queue, &handles[i], 1, events);
           if (!ret) {
-            LOG("Handle " << handles[i] << " [" << handles[i].sys_handle() \
+            DLOG("Handle " << handles[i] << " [" << handles[i].sys_handle() \
                 << "] could not be modified, maybe it's a double delete?");
           }
         }
@@ -217,7 +217,7 @@ io_kqueue::io_kqueue()
     m_kqueue_fd = res;
   }
 
-  LOG("KQueue based I/O subsystem created.");
+  DLOG("KQueue based I/O subsystem created.");
 }
 
 

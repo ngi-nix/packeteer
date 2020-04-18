@@ -59,7 +59,7 @@ struct test_callback
   {
     ++m_called;
     m_mask = mask;
-    LOG("callback called: " << error << " - " << conn << " - " << mask);
+    DLOG("callback called: " << error << " - " << conn << " - " << mask);
 
     return p7r::error_t(0);
   }
@@ -103,9 +103,9 @@ struct thread_id_callback
   {
     m_tid = std::this_thread::get_id();
 
-    LOG("callback started");
+    DLOG("callback started");
     std::this_thread::sleep_for(sc::milliseconds(50));
-    LOG("callback ended");
+    DLOG("callback ended");
 
     return p7r::error_t(0);
   }

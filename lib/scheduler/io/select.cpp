@@ -47,7 +47,7 @@ namespace packeteer::detail {
 
 io_select::io_select()
 {
-  LOG("Select based I/O subsystem created.");
+  DLOG("Select based I/O subsystem created.");
 }
 
 

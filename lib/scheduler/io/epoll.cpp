@@ -210,7 +210,7 @@ io_epoll::io_epoll()
     m_epoll_fd = res;
   }
 
-  LOG("Epoll based I/O subsystem created.");
+  DLOG("Epoll based I/O subsystem created.");
 }
 
 

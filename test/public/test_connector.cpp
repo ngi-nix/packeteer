@@ -338,7 +338,7 @@ void send_message_streaming(connector & sender, connector & receiver,
   result.resize(amount);
 
   std::string received{result.begin(), result.end()};
-  LOG("Sent '" << msg << "' and received '" << received << "'");
+  DLOG("Sent '" << msg << "' and received '" << received << "'");
   ASSERT_EQ(msg, received);
 }
 
@@ -360,7 +360,7 @@ struct server_connect_callback
       [[maybe_unused]] connector const & conn, void *)
   {
     if (!m_conn) {
-      LOG(" ***** INCOMING " << mask << ":" << error << ":" << conn);
+      DLOG(" ***** INCOMING " << mask << ":" << error << ":" << conn);
       // The accept() function clears the event.
       m_conn = m_server.accept();
       EXPECT_TRUE(m_conn);
@@ -381,7 +381,7 @@ struct client_post_connect_callback
   {
     if (!m_connected) {
       m_connected = true;
-      LOG(" ***** CONNECTED! " << mask << ":" << error << ":" << conn);
+      DLOG(" ***** CONNECTED! " << mask << ":" << error << ":" << conn);
     }
 
     return ERR_SUCCESS;
@@ -666,7 +666,7 @@ void send_message_dgram(connector & sender, connector & receiver,
   result.resize(amount);
 
   std::string received{result.begin(), result.end()};
-  LOG("Sent '" << msg << "' and received '" << received << "'");
+  DLOG("Sent '" << msg << "' and received '" << received << "'");
   ASSERT_EQ(msg, received);
 }
 
