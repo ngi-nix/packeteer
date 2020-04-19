@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -26,6 +26,7 @@
 #include <packeteer/error.h>
 
 #include "../../globals.h"
+#include "../../macros.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -122,10 +123,13 @@ connector_local::listen()
 error_t
 connector_local::close()
 {
+  std::string fname = m_addr.full_str();
   bool server = m_server;
+
   error_t err = connector_socket::socket_close();
-  if (ERR_SUCCESS == err && server) {
-    ::unlink(m_addr.full_str().c_str());
+  if (server) {
+    DLOG("Server closing; remove file system entry: " << fname);
+    ::unlink(fname.c_str());
   }
   return err;
 }
@@ -143,7 +147,7 @@ connector_local::accept(net::socket_address & addr)
 
   // Create & return connector with accepted FD
   connector_local * result = new connector_local();
-  result->m_addr = addr;
+  result->m_addr = addr.type() == net::AT_UNSPEC ? m_addr : addr;
   result->m_server = true;
   result->m_fd = fd;
   result->m_options = m_options;
