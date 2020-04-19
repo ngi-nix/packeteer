@@ -255,7 +255,7 @@ connector_socket::socket_bind(int domain, int type, int & fd)
   if (ret < 0) {
     ::close(fd);
 
-    ERRNO_LOG("connector_socket bind failed!");
+    ERRNO_LOG("connector_socket bind failed; address is: " << m_addr.full_str());
     switch (errno) {
       case EACCES:
         return ERR_ACCESS_VIOLATION;
