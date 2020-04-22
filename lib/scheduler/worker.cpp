@@ -73,21 +73,20 @@ worker::worker_loop(packeteer::thread::tasklet & _1 [[maybe_unused]], void * _2 
       try {
         error_t err = execute_callback(entry);
         if (ERR_SUCCESS != err) {
-          DLOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
+          ELOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
         }
-
       } catch (exception const & ex) {
         EXC_LOG("Error in callback", ex);
       } catch (std::exception const & ex) {
         EXC_LOG("Error in callback: ", ex);
-        delete entry;
       } catch (std::string const & str) {
         ELOG("Error in callback: " << str);
-        delete entry;
       } catch (...) {
         ELOG("Error in callback.");
-        delete entry;
       }
+
+      // Whatever happens, delete the entry.
+      delete entry;
     }
     DLOG("worker going to sleep");
   } while (packeteer::thread::tasklet::sleep());
@@ -127,7 +126,6 @@ worker::execute_callback(detail::callback_entry * entry)
   }
 
   // Cleanup
-  delete entry;
   return err;
 }
 
