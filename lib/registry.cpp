@@ -116,7 +116,7 @@ struct registry::registry_impl
       return;
     }
 
-    LOG("Initializing default connector URL parameters.");
+    DLOG("Initializing default connector URL parameters.");
     FAIL_FAST(add_parameter("behaviour",
         [](std::string const & value, bool) -> connector_options
         {
@@ -150,11 +150,11 @@ struct registry::registry_impl
   add_parameter(std::string const & parameter, option_mapper && mapper)
   {
     if (parameter.empty()) {
-      LOG("Must specify a URL parameter!");
+      ELOG("Must specify a URL parameter!");
       return ERR_INVALID_VALUE;
     }
     if (!mapper) {
-      LOG("No mapper function provided!");
+      ELOG("No mapper function provided!");
       return ERR_EMPTY_CALLBACK;
     }
 
@@ -162,7 +162,7 @@ struct registry::registry_impl
 
     auto option = option_mappers.find(normalized);
     if (option != option_mappers.end()) {
-      LOG("URL parameter already registered!");
+      ELOG("URL parameter already registered!");
       return ERR_INVALID_VALUE;
     }
 
@@ -179,7 +179,7 @@ struct registry::registry_impl
   {
     connector_options result = CO_DEFAULT;
     for (auto param : option_mappers) {
-      LOG("Checking known option parameter: " << param.first);
+      DLOG("Checking known option parameter: " << param.first);
 
       // Get query value for parameter.
       auto query_val = query.find(param.first);
@@ -190,15 +190,15 @@ struct registry::registry_impl
       }
 
       // Invoke mapper
-      LOG("Using mapper to convert value: " << value);
+      DLOG("Using mapper to convert value: " << value);
       auto intermediate = param.second(value, found);
-      LOG("Mapper result is: " << intermediate);
+      DLOG("Mapper result is: " << intermediate);
 
       // Success, so set whatever the mapper set.
       result |= intermediate;
     }
 
-    LOG("Merged options are: " << result);
+    DLOG("Merged options are: " << result);
     return result;
   }
 
@@ -269,7 +269,9 @@ struct registry::registry_impl
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
       [] (util::url const & url, connector_type const &, connector_options const & options) -> connector_interface *
       {
-        return new detail::connector_local(url.path, options);
+        auto res = new detail::connector_local(url.path, options);
+        DLOG("New connector local: " << std::hex << res << std::dec);
+        return res;
       }}));
 #endif
   }
@@ -280,12 +282,12 @@ struct registry::registry_impl
   add_scheme(std::string const & scheme, connector_info const & info)
   {
     if (scheme.empty()) {
-      LOG("Must specify a scheme!");
+      ELOG("Must specify a scheme!");
       return ERR_INVALID_VALUE;
     }
 
     if (CT_UNSPEC == info.type) {
-      LOG("Must specify a type!");
+      ELOG("Must specify a type!");
       return ERR_INVALID_VALUE;
     }
 
@@ -296,7 +298,7 @@ struct registry::registry_impl
     // option allowed.
 
     if (!info.creator) {
-      LOG("Must provide a creator function!");
+      ELOG("Must provide a creator function!");
       return ERR_EMPTY_CALLBACK;
     }
 
@@ -305,7 +307,7 @@ struct registry::registry_impl
 
     auto scheme_info = scheme_map.find(normalized);
     if (scheme_info != scheme_map.end()) {
-      LOG("Scheme already registered!");
+      ELOG("Scheme already registered!");
       return ERR_INVALID_VALUE;
     }
 
