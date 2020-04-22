@@ -273,6 +273,8 @@ public:
   size_t hash() const;
 
 private:
+  friend std::ostream & operator<<(std::ostream & os, connector const & conn);
+
   // pimpl
   struct connector_impl;
   std::shared_ptr<connector_impl> m_impl;
@@ -292,14 +294,7 @@ swap(connector & first, connector & second)
 /**
  * Output
  **/
-inline std::ostream &
-operator<<(std::ostream & os, connector const & conn)
-{
-  os << "[" << conn.peer_addr() << "]<" << conn.hash()
-    << ">(R " << conn.get_read_handle() << " / W "
-    << conn.get_write_handle() << ")";
-  return os;
-}
+std::ostream & operator<<(std::ostream & os, connector const & conn);
 
 } // namespace packeteer
 

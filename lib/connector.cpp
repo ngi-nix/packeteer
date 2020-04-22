@@ -530,4 +530,21 @@ connector::hash() const
   return m_impl->hash();
 }
 
+
+
+std::ostream &
+operator<<(std::ostream & os, connector const & conn)
+{
+  if (!conn.m_impl) {
+    os << "[undefined]";
+  }
+  else {
+    os << "[" << conn.peer_addr() << "]<" << conn.hash()
+      << ">(R " << conn.get_read_handle() << " / W "
+      << conn.get_write_handle() << ")";
+  }
+  return os;
+}
+
+
 } // namespace packeteer
