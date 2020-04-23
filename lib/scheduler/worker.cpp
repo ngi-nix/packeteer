@@ -45,7 +45,6 @@ namespace packeteer::detail {
 worker::worker(std::condition_variable_any & condition, std::recursive_mutex & mutex,
     concurrent_queue<detail::callback_entry *> & work_queue)
   : packeteer::thread::tasklet(&condition, &mutex, packeteer::thread::binder(this, &worker::worker_loop))
-  , m_alive(true)
   , m_work_queue(work_queue)
 {
 }
@@ -62,71 +61,15 @@ worker::~worker()
 void
 worker::worker_loop(packeteer::thread::tasklet & _1 [[maybe_unused]], void * _2 [[maybe_unused]])
 {
-  DLOG("worker started");
+  DLOG("Worker " << std::this_thread::get_id() << " started");
   do {
-    DLOG("worker woke up");
-    detail::callback_entry * entry = nullptr;
-    while (m_work_queue.pop(entry)) {
-      DLOG("worker [" << std::hex << reinterpret_cast<uintptr_t>(this)
-          << std::dec << "] picked up entry of type: "
-          << static_cast<int>(entry->m_type));
-      try {
-        error_t err = execute_callback(entry);
-        if (ERR_SUCCESS != err) {
-          ELOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
-        }
-      } catch (exception const & ex) {
-        EXC_LOG("Error in callback", ex);
-      } catch (std::exception const & ex) {
-        EXC_LOG("Error in callback: ", ex);
-      } catch (std::string const & str) {
-        ELOG("Error in callback: " << str);
-      } catch (...) {
-        ELOG("Error in callback.");
-      }
-
-      // Whatever happens, delete the entry.
-      delete entry;
-    }
-    DLOG("worker going to sleep");
+    DLOG("Worker " << std::this_thread::get_id() << " woke up");
+    drain_work_queue(m_work_queue, false);
+    DLOG("Worker " << std::this_thread::get_id() << " going to sleep");
   } while (packeteer::thread::tasklet::sleep());
-  DLOG("worker stopped");
+  DLOG("Worker " << std::this_thread::get_id() << " stopped");
 }
 
 
-
-error_t
-worker::execute_callback(detail::callback_entry * entry)
-{
-  error_t err = ERR_SUCCESS;
-
-  switch (entry->m_type) {
-    case detail::CB_ENTRY_SCHEDULED:
-      err = entry->m_callback(PEV_TIMEOUT, ERR_SUCCESS, connector{}, nullptr);
-      break;
-
-    case detail::CB_ENTRY_USER:
-      {
-        auto user = reinterpret_cast<detail::user_callback_entry *>(entry);
-        err = user->m_callback(user->m_events, ERR_SUCCESS, connector{}, nullptr);
-      }
-      break;
-
-    case detail::CB_ENTRY_IO:
-      {
-        auto io = reinterpret_cast<detail::io_callback_entry *>(entry);
-        err = io->m_callback(io->m_events, ERR_SUCCESS, io->m_connector, nullptr);
-      }
-      break;
-
-    default:
-      // Unknown type. Signal an error on the callback.
-      err = entry->m_callback(PEV_ERROR, ERR_UNEXPECTED, connector{}, nullptr);
-      break;
-  }
-
-  // Cleanup
-  return err;
-}
 
 } // namespace packeteer::detail

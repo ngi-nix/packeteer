@@ -54,21 +54,13 @@ public:
       concurrent_queue<detail::callback_entry *> & work_queue);
   ~worker();
 
-  /**
-   * Run a callback
-   **/
-  static error_t execute_callback(detail::callback_entry * entry);
-
 
 private:
-
   /**
-   * Sleep()s, grabs entries from the work queue, execute_callback()s them,
-   * sleeps again.
+   * Sleep()s, runs drain_work_queue() and sleeps again.
    **/
   void worker_loop(packeteer::thread::tasklet & tasklet, void * /* unused */);
 
-  std::atomic<bool>                             m_alive;
   concurrent_queue<detail::callback_entry *> &  m_work_queue;
 };
 
