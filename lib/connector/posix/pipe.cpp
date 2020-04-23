@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2017-2019 Jens Finkhaeuser.
+ * Copyright (c) 2017-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -325,6 +325,7 @@ connector_pipe::close()
   // pages state, but it's the price of the abstraction.
   ::close(m_handle.sys_handle());
   if (m_server) {
+    DLOG("Server closing; remove file system entry: " << m_addr.full_str());
     ::unlink(m_addr.full_str().c_str());
   }
 
