@@ -139,6 +139,7 @@ struct connector::connector_impl
   ~connector_impl()
   {
     delete m_iconn;
+    m_iconn = nullptr;
   }
 
 
@@ -335,7 +336,7 @@ handle
 connector::get_read_handle() const
 {
   if (!m_impl || !*m_impl) {
-    return handle();
+    return handle{};
   }
   return (*m_impl)->get_read_handle();
 }
@@ -346,7 +347,7 @@ handle
 connector::get_write_handle() const
 {
   if (!m_impl || !*m_impl) {
-    return handle();
+    return handle{};
   }
   return (*m_impl)->get_write_handle();
 }
