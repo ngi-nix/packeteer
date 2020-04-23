@@ -65,11 +65,11 @@ TEST(SchedulerContainers, io_callbacks)
   auto api = p7r::api::create();
 
   // Create & connect two anonymous connectors - before connecting, they will
-  // be equal. Connecting one is enough.
+  // be equal, which messes with the container's idea of uniqueness.
   p7r::connector conn1{api, "anon://"};
   p7r::connector conn2{api, "anon://"};
   conn1.connect();
-  // XXX conn2.connect();
+  conn2.connect();
 
   // We want to be able to find a range of eventmasks for a given
   // file descriptor. Since event masks are bitfields, and the index is
@@ -78,7 +78,7 @@ TEST(SchedulerContainers, io_callbacks)
   // triggered.
   p7r::detail::io_callbacks_t container;
 
-  p7r::detail::io_callback_entry * entry = new p7r::detail::io_callback_entry(&foo,
+  auto entry = new p7r::detail::io_callback_entry(&foo,
       conn1, p7r::PEV_IO_WRITE);
   container.add(entry);
 
@@ -98,31 +98,31 @@ TEST(SchedulerContainers, io_callbacks)
       p7r::PEV_IO_READ);
   container.add(entry);
 
-  // Two of the entries get merged, so we should have 3 entries for FD 1, and 
-  // one entry for FD 2.
+  // Two of the entries get merged, so we should have 3 entries for conn1, and
+  // one entry for conn2.
 
-  // More precisely, there should be three read callbacks for FD 1
+  // More precisely, there should be three read callbacks for conn1
   auto range = container.copy_matching(conn1, p7r::PEV_IO_READ);
   ASSERT_EQ(3, range.size());
   for (auto todelete : range) { delete todelete; }
 
-  // There should be two write callbacks for FD 1
+  // There should be two write callbacks for conn1
   range = container.copy_matching(conn1, p7r::PEV_IO_WRITE);
   ASSERT_EQ(2, range.size());
   for (auto todelete : range) { delete todelete; }
 
-  // There should be 1 read callback for FD 2
+  // There should be 1 read callback for conn2
   range = container.copy_matching(conn2, p7r::PEV_IO_READ);
   ASSERT_EQ(1, range.size());
   for (auto todelete : range) { delete todelete; }
 
-  // And no write callback for FD 2
+  // And no write callback for conn2
   range = container.copy_matching(conn2, p7r::PEV_IO_WRITE);
   ASSERT_EQ(0, range.size());
   for (auto todelete : range) { delete todelete; }
 
   // Lastly, if we ask for callbacks for read or write, that should be three
-  // again (for FD 1)
+  // again (for conn1)
   range = container.copy_matching(conn1, p7r::PEV_IO_READ | p7r::PEV_IO_WRITE);
   ASSERT_EQ(3, range.size());
   for (auto todelete : range) { delete todelete; }
