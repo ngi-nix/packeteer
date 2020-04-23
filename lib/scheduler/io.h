@@ -117,6 +117,7 @@ private:
   {
     auto iter = m_sys_handles.find(sys_handle);
     if (iter == m_sys_handles.end()) {
+      m_connectors.erase(sys_handle);
       return;
     }
     iter->second &= ~events;
