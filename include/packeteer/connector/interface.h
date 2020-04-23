@@ -55,7 +55,7 @@ public:
   /**
    * Expected to close() the connector.
    */
-  virtual ~connector_interface() = 0;
+  virtual ~connector_interface();
 
   virtual error_t listen() = 0;
   virtual bool listening() const = 0;
