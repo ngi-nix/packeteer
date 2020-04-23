@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -107,6 +107,8 @@ struct callback_entry
     , m_callback(cb)
   {
   }
+
+  virtual ~callback_entry() {}
 };
 
 // Events are reported with this structure.
@@ -125,6 +127,13 @@ struct event_data
 namespace packeteer {
 
 /*****************************************************************************
+ * Types
+ **/
+// Type for temporary entry containers.
+using entry_list_t = std::vector<detail::callback_entry *>;
+
+
+/*****************************************************************************
  * Nested class scheduler::scheduler_impl.
  *
  * The generic scheduler interface (scheduler_generic.h) needs to know what
@@ -139,12 +148,6 @@ struct scheduler::scheduler_impl
     ACTION_REMOVE   = 1,
     ACTION_TRIGGER  = 2,
   };
-
-  /***************************************************************************
-   * Types
-   **/
-  // Type for temporary entry containers.
-  using entry_list_t = std::vector<detail::callback_entry *>;
 
 
   /***************************************************************************
@@ -167,6 +170,7 @@ struct scheduler::scheduler_impl
    **/
   void wait_for_events(duration const & timeout,
       entry_list_t & result);
+
 private:
   /***************************************************************************
    * Types
@@ -254,6 +258,27 @@ private:
   // IO subsystem
   detail::io *                                m_io;
 };
+
+
+/*****************************************************************************
+ * Free functions
+ **/
+
+/**
+ * Execute a single callback entry.
+ **/
+error_t execute_callback(detail::callback_entry * entry);
+
+
+/**
+ * Drain a work queue, invoking execute_callback for each entry.
+ **/
+error_t drain_work_queue(concurrent_queue<detail::callback_entry *> & work_queue,
+    bool exit_on_failure);
+
+error_t drain_work_queue(entry_list_t & work_queue, bool exit_on_failure);
+
+
 
 } // namespace packeteer
 

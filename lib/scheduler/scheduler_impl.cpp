@@ -176,10 +176,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 
 scheduler::scheduler_impl::~scheduler_impl()
 {
-  if (m_num_worker_threads > 0) {
-    adjust_workers(0);
-    stop_main_loop();
-  }
+  adjust_workers(0);
+  stop_main_loop();
 
   delete m_io;
 
@@ -236,10 +234,12 @@ scheduler::scheduler_impl::stop_main_loop()
     m_main_loop_thread.join();
   }
 
-  m_io->unregister_connector(m_main_loop_pipe,
-      PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
+  if (m_main_loop_pipe.connected()) {
+    m_io->unregister_connector(m_main_loop_pipe,
+        PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
 
-  m_main_loop_pipe.close();
+    m_main_loop_pipe.close();
+  }
 }
 
 
@@ -281,6 +281,7 @@ scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 {
   in_queue_entry_t item;
   while (m_in_queue.pop(item)) {
+    // No callback means nothing to do.
     if (nullptr == item.second) {
       continue;
     }
@@ -407,6 +408,7 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
 
     default:
+      delete entry;
       throw exception(ERR_UNEXPECTED, "Bad action for user callback, unreachable line reached");
   }
 }
@@ -420,7 +422,7 @@ scheduler::scheduler_impl::dispatch_io_callbacks(std::vector<detail::event_data>
   DLOG("I/O callbacks");
 
   // Process events, and try to find a callback for each of them.
-  for (auto event : events) {
+  for (auto & event : events) {
     if (m_main_loop_pipe == event.m_connector) {
       // We just got interrupted; clear the interrupt
       detail::clear_interrupt(m_main_loop_pipe);
@@ -447,7 +449,7 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(
   detail::scheduled_callbacks_t::list_t to_erase;
   detail::scheduled_callbacks_t::list_t to_update;
 
-  for (auto entry : range) {
+  for (auto & entry : range) {
     DLOG("scheduled callback expired at " << now.time_since_epoch().count());
     if (duration(0) == entry->m_interval) {
       // If it's a one shot event, we want to *move* it into the to_schedule
@@ -495,7 +497,7 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
 {
   DLOG("triggered callbacks");
 
-  for (auto e : triggered) {
+  for (auto & e : triggered) {
     if (pdt::CB_ENTRY_USER != e->m_type) {
       DLOG("invalid user callback!");
       continue;
@@ -567,7 +569,7 @@ scheduler::scheduler_impl::main_scheduler_loop()
 
 void
 scheduler::scheduler_impl::wait_for_events(duration const & timeout,
-    scheduler::scheduler_impl::entry_list_t & result)
+    entry_list_t & result)
 {
   // While processing the in-queue, we will find triggers for user-defined
   // events. We can't really execute them until we've processed the whole
@@ -595,6 +597,133 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
   dispatch_user_callbacks(triggered, result);
 }
 
+
+/*****************************************************************************
+ * Free functions
+ **/
+
+
+error_t
+execute_callback(detail::callback_entry * entry)
+{
+  error_t err = ERR_SUCCESS;
+
+  switch (entry->m_type) {
+    case detail::CB_ENTRY_SCHEDULED:
+      err = entry->m_callback(PEV_TIMEOUT, ERR_SUCCESS, connector{}, nullptr);
+      break;
+
+    case detail::CB_ENTRY_USER:
+      {
+        auto user = reinterpret_cast<detail::user_callback_entry *>(entry);
+        err = user->m_callback(user->m_events, ERR_SUCCESS, connector{}, nullptr);
+      }
+      break;
+
+    case detail::CB_ENTRY_IO:
+      {
+        auto io = reinterpret_cast<detail::io_callback_entry *>(entry);
+        err = io->m_callback(io->m_events, ERR_SUCCESS, io->m_connector, nullptr);
+      }
+      break;
+
+    default:
+      // Unknown type. Signal an error on the callback.
+      err = entry->m_callback(PEV_ERROR, ERR_UNEXPECTED, connector{}, nullptr);
+      break;
+  }
+
+  // Cleanup
+  return err;
+}
+
+namespace {
+
+inline error_t
+handle_entry(detail::callback_entry * entry)
+{
+  DLOG("Thread " << std::this_thread::get_id() << " picked up entry of type: "
+      << static_cast<int>(entry->m_type));
+  error_t err = ERR_SUCCESS;
+  try {
+    err = execute_callback(entry);
+    if (ERR_SUCCESS != err) {
+      ELOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
+    }
+  } catch (exception const & ex) {
+    EXC_LOG("Error in callback", ex);
+    err = ex.code();
+  } catch (std::exception const & ex) {
+    EXC_LOG("Error in callback: ", ex);
+    err = ERR_UNEXPECTED;
+  } catch (std::string const & str) {
+    ELOG("Error in callback: " << str);
+    err = ERR_UNEXPECTED;
+  } catch (...) {
+    ELOG("Error in callback.");
+    err = ERR_UNEXPECTED;
+  }
+
+  return err;
+}
+
+} // anonymous namespace
+
+
+error_t
+drain_work_queue(concurrent_queue<detail::callback_entry *> & work_queue,
+    bool exit_on_failure)
+{
+  DLOG("Starting drain.");
+  detail::callback_entry * entry = nullptr;
+  error_t err = ERR_SUCCESS;
+  bool process = true;
+  while (work_queue.pop(entry)) {
+    if (process) {
+      // Process the entry (it gets freed)
+      err = handle_entry(entry);
+    }
+
+    // Always delete entry
+    delete entry;
+
+    // Maybe exit
+    if (ERR_SUCCESS != err && exit_on_failure) {
+      process = false;
+    }
+  }
+
+  DLOG("Finished drain.");
+  return err;
+}
+
+
+
+error_t
+drain_work_queue(entry_list_t & work_queue, bool exit_on_failure)
+{
+  DLOG("Starting drain.");
+  error_t err = ERR_SUCCESS;
+  bool process = true;
+  for (auto & entry : work_queue) {
+    if (process) {
+      err = handle_entry(entry);
+    }
+
+    // Always delete entry
+    delete entry;
+
+    // Maybe exit
+    if (ERR_SUCCESS != err && exit_on_failure) {
+      process = false;
+    }
+  }
+
+  work_queue.clear();
+
+  DLOG("Finished drain.");
+  return err;
+}
 
 
 } // namespace packeteer
