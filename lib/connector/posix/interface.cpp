@@ -25,6 +25,7 @@
 #include "../../macros.h"
 
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 namespace packeteer {
 
@@ -156,39 +157,27 @@ connector_interface::peek() const
     throw exception(ERR_INITIALIZATION, "Can't peek() without listening or being connected!");
   }
 
-  // TODO might need to simply raise or return -1 (ssize_t then) if MSG_TRUNC
-  // does not exist on the target platform
-  ssize_t to_read = ::recv(get_read_handle().sys_handle(), nullptr, 0,
-      MSG_PEEK | MSG_TRUNC);
-  if (to_read < 0) {
-    ERRNO_LOG("recv failed in peek");
+  int bytes_available = 0;
+  int err = ::ioctl(get_read_handle().sys_handle(), FIONREAD, &bytes_available);
+  if (err < 0) {
+    ERRNO_LOG("ioctl failed in peek");
     switch (errno) {
-      case EAGAIN:
-      case EINTR:
-        // Essentially ask to try again
-        return 0;
-
       case EBADF:
-      case ENOTSOCK:
         throw exception(ERR_INVALID_VALUE, errno, "Attempting to peek failed!");
-
-      case ECONNREFUSED:
-        throw exception(ERR_CONNECTION_REFUSED, errno, "Attempting to peek failed!");
-
-      case ENOTCONN:
-        throw exception(ERR_NO_CONNECTION, errno, "Attempting to peek failed!");
 
       case EFAULT:
         throw exception(ERR_ACCESS_VIOLATION, errno, "Attempting to peek failed!");
 
-      case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY, errno, "Attempting to peek failed!");
+      case EINVAL:
+      case ENOTTY:
+        throw exception(ERR_INVALID_VALUE, errno, "Attempting to peek failed!");
 
       default:
         throw exception(ERR_UNEXPECTED, errno, "Attempting to peek failed!");
     }
   }
-  return to_read;
+
+  return bytes_available;
 }
 
 
