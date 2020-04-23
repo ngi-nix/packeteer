@@ -93,18 +93,21 @@ struct callback_entry
 {
   callback_type   m_type;
   callback        m_callback;
+  time_point      m_timestamp;
 
 
   callback_entry(callback_type type)
-    : m_type(type)
-    , m_callback()
+    : m_type{type}
+    , m_callback{}
+    , m_timestamp{}
   {
   }
 
 
   callback_entry(callback_type type, callback const & cb)
-    : m_type(type)
-    , m_callback(cb)
+    : m_type{type}
+    , m_callback{cb}
+    , m_timestamp{}
   {
   }
 
@@ -273,7 +276,8 @@ error_t execute_callback(detail::callback_entry * entry);
 /**
  * Drain a work queue, invoking execute_callback for each entry.
  **/
-error_t drain_work_queue(concurrent_queue<detail::callback_entry *> & work_queue,
+error_t drain_work_queue(
+    concurrent_queue<detail::callback_entry *> & work_queue,
     bool exit_on_failure);
 
 error_t drain_work_queue(entry_list_t & work_queue, bool exit_on_failure);

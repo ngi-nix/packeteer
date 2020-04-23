@@ -54,7 +54,8 @@ struct test_callback
 
 
   p7r::error_t
-  func(p7r::events_t mask, [[maybe_unused]] p7r::error_t error,
+  func(p7r::time_point const & now [[maybe_unused]],
+      p7r::events_t mask, p7r::error_t error [[maybe_unused]],
       p7r::connector const & conn [[maybe_unused]], void *)
   {
     ++m_called;
@@ -72,7 +73,8 @@ struct counting_callback
   std::atomic<int> m_write_called = 0;
 
   p7r::error_t
-  func(p7r::events_t mask, p7r::error_t error [[maybe_unused]],
+  func(p7r::time_point const & now [[maybe_unused]], p7r::events_t mask,
+      p7r::error_t error [[maybe_unused]],
       p7r::connector const & conn [[maybe_unused]], void *)
   {
     if (mask & p7r::PEV_IO_READ) {
@@ -99,7 +101,8 @@ struct thread_id_callback
 
 
   p7r::error_t
-  func(p7r::events_t, p7r::error_t, p7r::connector const &, void *)
+  func(p7r::time_point const & now [[maybe_unused]], p7r::events_t, p7r::error_t,
+      p7r::connector const &, void *)
   {
     m_tid = std::this_thread::get_id();
 
@@ -127,9 +130,10 @@ struct reading_callback : public test_callback
   }
 
   p7r::error_t
-  func(p7r::events_t mask, p7r::error_t error, p7r::connector const & h, void *)
+  func(p7r::time_point const & now, p7r::events_t mask, p7r::error_t error,
+      p7r::connector const & h, void *)
   {
-    p7r::error_t err = test_callback::func(mask, error, h, nullptr);
+    p7r::error_t err = test_callback::func(now, mask, error, h, nullptr);
     if (err != 0) {
       return err;
     }

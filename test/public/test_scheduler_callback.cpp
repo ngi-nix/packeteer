@@ -29,14 +29,18 @@ namespace p7r = packeteer;
 
 namespace {
 
-p7r::error_t free_func1(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
+p7r::error_t
+free_func1(p7r::time_point const &, p7r::events_t events,
+    p7r::error_t, p7r::connector const &, void *)
 {
   EXPECT_EQ(42, events);
   return p7r::error_t(1);
 }
 
 
-p7r::error_t free_func2(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
+p7r::error_t
+free_func2(p7r::time_point const &, p7r::events_t events,
+    p7r::error_t, p7r::connector const &, void *)
 {
   EXPECT_EQ(666, events);
   return p7r::error_t(2);
@@ -45,7 +49,9 @@ p7r::error_t free_func2(p7r::events_t events, p7r::error_t, p7r::connector const
 
 struct functor
 {
-  p7r::error_t member_func(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
+  p7r::error_t
+  member_func(p7r::time_point const &, p7r::events_t events,
+      p7r::error_t, p7r::connector const &, void *)
   {
     EXPECT_EQ(1234, events);
     return p7r::error_t(3);
@@ -53,7 +59,9 @@ struct functor
 
 
 
-  p7r::error_t operator()(p7r::events_t events, p7r::error_t, p7r::connector const &, void *)
+  p7r::error_t
+  operator()(p7r::time_point const &, p7r::events_t events,
+      p7r::error_t, p7r::connector const &, void *)
   {
     EXPECT_EQ(0xdeadbeef, events);
     return p7r::error_t(4);
@@ -67,11 +75,15 @@ struct functor
 TEST(Callback, free_functions)
 {
   // Test that a free function is correctly invoked.
+  auto now = p7r::clock::now();
+
   p7r::callback cb1 = &free_func1;
-  ASSERT_EQ(p7r::error_t(1), cb1(42, p7r::error_t(0), p7r::connector{}, nullptr));
+  ASSERT_EQ(p7r::error_t(1), cb1(now, 42, p7r::error_t(0), p7r::connector{},
+        nullptr));
 
   p7r::callback cb2 = &free_func2;
-  ASSERT_EQ(p7r::error_t(2), cb2(666, p7r::error_t(0), p7r::connector{}, nullptr));
+  ASSERT_EQ(p7r::error_t(2), cb2(now, 666, p7r::error_t(0), p7r::connector{},
+        nullptr));
 
   // Test for equality.
   ASSERT_NE(cb1, cb2);
@@ -84,13 +96,16 @@ TEST(Callback, free_functions)
 TEST(Callback, member_functions)
 {
   // Test that member functions are correctly invoked.
+  auto now = p7r::clock::now();
   functor f;
 
   p7r::callback cb1 = p7r::make_callback(&f, &functor::member_func);
-  ASSERT_EQ(p7r::error_t(3), cb1(1234, p7r::error_t(0), p7r::connector{}, nullptr));
+  ASSERT_EQ(p7r::error_t(3), cb1(now, 1234, p7r::error_t(0), p7r::connector{},
+        nullptr));
 
   p7r::callback cb2 = p7r::make_callback(&f);
-  ASSERT_EQ(p7r::error_t(4), cb2(0xdeadbeef, p7r::error_t(0), p7r::connector{}, nullptr));
+  ASSERT_EQ(p7r::error_t(4), cb2(now, 0xdeadbeef, p7r::error_t(0),
+        p7r::connector{}, nullptr));
 
   // Test for equality.
   ASSERT_NE(cb1, cb2);
@@ -132,12 +147,14 @@ TEST(Callback, comparison)
 TEST(Callback, empty)
 {
   // Empty/un-assigned callbacks should behave sanely
+  auto now = p7r::clock::now();
   p7r::callback cb;
 
   ASSERT_EQ(true, cb.empty());
   ASSERT_FALSE(cb);
 
-  ASSERT_THROW(cb(0, p7r::error_t(1), p7r::connector{}, nullptr), p7r::exception);
+  ASSERT_THROW(cb(now, 0, p7r::error_t(1), p7r::connector{}, nullptr),
+      p7r::exception);
 
   p7r::callback cb2 = &free_func1;
   ASSERT_NE(cb, cb2);
@@ -147,19 +164,22 @@ TEST(Callback, empty)
 TEST(Callback, assignment)
 {
   // Ensure that empty callbacks can be assigned later on.
+  auto now = p7r::clock::now();
   p7r::callback cb;
   ASSERT_FALSE(cb);
 
   cb = &free_func1;
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(p7r::error_t(1), cb(42, p7r::error_t(0), p7r::connector{}, nullptr));
+  ASSERT_EQ(p7r::error_t(1), cb(now, 42, p7r::error_t(0), p7r::connector{},
+        nullptr));
 
   functor f;
   cb = p7r::make_callback(&f);
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(p7r::error_t(4), cb(0xdeadbeef, p7r::error_t(0), p7r::connector{}, nullptr));
+  ASSERT_EQ(p7r::error_t(4), cb(now, 0xdeadbeef, p7r::error_t(0),
+        p7r::connector{}, nullptr));
 }
 
 
