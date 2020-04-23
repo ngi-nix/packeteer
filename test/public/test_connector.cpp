@@ -318,7 +318,7 @@ std::string connector_name(testing::TestParamInfo<T> const & info)
 
 
 void peek_message_streaming(p7r::connector & sender, p7r::connector & receiver,
-    int marker = -1)
+    int marker = -1, p7r::scheduler * sched = nullptr)
 {
   std::string msg = "Hello, world!";
   if (marker >= 0) {
@@ -328,10 +328,19 @@ void peek_message_streaming(p7r::connector & sender, p7r::connector & receiver,
   ASSERT_EQ(p7r::ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
   ASSERT_EQ(msg.size(), amount);
 
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+  if (sched) {
+    sched->process_events(TEST_SLEEP_TIME);
+  }
+  else {
+    std::this_thread::sleep_for(TEST_SLEEP_TIME);
+  }
 
   auto peeked = receiver.peek();
-  ASSERT_EQ(msg.size(), peeked);
+
+  // On POSIX, named pipes keep the message buffer associated with the FIFO in
+  // the (file-)system, not the file descriptor. So after writing in both
+  // directions, the peeked size is twice the message size.
+  ASSERT_GE(peeked, msg.size());
 }
 
 
@@ -548,8 +557,8 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   ASSERT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, client.get_options());
 
   // Communications
-  send_message_streaming(client, server_conn);
-  send_message_streaming(server_conn, client);
+  send_message_streaming(client, server_conn, -1, &sched);
+  send_message_streaming(server_conn, client, -1, &sched);
 }
 
 
@@ -669,14 +678,13 @@ TEST_P(ConnectorStream, peek_from_write)
 
   // Connecting must result in p7r::ERR_ASYNC. We use a scheduler run to
   // understand when the connection attempt was finished.
-  // FIXME own run loop, no background threads.
-  p7r::scheduler sched(test_env->api, 1);
+  p7r::scheduler sched(test_env->api, 0);
   server_connect_callback server_struct(server);
   auto server_cb = p7r::make_callback(&server_struct, &server_connect_callback::func);
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, server, server_cb);
 
   // Give scheduler a chance to register connectors
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
   ASSERT_EQ(p7r::ERR_ASYNC, client.connect());
 
   client_post_connect_callback client_struct;
@@ -684,7 +692,7 @@ TEST_P(ConnectorStream, peek_from_write)
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, client, client_cb);
 
   // Wait for all callbacks to be invoked.
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
 
   // After the sleep, the server conn and client conn should both
   // be ready to roll.
@@ -692,7 +700,6 @@ TEST_P(ConnectorStream, peek_from_write)
   ASSERT_TRUE(client_struct.m_connected);
 
   p7r::connector server_conn = server_struct.m_conn;
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   ASSERT_FALSE(client.listening());
   ASSERT_TRUE(client.connected());
@@ -705,8 +712,8 @@ TEST_P(ConnectorStream, peek_from_write)
   ASSERT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, client.get_options());
 
   // Communications
-  peek_message_streaming(server_conn, client);
-  peek_message_streaming(client, server_conn);
+  peek_message_streaming(server_conn, client, -1, &sched);
+  peek_message_streaming(client, server_conn, -1, &sched);
 }
 
 
@@ -772,6 +779,26 @@ void send_message_dgram(p7r::connector & sender, p7r::connector & receiver,
 }
 
 
+
+void peek_message_dgram(p7r::connector & sender, p7r::connector & receiver,
+    int marker = -1)
+{
+  std::string msg = "hello, world!";
+  if (marker >= 0) {
+    msg += " [" + std::to_string(marker) + "]";
+  }
+  size_t amount = 0;
+  ASSERT_EQ(p7r::ERR_SUCCESS, sender.send(msg.c_str(), msg.size(), amount,
+      receiver.peer_addr()));
+  ASSERT_EQ(msg.size(), amount);
+
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+
+  auto peeked = receiver.peek();
+  ASSERT_EQ(msg.size(), peeked);
+}
+
+
 } // anonymous namespace
 
 class ConnectorDGram
@@ -823,6 +850,53 @@ TEST_P(ConnectorDGram, messaging)
   send_message_dgram(client, server);
   send_message_dgram(server, client);
 }
+
+
+
+TEST_P(ConnectorDGram, peek_from_send)
+{
+  // Tests for "datagram" connectors, i.e. connectors that allow synchronous,
+  // un-reliable delivery.
+  auto td = GetParam();
+
+  auto surl = p7r::util::url::parse(td.dgram_first);
+  surl.query["behaviour"] = "datagram";
+  auto curl = p7r::util::url::parse(td.dgram_second);
+  curl.query["behaviour"] = "datagram";
+
+  // Server
+  p7r::connector server{test_env->api, surl};
+  ASSERT_EQ(td.type, server.type());
+
+  ASSERT_FALSE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  ASSERT_EQ(p7r::ERR_SUCCESS, server.listen());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+
+  // Client
+  p7r::connector client{test_env->api, curl};
+  ASSERT_EQ(td.type, client.type());
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_FALSE(client.connected());
+
+  ASSERT_EQ(p7r::ERR_SUCCESS, client.listen());
+
+  ASSERT_TRUE(client.listening());
+  ASSERT_FALSE(client.connected());
+
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+
+  // Communications
+  peek_message_dgram(client, server);
+  peek_message_dgram(server, client);
+}
+
 
 
 TEST_P(ConnectorDGram, multiple_clients)
