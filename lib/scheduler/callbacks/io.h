@@ -71,7 +71,8 @@ struct io_callbacks_t
 
   ~io_callbacks_t()
   {
-    for (auto entry : m_callback_map) {
+    DLOG("Clearing I/O callbacks.");
+    for (auto & entry : m_callback_map) {
       delete entry.second;
     }
   }
