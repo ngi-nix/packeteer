@@ -337,9 +337,8 @@ void peek_message_streaming(p7r::connector & sender, p7r::connector & receiver,
 
   auto peeked = receiver.peek();
 
-  // On POSIX, named pipes keep the message buffer associated with the FIFO in
-  // the (file-)system, not the file descriptor. So after writing in both
-  // directions, the peeked size is twice the message size.
+  // Depending on the OS and connector type, there may be a lot more
+  // returned by peek() than the message size.
   ASSERT_GE(peeked, msg.size());
 }
 
@@ -795,7 +794,10 @@ void peek_message_dgram(p7r::connector & sender, p7r::connector & receiver,
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   auto peeked = receiver.peek();
-  ASSERT_EQ(msg.size(), peeked);
+
+  // Depending on the OS and connector type, there may be a lot more
+  // returned by peek() than the message size.
+  ASSERT_GE(peeked, msg.size());
 }
 
 
