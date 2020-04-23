@@ -273,7 +273,8 @@ public:
   size_t hash() const;
 
 private:
-  friend std::ostream & operator<<(std::ostream & os, connector const & conn);
+  friend PACKETEER_API
+  std::ostream & operator<<(std::ostream & os, connector const & conn);
 
   // pimpl
   struct connector_impl;
@@ -294,6 +295,7 @@ swap(connector & first, connector & second)
 /**
  * Output
  **/
+PACKETEER_API
 std::ostream & operator<<(std::ostream & os, connector const & conn);
 
 } // namespace packeteer
