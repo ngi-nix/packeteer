@@ -612,7 +612,7 @@ TEST_P(Scheduler, io_callback_registration_sequence)
 
   counting_callback source;
   p7r::callback cb = p7r::make_callback(&source, &counting_callback::func);
-  sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_READ, pipe, cb);
+  sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
 
   std::this_thread::sleep_for(sc::milliseconds(50));
 
