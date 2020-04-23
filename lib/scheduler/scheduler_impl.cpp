@@ -420,8 +420,6 @@ scheduler::scheduler_impl::dispatch_io_callbacks(
     std::vector<detail::event_data> const & events,
     entry_list_t & to_schedule)
 {
-  DLOG("I/O callbacks");
-
   // Process events, and try to find a callback for each of them.
   for (auto & event : events) {
     if (m_main_loop_pipe == event.m_connector) {
@@ -442,8 +440,6 @@ void
 scheduler::scheduler_impl::dispatch_scheduled_callbacks(
     time_point const & now, entry_list_t & to_schedule)
 {
-  DLOG("Scheduled callbacks at: " << now.time_since_epoch().count());
-
   // Scheduled callbacks are due if their timeout is older than now(). That's
   // the simplest way to deal with them.
   auto range = m_scheduled_callbacks.get_timed_out(now);
@@ -451,11 +447,10 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(
   detail::scheduled_callbacks_t::list_t to_update;
 
   for (auto & entry : range) {
-    DLOG("scheduled callback expired at " << now.time_since_epoch().count());
     if (duration(0) == entry->m_interval) {
       // If it's a one shot event, we want to *move* it into the to_schedule
       // vector thereby granting ownership to the worker that picks it up.
-      DLOG("one-shot callback, handing over to worker");
+      DLOG("One-shot callback, returning.");
       to_schedule.push_back(entry);
       to_erase.push_back(entry);
     }
@@ -463,14 +458,14 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(
       // Depending on whether the entry gets rescheduled (more repeats) or not
       // (last invocation), we either *copy* or *move* the entry into the
       // to_schedule vector.
-      DLOG("interval callback, handing over to worker & rescheduling");
+      DLOG("Interval callback, returning & rescheduling.");
       if (entry->m_count > 0) {
         --entry->m_count;
       }
 
       if (0 == entry->m_count) {
         // Last invocation; can *move*
-        DLOG("last invocation");
+        DLOG("Last invocation, no reschedule required.");
         to_schedule.push_back(entry);
         to_erase.push_back(entry);
       }
@@ -496,16 +491,14 @@ void
 scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggered,
     entry_list_t & to_schedule)
 {
-  DLOG("triggered callbacks");
-
   for (auto & e : triggered) {
     if (pdt::CB_ENTRY_USER != e->m_type) {
-      DLOG("invalid user callback!");
+      ELOG("Invalid user callback!");
       continue;
     }
 
     auto entry = reinterpret_cast<pdt::user_callback_entry *>(e);
-    DLOG("triggered: " << entry->m_events);
+    DLOG("Triggered: " << entry->m_events);
 
     // We ignore the callback from the entry, because it's not set. However, for
     // each entry we'll have to scour the user callbacks for any callbacks that
@@ -535,7 +528,6 @@ scheduler::scheduler_impl::main_scheduler_loop()
       entry_list_t to_schedule;
       wait_for_events(sc::nanoseconds(PACKETEER_EVENT_WAIT_INTERVAL_USEC),
           to_schedule);
-      DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
       // After callbacks of all kinds have been added to to_schedule, we can push
       // those entries to the out queue and wake workers.
@@ -581,9 +573,9 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
   // Get I/O events from the subsystem
   std::vector<detail::event_data> events;
   m_io->wait_for_events(events, timeout);
-  //for (auto event : events) {
-  //  LOG("got events " << event.m_events << " for " << event.m_connector);
-  //}
+  // for (auto & event : events) {
+  //   DLOG("got events " << event.m_events << " for " << event.m_connector);
+  // }
 
   // Process all callbacks that want to be invoked now. Since we can't have
   // workers access the same entries we may still have in our multi-index
@@ -600,6 +592,12 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
   // Update the result set with the time point.
   for (auto & entry : result) {
     entry->m_timestamp = now;
+  }
+
+  // Be very quiet... only log if there is something to log.
+  if (!result.empty()) {
+    DLOG("Got " << result.size() << " callbacks to invoke at: "
+        << now.time_since_epoch().count());
   }
 }
 
