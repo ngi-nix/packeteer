@@ -102,6 +102,7 @@ connector_local::listen()
   if (ERR_SUCCESS != err) {
     return err;
   }
+  m_owner = true;
 
   // Attempt to listen
   if (m_options & CO_STREAM) {
@@ -123,13 +124,10 @@ connector_local::listen()
 error_t
 connector_local::close()
 {
-  std::string fname = m_addr.full_str();
-  bool server = m_server;
-
   error_t err = connector_socket::socket_close();
-  if (server) {
-    DLOG("Server closing; remove file system entry: " << fname);
-    ::unlink(fname.c_str());
+  if (m_owner) {
+    DLOG("Server closing; remove file system entry: " << m_addr.full_str());
+    ::unlink(m_addr.full_str().c_str());
   }
   return err;
 }
@@ -145,10 +143,12 @@ connector_local::accept(net::socket_address & addr)
     return nullptr;
   }
 
-  // Create & return connector with accepted FD
+  // Create & return connector with accepted FD. Only the instance
+  // that bound the socket is the file system entry owner, though.
   connector_local * result = new connector_local();
   result->m_addr = addr.type() == net::AT_UNSPEC ? m_addr : addr;
   result->m_server = true;
+  result->m_owner = false;
   result->m_fd = fd;
   result->m_options = m_options;
 

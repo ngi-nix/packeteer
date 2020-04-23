@@ -45,7 +45,7 @@ public:
       connector_options const & options);
   connector_local(::packeteer::net::socket_address const & addr,
       connector_options const & options);
-  ~connector_local();
+  virtual ~connector_local();
 
   error_t listen();
 
@@ -57,6 +57,9 @@ public:
 
 private:
   connector_local();
+
+  // File system entry owner.
+  bool m_owner = false;
 };
 
 } // namespace packeteer::detail
