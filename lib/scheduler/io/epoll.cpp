@@ -234,8 +234,7 @@ io_epoll::register_connector(connector const & conn, events_t const & events)
 
   io::register_connectors(conns, size, events);
 
-  modify_conn_set(m_epoll_fd, EPOLL_CTL_ADD, conns,
-      sizeof(conns) / sizeof(connector), events);
+  modify_conn_set(m_epoll_fd, EPOLL_CTL_ADD, conns, size, events);
 }
 
 
@@ -260,8 +259,7 @@ io_epoll::unregister_connector(connector const & conn, events_t const & events)
 
   io::unregister_connectors(conns, size, events);
 
-  modify_conn_set(m_epoll_fd, EPOLL_CTL_DEL, conns,
-      sizeof(conns) / sizeof(connector), events);
+  modify_conn_set(m_epoll_fd, EPOLL_CTL_DEL, conns, size, events);
 }
 
 
