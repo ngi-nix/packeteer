@@ -35,6 +35,7 @@
 #include "../value_tests.h"
 #include "../test_name.h"
 
+#define TEST_SLEEP_TIME std::chrono::milliseconds(20)
 
 using namespace packeteer;
 
@@ -262,7 +263,7 @@ TEST(Connector, default_constructed)
 
 
 /*****************************************************************************
- * ConnectorStreaming
+ * ConnectorStream
  */
 namespace {
 
@@ -317,7 +318,7 @@ std::string connector_name(testing::TestParamInfo<T> const & info)
 }
 
 
-void send_message_streaming(connector & sender, connector & receiver,
+void peek_message_streaming(connector & sender, connector & receiver,
     int marker = -1)
 {
   std::string msg = "Hello, world!";
@@ -328,7 +329,31 @@ void send_message_streaming(connector & sender, connector & receiver,
   ASSERT_EQ(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
   ASSERT_EQ(msg.size(), amount);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+
+  auto peeked = receiver.peek();
+  ASSERT_EQ(msg.size(), peeked);
+}
+
+
+
+void send_message_streaming(connector & sender, connector & receiver,
+    int marker = -1, scheduler * sched = nullptr)
+{
+  std::string msg = "Hello, world!";
+  if (marker >= 0) {
+    msg += " [" + std::to_string(marker) + "]";
+  }
+  size_t amount = 0;
+  ASSERT_EQ(ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
+  ASSERT_EQ(msg.size(), amount);
+
+  if (sched) {
+    sched->process_events(TEST_SLEEP_TIME);
+  }
+  else {
+    std::this_thread::sleep_for(TEST_SLEEP_TIME);
+  }
 
   std::vector<char> result;
   result.resize(2 * msg.size(), '\0');
@@ -421,7 +446,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   ASSERT_TRUE(server.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_BLOCKING, server.get_options());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   // Client
   connector client{test_env->api, url};
@@ -433,7 +458,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   ASSERT_EQ(ERR_SUCCESS, client.connect());
   connector server_conn = server.accept();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   ASSERT_FALSE(client.listening());
   ASSERT_TRUE(client.connected());
@@ -477,7 +502,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   ASSERT_FALSE(server.is_blocking());
   ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, server.get_options());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   // Client
   connector client{test_env->api, url};
@@ -488,14 +513,13 @@ TEST_P(ConnectorStream, non_blocking_messaging)
 
   // Connecting must result in ERR_ASYNC. We use a scheduler run to
   // understand when the connection attempt was finished.
-  // FIXME own run loop, no background threads.
-  scheduler sched(test_env->api, 1);
+  scheduler sched(test_env->api, 0);
   server_connect_callback server_struct(server);
   auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
   sched.register_connector(PEV_IO_READ|PEV_IO_WRITE, server, server_cb);
 
   // Give scheduler a chance to register connectors
-  std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  sched.process_events(TEST_SLEEP_TIME);
   ASSERT_EQ(ERR_ASYNC, client.connect());
 
   client_post_connect_callback client_struct;
@@ -503,7 +527,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   sched.register_connector(PEV_IO_READ|PEV_IO_WRITE, client, client_cb);
 
   // Wait for all callbacks to be invoked.
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // After the sleep, the server conn and client conn should both
   // be ready to roll.
@@ -511,7 +535,6 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   ASSERT_TRUE(client_struct.m_connected);
 
   connector server_conn = server_struct.m_conn;
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   ASSERT_FALSE(client.listening());
   ASSERT_TRUE(client.connected());
@@ -527,6 +550,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   send_message_streaming(client, server_conn);
   send_message_streaming(server_conn, client);
 }
+
 
 
 TEST_P(ConnectorStream, multiple_clients)
@@ -553,7 +577,7 @@ TEST_P(ConnectorStream, multiple_clients)
   EXPECT_TRUE(server.is_blocking());
   EXPECT_EQ(CO_STREAM|CO_BLOCKING, server.get_options());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   // Client #1
   connector client1{test_env->api, url};
@@ -565,7 +589,7 @@ TEST_P(ConnectorStream, multiple_clients)
   EXPECT_EQ(ERR_SUCCESS, client1.connect());
   connector server_conn1 = server.accept();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   EXPECT_FALSE(client1.listening());
   EXPECT_TRUE(client1.connected());
@@ -587,7 +611,7 @@ TEST_P(ConnectorStream, multiple_clients)
   EXPECT_EQ(ERR_SUCCESS, client2.connect());
   connector server_conn2 = server.accept();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   EXPECT_FALSE(client2.listening());
   EXPECT_TRUE(client2.connected());
@@ -606,6 +630,83 @@ TEST_P(ConnectorStream, multiple_clients)
   // Communications with client #2
   send_message_streaming(client2, server_conn2, 3);
   send_message_streaming(server_conn2, client2, 4);
+}
+
+
+
+TEST_P(ConnectorStream, peek_from_write)
+{
+  // Peek using
+  auto td = GetParam();
+
+  auto url = ::packeteer::util::url::parse(td.stream_non_blocking);
+  url.query["behaviour"] = "stream";
+
+  // Server
+  connector server{test_env->api, url};
+  ASSERT_EQ(td.type, server.type());
+
+  ASSERT_FALSE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  ASSERT_EQ(ERR_SUCCESS, server.listen());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+
+  ASSERT_FALSE(server.is_blocking());
+  ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, server.get_options());
+
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+
+  // Client
+  connector client{test_env->api, url};
+  ASSERT_EQ(td.type, client.type());
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_FALSE(client.connected());
+
+  // Connecting must result in ERR_ASYNC. We use a scheduler run to
+  // understand when the connection attempt was finished.
+  // FIXME own run loop, no background threads.
+  scheduler sched(test_env->api, 1);
+  server_connect_callback server_struct(server);
+  auto server_cb = make_callback(&server_struct, &server_connect_callback::func);
+  sched.register_connector(PEV_IO_READ|PEV_IO_WRITE, server, server_cb);
+
+  // Give scheduler a chance to register connectors
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+  ASSERT_EQ(ERR_ASYNC, client.connect());
+
+  client_post_connect_callback client_struct;
+  auto client_cb = make_callback(&client_struct, &client_post_connect_callback::func);
+  sched.register_connector(PEV_IO_READ|PEV_IO_WRITE, client, client_cb);
+
+  // Wait for all callbacks to be invoked.
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+
+  // After the sleep, the server conn and client conn should both
+  // be ready to roll.
+  ASSERT_TRUE(server_struct.m_conn);
+  ASSERT_TRUE(client_struct.m_connected);
+
+  connector server_conn = server_struct.m_conn;
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+
+  ASSERT_FALSE(client.listening());
+  ASSERT_TRUE(client.connected());
+  ASSERT_TRUE(server_conn.listening());
+
+  ASSERT_FALSE(server_conn.is_blocking());
+  ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, server_conn.get_options());
+
+  ASSERT_FALSE(client.is_blocking());
+  ASSERT_EQ(CO_STREAM|CO_NON_BLOCKING, client.get_options());
+
+  // Communications
+  peek_message_streaming(server_conn, client);
+  peek_message_streaming(client, server_conn);
+
 }
 
 
@@ -654,7 +755,7 @@ void send_message_dgram(connector & sender, connector & receiver,
       receiver.peer_addr()));
   ASSERT_EQ(msg.size(), amount);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   std::vector<char> result;
   result.resize(2 * msg.size(), '\0');
@@ -702,7 +803,7 @@ TEST_P(ConnectorDGram, messaging)
   ASSERT_TRUE(server.listening());
   ASSERT_FALSE(server.connected());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   // Client
   connector client{test_env->api, curl};
@@ -716,7 +817,7 @@ TEST_P(ConnectorDGram, messaging)
   ASSERT_TRUE(client.listening());
   ASSERT_FALSE(client.connected());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   // Communications
   send_message_dgram(client, server);
@@ -749,7 +850,7 @@ TEST_P(ConnectorDGram, multiple_clients)
   ASSERT_TRUE(server.listening());
   ASSERT_FALSE(server.connected());
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   // Client #1
   connector client1{test_env->api, curl1};
@@ -775,7 +876,7 @@ TEST_P(ConnectorDGram, multiple_clients)
   ASSERT_TRUE(client2.listening());
 
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
   // Communications #1 and #2
   send_message_dgram(client1, server, 1);
