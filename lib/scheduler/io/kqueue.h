@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -48,12 +48,12 @@ public:
   void init();
   void deinit();
 
-  virtual void register_handle(handle const & handle, events_t const & events);
-  virtual void register_handles(handle const * handles, size_t amount,
+  virtual void register_connector(connector const & conn, events_t const & events);
+  virtual void register_connectors(connector const * conns, size_t amount,
       events_t const & events);
 
-  virtual void unregister_handle(handle const & handle, events_t const & events);
-  virtual void unregister_handles(handle const * handles, size_t amount,
+  virtual void unregister_connector(connector const & conn, events_t const & events);
+  virtual void unregister_connectors(connector const * conns, size_t amount,
       events_t const & events);
 
   virtual void wait_for_events(std::vector<event_data> & events,
@@ -69,4 +69,4 @@ private:
 
 } // namespace packeteer::detail
 
-endif // guard
+#endif // guard

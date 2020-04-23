@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -19,6 +19,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#include <build-config.h>
+
 #include "kqueue.h"
 
 #include <packeteer/error.h>
@@ -56,6 +58,8 @@ translate_events_to_os(events_t const & events)
     case PEV_IO_WRITE:
       return EVFILT_WRITE;
   }
+
+  return -1;
 }
 
 
@@ -101,9 +105,7 @@ del_event_if_selected(std::vector<struct kevent> & pending,
     return;
   }
 
-  int translated = requested == PEV_IO_READ
-    ? EVFILT_READ
-    : EVFILT_WRITE;
+  int translated = translate_events_to_os(requested);
 
   EV_SET(&pending[pending_offset++], handle.sys_handle(), translated,
       EV_DELETE, 0, 0, nullptr);
@@ -189,6 +191,38 @@ modify_kqueue(bool add, int queue, handle const * handles, size_t amount,
 }
 
 
+
+inline void
+modify_conn_set(int action, int queue, connector const * conns, size_t size,
+    events_t const & events)
+{
+  // We treat error, etc. events as applying to both the read and write end of
+  // each connector, but apply PEV_IO_READ only to the read end, and
+  // PEV_IO_WRITE only to the write end. If both handles are the same, we let
+  // the system figure that out.
+  std::vector<handle> readers;
+  readers.reserve(size);
+  std::vector<handle> writers;
+  writers.reserve(size);
+
+  for (size_t i = 0 ; i < size ; ++i) {
+    connector const & conn = conns[i];
+    if (events & PEV_IO_READ) {
+      readers.push_back(conn.get_read_handle());
+    }
+    if (events & PEV_IO_WRITE) {
+      writers.push_back(conn.get_write_handle());
+    }
+  }
+
+  modify_kqueue(action, queue, &readers[0], readers.size(),
+      events | ~PEV_IO_WRITE);
+  modify_kqueue(action, queue, &writers[0], writers.size(),
+      events | ~PEV_IO_READ);
+}
+
+
+
 } // anonymous namespace
 
 
@@ -231,38 +265,50 @@ io_kqueue::~io_kqueue()
 
 
 void
-io_kqueue::register_handle(handle const & handle, events_t const & events)
+io_kqueue::register_connector(connector const & conn, events_t const & events)
 {
-  struct handle handles[1] = { handle };
-  register_handles(handles, 1, events);
+  connector conns[1] = { conn };
+  constexpr auto size = sizeof(conns) / sizeof(connector);
+
+  io::register_connectors(conns, size, events);
+
+  modify_conn_set(true, m_kqueue_fd, conns, size, events);
 }
 
 
 
 void
-io_kqueue::register_handles(handle const * handles, size_t size,
+io_kqueue::register_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
-  modify_kqueue(true, m_kqueue_fd, handles, size, events);
+  io::register_connectors(conns, size, events);
+
+  modify_conn_set(true, m_kqueue_fd, conns, size, events);
 }
 
 
 
 
 void
-io_kqueue::unregister_handle(handle const & handle, events_t const & events)
+io_kqueue::unregister_connector(connector const & conn, events_t const & events)
 {
-  struct handle handles[1] = { handle };
-  unregister_handles(handles, 1, events);
+  connector conns[1] = { conn };
+  constexpr auto size = sizeof(conns) / sizeof(connector);
+
+  io::unregister_connectors(conns, size, events);
+
+  modify_conn_set(false, m_kqueue_fd, conns, size, events);
 }
 
 
 
 void
-io_kqueue::unregister_handles(handle const * handles, size_t size,
+io_kqueue::unregister_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
-  modify_kqueue(false, m_kqueue_fd, handles, size, events);
+  io::register_connectors(conns, size, events);
+
+  modify_conn_set(false, m_kqueue_fd, conns, size, events);
 }
 
 
@@ -313,14 +359,14 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
   for (int i = 0 ; i < ret ; ++i) {
     if (kqueue_events[i].flags & EV_ERROR) {
       event_data data = {
-        handle(kqueue_events[i].ident),
+        m_connectors[kqueue_events[i].ident],
         PEV_IO_ERROR
       };
       events.push_back(data);
     }
     else if (kqueue_events[i].flags & EV_EOF) {
       event_data data = {
-        handle(kqueue_events[i].ident),
+        m_connectors[kqueue_events[i].ident],
         PEV_IO_CLOSE
       };
       events.push_back(data);
@@ -329,7 +375,7 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
       events_t translated = translate_os_to_events(kqueue_events[i].filter);
       if (translated >= 0) {
         event_data data = {
-          handle(kqueue_events[i].ident),
+          m_connectors[kqueue_events[i].ident],
           translated
         };
         events.push_back(data);
