@@ -187,7 +187,7 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
   BOOL ret = GetQueuedCompletionStatusEx(m_iocp, entries,
       PACKETEER_IOCP_MAXEVENTS,
       &read,
-      std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count(),
+      std::chrono::ceil<std::chrono::milliseconds>(timeout).count(),
       TRUE);
 
   if (!ret) {

@@ -286,7 +286,7 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
   while (true) {
     ::memset(&epoll_events, 0, sizeof(epoll_events));
     ready = ::epoll_pwait(m_epoll_fd, epoll_events, PACKETEER_EPOLL_MAXEVENTS,
-        sc::duration_cast<sc::milliseconds>(timeout).count(), nullptr);
+        sc::ceil<sc::milliseconds>(timeout).count(), nullptr);
     if (-1 != ready) {
       break;
     }

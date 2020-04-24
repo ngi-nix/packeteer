@@ -137,7 +137,7 @@ io_poll::wait_for_events(std::vector<event_data> & events,
 
     int ret = ::ppoll(&fds[0], size, &ts, nullptr);
 #else
-    int ret = ::poll(&fds[0], size, sc::duration_cast<sc::milliseconds>(timeout).count());
+    int ret = ::poll(&fds[0], size, sc::ceil<sc::milliseconds>(timeout).count());
 #endif
 
     if (ret >= 0) {
