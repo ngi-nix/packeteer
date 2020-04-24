@@ -177,11 +177,12 @@ scheduler::fire_events(events_t const & events)
 
 error_t
 scheduler::process_events(duration const & timeout,
+    bool soft_timeout /* = false */,
     bool exit_on_failure /* = false */)
 {
   // First, get events to schedule to workers.
   entry_list_t to_schedule;
-  m_impl->wait_for_events(timeout, to_schedule);
+  m_impl->wait_for_events(timeout, soft_timeout, to_schedule);
   DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
   if (to_schedule.empty()) {

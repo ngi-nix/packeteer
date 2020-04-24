@@ -172,6 +172,7 @@ struct scheduler::scheduler_impl
    * Wait for events for the given timeout, storing them in the result list.
    **/
   void wait_for_events(duration const & timeout,
+      bool soft_timeout,
       entry_list_t & result);
 
   /**

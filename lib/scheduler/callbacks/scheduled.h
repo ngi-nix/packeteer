@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -120,7 +120,26 @@ public:
 
 
 
-  list_t
+  /**
+   * Return the first time point at which a callback expires. If no such
+   * point can be returned, returns the maximum timepoint value.
+   **/
+  inline ::packeteer::time_point
+  get_first_timeout() const
+  {
+    auto iter = m_timeout_map.begin();
+    if (iter == m_timeout_map.end()) {
+      return time_point::max();
+    }
+    return iter->first;
+  }
+
+
+
+  /**
+   * Returns all callbacks expired at the given time point.
+   **/
+  inline list_t
   get_timed_out(::packeteer::time_point const & now) const
   {
     auto end = m_timeout_map.upper_bound(now);
@@ -142,7 +161,7 @@ public:
    *   for these, we need to update the timeout (via the interval). Ownership
    *   remains with the container here!
    **/
-  void update(list_t const & erase, list_t const & reschedule)
+  inline void update(list_t const & erase, list_t const & reschedule)
   {
     // Erase the erase list
     for (auto entry : erase) {
