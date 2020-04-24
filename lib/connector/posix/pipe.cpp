@@ -261,6 +261,7 @@ connector_pipe::listen()
 
   m_handle = handle{fd};
   m_server = true;
+  m_owner = true;
 
   return ERR_SUCCESS;
 }
@@ -310,6 +311,7 @@ connector_pipe::accept(net::socket_address & addr)
   auto * ret = new connector_pipe(m_addr, get_options());
   ret->m_addr = addr = m_addr;
   ret->m_server = m_server;
+  ret->m_owner = false;
   ret->m_connected = true;
   ret->m_handle = handle{fd};
 
@@ -344,14 +346,15 @@ connector_pipe::close()
   // We ignore errors from close() here. This is a problem with NFS, as the man
   // pages state, but it's the price of the abstraction.
   ::close(m_handle.sys_handle());
-  // FIXME also owner, not server.
-  if (m_server) {
+
+  if (m_owner) {
     DLOG("Server closing; remove file system entry: " << m_addr.full_str());
     ::unlink(m_addr.full_str().c_str());
   }
 
   m_handle = handle{};
   m_server = false;
+  m_owner = false;
 
   return ERR_SUCCESS;
 }

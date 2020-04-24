@@ -65,6 +65,7 @@ private:
 
   ::packeteer::net::socket_address  m_addr = {};
   bool                              m_server = false;
+  bool                              m_owner = false;
   bool                              m_connected = false;
   ::packeteer::handle               m_handle = {};
 };
