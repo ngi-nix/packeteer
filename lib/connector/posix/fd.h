@@ -40,6 +40,14 @@ error_t
 get_blocking_mode(handle::sys_handle_t const & fd, bool & state);
 
 
+/**
+ * Ensure handle has O_CLOEXEC set. We always set it, so let's not complicate
+ * matters.
+ */
+error_t
+set_close_on_exit(handle::sys_handle_t const & fd);
+
+
 } // namespace packeteer::detail
 
 #endif // guard

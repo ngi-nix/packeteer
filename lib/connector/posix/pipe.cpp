@@ -162,8 +162,6 @@ connector_pipe::connector_pipe(std::string const & path,
     connector_options const & options)
   : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr{path}
-  , m_server{false}
-  , m_handle{}
 {
 }
 
@@ -173,8 +171,6 @@ connector_pipe::connector_pipe(net::socket_address const & addr,
     connector_options const & options)
   : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr{addr}
-  , m_server{false}
-  , m_handle{}
 {
 }
 
@@ -218,6 +214,7 @@ connector_pipe::connect()
 
   m_handle = handle{fd};
   m_server = false;
+  m_connected = true;
 
   if (m_options & CO_NON_BLOCKING) {
     return ERR_ASYNC;
@@ -281,19 +278,42 @@ connector_pipe::listening() const
 bool
 connector_pipe::connected() const
 {
-  return m_handle != handle{} && !m_server;
+  return m_handle != handle{} && m_connected;
 }
 
 
 
 connector_interface *
-connector_pipe::accept(net::socket_address & /* unused */)
+connector_pipe::accept(net::socket_address & addr)
 {
-  // There is no need for accept(); we've already got the connection established.
   if (!listening()) {
     return nullptr;
   }
-  return this;
+
+  // We could return this, except then we can't set the m_connected
+  // flag - the server should not be connected, but the accept()ed
+  // connection should.
+  // In order to not return the same FD twice, we duplicate it.
+  int fd = ::dup(m_handle.sys_handle());
+  if (fd < 0) {
+    ERRNO_LOG("Unable to dup() file handle.");
+    return nullptr;
+  }
+
+  auto err = set_close_on_exit(fd);
+  if (ERR_SUCCESS != err) {
+    ERR_LOG("Unable to set CLOEXEC flag.", err);
+    return nullptr;
+  }
+
+  // Alright, create a new connector
+  auto * ret = new connector_pipe(m_addr, get_options());
+  ret->m_addr = addr = m_addr;
+  ret->m_server = m_server;
+  ret->m_connected = true;
+  ret->m_handle = handle{fd};
+
+  return ret;
 }
 
 
@@ -324,6 +344,7 @@ connector_pipe::close()
   // We ignore errors from close() here. This is a problem with NFS, as the man
   // pages state, but it's the price of the abstraction.
   ::close(m_handle.sys_handle());
+  // FIXME also owner, not server.
   if (m_server) {
     DLOG("Server closing; remove file system entry: " << m_addr.full_str());
     ::unlink(m_addr.full_str().c_str());

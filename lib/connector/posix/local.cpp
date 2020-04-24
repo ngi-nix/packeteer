@@ -146,8 +146,9 @@ connector_local::accept(net::socket_address & addr)
   // Create & return connector with accepted FD. Only the instance
   // that bound the socket is the file system entry owner, though.
   connector_local * result = new connector_local();
-  result->m_addr = addr.type() == net::AT_UNSPEC ? m_addr : addr;
+  result->m_addr = addr = m_addr;
   result->m_server = true;
+  result->m_connected = true;
   result->m_owner = false;
   result->m_fd = fd;
   result->m_options = m_options;

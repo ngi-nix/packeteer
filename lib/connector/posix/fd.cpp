@@ -103,4 +103,24 @@ get_blocking_mode(handle::sys_handle_t const & fd, bool & state)
 
 
 
+error_t
+set_close_on_exit(handle::sys_handle_t const & fd)
+{
+  int val = ::fcntl(fd, F_GETFL, 0);
+  if (-1 == val) {
+    return translate_fcntl_errno();
+  }
+
+  val |= O_CLOEXEC;
+  val = ::fcntl(fd, F_SETFL, val);
+  if (-1 == val) {
+    ::close(fd);
+    return translate_fcntl_errno();
+  }
+
+  return ERR_SUCCESS;
+}
+
+
+
 } // namespace packeteer::detail

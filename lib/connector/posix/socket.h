@@ -61,9 +61,10 @@ public:
 protected:
   connector_socket(connector_options const & options);
 
-  ::packeteer::net::socket_address  m_addr;
-  bool                              m_server;
-  int                               m_fd;
+  ::packeteer::net::socket_address  m_addr = {};
+  bool                              m_server = false;
+  bool                              m_connected = false;
+  int                               m_fd = -1;
 };
 
 } // namespace packeteer::detail

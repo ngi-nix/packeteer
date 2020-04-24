@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2017-2019 Jens Finkhaeuser.
+ * Copyright (c) 2017-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -63,9 +63,10 @@ public:
 private:
   connector_pipe();
 
-  ::packeteer::net::socket_address  m_addr;
-  bool                              m_server;
-  ::packeteer::handle               m_handle;
+  ::packeteer::net::socket_address  m_addr = {};
+  bool                              m_server = false;
+  bool                              m_connected = false;
+  ::packeteer::handle               m_handle = {};
 };
 
 } // namespace packeteer::detail

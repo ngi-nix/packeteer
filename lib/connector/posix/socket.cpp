@@ -116,8 +116,6 @@ connector_socket::connector_socket(net::socket_address const & addr,
     connector_options const & options)
   : connector_interface(options)
   , m_addr(addr)
-  , m_server(false)
-  , m_fd(-1)
 {
 }
 
@@ -125,9 +123,6 @@ connector_socket::connector_socket(net::socket_address const & addr,
 
 connector_socket::connector_socket(connector_options const & options)
   : connector_interface(options)
-  , m_addr()
-  , m_server(false)
-  , m_fd(-1)
 {
 }
 
@@ -155,6 +150,7 @@ connector_socket::socket_connect(int domain, int type)
       // Finally, set the fd
       m_fd = fd;
       m_server = false;
+      m_connected = true;
 
       // Simulate non-blocking mode, also for socket types that return
       // success. This helps the calling code treat all sockets the same.
@@ -169,6 +165,7 @@ connector_socket::socket_connect(int domain, int type)
     if (errno == EINPROGRESS || errno == EALREADY) {
       m_fd = fd;
       m_server = false;
+      m_connected = true;
       return ERR_ASYNC;
     }
 
@@ -344,7 +341,7 @@ connector_socket::listening() const
 bool
 connector_socket::connected() const
 {
-  return m_fd != -1 && !m_server;
+  return m_fd != -1 && m_connected;
 }
 
 
@@ -396,7 +393,7 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
   // Accept connection
   new_fd = -1;
   net::detail::address_data buf;
-  ::socklen_t len = 0;
+  ::socklen_t len = sizeof(buf);
 
   while (true) {
     new_fd = ::accept(m_fd, &buf.sa, &len);
@@ -455,10 +452,11 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
   if (ERR_SUCCESS != err) {
     ::close(new_fd);
     new_fd = -1;
+    return err;
   }
-  else {
-    addr = net::socket_address(&buf, len);
-  }
+
+  // Keep address and return success.
+  addr = net::socket_address(&buf, len);
   return ERR_SUCCESS;
 }
 

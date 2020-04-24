@@ -136,6 +136,7 @@ connector_tcp::accept(net::socket_address & addr)
   connector_tcp * result = new connector_tcp();
   result->m_addr = addr;
   result->m_server = true;
+  result->m_connected = true;
   result->m_fd = fd;
   result->m_options = m_options;
 
