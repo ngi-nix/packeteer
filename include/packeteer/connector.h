@@ -273,7 +273,7 @@ public:
   size_t hash() const;
 
 private:
-  friend PACKETEER_API
+  friend PACKETEER_API_FRIEND
   std::ostream & operator<<(std::ostream & os, connector const & conn);
 
   // pimpl
