@@ -1,3 +1,8 @@
+option('default_concurrency', type: 'integer',
+  description: '''The default concurrency value for the scheduler. Used only if
+  nothing could be detected at runtime.''',
+  value: 4,
+)
 option('cache_line_size', type: 'integer',
   description: '''Cache line size to optimize for. This option tries to align
 objects in memory on cache line boundaries. The typical value is 64. Set to
