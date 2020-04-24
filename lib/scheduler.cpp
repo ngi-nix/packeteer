@@ -37,9 +37,9 @@ namespace packeteer {
  * class scheduler
  **/
 
-scheduler::scheduler(std::shared_ptr<api> api, size_t num_worker_threads,
+scheduler::scheduler(std::shared_ptr<api> api, ssize_t num_workers,
     scheduler_type type /* = TYPE_AUTOMATIC */)
-  : m_impl{std::make_unique<scheduler_impl>(api, num_worker_threads, type)}
+  : m_impl{std::make_unique<scheduler_impl>(api, num_workers, type)}
 {
 }
 
@@ -192,6 +192,14 @@ scheduler::process_events(duration const & timeout,
   // Then handle these events on the worker's main function.
   error_t err = drain_work_queue(to_schedule, exit_on_failure);
   return err;
+}
+
+
+
+size_t
+scheduler::num_workers() const
+{
+  return m_impl->num_workers();
 }
 
 

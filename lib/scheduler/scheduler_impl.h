@@ -154,9 +154,9 @@ struct scheduler::scheduler_impl
 
 
   /***************************************************************************
-   * Generic interface
+   * Interface
    **/
-  scheduler_impl(std::shared_ptr<api> api, size_t num_worker_threads,
+  scheduler_impl(std::shared_ptr<api> api, ssize_t num_workers,
       scheduler_type type);
   ~scheduler_impl();
 
@@ -174,6 +174,11 @@ struct scheduler::scheduler_impl
   void wait_for_events(duration const & timeout,
       entry_list_t & result);
 
+  /**
+   * Report number of workers.
+   **/
+  size_t num_workers() const;
+
 private:
   /***************************************************************************
    * Types
@@ -189,7 +194,7 @@ private:
   void stop_main_loop();
 
   // Starts/stops works such that the number of workers specified is reached.
-  void adjust_workers(size_t num_workers);
+  void adjust_workers(ssize_t num_workers);
 
   // Main loop
   void main_scheduler_loop();
@@ -224,7 +229,7 @@ private:
   std::shared_ptr<api>            m_api;
 
   // Workers
-  std::atomic<size_t>             m_num_worker_threads;
+  std::atomic<ssize_t>            m_num_workers;
   std::vector<detail::worker *>   m_workers;
   std::condition_variable_any     m_worker_condition;
   std::recursive_mutex            m_worker_mutex;

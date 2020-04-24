@@ -81,7 +81,9 @@ public:
    *
    * If the number of worker threads is zero, no threads will be started.
    * Instead you have to call the process_events() function in your own main
-   * loop.
+   * loop. If the number of threads is negative, the hardware concurrency value
+   * is used. This is typically the number of CPU cores or threads that are
+   * detected.
    *
    * The scheduler object can either run automatically with worker threads, or
    * be called manually, but not both.
@@ -89,7 +91,7 @@ public:
    * May throw if the specified type is not supported. Best leave it at
    * TYPE_AUTOMATIC.
    **/
-  scheduler(std::shared_ptr<api> api, size_t num_worker_threads,
+  scheduler(std::shared_ptr<api> api, ssize_t num_workers = -1,
       scheduler_type type = TYPE_AUTOMATIC);
 
   // Not default because of std::experimental::propagate_const
@@ -250,6 +252,12 @@ public:
    **/
   error_t process_events(duration const & timeout,
       bool exit_on_failure = false);
+
+
+  /**
+   * Return the current number of worker threads.
+   **/
+  size_t num_workers() const;
 
 private:
   // pimpl

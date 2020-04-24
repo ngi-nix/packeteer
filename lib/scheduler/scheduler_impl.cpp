@@ -86,9 +86,9 @@ void clear_interrupt(connector & pipe)
  * class scheduler::scheduler_impl
  **/
 scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
-    size_t num_worker_threads, scheduler_type type)
+    ssize_t num_workers, scheduler_type type)
   : m_api{api}
-  , m_num_worker_threads{num_worker_threads}
+  , m_num_workers{num_workers}
   , m_workers{}
   , m_worker_condition{}
   , m_worker_mutex{}
@@ -166,9 +166,9 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "unsupported scheduler type.");
   }
 
-  if (m_num_worker_threads > 0) {
+  if (m_num_workers != 0) {
     start_main_loop();
-    adjust_workers(m_num_worker_threads);
+    adjust_workers(m_num_workers);
   }
 }
 
@@ -245,19 +245,28 @@ scheduler::scheduler_impl::stop_main_loop()
 
 
 void
-scheduler::scheduler_impl::adjust_workers(size_t num_workers)
+scheduler::scheduler_impl::adjust_workers(ssize_t num_workers)
 {
-  size_t have = m_workers.size();
+  if (num_workers < 0) {
+    num_workers = std::thread::hardware_concurrency();
+    DLOG("Detected hardware concurrency of " << num_workers);
+    if (num_workers <= 0) {
+      num_workers = PACKETEER_DEFAULT_CONCURRENCY;
+      DLOG("Adjusting to default concurrency of " << num_workers);
+    }
+  }
+
+  ssize_t have = m_workers.size();
 
   if (num_workers < have) {
     DLOG("Decreasing worker count from " << have << " to " << num_workers << ".");
     size_t to_stop = have - num_workers;
     size_t remain = have - to_stop;
 
-    for (size_t i = remain ; i < have ; ++i) {
+    for (ssize_t i = remain ; i < have ; ++i) {
       m_workers[i]->stop();
     }
-    for (size_t i = remain ; i < have ; ++i) {
+    for (ssize_t i = remain ; i < have ; ++i) {
       m_workers[i]->wait();
       delete m_workers[i];
       m_workers[i] = nullptr;
@@ -266,12 +275,20 @@ scheduler::scheduler_impl::adjust_workers(size_t num_workers)
   }
   else if (num_workers > have) {
     DLOG("Increasing worker count from " << have << " to " << num_workers << ".");
-    for (size_t i = have ; i < num_workers ; ++i) {
+    for (ssize_t i = have ; i < num_workers ; ++i) {
       auto worker = new pdt::worker(m_worker_condition, m_worker_mutex, m_out_queue);
       worker->start();
       m_workers.push_back(worker);
     }
   }
+}
+
+
+
+size_t
+scheduler::scheduler_impl::num_workers() const
+{
+  return m_workers.size();
 }
 
 
@@ -516,8 +533,6 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
 void
 scheduler::scheduler_impl::main_scheduler_loop()
 {
-  DLOG("CPUS: " << std::thread::hardware_concurrency());
-
   try {
     while (m_main_loop_continue) {
       // Timeout is *fixed*, because:

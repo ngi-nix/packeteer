@@ -656,6 +656,18 @@ TEST_P(Scheduler, single_threaded)
   ASSERT_CALLBACK(source1, 1, EVENT_1);
 }
 
+
+TEST_P(Scheduler, worker_count)
+{
+  auto td = GetParam();
+
+  p7r::scheduler sched(test_env->api, -1, static_cast<p7r::scheduler::scheduler_type>(td));
+
+  // With -1, the scheduler should determine the number of workers themselves.
+  ASSERT_GE(sched.num_workers(), 0);
+}
+
+
 namespace {
   auto test_values = []
   {
