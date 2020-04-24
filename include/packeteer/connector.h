@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -151,7 +151,6 @@ public:
    *       no POSIX listen() call is issued.
    **/
   error_t listen();
-  bool listening() const;
 
   /**
    * Similarly, connecting to the specified address creates a connector
@@ -164,9 +163,29 @@ public:
    * listening.
    *
    * Returns an error if connecting fails.
+   *
+   * Note that the connected() function also returns true for listening()
+   * connectors that have been returned by accept().
    **/
   error_t connect();
+
+  /**
+   * Return whether the connector is listening() or connected().
+   *
+   * CO_STREAM connectors are listening() if listen() has been
+   *  called. They're connected() if returned by accept(), or
+   *  if they're the client and and connect() has succeeded.
+   *
+   * CO_DATAGRAM connectors are never connected().
+   *
+   * communicating() returns the best effort understanding of whether
+   * there is a communicating party to the connector, i.e. true for:
+   * - CO_STREAM connectors that are connected()
+   * - CO_DATAGRAM connectors that are listening()
+   **/
+  bool listening() const;
   bool connected() const;
+  bool communicating() const;
 
   /**
    * If a listening socket receives a connection request, you can accept this
@@ -184,6 +203,8 @@ public:
    * The API favours a usage pattern where no matter the underlying connector
    * implementation, a connector returned by accept() from a server connector
    * is valid for I/O with a connected client connector.
+   *
+   * Returns a listening() and connected() connector.
    **/
   connector accept() const;
 
@@ -264,6 +285,9 @@ public:
   connector(connector &&) = default;
   connector & operator=(connector const & other) = default;
 
+  /**
+   * Any connector that is not CT_UNSPEC is true.
+   **/
   operator bool() const;
 
   bool is_equal_to(connector const & other) const;

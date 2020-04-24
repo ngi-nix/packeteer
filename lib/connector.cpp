@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -281,6 +281,25 @@ connector::connected() const
 
 
 
+bool
+connector::communicating() const
+{
+  if (!m_impl || !*m_impl) {
+    return false;
+  }
+
+  auto opts = (*m_impl)->get_options();
+  if (opts & CO_STREAM) {
+    return (*m_impl)->connected();
+  }
+  else if (opts & CO_DATAGRAM) {
+    return (*m_impl)->listening();
+  }
+
+  PACKETEER_FLOW_CONTROL_GUARD;
+}
+
+
 connector
 connector::accept() const
 {
@@ -317,13 +336,14 @@ connector::accept() const
     // This would lead to a double delete on the conn object, so we'll
     // have to prevent that.
     if (iconn == m_impl->m_iconn) {
-      delete iconn;
       iconn = nullptr;
       throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
     }
-    DLOG("Peer address is: " << peer.full_str() << " - " << iconn);
 
-    result.m_impl = std::make_shared<connector_impl>(m_impl->m_api, util::url::parse(peer.full_str()), iconn);
+    auto peer_addr = m_impl->m_url.scheme + "://" + peer.full_str();
+    DLOG("Peer address is: " << peer_addr << " - " << iconn);
+
+    result.m_impl = std::make_shared<connector_impl>(m_impl->m_api, util::url::parse(peer_addr), iconn);
   }
 
   return result;

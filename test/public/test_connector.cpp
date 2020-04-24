@@ -395,7 +395,7 @@ struct server_connect_callback
     if (!m_conn) {
       DLOG(" ***** INCOMING " << mask << ":" << error << ":" << conn);
       // The accept() function clears the event.
-      m_conn = m_server.accept();
+      EXPECT_NO_THROW(m_conn = m_server.accept());
       EXPECT_TRUE(m_conn);
     }
     return p7r::ERR_SUCCESS;
@@ -446,11 +446,13 @@ TEST_P(ConnectorStream, blocking_messaging)
 
   ASSERT_FALSE(server.listening());
   ASSERT_FALSE(server.connected());
+  ASSERT_FALSE(server.communicating());
 
   ASSERT_EQ(p7r::ERR_SUCCESS, server.listen());
 
   ASSERT_TRUE(server.listening());
   ASSERT_FALSE(server.connected());
+  ASSERT_FALSE(server.communicating());
 
   ASSERT_TRUE(server.is_blocking());
   ASSERT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, server.get_options());
@@ -463,6 +465,7 @@ TEST_P(ConnectorStream, blocking_messaging)
 
   ASSERT_FALSE(client.listening());
   ASSERT_FALSE(client.connected());
+  ASSERT_FALSE(client.communicating());
 
   ASSERT_EQ(p7r::ERR_SUCCESS, client.connect());
   p7r::connector server_conn = server.accept();
@@ -471,7 +474,15 @@ TEST_P(ConnectorStream, blocking_messaging)
 
   ASSERT_FALSE(client.listening());
   ASSERT_TRUE(client.connected());
+  ASSERT_TRUE(client.communicating());
+
   ASSERT_TRUE(server_conn.listening());
+  ASSERT_TRUE(server_conn.connected());
+  ASSERT_TRUE(server_conn.communicating());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+  ASSERT_FALSE(server.connected());
 
   ASSERT_TRUE(server_conn.is_blocking());
   ASSERT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, server_conn.get_options());
@@ -547,7 +558,15 @@ TEST_P(ConnectorStream, non_blocking_messaging)
 
   ASSERT_FALSE(client.listening());
   ASSERT_TRUE(client.connected());
+  ASSERT_TRUE(client.communicating());
+
   ASSERT_TRUE(server_conn.listening());
+  ASSERT_TRUE(server_conn.connected());
+  ASSERT_TRUE(server_conn.communicating());
+
+  ASSERT_TRUE(server.listening());
+  ASSERT_FALSE(server.connected());
+  ASSERT_FALSE(server.connected());
 
   ASSERT_FALSE(server_conn.is_blocking());
   ASSERT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, server_conn.get_options());
@@ -831,6 +850,7 @@ TEST_P(ConnectorDGram, messaging)
 
   ASSERT_TRUE(server.listening());
   ASSERT_FALSE(server.connected());
+  ASSERT_TRUE(server.communicating());
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
@@ -840,11 +860,13 @@ TEST_P(ConnectorDGram, messaging)
 
   ASSERT_FALSE(client.listening());
   ASSERT_FALSE(client.connected());
+  ASSERT_FALSE(client.communicating());
 
   ASSERT_EQ(p7r::ERR_SUCCESS, client.listen());
 
   ASSERT_TRUE(client.listening());
   ASSERT_FALSE(client.connected());
+  ASSERT_TRUE(client.communicating());
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
@@ -982,11 +1004,13 @@ TEST(ConnectorMisc, anon_connector)
 
   ASSERT_FALSE(conn.listening());
   ASSERT_FALSE(conn.connected());
+  ASSERT_FALSE(conn.communicating());
 
   ASSERT_EQ(p7r::ERR_SUCCESS, conn.listen());
 
   ASSERT_TRUE(conn.listening());
   ASSERT_TRUE(conn.connected());
+  ASSERT_TRUE(conn.communicating());
 
   std::string msg = "hello, world!";
   size_t amount = 0;
