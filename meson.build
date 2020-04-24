@@ -405,6 +405,10 @@ endif
 
 ### Set values from options
 
+default_concurrency = get_option('default_concurrency')
+summary('Default scheduler concurrency (threads)', default_concurrency, section: 'Build options')
+conf_data.set('PACKETEER_DEFAULT_CONCURRENCY', default_concurrency)
+
 cache_line_size = get_option('cache_line_size')
 summary('Cache line size (Bytes)', cache_line_size, section: 'Build options')
 conf_data.set('PACKETEER_CACHE_LINE_SIZE', cache_line_size)
@@ -666,6 +670,7 @@ if not meson.is_subproject()
   endif
 
 endif
+
 
 ##############################################################################
 # Linter, etc.

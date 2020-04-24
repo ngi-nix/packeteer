@@ -71,6 +71,7 @@
 /*****************************************************************************
  * User defined build options
  **/
+#mesondefine PACKETEER_DEFAULT_CONCURRENCY
 #mesondefine PACKETEER_CACHE_LINE_SIZE
 #mesondefine PACKETEER_EVENT_WAIT_INTERVAL_USEC
 #mesondefine PACKETEER_EVENT_MAX

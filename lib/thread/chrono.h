@@ -52,7 +52,7 @@ inline void convert(inT const &, outT &)
 template <typename inT>
 inline void convert(inT const & in, ::timeval & val)
 {
-  auto repr = ::std::chrono::duration_cast<::std::chrono::microseconds>(in).count();
+  auto repr = ::std::chrono::round<::std::chrono::microseconds>(in).count();
 
   val.tv_sec = time_t(repr / 1'000'000);
   val.tv_usec = repr % 1'000'000;
@@ -64,7 +64,7 @@ inline void convert(inT const & in, ::timeval & val)
 template <typename inT>
 inline void convert(inT const & in, ::timespec & val)
 {
-  auto repr = ::std::chrono::duration_cast<::std::chrono::nanoseconds>(in).count();
+  auto repr = ::std::chrono::round<::std::chrono::nanoseconds>(in).count();
 
   val.tv_sec = time_t(repr / 1'000'000'000);
   val.tv_nsec = repr % 1'000'000'000;

@@ -148,7 +148,7 @@ public:
   template <typename durationT>
   inline bool sleep(durationT const & duration) const
   {
-    return tasklet::nanosleep(std::chrono::duration_cast<std::chrono::nanoseconds>(duration));
+    return tasklet::nanosleep(std::chrono::round<std::chrono::nanoseconds>(duration));
   }
 
   inline bool sleep() const
