@@ -129,7 +129,7 @@ TEST_P(NetworkConstruction, construct)
   }
 }
 
-INSTANTIATE_TEST_CASE_P(net, NetworkConstruction,
+INSTANTIATE_TEST_SUITE_P(net, NetworkConstruction,
     testing::ValuesIn(ctor_tests),
     ctor_name);
 
@@ -195,7 +195,7 @@ TEST_P(NetworkContents, ip_in_network)
 }
 
 
-INSTANTIATE_TEST_CASE_P(net, NetworkContents,
+INSTANTIATE_TEST_SUITE_P(net, NetworkContents,
     testing::ValuesIn(contained_tests),
     contained_name);
 

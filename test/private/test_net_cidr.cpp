@@ -180,5 +180,5 @@ TEST_P(CIDR, parsing_with_explicit_port)
 }
 
 
-INSTANTIATE_TEST_CASE_P(net, CIDR, testing::ValuesIn(tests),
+INSTANTIATE_TEST_SUITE_P(net, CIDR, testing::ValuesIn(tests),
     generate_name);

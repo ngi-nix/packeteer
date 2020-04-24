@@ -181,7 +181,7 @@ TEST_P(ConnectorParsing, parsing)
 }
 
 
-INSTANTIATE_TEST_CASE_P(net, ConnectorParsing,
+INSTANTIATE_TEST_SUITE_P(net, ConnectorParsing,
     testing::ValuesIn(parsing_tests),
     connector_name);
 
@@ -736,7 +736,7 @@ TEST_P(ConnectorStream, peek_from_write)
 
 
 
-INSTANTIATE_TEST_CASE_P(net, ConnectorStream,
+INSTANTIATE_TEST_SUITE_P(net, ConnectorStream,
     testing::ValuesIn(streaming_tests),
     connector_name<streaming_test_data>);
 
@@ -986,7 +986,7 @@ TEST_P(ConnectorDGram, multiple_clients)
 
 
 
-INSTANTIATE_TEST_CASE_P(net, ConnectorDGram,
+INSTANTIATE_TEST_SUITE_P(net, ConnectorDGram,
     testing::ValuesIn(dgram_tests),
     connector_name<dgram_test_data>);
 

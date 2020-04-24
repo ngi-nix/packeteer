@@ -697,6 +697,6 @@ namespace {
   };
 }
 
-INSTANTIATE_TEST_CASE_P(packeteer, Scheduler,
+INSTANTIATE_TEST_SUITE_P(packeteer, Scheduler,
     test_values(),
     scheduler_name);
