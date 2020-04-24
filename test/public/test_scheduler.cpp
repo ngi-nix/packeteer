@@ -214,14 +214,14 @@ TEST_P(Scheduler, delayed_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
   p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
-  sched.schedule_once(sc::milliseconds(50), cb);
+  sched.schedule_once(sc::milliseconds(1), cb);
 
-  std::this_thread::sleep_for(sc::milliseconds(100));
+  sched.process_events(sc::milliseconds(20));
 
   int called = source.m_called;
   ASSERT_EQ(1, called);
@@ -231,19 +231,50 @@ TEST_P(Scheduler, delayed_callback)
 }
 
 
-TEST_P(Scheduler, timed_callback)
+
+TEST_P(Scheduler, soft_timeout)
 {
   auto td = GetParam();
 
   // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
+
+  test_callback source;
+  p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
+
+  sched.schedule_once(sc::milliseconds(50), cb);
+
+  auto before = p7r::clock::now();
+  sched.process_events(sc::milliseconds(1), true);
+  auto after = p7r::clock::now();
+
+  int called = source.m_called;
+  ASSERT_EQ(1, called);
+
+  p7r::events_t mask = source.m_mask;
+  ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
+
+  // Even though we waited for 1 millisecond only, due to the soft timeout
+  // and the next scheduled callback at 50 msec, we have to have
+  // 50+ msec elapsed
+  auto elapsed = sc::round<sc::milliseconds>(after - before).count();
+  ASSERT_GE(elapsed, 50);
+}
+
+
+
+TEST_P(Scheduler, timed_callback)
+{
+  auto td = GetParam();
+
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
   p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
   sched.schedule_at(p7r::clock::now() + sc::milliseconds(50), cb);
 
-  std::this_thread::sleep_for(sc::milliseconds(100));
+  sched.process_events(sc::milliseconds(100));
 
   int called = source.m_called;
   ASSERT_EQ(1, called);
@@ -258,15 +289,21 @@ TEST_P(Scheduler, repeat_callback)
   auto td = GetParam();
 
   // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
   p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
-  sched.schedule(p7r::clock::now(), sc::milliseconds(50),
+  sched.schedule(p7r::clock::now(), sc::milliseconds(20),
       3, cb);
 
-  std::this_thread::sleep_for(sc::milliseconds(200));
+  // If we process multiple times, each time the expiring callback should
+  // kick us out of the loop - but no more than three times. The last wait
+  // needs to time out.
+  sched.process_events(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   int called = source.m_called;
   ASSERT_EQ(3, called);
@@ -284,8 +321,7 @@ TEST_P(Scheduler, infinite_callback)
   // must have been invoked more than once just as above. However, once
   // explicitly unscheduled, the callback cannot be invoked any longer.
 
-  // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
   p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
@@ -296,7 +332,9 @@ TEST_P(Scheduler, infinite_callback)
 
   // Since the first invocation happens immediately, we want to sleep <
   // 3 * 50 msec
-  std::this_thread::sleep_for(sc::milliseconds(125));
+  sched.process_events(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   int called = source.m_called;
   ASSERT_EQ(3, called);
@@ -306,7 +344,7 @@ TEST_P(Scheduler, infinite_callback)
 
   sched.unschedule(cb);
 
-  std::this_thread::sleep_for(sc::milliseconds(100));
+  sched.process_events(sc::milliseconds(50));
 
   // The amount of invocations may not have changed after the unschedule()
   // call above, even though we waited longer.
@@ -322,31 +360,25 @@ TEST_P(Scheduler, delayed_repeat_callback)
 {
   auto td = GetParam();
 
-  // Kind of tricky; in order to register the delay, we need to choose the
-  // initial delay, the repeat interval, and the wait time such that without
-  // the delay we'd have more repetitions at the end of the wait time than
-  // with the delay.
-  // That means the repeat interval needs to be just under half of the wait
-  // time.
-  sc::milliseconds wait = sc::milliseconds(200);
-  sc::milliseconds interval = sc::milliseconds(80);
-  // Now the initial delay needs to be just higher than the difference between
-  // the wait time and two intervals, i.e. delay > wait - 2 * interval
-  auto delay = p7r::clock::now() + sc::milliseconds(60);
+  // Repeat every 20 msec, but delay for 50msec
+  sc::milliseconds interval = sc::milliseconds(20);
+  auto delay = p7r::clock::now() + sc::milliseconds(50);
 
-  // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
   p7r::callback cb = p7r::make_callback(&source, &test_callback::func);
 
   sched.schedule(delay, interval, -1, cb);
 
-  std::this_thread::sleep_for(wait);
+  // If we process for < 50 msec, the callback should not be invoked.
+  sched.process_events(sc::milliseconds(20));
+  ASSERT_EQ(0, source.m_called);
 
-  // If called is 3 or more, the initial delay wasn't honored.
-  int called = source.m_called;
-  ASSERT_EQ(2, called);
+  // Now if we wait another 30 (left over delay) plus 20
+  // msec, we should have a callbacks.
+  sched.process_events(sc::milliseconds(30 + 20));
+  ASSERT_EQ(1, source.m_called);
 
   p7r::events_t mask = source.m_mask;
   ASSERT_EQ(p7r::PEV_TIMEOUT, mask);
@@ -355,7 +387,7 @@ TEST_P(Scheduler, delayed_repeat_callback)
 }
 
 
-TEST_P(Scheduler, parallel_callback)
+TEST_P(Scheduler, parallel_callback_with_threads)
 {
   auto td = GetParam();
 
@@ -398,8 +430,7 @@ TEST_P(Scheduler, user_callback)
     EVENT_3 = 4 * p7r::PEV_USER,
   };
 
-  // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source1;
   p7r::callback cb1 = p7r::make_callback(&source1, &test_callback::func);
@@ -414,42 +445,42 @@ TEST_P(Scheduler, user_callback)
 
   // EVENT_1
   sched.fire_events(EVENT_1);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 1, EVENT_1);
   ASSERT_CALLBACK(source2, 0, 0);
 
   // EVENT_2
   sched.fire_events(EVENT_2);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 2, EVENT_2);
   ASSERT_CALLBACK(source2, 1, EVENT_2);
 
   // EVENT_3
   sched.fire_events(EVENT_3);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 3, EVENT_3);
   ASSERT_CALLBACK(source2, 2, EVENT_3);
 
   // EVENT_1 | EVENT_2
   sched.fire_events(EVENT_1 | EVENT_2);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 4, EVENT_1 | EVENT_2);
   ASSERT_CALLBACK(source2, 3, EVENT_2);
 
   // EVENT_2 | EVENT_3
   sched.fire_events(EVENT_2 | EVENT_3);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 5, EVENT_2 | EVENT_3);
   ASSERT_CALLBACK(source2, 4, EVENT_2 | EVENT_3);
 
   // EVENT_1 | EVENT_3
   sched.fire_events(EVENT_1 | EVENT_3);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 6, EVENT_1 | EVENT_3);
   ASSERT_CALLBACK(source2, 5, EVENT_3);
@@ -459,42 +490,42 @@ TEST_P(Scheduler, user_callback)
 
   // EVENT_1
   sched.fire_events(EVENT_1);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 7, EVENT_1);
   ASSERT_CALLBACK(source2, 5, 0); // mask reset; not called
 
   // EVENT_3
   sched.fire_events(EVENT_2);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 7, 0); // mask reset; not called
   ASSERT_CALLBACK(source2, 6, EVENT_2);
 
   // EVENT_3
   sched.fire_events(EVENT_3);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 8, EVENT_3);
   ASSERT_CALLBACK(source2, 7, EVENT_3);
 
   // EVENT_1 | EVENT_2
   sched.fire_events(EVENT_1 | EVENT_2);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 9, EVENT_1);
   ASSERT_CALLBACK(source2, 8, EVENT_2);
 
   // EVENT_2 | EVENT_3
   sched.fire_events(EVENT_2 | EVENT_3);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 10, EVENT_3);
   ASSERT_CALLBACK(source2, 9, EVENT_2 | EVENT_3);
 
   // EVENT_1 | EVENT_3
   sched.fire_events(EVENT_1 | EVENT_3);
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(0));
 
   ASSERT_CALLBACK(source1, 11, EVENT_1 | EVENT_3);
   ASSERT_CALLBACK(source2, 10, EVENT_3);
@@ -514,8 +545,7 @@ TEST_P(Scheduler, io_callback)
   p7r::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
-  // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source1;
   p7r::callback cb1 = p7r::make_callback(&source1, &test_callback::func);
@@ -525,11 +555,11 @@ TEST_P(Scheduler, io_callback)
   p7r::callback cb2 = p7r::make_callback(&source2, &test_callback::func);
   sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb2);
 
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   sched.unregister_connector(p7r::PEV_IO_WRITE, pipe, cb2);
 
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   // The second callback must have been invoked multiple times, because the
   // pipe is always (at this level of I/O load) writeable.
@@ -551,7 +581,7 @@ TEST_P(Scheduler, io_callback)
   pipe.write(buf, sizeof(buf), amount);
   ASSERT_EQ(sizeof(buf), amount);
 
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   // After writing, there must be a callback
   ASSERT_CALLBACK_GREATER(reading, 0, p7r::PEV_IO_READ);
@@ -575,14 +605,13 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
   p7r::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
-  // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   counting_callback source;
   p7r::callback cb = p7r::make_callback(&source, &counting_callback::func);
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
 
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   // No read callbacks without writing.
   ASSERT_EQ(source.m_read_called, 0);
@@ -593,11 +622,13 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
   pipe.write(buf, sizeof(buf), amount);
   ASSERT_EQ(sizeof(buf), amount);
 
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   // After writing, there must be a callback
   ASSERT_GT(source.m_read_called, 0);
 }
+
+
 
 TEST_P(Scheduler, io_callback_registration_sequence)
 {
@@ -607,14 +638,13 @@ TEST_P(Scheduler, io_callback_registration_sequence)
   p7r::connector pipe{test_env->api, "anon://"};
   pipe.connect();
 
-  // We only need one thread for this.
-  p7r::scheduler sched(test_env->api, 1, static_cast<p7r::scheduler::scheduler_type>(td));
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   counting_callback source;
   p7r::callback cb = p7r::make_callback(&source, &counting_callback::func);
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
 
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   // No read callbacks without writing.
   ASSERT_EQ(source.m_read_called, 0);
@@ -625,35 +655,10 @@ TEST_P(Scheduler, io_callback_registration_sequence)
   pipe.write(buf, sizeof(buf), amount);
   ASSERT_EQ(sizeof(buf), amount);
 
-  std::this_thread::sleep_for(sc::milliseconds(50));
+  sched.process_events(sc::milliseconds(50));
 
   // After writing, there must be a callback
   ASSERT_GT(source.m_read_called, 0);
-}
-
-
-TEST_P(Scheduler, single_threaded)
-{
-  auto td = GetParam();
-
-  // We use a single user-triggered event here for simplicity.
-  enum user_events
-  {
-    EVENT_1 = 1 * p7r::PEV_USER,
-  };
-
-  // Single-threaded scheduler
-  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
-
-  test_callback source1;
-  p7r::callback cb1 = p7r::make_callback(&source1, &test_callback::func);
-  sched.register_event(EVENT_1, cb1);
-
-  // EVENT_1
-  sched.fire_events(EVENT_1);
-  sched.process_events(sc::milliseconds(20));
-
-  ASSERT_CALLBACK(source1, 1, EVENT_1);
 }
 
 
@@ -664,7 +669,7 @@ TEST_P(Scheduler, worker_count)
   p7r::scheduler sched(test_env->api, -1, static_cast<p7r::scheduler::scheduler_type>(td));
 
   // With -1, the scheduler should determine the number of workers themselves.
-  ASSERT_GE(sched.num_workers(), 0);
+  ASSERT_GT(sched.num_workers(), 0);
 }
 
 
