@@ -84,7 +84,7 @@ TEST_P(NormalizePipePath, normalize_pipe_path)
   }
 }
 
-INSTANTIATE_TEST_CASE_P(connector, NormalizePipePath, testing::ValuesIn(tests),
+INSTANTIATE_TEST_SUITE_P(connector, NormalizePipePath, testing::ValuesIn(tests),
     generate_name);
 
 

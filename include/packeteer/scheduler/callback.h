@@ -50,7 +50,7 @@ namespace detail {
 struct callback_helper_base
 {
   virtual ~callback_helper_base() {}
-  virtual error_t invoke(time_point const &, events_t const &, error_t, connector const &, void *) = 0;
+  virtual error_t invoke(time_point const &, events_t const &, error_t, connector *, void *) = 0;
   virtual bool equal_to(callback_helper_base const *) const = 0;
   virtual bool less_than(callback_helper_base const *) const = 0;
   virtual size_t hash() const = 0;
@@ -70,7 +70,7 @@ struct callback_helper_base
  * Part of the simplification means that callback objects don't hold any type
  * of function, only those conforming to the following prototype:
  *
- *  error_t <name>(time_point, events_t, error_t, connector const &, void *)
+ *  error_t <name>(time_point, events_t, error_t, connector *, void *)
  *
  * Much like std::function, however, callback classes can hold pointers to
  * free functions as well as pointers to object functions. Note that for the
@@ -91,7 +91,7 @@ public:
    **/
   // Typedef for free functions.
   using free_function_type = std::add_pointer<
-      error_t (time_point const &, events_t, error_t, connector const &, void *)
+      error_t (time_point const &, events_t, error_t, connector *, void *)
   >::type;
 
   /*****************************************************************************
@@ -135,7 +135,7 @@ public:
 
 
 
-  inline ~callback()
+  virtual ~callback()
   {
     delete m_object_helper;
   }
@@ -215,7 +215,7 @@ public:
   inline
   error_t
   operator()(time_point const & now, events_t events, error_t error,
-      connector const & conn, void * baton)
+      connector * conn, void * baton)
   {
     if (nullptr != m_free_function) {
       return (*m_free_function)(now, events, error, conn, baton);
@@ -287,24 +287,53 @@ private:
  **/
 namespace detail {
 
+
+/**
+ * Helper struct for dealing with inline operators.
+ **/
+template <typename T>
+struct inline_helper
+{
+  T * object;
+
+  error_t
+  operator()(time_point const & now, events_t events, error_t error,
+      connector * conn, void * baton)
+  {
+    return object->operator()(now, events, error, conn, baton);
+  }
+};
+
+
+
 template <typename T>
 struct callback_helper : public callback_helper_base
 {
   typedef error_t (T::*member_function_type)(
-      time_point const &, events_t, error_t, connector const &,
+      time_point const &, events_t, error_t, connector *,
       void *);
 
 
-  callback_helper(T * object, member_function_type function)
+
+  callback_helper(T * object, member_function_type function, bool owned = false)
     : m_object(object)
     , m_function(function)
+    , m_owned(owned)
   {
+  }
+
+
+  ~callback_helper()
+  {
+    if (m_owned) {
+      delete m_object;
+    }
   }
 
 
 
   virtual error_t invoke(time_point const & now, events_t const & events,
-      error_t error, connector const & conn, void * baton)
+      error_t error, connector * conn, void * baton)
   {
     return (m_object->*m_function)(now, events, error, conn, baton);
   }
@@ -362,6 +391,7 @@ struct callback_helper : public callback_helper_base
 private:
   T *                   m_object;
   member_function_type  m_function;
+  bool                  m_owned;
 };
 
 } // namespace detail
@@ -373,6 +403,9 @@ private:
  * second only an object pointer - the member function is then assumed to be
  * operator().
  **/
+struct default_helper_behaviour{};
+struct proxy_inline_operator{};
+
 template <typename T>
 inline detail::callback_helper<T> *
 make_callback(T * object,
@@ -383,11 +416,32 @@ make_callback(T * object,
 
 
 
-template <typename T>
+template <
+  typename T,
+  typename tagT = default_helper_behaviour,
+  std::enable_if_t<std::is_same<tagT, default_helper_behaviour>::value, int> = 0
+>
 inline detail::callback_helper<T> *
-make_callback(T * object)
+make_callback(T * object, tagT const & t [[maybe_unused]] = tagT{})
 {
   return new detail::callback_helper<T>(object, &T::operator());
+}
+
+
+
+template <
+  typename T,
+  typename tagT = default_helper_behaviour,
+  std::enable_if_t<std::is_same<tagT, proxy_inline_operator>::value, int> = 0
+>
+inline detail::callback_helper<
+  detail::inline_helper<T>
+> *
+make_callback(T * object, tagT const & t [[maybe_unused]] = tagT{})
+{
+  using h = typename detail::inline_helper<T>;
+  h * obj = new h{object};
+  return new detail::callback_helper<h>(obj, &h::operator(), true);
 }
 
 

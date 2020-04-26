@@ -93,7 +93,7 @@ TEST_P(PeerAddress, string_construction)
 }
 
 
-INSTANTIATE_TEST_CASE_P(net, PeerAddress,
+INSTANTIATE_TEST_SUITE_P(net, PeerAddress,
     testing::ValuesIn(tests),
     generate_name);
 

@@ -259,7 +259,7 @@ TEST_P(SocketAddressParsing, string_construction_with_port)
   }
 }
 
-INSTANTIATE_TEST_CASE_P(net, SocketAddressParsing,
+INSTANTIATE_TEST_SUITE_P(net, SocketAddressParsing,
     testing::ValuesIn(parsing_tests),
     generate_name_parsing);
 
@@ -419,6 +419,6 @@ TEST_P(SocketAddressOperators, incrementing)
 }
 
 
-INSTANTIATE_TEST_CASE_P(net, SocketAddressOperators,
+INSTANTIATE_TEST_SUITE_P(net, SocketAddressOperators,
     testing::ValuesIn(value_tests),
     generate_name_value);
