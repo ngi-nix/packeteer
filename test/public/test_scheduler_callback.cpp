@@ -31,7 +31,7 @@ namespace {
 
 p7r::error_t
 free_func1(p7r::time_point const &, p7r::events_t events,
-    p7r::error_t, p7r::connector const &, void *)
+    p7r::error_t, p7r::connector *, void *)
 {
   EXPECT_EQ(42, events);
   return p7r::error_t(1);
@@ -40,7 +40,7 @@ free_func1(p7r::time_point const &, p7r::events_t events,
 
 p7r::error_t
 free_func2(p7r::time_point const &, p7r::events_t events,
-    p7r::error_t, p7r::connector const &, void *)
+    p7r::error_t, p7r::connector *, void *)
 {
   EXPECT_EQ(666, events);
   return p7r::error_t(2);
@@ -51,7 +51,7 @@ struct functor
 {
   p7r::error_t
   member_func(p7r::time_point const &, p7r::events_t events,
-      p7r::error_t, p7r::connector const &, void *)
+      p7r::error_t, p7r::connector *, void *)
   {
     EXPECT_EQ(1234, events);
     return p7r::error_t(3);
@@ -61,7 +61,7 @@ struct functor
 
   p7r::error_t
   operator()(p7r::time_point const &, p7r::events_t events,
-      p7r::error_t, p7r::connector const &, void *)
+      p7r::error_t, p7r::connector *, void *)
   {
     EXPECT_EQ(0xdeadbeef, events);
     return p7r::error_t(4);
@@ -78,11 +78,11 @@ TEST(Callback, free_functions)
   auto now = p7r::clock::now();
 
   p7r::callback cb1 = &free_func1;
-  ASSERT_EQ(p7r::error_t(1), cb1(now, 42, p7r::error_t(0), p7r::connector{},
+  ASSERT_EQ(p7r::error_t(1), cb1(now, 42, p7r::error_t(0), nullptr,
         nullptr));
 
   p7r::callback cb2 = &free_func2;
-  ASSERT_EQ(p7r::error_t(2), cb2(now, 666, p7r::error_t(0), p7r::connector{},
+  ASSERT_EQ(p7r::error_t(2), cb2(now, 666, p7r::error_t(0), nullptr,
         nullptr));
 
   // Test for equality.
@@ -93,6 +93,49 @@ TEST(Callback, free_functions)
 
 
 
+TEST(Callback, lambda)
+{
+  // Test that a lambda function is correctly invoked.
+  auto now = p7r::clock::now();
+
+  auto l1 = [](p7r::time_point const &, p7r::events_t,
+    p7r::error_t, p7r::connector *, void *) -> p7r::error_t
+  {
+    return 1;
+  };
+
+  p7r::callback cb1{l1};
+  ASSERT_EQ(p7r::error_t{1}, cb1(now, 42, p7r::error_t(0), nullptr,
+        nullptr));
+
+  // Equality tests
+  p7r::callback cb2{l1};
+  ASSERT_EQ(cb1, cb2);
+
+  // An identical lambda should not be equal
+  auto l2 = [](p7r::time_point const &, p7r::events_t,
+    p7r::error_t, p7r::connector *, void *) -> p7r::error_t
+  {
+    return 1;
+  };
+
+  p7r::callback cb3{l2};
+  ASSERT_NE(cb1, cb3);
+  ASSERT_NE(cb2, cb3);
+
+  // Lambda with capture
+  int dummy = 0;
+  auto l3 = [&dummy](p7r::time_point const &, p7r::events_t,
+    p7r::error_t, p7r::connector *, void *) -> p7r::error_t
+  {
+    return 1;
+  };
+  cb3 = p7r::make_callback(&l3, p7r::proxy_inline_operator{});
+}
+
+
+
+
 TEST(Callback, member_functions)
 {
   // Test that member functions are correctly invoked.
@@ -100,12 +143,12 @@ TEST(Callback, member_functions)
   functor f;
 
   p7r::callback cb1 = p7r::make_callback(&f, &functor::member_func);
-  ASSERT_EQ(p7r::error_t(3), cb1(now, 1234, p7r::error_t(0), p7r::connector{},
+  ASSERT_EQ(p7r::error_t(3), cb1(now, 1234, p7r::error_t(0), nullptr,
         nullptr));
 
   p7r::callback cb2 = p7r::make_callback(&f);
   ASSERT_EQ(p7r::error_t(4), cb2(now, 0xdeadbeef, p7r::error_t(0),
-        p7r::connector{}, nullptr));
+        nullptr, nullptr));
 
   // Test for equality.
   ASSERT_NE(cb1, cb2);
@@ -153,7 +196,7 @@ TEST(Callback, empty)
   ASSERT_EQ(true, cb.empty());
   ASSERT_FALSE(cb);
 
-  ASSERT_THROW(cb(now, 0, p7r::error_t(1), p7r::connector{}, nullptr),
+  ASSERT_THROW(cb(now, 0, p7r::error_t(1), nullptr, nullptr),
       p7r::exception);
 
   p7r::callback cb2 = &free_func1;
@@ -171,7 +214,7 @@ TEST(Callback, assignment)
   cb = &free_func1;
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(p7r::error_t(1), cb(now, 42, p7r::error_t(0), p7r::connector{},
+  ASSERT_EQ(p7r::error_t(1), cb(now, 42, p7r::error_t(0), nullptr,
         nullptr));
 
   functor f;
@@ -179,7 +222,7 @@ TEST(Callback, assignment)
   ASSERT_TRUE(cb);
   ASSERT_EQ(false, cb.empty());
   ASSERT_EQ(p7r::error_t(4), cb(now, 0xdeadbeef, p7r::error_t(0),
-        p7r::connector{}, nullptr));
+        nullptr, nullptr));
 }
 
 
