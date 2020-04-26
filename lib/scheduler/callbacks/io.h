@@ -101,7 +101,7 @@ struct io_callbacks_t
     }
 
     // Let's see if we found the callback/connector combination
-    if (m_callback_map.end() != c_iter) {
+    if (range.second != c_iter) {
       // Yep, found it. Merge event mask.
       c_iter->second->m_events |= cb->m_events;
       delete cb;
