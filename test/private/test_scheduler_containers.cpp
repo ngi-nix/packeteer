@@ -37,21 +37,21 @@ namespace {
  * Two callbacks, just so we have different function pointers to work with.
  **/
 p7r::error_t
-foo(p7r::time_point const &, p7r::events_t, p7r::error_t, p7r::connector const &, void *)
+foo(p7r::time_point const &, p7r::events_t, p7r::error_t, p7r::connector *, void *)
 {
   // no-op
   return p7r::ERR_UNEXPECTED;
 }
 
 p7r::error_t
-bar(p7r::time_point const &, p7r::events_t, p7r::error_t, p7r::connector const &, void *)
+bar(p7r::time_point const &, p7r::events_t, p7r::error_t, p7r::connector *, void *)
 {
   // no-op
   return p7r::ERR_UNEXPECTED;
 }
 
 p7r::error_t
-baz(p7r::time_point const &, p7r::events_t, p7r::error_t, p7r::connector const &, void *)
+baz(p7r::time_point const &, p7r::events_t, p7r::error_t, p7r::connector *, void *)
 {
   // no-op
   return p7r::ERR_UNEXPECTED;
