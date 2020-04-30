@@ -73,6 +73,21 @@ struct true_functor
 };
 
 
+inline p7r::callback
+make_test_cb()
+{
+  std::string test = "Test";
+  auto lambda = [test](p7r::time_point const &, p7r::events_t,
+    p7r::error_t, p7r::connector *, void *) -> p7r::error_t
+  {
+    EXPECT_EQ("Test", test);
+    return 2;
+  };
+
+  return lambda;
+}
+
+
 } // anonymous namespace
 
 
@@ -159,15 +174,23 @@ TEST(Callback, lambda_with_capture)
     return 1;
   };
 
-
   p7r::callback cb3{l2};
   ASSERT_NE(cb1, cb3);
   ASSERT_NE(cb2, cb3);
+
+  // Test a lambda with a string capture actually has the string. The captured
+  // variable goes out of scope, but it's capture-by-value. Then to complicate
+  // things, we assing the callback further.
+  p7r::callback cb4 = make_test_cb();
+  p7r::callback cb5 = cb4;
+
+  ASSERT_EQ(p7r::error_t{2}, cb5(now, 42, p7r::error_t(0), nullptr,
+        nullptr));
 }
 
 
 
-TEST(Callback, member_functions)
+TEST(Callback, member_functions_by_address)
 {
   // Test that member functions are correctly invoked.
   auto now = p7r::clock::now();
@@ -184,7 +207,7 @@ TEST(Callback, member_functions)
 
 
 
-TEST(Callback, member_functions_by_reference)
+TEST(Callback, member_functions_copy)
 {
   // Test that member functions are correctly invoked.
   auto now = p7r::clock::now();
@@ -202,7 +225,7 @@ TEST(Callback, member_functions_by_reference)
 
 
 
-TEST(Callback, true_functor)
+TEST(Callback, true_functor_by_address)
 {
   // Test that member functions are correctly invoked.
   auto now = p7r::clock::now();
@@ -219,7 +242,7 @@ TEST(Callback, true_functor)
 
 
 
-TEST(Callback, true_functor_by_reference)
+TEST(Callback, true_functor_copy)
 {
   // Test that member functions are correctly invoked.
   auto now = p7r::clock::now();
