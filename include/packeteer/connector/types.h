@@ -61,9 +61,10 @@ enum PACKETEER_API : connector_options
 
   CO_STREAM   = (1 << 0),     // STREAM connector; use read()/write()
   CO_DATAGRAM = (1 << 1),     // DATAGRAM connector; use receive()/send()
+  // TODO CO_SEQPACKET = (1 << 2),    // SEQPACKET connector.
 
-  CO_BLOCKING = (1 << 2),     // Blocking mode. Mutually exclusive with the below.
-  CO_NON_BLOCKING = (1 << 3), // Non-blocking mode
+  CO_BLOCKING = (1 << 3),     // Blocking mode. Mutually exclusive with the below.
+  CO_NON_BLOCKING = (1 << 4), // Non-blocking mode
 
   CO_USER     = (1 << 8),     // First user-defined options.
 };
