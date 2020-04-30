@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -200,6 +200,9 @@ connector_interface::read(void * buf, size_t bufsize, size_t & bytes_read)
 
     ERRNO_LOG("Error reading from file descriptor");
     switch (errno) {
+      case EAGAIN:
+        return ERR_ASYNC;
+
       case EINTR: // handle signal interrupts
         continue;
 

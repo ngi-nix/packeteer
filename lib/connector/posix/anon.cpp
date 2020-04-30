@@ -4,7 +4,7 @@
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
  * Copyright (c) 2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -35,7 +35,7 @@
 namespace packeteer::detail {
 
 connector_anon::connector_anon(connector_options const & options)
-  : connector_interface(CO_STREAM | (options & CO_BLOCKING))
+  : connector_interface(options)
 {
 }
 

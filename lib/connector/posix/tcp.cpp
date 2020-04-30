@@ -39,8 +39,7 @@ namespace packeteer::detail {
 
 namespace {
 
-inline
-int
+inline int
 select_domain(::packeteer::net::socket_address const & addr)
 {
   switch (addr.type()) {
@@ -59,18 +58,7 @@ select_domain(::packeteer::net::socket_address const & addr)
 
 connector_tcp::connector_tcp(net::socket_address const & addr,
     connector_options const & options)
-  : connector_socket(addr, (options | CO_STREAM) & ~CO_DATAGRAM)
-{
-  // TODO options & CO_BLOCKING does not set CO_NON_BLOCKING, leading to follow-on
-  //      results.
-  // FIXME remove
-  DLOG("connector_tcp::connector_tcp(" << options << " -> " << m_options << ")");
-}
-
-
-
-connector_tcp::connector_tcp()
-  : connector_socket(CO_STREAM|CO_BLOCKING)
+  : connector_socket(addr, options)
 {
 }
 
@@ -133,12 +121,10 @@ connector_tcp::accept(net::socket_address & addr)
   }
 
   // Create & return connector with accepted FD
-  connector_tcp * result = new connector_tcp();
-  result->m_addr = addr;
+  connector_tcp * result = new connector_tcp(addr, m_options);
   result->m_server = true;
   result->m_connected = true;
   result->m_fd = fd;
-  result->m_options = m_options;
 
   return result;
 }

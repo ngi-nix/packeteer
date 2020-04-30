@@ -160,7 +160,7 @@ translate_open_error()
 
 connector_pipe::connector_pipe(std::string const & path,
     connector_options const & options)
-  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_interface(options)
   , m_addr{path}
 {
 }
@@ -169,7 +169,7 @@ connector_pipe::connector_pipe(std::string const & path,
 
 connector_pipe::connector_pipe(net::socket_address const & addr,
     connector_options const & options)
-  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_interface(options)
   , m_addr{addr}
 {
 }
