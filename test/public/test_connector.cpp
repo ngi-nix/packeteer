@@ -475,8 +475,11 @@ struct client_post_connect_callback
 };
 
 
-std::pair<p7r::connector, p7r::connector>
-setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & url)
+std::vector<
+  std::pair<p7r::connector, p7r::connector>
+>
+setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & url,
+    int num_clients = 1)
 {
   // Server
   p7r::connector server{test_env->api, url};
@@ -497,65 +500,76 @@ setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & u
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
-  // Client
-  p7r::connector client{test_env->api, url};
-  EXPECT_EQ(type, client.type());
-
-  EXPECT_FALSE(client.listening());
-  EXPECT_FALSE(client.connected());
-  EXPECT_FALSE(client.communicating());
-
-  // Connecting must result in p7r::ERR_ASYNC. We use a scheduler run to
-  // understand when the connection attempt was finished.
   p7r::scheduler sched(test_env->api, 0);
-  server_connect_callback server_struct(server);
-  p7r::callback server_cb{server_struct, &server_connect_callback::func};
-  sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, server, server_cb);
 
-  // Give scheduler a chance to register connectors
-  sched.process_events(TEST_SLEEP_TIME);
-  EXPECT_EQ(p7r::ERR_ASYNC, client.connect());
+  std::vector<
+    std::pair<p7r::connector, p7r::connector>
+  > result;
+  for (int i = 0 ; i < num_clients ; ++i) {
+    // Client
+    p7r::connector client{test_env->api, url};
+    EXPECT_EQ(type, client.type());
 
-  client_post_connect_callback client_struct;
-  p7r::callback client_cb{client_struct, &client_post_connect_callback::func};
-  sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, client, client_cb);
+    EXPECT_FALSE(client.listening());
+    EXPECT_FALSE(client.connected());
+    EXPECT_FALSE(client.communicating());
 
-  // Wait for all callbacks to be invoked.
-  sched.process_events(TEST_SLEEP_TIME);
+    // Connecting must result in p7r::ERR_ASYNC. We use a scheduler run to
+    // understand when the connection attempt was finished.
+    server_connect_callback server_struct(server);
+    p7r::callback server_cb{server_struct, &server_connect_callback::func};
+    sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, server, server_cb);
 
-  // After the sleep, the server conn and client conn should both
-  // be ready to roll.
-  EXPECT_TRUE(server_struct.m_conn);
-  EXPECT_TRUE(client_struct.m_connected);
+    // Give scheduler a chance to register connectors
+    sched.process_events(TEST_SLEEP_TIME);
+    EXPECT_EQ(p7r::ERR_ASYNC, client.connect());
 
-  p7r::connector server_conn = server_struct.m_conn;
+    client_post_connect_callback client_struct;
+    p7r::callback client_cb{client_struct, &client_post_connect_callback::func};
+    sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, client, client_cb);
 
-  EXPECT_FALSE(client.listening());
-  EXPECT_TRUE(client.connected());
-  EXPECT_TRUE(client.communicating());
+    // Wait for all callbacks to be invoked.
+    sched.process_events(TEST_SLEEP_TIME);
 
-  EXPECT_TRUE(server_conn.listening());
-  EXPECT_TRUE(server_conn.connected());
-  EXPECT_TRUE(server_conn.communicating());
+    // After the sleep, the server conn and client conn should both
+    // be ready to roll.
+    EXPECT_TRUE(server_struct.m_conn);
+    EXPECT_TRUE(client_struct.m_connected);
 
-  EXPECT_TRUE(server.listening());
-  EXPECT_FALSE(server.connected());
-  EXPECT_FALSE(server.connected());
+    p7r::connector server_conn = server_struct.m_conn;
 
-  EXPECT_FALSE(server_conn.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, server_conn.get_options());
+    EXPECT_FALSE(client.listening());
+    EXPECT_TRUE(client.connected());
+    EXPECT_TRUE(client.communicating());
 
-  EXPECT_FALSE(client.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, client.get_options());
+    EXPECT_TRUE(server_conn.listening());
+    EXPECT_TRUE(server_conn.connected());
+    EXPECT_TRUE(server_conn.communicating());
 
-  return std::make_pair(client, server_conn);
+    EXPECT_TRUE(server.listening());
+    EXPECT_FALSE(server.connected());
+    EXPECT_FALSE(server.connected());
+
+    EXPECT_FALSE(server_conn.is_blocking());
+    EXPECT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, server_conn.get_options());
+
+    EXPECT_FALSE(client.is_blocking());
+    EXPECT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, client.get_options());
+
+    result.push_back(std::make_pair(client, server_conn));
+  }
+
+  return result;
 }
 
 
 
 
-std::pair<p7r::connector, p7r::connector>
-setup_stream_connection(p7r::connector_type type, p7r::util::url const & url)
+std::vector<
+  std::pair<p7r::connector, p7r::connector>
+>
+setup_stream_connection(p7r::connector_type type, p7r::util::url const & url,
+    int num_clients = 1)
 {
   // Server
   p7r::connector server{test_env->api, url};
@@ -576,38 +590,46 @@ setup_stream_connection(p7r::connector_type type, p7r::util::url const & url)
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
-  // Client
-  p7r::connector client{test_env->api, url};
-  EXPECT_EQ(type, client.type());
+  // Clients
+  std::vector<
+    std::pair<p7r::connector, p7r::connector>
+  > result;
 
-  EXPECT_FALSE(client.listening());
-  EXPECT_FALSE(client.connected());
-  EXPECT_FALSE(client.communicating());
+  for (int i = 0 ; i < num_clients ; ++i) {
+    p7r::connector client{test_env->api, url};
+    EXPECT_EQ(type, client.type());
 
-  EXPECT_EQ(p7r::ERR_SUCCESS, client.connect());
-  p7r::connector server_conn = server.accept();
+    EXPECT_FALSE(client.listening());
+    EXPECT_FALSE(client.connected());
+    EXPECT_FALSE(client.communicating());
 
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+    EXPECT_EQ(p7r::ERR_SUCCESS, client.connect());
+    p7r::connector server_conn = server.accept();
 
-  EXPECT_FALSE(client.listening());
-  EXPECT_TRUE(client.connected());
-  EXPECT_TRUE(client.communicating());
+    std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
-  EXPECT_TRUE(server_conn.listening());
-  EXPECT_TRUE(server_conn.connected());
-  EXPECT_TRUE(server_conn.communicating());
+    EXPECT_FALSE(client.listening());
+    EXPECT_TRUE(client.connected());
+    EXPECT_TRUE(client.communicating());
 
-  EXPECT_TRUE(server.listening());
-  EXPECT_FALSE(server.connected());
-  EXPECT_FALSE(server.connected());
+    EXPECT_TRUE(server_conn.listening());
+    EXPECT_TRUE(server_conn.connected());
+    EXPECT_TRUE(server_conn.communicating());
 
-  EXPECT_TRUE(server_conn.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, server_conn.get_options());
+    EXPECT_TRUE(server.listening());
+    EXPECT_FALSE(server.connected());
+    EXPECT_FALSE(server.connected());
 
-  EXPECT_TRUE(client.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, client.get_options());
+    EXPECT_TRUE(server_conn.is_blocking());
+    EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, server_conn.get_options());
 
-  return std::make_pair(client, server_conn);
+    EXPECT_TRUE(client.is_blocking());
+    EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, client.get_options());
+
+    result.push_back(std::make_pair(client, server_conn));
+  }
+
+  return result;
 }
 
 
@@ -631,10 +653,10 @@ TEST_P(ConnectorStream, blocking_messaging)
   auto url = p7r::util::url::parse(td.stream_blocking);
   url.query["behaviour"] = "stream";
 
-  auto pair = setup_stream_connection(td.type, url);
+  auto res = setup_stream_connection(td.type, url);
 
-  auto client = pair.first;
-  auto server = pair.second;
+  auto client = res[0].first;
+  auto server = res[0].second;
 
   // Communications
   send_message_streaming(client, server);
@@ -653,10 +675,10 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   auto url = p7r::util::url::parse(td.stream_non_blocking);
   url.query["behaviour"] = "stream";
 
-  auto pair = setup_stream_connection_async(td.type, url);
+  auto res = setup_stream_connection_async(td.type, url);
 
-  auto client = pair.first;
-  auto server = pair.second;
+  auto client = res[0].first;
+  auto server = res[0].second;
 
   // Communications
   p7r::scheduler sched(test_env->api, 0);
@@ -675,10 +697,10 @@ TEST_P(ConnectorStream, asynchronous_messaging)
   auto url = p7r::util::url::parse(td.stream_non_blocking);
   url.query["behaviour"] = "stream";
 
-  auto pair = setup_stream_connection_async(td.type, url);
+  auto res = setup_stream_connection_async(td.type, url);
 
-  auto client = pair.first;
-  auto server = pair.second;
+  auto client = res[0].first;
+  auto server = res[0].second;
 
   // Communications
   p7r::scheduler sched(test_env->api, 0);
@@ -688,7 +710,7 @@ TEST_P(ConnectorStream, asynchronous_messaging)
 
 
 
-TEST_P(ConnectorStream, multiple_clients)
+TEST_P(ConnectorStream, multiple_clients_blocking)
 {
   // Test multiple clients connect to a single server, and can exchange
   // messages.
@@ -697,74 +719,21 @@ TEST_P(ConnectorStream, multiple_clients)
   auto url = p7r::util::url::parse(td.stream_blocking);
   url.query["behaviour"] = "stream";
 
-  // Server
-  p7r::connector server{test_env->api, url};
-  EXPECT_EQ(td.type, server.type());
+  auto res = setup_stream_connection(td.type, url, 2);
 
-  EXPECT_FALSE(server.listening());
-  EXPECT_FALSE(server.connected());
+  auto client1 = res[0].first;
+  auto server1 = res[0].second;
 
-  EXPECT_EQ(p7r::ERR_SUCCESS, server.listen());
-
-  EXPECT_TRUE(server.listening());
-  EXPECT_FALSE(server.connected());
-
-  EXPECT_TRUE(server.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, server.get_options());
-
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
-
-  // Client #1
-  p7r::connector client1{test_env->api, url};
-  EXPECT_EQ(td.type, client1.type());
-
-  EXPECT_FALSE(client1.listening());
-  EXPECT_FALSE(client1.connected());
-
-  EXPECT_EQ(p7r::ERR_SUCCESS, client1.connect());
-  p7r::connector server_conn1 = server.accept();
-
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
-
-  EXPECT_FALSE(client1.listening());
-  EXPECT_TRUE(client1.connected());
-  EXPECT_TRUE(server_conn1.listening());
-
-  EXPECT_TRUE(server_conn1.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, server_conn1.get_options());
-
-  EXPECT_TRUE(client1.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, client1.get_options());
-
-  // Client #2
-  p7r::connector client2{test_env->api, url};
-  EXPECT_EQ(td.type, client2.type());
-
-  EXPECT_FALSE(client2.listening());
-  EXPECT_FALSE(client2.connected());
-
-  EXPECT_EQ(p7r::ERR_SUCCESS, client2.connect());
-  p7r::connector server_conn2 = server.accept();
-
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
-
-  EXPECT_FALSE(client2.listening());
-  EXPECT_TRUE(client2.connected());
-  EXPECT_TRUE(server_conn2.listening());
-
-  EXPECT_TRUE(server_conn2.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, server_conn2.get_options());
-
-  EXPECT_TRUE(client2.is_blocking());
-  EXPECT_EQ(p7r::CO_STREAM|p7r::CO_BLOCKING, client2.get_options());
+  auto client2 = res[1].first;
+  auto server2 = res[1].second;
 
   // Communications with client #1
-  send_message_streaming(client1, server_conn1, 1);
-  send_message_streaming(server_conn1, client1, 2);
+  send_message_streaming(client1, server1, 1);
+  send_message_streaming(server1, client1, 2);
 
   // Communications with client #2
-  send_message_streaming(client2, server_conn2, 3);
-  send_message_streaming(server_conn2, client2, 4);
+  send_message_streaming(client2, server2, 3);
+  send_message_streaming(server2, client2, 4);
 }
 
 
@@ -777,10 +746,10 @@ TEST_P(ConnectorStream, peek_from_write)
   auto url = p7r::util::url::parse(td.stream_non_blocking);
   url.query["behaviour"] = "stream";
 
-  auto pair = setup_stream_connection_async(td.type, url);
+  auto res = setup_stream_connection_async(td.type, url);
 
-  auto client = pair.first;
-  auto server = pair.second;
+  auto client = res[0].first;
+  auto server = res[0].second;
 
   // Communications
   p7r::scheduler sched(test_env->api, 0);
@@ -875,9 +844,12 @@ void peek_message_dgram(p7r::connector & sender, p7r::connector & receiver,
 
 
 
-std::pair<p7r::connector, p7r::connector>
+std::pair<
+  p7r::connector,
+  std::vector<p7r::connector>
+>
 setup_dgram_connection(p7r::connector_type type, p7r::util::url const & server_url,
-    p7r::util::url const & client_url)
+    std::vector<p7r::util::url> const & client_urls)
 {
   // Server
   p7r::connector server{test_env->api, server_url};
@@ -898,26 +870,30 @@ setup_dgram_connection(p7r::connector_type type, p7r::util::url const & server_u
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
-  // Client
-  p7r::connector client{test_env->api, client_url};
-  EXPECT_EQ(type, client.type());
+  std::vector<p7r::connector> result;
+  for (size_t i = 0 ; i < client_urls.size() ; ++i) {
+    // Client
+    p7r::connector client{test_env->api, client_urls[i]};
+    EXPECT_EQ(type, client.type());
 
-  EXPECT_FALSE(client.listening());
-  EXPECT_FALSE(client.connected());
-  EXPECT_FALSE(client.communicating());
+    EXPECT_FALSE(client.listening());
+    EXPECT_FALSE(client.connected());
+    EXPECT_FALSE(client.communicating());
 
-  EXPECT_EQ(p7r::ERR_SUCCESS, client.listen());
+    EXPECT_EQ(p7r::ERR_SUCCESS, client.listen());
 
-  EXPECT_TRUE(client.listening());
-  EXPECT_FALSE(client.connected());
-  EXPECT_TRUE(client.communicating());
+    EXPECT_TRUE(client.listening());
+    EXPECT_FALSE(client.connected());
+    EXPECT_TRUE(client.communicating());
 
-  EXPECT_TRUE(client.is_blocking());
-  EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_BLOCKING, client.get_options());
+    EXPECT_TRUE(client.is_blocking());
+    EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_BLOCKING, client.get_options());
+
+    result.push_back(client);
+  }
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
-
-  return std::make_pair(client, server);
+  return std::make_pair(server, result);
 }
 
 } // anonymous namespace
@@ -939,10 +915,10 @@ TEST_P(ConnectorDGram, messaging)
   auto curl = p7r::util::url::parse(td.dgram_second);
   curl.query["behaviour"] = "datagram";
 
-  auto pair = setup_dgram_connection(td.type, surl, curl);
+  auto res = setup_dgram_connection(td.type, surl, {curl});
 
-  auto client = pair.first;
-  auto server = pair.second;
+  auto server = res.first;
+  auto client = res.second[0];
 
   // Communications
   send_message_dgram(client, server);
@@ -962,10 +938,10 @@ TEST_P(ConnectorDGram, peek_from_send)
   auto curl = p7r::util::url::parse(td.dgram_second);
   curl.query["behaviour"] = "datagram";
 
-  auto pair = setup_dgram_connection(td.type, surl, curl);
+  auto res = setup_dgram_connection(td.type, surl, {curl});
 
-  auto client = pair.first;
-  auto server = pair.second;
+  auto server = res.first;
+  auto client = res.second[0];
 
   // Communications
   peek_message_dgram(client, server);
@@ -987,45 +963,11 @@ TEST_P(ConnectorDGram, multiple_clients)
   auto curl2 = p7r::util::url::parse(td.dgram_third);
   curl2.query["behaviour"] = "datagram";
 
-  // Server
-  p7r::connector server{test_env->api, surl};
-  ASSERT_EQ(td.type, server.type());
+  auto res = setup_dgram_connection(td.type, surl, {curl1, curl2});
 
-  ASSERT_FALSE(server.listening());
-  ASSERT_FALSE(server.connected());
-
-  ASSERT_EQ(p7r::ERR_SUCCESS, server.listen());
-
-  ASSERT_TRUE(server.listening());
-  ASSERT_FALSE(server.connected());
-
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
-
-  // Client #1
-  p7r::connector client1{test_env->api, curl1};
-  ASSERT_EQ(td.type, client1.type());
-
-  ASSERT_FALSE(client1.listening());
-  ASSERT_FALSE(client1.connected());
-
-  ASSERT_EQ(p7r::ERR_SUCCESS, client1.listen());
-
-  ASSERT_TRUE(client1.listening());
-  ASSERT_FALSE(client1.connected());
-
-  // Client #2
-  p7r::connector client2{test_env->api, curl2};
-  ASSERT_EQ(td.type, client2.type());
-
-  ASSERT_FALSE(client2.listening());
-  ASSERT_FALSE(client2.connected());
-
-  ASSERT_EQ(p7r::ERR_SUCCESS, client2.listen());
-
-  ASSERT_TRUE(client2.listening());
-
-
-  std::this_thread::sleep_for(TEST_SLEEP_TIME);
+  auto server = res.first;
+  auto client1 = res.second[0];
+  auto client2 = res.second[1];
 
   // Communications #1 and #2
   send_message_dgram(client1, server, 1);
