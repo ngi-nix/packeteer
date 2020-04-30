@@ -39,11 +39,12 @@ namespace p7r = packeteer;
 TEST(ConnectorUtil, sanitize_options_good)
 {
   auto defaults = p7r::CO_BLOCKING|p7r::CO_STREAM;
+  auto possible = p7r::CO_STREAM|p7r::CO_BLOCKING|p7r::CO_NON_BLOCKING;
 
   // Just defaults
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_DEFAULT,
-        defaults, p7r::CO_STREAM);
+        defaults, possible);
     ASSERT_TRUE(p7r::CO_BLOCKING & sanitized);
     ASSERT_TRUE(p7r::CO_STREAM & sanitized);
     ASSERT_FALSE(p7r::CO_NON_BLOCKING & sanitized);
@@ -53,7 +54,7 @@ TEST(ConnectorUtil, sanitize_options_good)
   // Captain obvious
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_BLOCKING,
-        defaults, p7r::CO_STREAM);
+        defaults, possible);
     ASSERT_TRUE(p7r::CO_BLOCKING & sanitized);
     ASSERT_TRUE(p7r::CO_STREAM & sanitized);
     ASSERT_FALSE(p7r::CO_NON_BLOCKING & sanitized);
@@ -63,7 +64,7 @@ TEST(ConnectorUtil, sanitize_options_good)
   // Flip to non-blocking
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_NON_BLOCKING,
-        defaults, p7r::CO_STREAM);
+        defaults, possible);
     ASSERT_FALSE(p7r::CO_BLOCKING & sanitized);
     ASSERT_TRUE(p7r::CO_STREAM & sanitized);
     ASSERT_TRUE(p7r::CO_NON_BLOCKING & sanitized);
@@ -76,11 +77,12 @@ TEST(ConnectorUtil, sanitize_options_good)
 TEST(ConnectorUtil, sanitize_options_bad_defaults)
 {
   auto defaults = p7r::CO_BLOCKING|p7r::CO_STREAM;
+  auto possible = p7r::CO_DATAGRAM|p7r::CO_BLOCKING|p7r::CO_NON_BLOCKING;
 
   // The behaviour is leading over defaults
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_DEFAULT,
-        defaults, p7r::CO_DATAGRAM);
+        defaults, possible);
     ASSERT_TRUE(p7r::CO_BLOCKING & sanitized);
     ASSERT_FALSE(p7r::CO_STREAM & sanitized);
     ASSERT_FALSE(p7r::CO_NON_BLOCKING & sanitized);
@@ -89,7 +91,7 @@ TEST(ConnectorUtil, sanitize_options_bad_defaults)
 
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_BLOCKING,
-        defaults, p7r::CO_DATAGRAM);
+        defaults, possible);
     ASSERT_TRUE(p7r::CO_BLOCKING & sanitized);
     ASSERT_FALSE(p7r::CO_STREAM & sanitized);
     ASSERT_FALSE(p7r::CO_NON_BLOCKING & sanitized);
@@ -102,20 +104,27 @@ TEST(ConnectorUtil, sanitize_options_bad_defaults)
 TEST(ConnectorUtil, sanitize_options_invalid_behaviour)
 {
   auto defaults = p7r::CO_BLOCKING|p7r::CO_STREAM;
+
+  // Missing behaviour
   ASSERT_THROW(p7r::detail::sanitize_options(p7r::CO_DEFAULT,
-        defaults, p7r::CO_DEFAULT), p7r::exception);
+        defaults, p7r::CO_BLOCKING), std::logic_error);
+
+  // Missing everything
+  ASSERT_THROW(p7r::detail::sanitize_options(p7r::CO_DEFAULT,
+        defaults, p7r::CO_DEFAULT), std::logic_error);
+
 }
 
 
 TEST(ConnectorUtil, sanitize_options_multi_behaviour)
 {
   auto defaults = p7r::CO_BLOCKING|p7r::CO_STREAM;
-  auto behaviours = p7r::CO_STREAM|p7r::CO_DATAGRAM;
+  auto possible = p7r::CO_STREAM|p7r::CO_DATAGRAM|p7r::CO_BLOCKING;
 
   // Use default
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_DEFAULT,
-        defaults, behaviours);
+        defaults, possible);
     ASSERT_TRUE(p7r::CO_STREAM & sanitized);
     ASSERT_FALSE(p7r::CO_DATAGRAM & sanitized);
   }
@@ -123,7 +132,7 @@ TEST(ConnectorUtil, sanitize_options_multi_behaviour)
   // Use STREAM
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_STREAM,
-        defaults, behaviours);
+        defaults, possible);
     ASSERT_TRUE(p7r::CO_STREAM & sanitized);
     ASSERT_FALSE(p7r::CO_DATAGRAM & sanitized);
   }
@@ -131,7 +140,7 @@ TEST(ConnectorUtil, sanitize_options_multi_behaviour)
   // Use DATAGRAM
   {
     auto sanitized = p7r::detail::sanitize_options(p7r::CO_DATAGRAM,
-        defaults, behaviours);
+        defaults, possible);
     ASSERT_FALSE(p7r::CO_STREAM & sanitized);
     ASSERT_TRUE(p7r::CO_DATAGRAM & sanitized);
   }
@@ -139,6 +148,6 @@ TEST(ConnectorUtil, sanitize_options_multi_behaviour)
   // Without defaults, this throws.
   {
     ASSERT_THROW(p7r::detail::sanitize_options(p7r::CO_DEFAULT,
-          p7r::CO_BLOCKING, behaviours), p7r::exception);
+          p7r::CO_BLOCKING, possible), p7r::exception);
   }
 }

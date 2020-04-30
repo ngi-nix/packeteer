@@ -30,6 +30,11 @@
 
 namespace packeteer::detail {
 
+/**
+ * Used in sanitize_options; if the behaviour field provides a single
+ * behaviour, it is applied to the result and true is returned. Otherwise,
+ * the return value is false.
+ */
 inline bool
 add_behaviour(connector_options & result, connector_options const & behaviour)
 {
@@ -52,22 +57,41 @@ add_behaviour(connector_options & result, connector_options const & behaviour)
 
 
 
+/**
+ * Give input options, defaults and possible options, ensure that
+ * the resulting output options are valid and complete.
+ *
+ * Complete means a behaviour option and a blocking option must be
+ * provided. It may be that this definition changes with time.
+ */
 inline connector_options
 sanitize_options(connector_options const & input,
     connector_options const & defaults,
-    connector_options const & behaviours)
+    connector_options const & possible)
 {
-  // Ensure behaviours has only valid values.
-  auto check = behaviours;
-  check &= ~CO_STREAM;
-  check &= ~CO_DATAGRAM;
-  // TODO check &= ~CO_SEQPACKET
-  if (check || !behaviours) {
-    throw exception(ERR_INVALID_VALUE, "Bad behaviour specified!");
+  // Split the possible options into behaviours and other options.
+  auto mask = CO_STREAM|CO_DATAGRAM; // FIXME seqpacket later
+  auto behaviours = possible & mask;
+  auto others = possible & ~mask;
+
+  // std::cout << "possible: " << std::bitset<16>(possible) << std::endl;
+  // std::cout << "beahviours: " << std::bitset<16>(behaviours) << std::endl;
+  // std::cout << "others: " << std::bitset<16>(others) << std::endl;
+
+  // std::cout << "defaults: " << std::bitset<16>(defaults) << std::endl;
+  // std::cout << "input: " << std::bitset<16>(input) << std::endl;
+
+  // Sanitize programming logic.
+  if (!behaviours) {
+    throw std::logic_error("Must specify at least one possible behaviour.");
+  }
+  if (!others) {
+    throw std::logic_error("Must specify at least one possible blocking/non-blocking flag.");
   }
 
   // Start with defaults.
   connector_options result = defaults;
+  //std::cout << "result #1: " << std::bitset<16>(result) << std::endl;
 
   // Set blocking/non-blocking if it's in the input.
   if (input & CO_BLOCKING) {
@@ -78,6 +102,8 @@ sanitize_options(connector_options const & input,
     result &= ~CO_BLOCKING;
     result |= CO_NON_BLOCKING;
   }
+  //std::cout << "result #2: " << std::bitset<16>(result) << std::endl;
+
 
   // In single behaviour situations, we can just force the behaviour
   // and be done with it.
@@ -85,6 +111,7 @@ sanitize_options(connector_options const & input,
     // Was a single behaviour
     return result;
   }
+  //std::cout << "result #3: " << std::bitset<16>(result) << std::endl;
 
   // Otherwise we're in a multi-behaviour situation, at which point
   // the input needs to contain the selected behaviour. Strip the input
@@ -105,6 +132,7 @@ sanitize_options(connector_options const & input,
   }
 
   add_behaviour(result, behaviour);
+  //std::cout << "result #4: " << std::bitset<16>(result) << std::endl;
   return result;
 }
 
