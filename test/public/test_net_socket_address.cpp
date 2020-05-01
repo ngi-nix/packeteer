@@ -159,7 +159,8 @@ TEST_P(SocketAddressParsing, verify_CIDR)
   using namespace pnet;
   auto td = GetParam();
   if (AT_LOCAL == td.sa_type) {
-    return; // Skip these values
+    GTEST_SKIP();
+    return;
   }
 
   ASSERT_TRUE(socket_address::verify_cidr(td.address));
@@ -412,10 +413,10 @@ TEST_P(SocketAddressOperators, incrementing)
 
   if (td.addr1.type() == AT_LOCAL) {
     GTEST_SKIP();
+    return;
   }
-  else {
-    test_incrementing(td.addr1);
-  }
+
+  test_incrementing(td.addr1);
 }
 
 

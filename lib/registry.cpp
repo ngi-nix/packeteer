@@ -22,6 +22,7 @@
 #include "macros.h"
 #include "util/string.h"
 #include "connector/connectors.h"
+#include "connector/util.h"
 
 
 #define FAIL_FAST(expr) { \
@@ -38,7 +39,7 @@ namespace {
 
 connector_interface *
 inet_creator(util::url const & url, connector_type const & ctype,
-    connector_options const & options)
+    connector_options const & options, registry::connector_info const * info)
 {
   if (url.authority.empty()) {
     throw exception(ERR_FORMAT, "Require address part in address string.");
@@ -70,18 +71,22 @@ inet_creator(util::url const & url, connector_type const & ctype,
     throw exception(ERR_FORMAT, "Invalid IPv4 or IPv6 address.");
   }
 
+  // Sanitize options
+  auto opts = detail::sanitize_options(options, info->default_options,
+      info->possible_options);
+
   // Looks good for TCP/UDP style connectors!
   switch (ctype) {
     case CT_TCP:
     case CT_TCP4:
     case CT_TCP6:
-      return new detail::connector_tcp(addr, options);
+      return new detail::connector_tcp(addr, opts);
       break;
 
     case CT_UDP:
     case CT_UDP4:
     case CT_UDP6:
-      return new detail::connector_udp(addr, options);
+      return new detail::connector_udp(addr, opts);
       break;
 
     default:
@@ -245,33 +250,69 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("anon", connector_info{CT_ANON,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &, connector_options const & options) -> connector_interface *
+      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
       {
         if (!url.path.empty()) {
           throw exception(ERR_FORMAT, "Path component makes no sense for anon:// connectors.");
         }
-        return new detail::connector_anon(options);
+
+        // Sanitize options
+        auto opts = detail::sanitize_options(options, info->default_options,
+            info->possible_options);
+
+        return new detail::connector_anon(opts);
       }}));
 
+#if defined(PACKETEER_WIN32)
   // Register pipe scheme
   FAIL_FAST(add_scheme("pipe", connector_info{CT_PIPE,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &, connector_options const & options) -> connector_interface *
+      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
       {
-        return new detail::connector_pipe(url.path, options);
+        if (url.path.empty()) {
+          throw exception(ERR_FORMAT, "Pipe connectors need a path.");
+        }
+
+        // Sanitize options
+        auto opts = detail::sanitize_options(options, info->default_options,
+            info->possible_options);
+
+        return new detail::connector_pipe(url.path, opts);
       }}));
+#endif
+
+#if defined(PACKETEER_POSIX)
+  // Register fifo scheme
+  FAIL_FAST(add_scheme("fifo", connector_info{CT_FIFO,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
+      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
+      {
+        if (url.path.empty()) {
+          throw exception(ERR_FORMAT, "FIFO connectors need a path.");
+        }
+
+        // Sanitize options
+        auto opts = detail::sanitize_options(options, info->default_options,
+            info->possible_options);
+
+        return new detail::connector_fifo(url.path, opts);
+      }}));
+#endif
 
 #if defined(PACKETEER_POSIX)
   // Register posix local addresses, if possible.
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &, connector_options const & options) -> connector_interface *
+      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
       {
-        auto res = new detail::connector_local(url.path, options);
-        DLOG("New connector local: " << std::hex << res << std::dec);
-        return res;
+        // Sanitize options
+        auto opts = detail::sanitize_options(options, info->default_options,
+            info->possible_options);
+
+        return new detail::connector_local(url.path, opts);
       }}));
 #endif
   }
@@ -301,7 +342,6 @@ struct registry::registry_impl
       ELOG("Must provide a creator function!");
       return ERR_EMPTY_CALLBACK;
     }
-
 
     auto normalized = util::to_lower(scheme);
 

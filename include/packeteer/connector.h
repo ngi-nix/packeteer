@@ -77,11 +77,14 @@ public:
    *  - udp4: IPv4 UDP connection
    *  - udp6: IPv6 UDP connection
    *  - udp: IPv4 or IPv6 UDP connection, depending on availability
-   *  - anon: anonymous pipe, similar to the pipe class. Mostly usable for
-   *      IPC between processes that inherit the underlying system handles.
-   *      Anonymous pipes are unidirectional.
-   *  - local: UNIX domain sockets (POSIX only)
-   *  - pipe: UNIX named pipe or Windows named pipe
+   *  - anon: unidirectionaly anonymous pipe. Mostly usable for IPC between
+   *      processes that inherit the underlying system handles.
+   *  - local: UNIX domain sockets (POSIX; Win32 from Windows 10)
+   *  - pipe: Windows named pipe. Bidirectional, and largely behave as
+   *      UNIX domain sockets.
+   *  - fifo: POSIX named pipe. Bidirectional and multi client in theory;
+   *      in practice, being FIFOs they work to broadcast anything written
+   *      to all readers, including the sender.
    *
    * Of these, the first six expect the address string to have the format:
    *    scheme://address[:port]

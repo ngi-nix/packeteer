@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2011 Jens Finkhaeuser.
  * Copyright (c) 2012-2014 Unwesen Ltd.
- * Copyright (c) 2015-2019 Jens Finkhaeuser.
+ * Copyright (c) 2015-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -24,6 +24,10 @@
 #include <gtest/gtest.h>
 
 #include <functional>
+
+#include "../value_tests.h"
+#include "../test_name.h"
+
 
 namespace p7r = packeteer;
 
@@ -47,7 +51,8 @@ free_func2(p7r::time_point const &, p7r::events_t events,
 }
 
 
-struct functor
+
+struct functor_member
 {
   p7r::error_t
   member_func(p7r::time_point const &, p7r::events_t events,
@@ -56,9 +61,12 @@ struct functor
     EXPECT_EQ(1234, events);
     return p7r::error_t(3);
   }
+};
 
 
 
+struct true_functor
+{
   p7r::error_t
   operator()(p7r::time_point const &, p7r::events_t events,
       p7r::error_t, p7r::connector *, void *)
@@ -69,125 +77,275 @@ struct functor
 };
 
 
-} // anonymous namespace
 
 
-TEST(Callback, free_functions)
+
+
+struct test_data_base
 {
-  // Test that a free function is correctly invoked.
-  auto now = p7r::clock::now();
+  std::string     name;
+  p7r::events_t   events;
+  p7r::error_t    result;
 
-  p7r::callback cb1 = &free_func1;
-  ASSERT_EQ(p7r::error_t(1), cb1(now, 42, p7r::error_t(0), nullptr,
-        nullptr));
+  p7r::callback   cb1 = {};
+  p7r::callback   cb2 = {};
 
-  p7r::callback cb2 = &free_func2;
-  ASSERT_EQ(p7r::error_t(2), cb2(now, 666, p7r::error_t(0), nullptr,
-        nullptr));
-
-  // Test for equality.
-  ASSERT_NE(cb1, cb2);
-  p7r::callback cb3 = &free_func1;
-  ASSERT_EQ(cb1, cb3);
-}
-
-
-
-TEST(Callback, lambda)
-{
-  // Test that a lambda function is correctly invoked.
-  auto now = p7r::clock::now();
-
-  auto l1 = [](p7r::time_point const &, p7r::events_t,
-    p7r::error_t, p7r::connector *, void *) -> p7r::error_t
+  test_data_base(std::string const & n, p7r::events_t ev,
+      p7r::error_t res)
+    : name(n)
+    , events(ev)
+    , result(res)
   {
-    return 1;
-  };
+  }
 
-  p7r::callback cb1{l1};
-  ASSERT_EQ(p7r::error_t{1}, cb1(now, 42, p7r::error_t(0), nullptr,
-        nullptr));
+  virtual ~test_data_base() {};
+};
 
-  // Equality tests
-  p7r::callback cb2{l1};
-  ASSERT_EQ(cb1, cb2);
 
-  // An identical lambda should not be equal
-  auto l2 = [](p7r::time_point const &, p7r::events_t,
-    p7r::error_t, p7r::connector *, void *) -> p7r::error_t
+struct free_function_ctx : public test_data_base
+{
+  free_function_ctx(std::string const & n, p7r::events_t ev,
+      p7r::error_t res)
+    : test_data_base(n, ev, res)
   {
-    return 1;
-  };
+    cb1 = free_func1;
+    cb2 = free_func2;
+  }
+};
 
-  p7r::callback cb3{l2};
-  ASSERT_NE(cb1, cb3);
-  ASSERT_NE(cb2, cb3);
 
-  // Lambda with capture
-  int dummy = 0;
-  auto l3 = [&dummy](p7r::time_point const &, p7r::events_t,
-    p7r::error_t, p7r::connector *, void *) -> p7r::error_t
+struct functor_member_ctx : public test_data_base
+{
+  functor_member fm1;
+  functor_member fm2;
+
+  functor_member_ctx(std::string const & n, p7r::events_t ev,
+      p7r::error_t res, bool by_pointer)
+    : test_data_base(n, ev, res)
   {
-    return 1;
-  };
-  cb3 = p7r::make_callback(&l3, p7r::proxy_inline_operator{});
+    if (by_pointer) {
+      cb1 = {&fm1, &functor_member::member_func};
+      cb2 = {&fm2, &functor_member::member_func};
+    }
+    else {
+      cb1 = {fm1, &functor_member::member_func};
+      cb2 = {fm2, &functor_member::member_func};
+    }
+  }
+};
+
+
+struct true_functor_ctx : public test_data_base
+{
+  true_functor tf1;
+  true_functor tf2;
+
+  true_functor_ctx(std::string const & n, p7r::events_t ev,
+      p7r::error_t res, bool by_pointer)
+    : test_data_base(n, ev, res)
+  {
+    if (by_pointer) {
+      cb1 = {&tf1};
+      cb2 = {&tf2};
+    }
+    else {
+      cb1 = {tf1};
+      cb2 = {tf2};
+    }
+  }
+};
+
+
+struct lambda_no_capture_ctx : public test_data_base
+{
+  lambda_no_capture_ctx(std::string const & n, p7r::events_t ev,
+      p7r::error_t res)
+    : test_data_base(n, ev, res)
+  {
+    cb1 = [](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
+        p7r::connector *, void *) -> p7r::error_t
+    {
+      EXPECT_EQ(71, events_in);
+      return 5;
+    };
+
+    // Same definition, but different lambda
+    cb2 = [](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
+        p7r::connector *, void *) -> p7r::error_t
+    {
+      EXPECT_EQ(71, events_in);
+      return 5;
+    };
+  }
+};
+
+
+struct lambda_with_capture_ctx : public test_data_base
+{
+  int the_capture = 42;
+
+  lambda_with_capture_ctx(std::string const & n, p7r::events_t ev,
+      p7r::error_t res, bool by_reference)
+    : test_data_base(n, ev, res)
+  {
+    int & capture = the_capture;
+
+    if (by_reference) {
+      cb1 = [&capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
+          p7r::connector *, void *) -> p7r::error_t
+      {
+        EXPECT_EQ(73, events_in);
+        EXPECT_EQ(42, capture);
+        return 6;
+      };
+
+      // Same definition, but different lambda
+      cb2 = [&capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
+          p7r::connector *, void *) -> p7r::error_t
+      {
+        EXPECT_EQ(73, events_in);
+        EXPECT_EQ(42, capture);
+        return 6;
+      };
+    }
+    else {
+      cb1 = [capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
+          p7r::connector *, void *) -> p7r::error_t
+      {
+        EXPECT_EQ(79, events_in);
+        EXPECT_EQ(42, capture);
+        return 7;
+      };
+
+      // Same definition, but different lambda
+      cb2 = [capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
+          p7r::connector *, void *) -> p7r::error_t
+      {
+        EXPECT_EQ(79, events_in);
+        EXPECT_EQ(42, capture);
+        return 7;
+      };
+    }
+  }
+};
+
+
+
+std::shared_ptr<test_data_base> test_data[] = {
+  std::make_shared<free_function_ctx>(
+      "free function", 42, 1
+  ),
+  std::make_shared<functor_member_ctx>(
+      "functor member pointer", 1234, 3,
+      true
+  ),
+  std::make_shared<functor_member_ctx>(
+      "functor member copy", 1234, 3,
+      false
+  ),
+  std::make_shared<true_functor_ctx>(
+      "true functor pointer", 0xdeadbeef, 4,
+      true
+  ),
+  std::make_shared<true_functor_ctx>(
+      "true functor copy", 0xdeadbeef, 4,
+      false
+  ),
+  std::make_shared<lambda_no_capture_ctx>(
+    "lambda without capture", 71, 5
+  ),
+  std::make_shared<lambda_with_capture_ctx>(
+    "lambda with reference capture", 73, 6,
+    true
+  ),
+  std::make_shared<lambda_with_capture_ctx>(
+    "lambda with copy capture", 79, 7,
+    false
+  ),
+};
+
+
+
+std::string generate_name(testing::TestParamInfo<std::shared_ptr<test_data_base>> const & info)
+{
+  return symbolize_name(info.param->name);
+}
+
+} // anonymoys namespace
+
+class Callback
+  : public testing::TestWithParam<std::shared_ptr<test_data_base>>
+{
+};
+
+
+
+TEST_P(Callback, copy_construct)
+{
+  auto td = GetParam();
+  auto original = td->cb1;
+
+  // Copy ctor
+  p7r::callback cb1 = original;
+  ASSERT_EQ(cb1, original);
 }
 
 
 
-
-TEST(Callback, member_functions)
+TEST_P(Callback, assign)
 {
-  // Test that member functions are correctly invoked.
+  auto td = GetParam();
+  auto original = td->cb1;
+
+  // Assign
+  p7r::callback cb1;
+  ASSERT_NE(cb1, original);
+
+  cb1 = original;
+  ASSERT_EQ(cb1, original);
+}
+
+
+
+TEST_P(Callback, compare_inequality)
+{
+  auto td = GetParam();
+  ASSERT_NE(td->cb1, td->cb2);
+}
+
+
+
+TEST_P(Callback, invoke)
+{
+  auto td = GetParam();
+  auto cb = td->cb1;
+
   auto now = p7r::clock::now();
-  functor f;
-
-  p7r::callback cb1 = p7r::make_callback(&f, &functor::member_func);
-  ASSERT_EQ(p7r::error_t(3), cb1(now, 1234, p7r::error_t(0), nullptr,
-        nullptr));
-
-  p7r::callback cb2 = p7r::make_callback(&f);
-  ASSERT_EQ(p7r::error_t(4), cb2(now, 0xdeadbeef, p7r::error_t(0),
-        nullptr, nullptr));
-
-  // Test for equality.
-  ASSERT_NE(cb1, cb2);
-  p7r::callback cb3 = p7r::make_callback(&f, &functor::member_func);
-  ASSERT_EQ(cb1, cb3);
+  auto res = cb(now, td->events, p7r::error_t(0), nullptr, nullptr);
+  ASSERT_EQ(td->result, res);
 }
 
 
-
-TEST(Callback, comparison)
+TEST_P(Callback, hash)
 {
-  // Test that a functor and a free function bound to callbacks do not
-  // compare equal.
-  functor f;
+  auto td = GetParam();
 
-  p7r::callback cb1 = p7r::make_callback(&f, &functor::member_func);
-  p7r::callback cb2 = &free_func1;
+  std::hash<p7r::callback> hasher;
 
-  ASSERT_NE(cb1, cb2);
-  ASSERT_NE(cb2, cb1);
+  auto copy = td->cb1;
 
-  // Also check whether two callbacks encapsulating the same function/
-  // functor compare equal.
-  p7r::callback cb3 = p7r::make_callback(&f, &functor::member_func);
-  ASSERT_EQ(cb1, cb3);
-
-  p7r::callback cb4 = &free_func1;
-  ASSERT_EQ(cb2, cb4);
-
-  // It's equally important that a callback constructed from a different
-  // instance of the same functor class compares not equal.
-  functor f2;
-  p7r::callback cb5 = p7r::make_callback(&f2, &functor::member_func);
-  ASSERT_NE(cb1, cb5);
-  ASSERT_NE(cb3, cb5);
+  ASSERT_EQ(hasher(td->cb1), hasher(copy));
+  ASSERT_NE(hasher(td->cb1), hasher(td->cb2));
 }
 
 
-TEST(Callback, empty)
+INSTANTIATE_TEST_SUITE_P(scheduler, Callback,
+    testing::ValuesIn(test_data),
+    generate_name);
+
+
+
+TEST(CallbackMisc, empty)
 {
   // Empty/un-assigned callbacks should behave sanely
   auto now = p7r::clock::now();
@@ -204,66 +362,5 @@ TEST(Callback, empty)
 }
 
 
-TEST(Callback, assignment)
-{
-  // Ensure that empty callbacks can be assigned later on.
-  auto now = p7r::clock::now();
-  p7r::callback cb;
-  ASSERT_FALSE(cb);
-
-  cb = &free_func1;
-  ASSERT_TRUE(cb);
-  ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(p7r::error_t(1), cb(now, 42, p7r::error_t(0), nullptr,
-        nullptr));
-
-  functor f;
-  cb = p7r::make_callback(&f);
-  ASSERT_TRUE(cb);
-  ASSERT_EQ(false, cb.empty());
-  ASSERT_EQ(p7r::error_t(4), cb(now, 0xdeadbeef, p7r::error_t(0),
-        nullptr, nullptr));
-}
 
 
-TEST(Callback, hash)
-{
-  std::hash<p7r::callback> hasher;
-
-  // Callbacks made from the same free function should have the same hash.
-  p7r::callback cb1 = &free_func1;
-  p7r::callback cb2 = &free_func1;
-  ASSERT_EQ(hasher(cb1), hasher(cb2));
-
-  // But they can't have the same hash as a callback made from a different
-  // free function.
-  p7r::callback cb3 = &free_func2;
-  ASSERT_NE(hasher(cb1), hasher(cb3));
-  ASSERT_NE(hasher(cb2), hasher(cb3));
-
-  // The equality constraint also applies to functors.
-  functor f1;
-  p7r::callback cb4 = p7r::make_callback(&f1, &functor::member_func);
-  p7r::callback cb5 = p7r::make_callback(&f1, &functor::member_func);
-  ASSERT_EQ(hasher(cb4), hasher(cb5));
-
-  // And the same applies to the non-equality
-  functor f2;
-  p7r::callback cb6 = p7r::make_callback(&f2, &functor::member_func);
-  ASSERT_NE(hasher(cb4), hasher(cb6));
-  ASSERT_NE(hasher(cb5), hasher(cb6));
-}
-
-
-TEST(Callback, copy)
-{
-  // Copy ctor
-  p7r::callback cb1 = &free_func1;
-  p7r::callback cb2 = cb1;
-  ASSERT_EQ(cb1, cb2);
-
-  // Assign
-  p7r::callback cb3;
-  cb3 = cb1;
-  ASSERT_EQ(cb1, cb3);
-}

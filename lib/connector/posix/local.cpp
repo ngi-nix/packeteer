@@ -71,13 +71,6 @@ connector_local::connector_local(net::socket_address const & addr,
 
 
 
-connector_local::connector_local()
-  : connector_socket(CO_STREAM|CO_BLOCKING)
-{
-}
-
-
-
 connector_local::~connector_local()
 {
   close();
@@ -142,16 +135,15 @@ connector_local::accept(net::socket_address & addr)
   if (ERR_SUCCESS != err) {
     return nullptr;
   }
+  addr = m_addr;
 
   // Create & return connector with accepted FD. Only the instance
   // that bound the socket is the file system entry owner, though.
-  connector_local * result = new connector_local();
-  result->m_addr = addr = m_addr;
+  connector_local * result = new connector_local(m_addr, m_options);
   result->m_server = true;
   result->m_connected = true;
   result->m_owner = false;
   result->m_fd = fd;
-  result->m_options = m_options;
 
   return result;
 }

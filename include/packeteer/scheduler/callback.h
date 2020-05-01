@@ -31,6 +31,7 @@
 #include <typeinfo>
 #include <functional>
 #include <type_traits>
+#include <atomic>
 
 #include <packeteer/connector.h>
 
@@ -46,19 +47,236 @@ namespace detail {
 
 /*****************************************************************************
  * Internally used class.
+ *
+ * The callback_helper and its base allow callback to erase functor types,
+ * but still be invoked correctly through the virtual invoke() function.
  **/
 struct callback_helper_base
 {
   virtual ~callback_helper_base() {}
-  virtual error_t invoke(time_point const &, events_t const &, error_t, connector *, void *) = 0;
-  virtual bool equal_to(callback_helper_base const *) const = 0;
-  virtual bool less_than(callback_helper_base const *) const = 0;
+  virtual error_t invoke(time_point const &, events_t const &, error_t,
+      connector *, void *) = 0;
   virtual size_t hash() const = 0;
   virtual callback_helper_base * clone() const = 0;
 };
 
 
-} // namespace detail;
+
+/**
+ * The holder class is a not-so-smart-pointer light, or whatever you would
+ * like to call it. It combines an object pointer with a reference count,
+ * and a flag whether or not the object is owned.
+ *
+ * It's used in callback_helper_base implementations to model both ownership
+ * and non-ownership of the functor they're proxying.
+ **/
+template <typename T>
+struct holder
+{
+  T *               m_object = nullptr;
+  bool const        m_owned = false;
+  std::atomic<int>  m_refcount = 1;
+
+  inline holder(T * obj)
+    : m_object(obj)
+  {
+  }
+
+  inline holder(T const & obj)
+    : m_object(new T{obj})
+    , m_owned(true)
+  {
+  }
+
+  inline holder * increment()
+  {
+    ++m_refcount;
+    return this;
+  }
+
+  inline bool delete_if_last_reference()
+  {
+    if (--m_refcount <= 0) {
+      if (m_owned) {
+        delete m_object;
+      }
+      m_object = nullptr;
+      return true;
+    }
+    return false;
+  }
+};
+
+
+
+/**
+ * A proxy for an object and member function.
+ *
+ * If it's constructed from a pointer and member function pointer, the
+ * object is not considered owned. Otherwise, a copy is made and the copy
+ * is owned - but only one copy is made thanks to the holder construct.
+ **/
+template <typename T>
+struct callback_helper_member : public callback_helper_base
+{
+  typedef error_t (T::*member_function_type)(time_point const &, events_t,
+      error_t, connector *, void *);
+
+  holder<T> *           m_holder;
+  member_function_type  m_function;
+  size_t                m_hash = 0;
+
+  inline callback_helper_member(T * obj, member_function_type func)
+    : m_holder(new holder<T>{obj})
+    , m_function(func)
+    , m_hash(hash_of(obj))
+  {
+  }
+
+
+
+  inline callback_helper_member(T const & obj, member_function_type func)
+    : m_holder(new holder<T>{obj})
+    , m_function(func)
+    , m_hash(hash_of(&obj))
+  {
+  }
+
+
+
+  ~callback_helper_member()
+  {
+    if (m_holder->delete_if_last_reference()) {
+      delete m_holder;
+    }
+    m_holder = nullptr;
+  }
+
+
+
+  virtual error_t invoke(time_point const & now, events_t const & events,
+      error_t error, connector * conn, void * baton)
+  {
+    // Here lies the trick of this construct: if a member function was given,
+    // the implication is that it has an address (is not inline), so we invoke
+    // it.
+    // If one was given, we invoke operator(), which may or may not be declared
+    // inline, as in e.g. the case of a lambda with capture.
+    return (m_holder->m_object->*m_function)(now, events, error, conn, baton);
+  }
+
+
+
+  virtual size_t hash() const
+  {
+    return m_hash;
+  }
+
+
+
+  virtual callback_helper_base * clone() const
+  {
+    auto res = new callback_helper_member<T>();
+    res->m_holder = m_holder->increment();
+    res->m_function = m_function;
+    res->m_hash = m_hash;
+    return res;
+  }
+
+private:
+  callback_helper_member()
+  {
+  }
+
+
+  inline size_t hash_of(T const * obj)
+  {
+    return packeteer::util::multi_hash(
+        reinterpret_cast<size_t>(obj),
+        reinterpret_cast<size_t>(&typeid(member_function_type)),
+        reinterpret_cast<size_t>(&typeid(T)));
+  }
+};
+
+
+/**
+ * A proxy for a functor object.
+ *
+ * Ownership works the same as in callback_helper_member, but no member
+ * function is used. Instead, calls are redirected to operator() - if
+ * that is inline because it's a lambda with capture, that works.
+ **/
+template <typename T>
+struct callback_helper_operator : public callback_helper_base
+{
+  holder<T> * m_holder;
+  size_t      m_hash;
+
+  inline callback_helper_operator(T * obj)
+    : m_holder(new holder<T>{obj})
+    , m_hash(hash_of(obj))
+  {
+  }
+
+
+
+  inline callback_helper_operator(T const & obj)
+    : m_holder(new holder<T>{obj})
+    , m_hash(hash_of(&obj))
+  {
+  }
+
+
+
+  ~callback_helper_operator()
+  {
+    if (m_holder->delete_if_last_reference()) {
+      delete m_holder;
+    }
+    m_holder = nullptr;
+  }
+
+
+
+  virtual error_t invoke(time_point const & now, events_t const & events,
+      error_t error, connector * conn, void * baton)
+  {
+    return m_holder->m_object->operator()(now, events, error, conn, baton);
+  }
+
+
+
+  virtual size_t hash() const
+  {
+    return m_hash;
+  }
+
+
+
+  virtual callback_helper_base * clone() const
+  {
+    auto res = new callback_helper_operator<T>();
+    res->m_holder = m_holder->increment();
+    res->m_hash = m_hash;
+    return res;
+  }
+
+private:
+  callback_helper_operator()
+  {
+  }
+
+
+  inline size_t hash_of(T const * obj)
+  {
+    return packeteer::util::multi_hash(
+        reinterpret_cast<size_t>(obj),
+        reinterpret_cast<size_t>(&typeid(T)));
+  }
+};
+
+} // namespace detail
+
 
 
 
@@ -79,8 +297,28 @@ struct callback_helper_base
  *
  * Usage:
  *  callback cb = &free_function;
- *  callback cb = make_callback(&obj, &Object::function);
- *  callback cb = make_callback(&obj); // assumes operator() to be the function
+ *
+ *  // By pointer
+ *  callback cb{&obj, &Object::function};
+ *  callback cb{&obj}; // assumes operator() to be the function
+ *
+ *  // Copies obj - Object must be copy-constructible
+ *  callback cb{obj, &Object::function};
+ *  callback cb{obj}; // assumes operator() to be the function
+ *
+ * If you're constructing a callback via an object pointer, then the callback
+ * does not take ownership. You have to ensure yourself that the pointed-to
+ * object's lifetime is longer than that of the callback.
+ *
+ * If you're constructing a callback via an object (const) reference, a copy
+ * of that object is made and managed by callback. You should not use this for
+ * objects that are heavy to copy - on the other hand, you do not need to
+ * ensure anything about the lifetime of the object being copied.
+ *
+ * Lambdas without captures convert to free function pointers, so are very
+ * lightweight callbacks without any internally managed copies of anything.
+ * Lambdas with capture convert to objects, and would typically be copied,
+ * with the copy managed by callback.
  **/
 class callback
   : public ::packeteer::util::operators<callback>
@@ -97,27 +335,84 @@ public:
   /*****************************************************************************
    * Implementation
    **/
+  // Default constructor
   inline callback()
-    : m_free_function(nullptr)
-    , m_object_helper(nullptr)
   {
   }
 
+
+  // Construct from an object reference and member function
+  template <
+    typename T,
+    typename std::enable_if_t<!std::is_pointer<T>::value>* = nullptr
+  >
+  inline callback(T const & object,
+      typename detail::callback_helper_member<T>::member_function_type func)
+    : m_object_helper(new detail::callback_helper_member<T>{object, func})
+  {
+  }
+
+
+
+  // Construct from an object pointer and member function
+  template <
+    typename T,
+    typename std::enable_if_t<std::is_pointer<T>::value>* = nullptr
+  >
+  inline callback(T object_ptr,
+      typename detail::callback_helper_member<
+        typename std::remove_pointer<T>::type
+      >::member_function_type func)
+    : m_object_helper(new detail::callback_helper_member<
+        typename std::remove_pointer<T>::type
+      >{object_ptr, func})
+  {
+  }
+
+
+
+  // Construct from an object reference that is not a copy constructor. This
+  // will be used by lambdas with capture or lambdas returned from functions.
+  template <
+    typename T,
+    typename std::enable_if_t<!std::is_pointer<T>::value>* = nullptr,
+    typename std::enable_if_t<!std::is_same<T, callback>::value>* = nullptr,
+    typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr
+  >
+  inline callback(T const & object)
+    : m_object_helper(new detail::callback_helper_operator<T>{object})
+  {
+  }
+
+
+
+  // Construct from an object pointer
+  template <
+    typename T,
+    typename std::enable_if_t<std::is_pointer<T>::value>* = nullptr,
+    typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr
+  >
+  inline callback(T object_ptr)
+    : m_object_helper(new detail::callback_helper_operator<
+        typename std::remove_pointer<T>::type
+      >{object_ptr})
+  {
+  }
+
+
+
+  // Construct from a free function. This will be used by lambdas without
+  // capture.
   inline callback(free_function_type free_func)
     : m_free_function(free_func)
-    , m_object_helper(nullptr)
   {
   }
 
-  inline callback(detail::callback_helper_base * helper)
-    : m_free_function(nullptr)
-    , m_object_helper(helper) // take ownership
-  {
-  }
 
+
+  // Copy constructor
   inline callback(callback const & other)
     : m_free_function(other.m_free_function)
-    , m_object_helper(nullptr)
   {
     if (nullptr != other.m_object_helper) {
       // By cloning we can take ownership
@@ -125,6 +420,9 @@ public:
     }
   }
 
+
+
+  // Move constructor
   inline callback(callback && other)
     : m_free_function(other.m_free_function)
     , m_object_helper(other.m_object_helper)
@@ -135,7 +433,7 @@ public:
 
 
 
-  virtual ~callback()
+  inline ~callback()
   {
     delete m_object_helper;
   }
@@ -257,7 +555,7 @@ private:
     {
       return false;
     }
-    return m_object_helper->equal_to(other.m_object_helper);
+    return m_object_helper->hash() == other.m_object_helper->hash();
   }
 
 
@@ -273,176 +571,13 @@ private:
     {
       return m_object_helper < other.m_object_helper;
     }
-    return m_object_helper->less_than(other.m_object_helper);
+    return m_object_helper->hash() < other.m_object_helper->hash();
   }
 
 
-  free_function_type              m_free_function;
-  detail::callback_helper_base *  m_object_helper;
+  free_function_type              m_free_function = nullptr;
+  detail::callback_helper_base *  m_object_helper = nullptr;
 };
-
-
-/*******************************************************************************
- * The function_helper class template holds object and member function pointers.
- **/
-namespace detail {
-
-
-/**
- * Helper struct for dealing with inline operators.
- **/
-template <typename T>
-struct inline_helper
-{
-  T * object;
-
-  error_t
-  operator()(time_point const & now, events_t events, error_t error,
-      connector * conn, void * baton)
-  {
-    return object->operator()(now, events, error, conn, baton);
-  }
-};
-
-
-
-template <typename T>
-struct callback_helper : public callback_helper_base
-{
-  typedef error_t (T::*member_function_type)(
-      time_point const &, events_t, error_t, connector *,
-      void *);
-
-
-
-  callback_helper(T * object, member_function_type function, bool owned = false)
-    : m_object(object)
-    , m_function(function)
-    , m_owned(owned)
-  {
-  }
-
-
-  ~callback_helper()
-  {
-    if (m_owned) {
-      delete m_object;
-    }
-  }
-
-
-
-  virtual error_t invoke(time_point const & now, events_t const & events,
-      error_t error, connector * conn, void * baton)
-  {
-    return (m_object->*m_function)(now, events, error, conn, baton);
-  }
-
-
-
-  virtual bool equal_to(callback_helper_base const * other) const
-  {
-    if (typeid(*this) != typeid(*other)) {
-      return false;
-    }
-
-    callback_helper<T> const * o
-      = reinterpret_cast<callback_helper<T> const *>(other);
-
-    return (m_object == o->m_object && m_function == o->m_function);
-  }
-
-
-
-  virtual bool less_than(callback_helper_base const * other) const
-  {
-    // This is a weird definition; we just need *some* ordering, and we know
-    // they're unique.
-    if (typeid(*this) != typeid(*other)) {
-      return (&typeid(*this) < &typeid(*other));
-    }
-
-    callback_helper<T> const * o
-      = reinterpret_cast<callback_helper<T> const *>(other);
-
-    if (m_object < o->m_object) {
-      return true;
-    }
-    return (m_function == o->m_function);
-  }
-
-
-
-
-  virtual size_t hash() const
-  {
-    return packeteer::util::multi_hash(
-        reinterpret_cast<size_t>(m_object),
-        reinterpret_cast<size_t>(&typeid(T)));
-  }
-
-
-
-  virtual callback_helper_base * clone() const
-  {
-    return new callback_helper<T>(m_object, m_function);
-  }
-
-private:
-  T *                   m_object;
-  member_function_type  m_function;
-  bool                  m_owned;
-};
-
-} // namespace detail
-
-
-/*******************************************************************************
- * Free functions for binding object methods to a callback object. The first
- * form takes a object pointer and member function pointer as arguments, the
- * second only an object pointer - the member function is then assumed to be
- * operator().
- **/
-struct default_helper_behaviour{};
-struct proxy_inline_operator{};
-
-template <typename T>
-inline detail::callback_helper<T> *
-make_callback(T * object,
-    typename detail::callback_helper<T>::member_function_type function)
-{
-  return new detail::callback_helper<T>(object, function);
-}
-
-
-
-template <
-  typename T,
-  typename tagT = default_helper_behaviour,
-  std::enable_if_t<std::is_same<tagT, default_helper_behaviour>::value, int> = 0
->
-inline detail::callback_helper<T> *
-make_callback(T * object, tagT const & t [[maybe_unused]] = tagT{})
-{
-  return new detail::callback_helper<T>(object, &T::operator());
-}
-
-
-
-template <
-  typename T,
-  typename tagT = default_helper_behaviour,
-  std::enable_if_t<std::is_same<tagT, proxy_inline_operator>::value, int> = 0
->
-inline detail::callback_helper<
-  detail::inline_helper<T>
-> *
-make_callback(T * object, tagT const & t [[maybe_unused]] = tagT{})
-{
-  using h = typename detail::inline_helper<T>;
-  h * obj = new h{object};
-  return new detail::callback_helper<h>(obj, &h::operator(), true);
-}
 
 
 } // namespace packeteer

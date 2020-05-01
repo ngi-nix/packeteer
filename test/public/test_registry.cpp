@@ -157,7 +157,7 @@ TEST(Registry, scheme_empty_name)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &) -> connector_interface *
+    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -175,7 +175,7 @@ TEST(Registry, scheme_bad_type)
 
   auto info = registry::connector_info{CT_UNSPEC, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &) -> connector_interface *
+    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -208,7 +208,7 @@ TEST(Registry, scheme_register_success)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &) -> connector_interface *
+    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -226,7 +226,7 @@ TEST(Registry, scheme_fail_instantiation)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &) -> connector_interface *
+    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -249,7 +249,7 @@ TEST(Registry, scheme_instantiation)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &) -> connector_interface *
+    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return new test_connector{};
     }

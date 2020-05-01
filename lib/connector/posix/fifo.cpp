@@ -19,7 +19,7 @@
  **/
 #include <build-config.h>
 
-#include "../pipe.h"
+#include "fifo.h"
 
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
@@ -45,7 +45,7 @@ namespace packeteer::detail {
 namespace {
 
 error_t
-create_pipe(std::string const & path)
+create_fifo(std::string const & path)
 {
   // Common to mkfifo and mknod
 #if defined(PACKETEER_HAVE_MKFIFO) || defined(PACKETEER_HAVE_MKNOD)
@@ -158,25 +158,25 @@ translate_open_error()
 
 } // anonymous namespace
 
-connector_pipe::connector_pipe(std::string const & path,
+connector_fifo::connector_fifo(std::string const & path,
     connector_options const & options)
-  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_interface(options)
   , m_addr{path}
 {
 }
 
 
 
-connector_pipe::connector_pipe(net::socket_address const & addr,
+connector_fifo::connector_fifo(net::socket_address const & addr,
     connector_options const & options)
-  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_interface(options)
   , m_addr{addr}
 {
 }
 
 
 
-connector_pipe::~connector_pipe()
+connector_fifo::~connector_fifo()
 {
   close();
 }
@@ -184,7 +184,7 @@ connector_pipe::~connector_pipe()
 
 
 error_t
-connector_pipe::connect()
+connector_fifo::connect()
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
@@ -203,7 +203,7 @@ connector_pipe::connect()
       break;
     }
 
-    ERRNO_LOG("connect() named pipe connector failed to open pipe");
+    ERRNO_LOG("connect() named pipe connector failed to open fifo");
     error_t err = translate_open_error();
     if (ERR_SUCCESS == err) {
       // signal interrupt handling
@@ -225,14 +225,14 @@ connector_pipe::connect()
 
 
 error_t
-connector_pipe::listen()
+connector_fifo::listen()
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
   }
 
-  // First, create pipe
-  error_t err = create_pipe(m_addr.full_str());
+  // First, create fifo
+  error_t err = create_fifo(m_addr.full_str());
   if (ERR_SUCCESS != err) {
     return err;
   }
@@ -250,7 +250,7 @@ connector_pipe::listen()
       break;
     }
 
-    ERRNO_LOG("listen() named pipe connector failed to open pipe");
+    ERRNO_LOG("listen() named pipe connector failed to open fifo");
     err = translate_open_error();
     if (ERR_SUCCESS == err) {
       // signal interrupt handling
@@ -269,7 +269,7 @@ connector_pipe::listen()
 
 
 bool
-connector_pipe::listening() const
+connector_fifo::listening() const
 {
   return m_handle != handle{} && m_server;
 }
@@ -277,7 +277,7 @@ connector_pipe::listening() const
 
 
 bool
-connector_pipe::connected() const
+connector_fifo::connected() const
 {
   return m_handle != handle{} && m_connected;
 }
@@ -285,7 +285,7 @@ connector_pipe::connected() const
 
 
 connector_interface *
-connector_pipe::accept(net::socket_address & addr)
+connector_fifo::accept(net::socket_address & addr)
 {
   if (!listening()) {
     return nullptr;
@@ -308,7 +308,7 @@ connector_pipe::accept(net::socket_address & addr)
   }
 
   // Alright, create a new connector
-  auto * ret = new connector_pipe(m_addr, get_options());
+  auto * ret = new connector_fifo(m_addr, get_options());
   ret->m_addr = addr = m_addr;
   ret->m_server = m_server;
   ret->m_owner = false;
@@ -321,7 +321,7 @@ connector_pipe::accept(net::socket_address & addr)
 
 
 handle
-connector_pipe::get_read_handle() const
+connector_fifo::get_read_handle() const
 {
   return m_handle;
 }
@@ -329,7 +329,7 @@ connector_pipe::get_read_handle() const
 
 
 handle
-connector_pipe::get_write_handle() const
+connector_fifo::get_write_handle() const
 {
   return m_handle;
 }
@@ -337,7 +337,7 @@ connector_pipe::get_write_handle() const
 
 
 error_t
-connector_pipe::close()
+connector_fifo::close()
 {
   if (!listening() && !connected()) {
     return ERR_INITIALIZATION;
@@ -362,7 +362,7 @@ connector_pipe::close()
 
 
 bool
-connector_pipe::is_blocking() const
+connector_fifo::is_blocking() const
 {
   bool state = false;
   error_t err = detail::get_blocking_mode(m_handle.sys_handle(), state);

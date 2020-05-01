@@ -17,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_CONNECTOR_PIPE_H
-#define PACKETEER_CONNECTOR_PIPE_H
+#ifndef PACKETEER_CONNECTOR_POSIX_FIFO_H
+#define PACKETEER_CONNECTOR_POSIX_FIFO_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -35,15 +35,15 @@
 namespace packeteer::detail {
 
 /**
- * Wrapper around the pipe class.
+ * Wrapper around the fifo class.
  **/
-struct connector_pipe : public ::packeteer::connector_interface
+struct connector_fifo : public ::packeteer::connector_interface
 {
 public:
-  connector_pipe(std::string const & path, connector_options const & options);
-  connector_pipe(::packeteer::net::socket_address const & addr,
+  connector_fifo(std::string const & path, connector_options const & options);
+  connector_fifo(::packeteer::net::socket_address const & addr,
       connector_options const & options);
-  ~connector_pipe();
+  ~connector_fifo();
 
   error_t listen();
   bool listening() const;
@@ -61,7 +61,7 @@ public:
   bool is_blocking() const;
 
 private:
-  connector_pipe();
+  connector_fifo();
 
   ::packeteer::net::socket_address  m_addr = {};
   bool                              m_server = false;

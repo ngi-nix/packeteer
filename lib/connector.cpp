@@ -125,7 +125,7 @@ struct connector::connector_impl
     DLOG("Got connector options: " << options << " for type " << ctype);
 
     // Try to create the implementation
-    auto iconn = m_creator(m_url, ctype, options);
+    auto iconn = m_creator(m_url, ctype, options, &info);
     if (!iconn) {
       throw exception(ERR_INITIALIZATION, "Could not instantiate connector scheme.");
     }
@@ -248,17 +248,6 @@ connector::listen()
 
 
 
-bool
-connector::listening() const
-{
-  if (!m_impl || !*m_impl) {
-    return false;
-  }
-  return (*m_impl)->listening();
-}
-
-
-
 error_t
 connector::connect()
 {
@@ -266,6 +255,17 @@ connector::connect()
     return ERR_INITIALIZATION;
   }
   return (*m_impl)->connect();
+}
+
+
+
+bool
+connector::listening() const
+{
+  if (!m_impl || !*m_impl) {
+    return false;
+  }
+  return (*m_impl)->listening();
 }
 
 

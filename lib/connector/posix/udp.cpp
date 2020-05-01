@@ -38,8 +38,7 @@ namespace packeteer::detail {
 
 namespace {
 
-inline
-int
+inline int
 select_domain(::packeteer::net::socket_address const & addr)
 {
   switch (addr.type()) {
@@ -58,14 +57,7 @@ select_domain(::packeteer::net::socket_address const & addr)
 
 connector_udp::connector_udp(net::socket_address const & addr,
     connector_options const & options)
-  : connector_socket(addr, (options | CO_DATAGRAM) & ~CO_STREAM)
-{
-}
-
-
-
-connector_udp::connector_udp()
-  : connector_socket(CO_DATAGRAM|CO_BLOCKING)
+  : connector_socket(addr, options)
 {
 }
 

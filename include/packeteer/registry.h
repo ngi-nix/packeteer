@@ -117,11 +117,14 @@ public:
    * and parsed & validated options. It should raise exceptions if it cannot
    * create an instance. If it returns a nullptr, an exception is raised instead.
    */
+  struct connector_info;
+
   using scheme_creator = std::function<
     ::packeteer::connector_interface * (
         util::url const &,
         connector_type const & type,
-        connector_options const &
+        connector_options const &,
+        connector_info const * info
     )
   >;
 
