@@ -984,6 +984,61 @@ void send_message_dgram(p7r::connector & sender, p7r::connector & receiver,
 
 
 
+void send_message_dgram_async(int index,
+    std::multimap<p7r::peer_address, std::string> & result,
+    p7r::connector & sender,
+    p7r::connector & receiver,
+    p7r::scheduler & sched)
+{
+  // Create a message
+  std::string msg = "Hello, world! [" + std::to_string(index) + "]";
+
+  // Register a read callback with the scheduler
+  auto lambda = [sender, &result](
+      p7r::time_point const & now [[maybe_unused]],
+      p7r::events_t mask [[maybe_unused]],
+      p7r::error_t error [[maybe_unused]],
+      p7r::connector * conn, void *) -> p7r::error_t
+  {
+    EXPECT_EQ(mask, p7r::PEV_IO_READ);
+    EXPECT_NE(conn, nullptr);
+
+    p7r::error_t err = p7r::ERR_SUCCESS;
+    do {
+      std::vector<char> res;
+      res.resize(100); // Some amount > msg.size()
+      EXPECT_GT(res.capacity(), 0);
+
+      p7r::peer_address peer;
+      size_t amount = 0;
+      err = conn->receive(&res[0], res.capacity(), amount, peer);
+
+      if (err == p7r::ERR_SUCCESS) {
+        EXPECT_GE(amount, 0);
+
+        res.resize(amount);
+        std::string res_str{res.begin(), res.end()};
+        // std::cout << "Got " << res_str << " from " << peer << std::endl;
+
+        result.insert(std::make_pair(peer, res_str));
+      }
+    } while (err == p7r::ERR_SUCCESS);
+
+    return p7r::ERR_SUCCESS;
+  };
+
+  sched.register_connector(p7r::PEV_IO_READ, receiver, lambda);
+
+  // We can send immediately.
+  size_t bytes_written = 0;
+  auto err = sender.send(msg.c_str(), msg.size(), bytes_written, receiver.peer_addr());
+  EXPECT_EQ(p7r::ERR_SUCCESS, err);
+  EXPECT_EQ(msg.size(), bytes_written);
+}
+
+
+
+
 void peek_message_dgram(p7r::connector & sender, p7r::connector & receiver,
     int marker = -1)
 {
@@ -1113,7 +1168,7 @@ TEST_P(ConnectorDGram, peek_from_send)
 
 
 
-TEST_P(ConnectorDGram, multiple_clients)
+TEST_P(ConnectorDGram, multiple_clients_blocking)
 {
   // Test multiple clients connect to a single server, and can exchange
   // messages.
@@ -1138,6 +1193,80 @@ TEST_P(ConnectorDGram, multiple_clients)
 
   send_message_dgram(client2, server, 3);
   send_message_dgram(server, client2, 4);
+}
+
+
+
+
+TEST_P(ConnectorDGram, multiple_clients_async)
+{
+  // Test multiple clients connect to a single server, and can exchange
+  // messages.
+  auto td = GetParam();
+
+  auto surl = p7r::util::url::parse(td.dgram_first);
+  surl.query["behaviour"] = "datagram";
+  auto curl1 = p7r::util::url::parse(td.dgram_second);
+  curl1.query["behaviour"] = "datagram";
+  auto curl2 = p7r::util::url::parse(td.dgram_third);
+  curl2.query["behaviour"] = "datagram";
+
+  auto res = setup_dgram_connection(td.type, surl, {curl1, curl2});
+
+  auto server = res.first;
+  auto client1 = res.second[0];
+  auto client2 = res.second[1];
+
+  // Schedule all the reads/writes
+  std::multimap<p7r::peer_address, std::string> result;
+
+  p7r::scheduler sched(test_env->api, 0);
+  send_message_dgram_async(0, result, client1, server, sched);
+  send_message_dgram_async(1, result, server, client1, sched);
+  send_message_dgram_async(2, result, client2, server, sched);
+  send_message_dgram_async(3, result, server, client2, sched);
+
+  // Allow the scheduler to do its thing.
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
+
+  // Ensure all results have been written.
+
+  // The server should have received a message from both clients.
+  auto range = result.equal_range(server.peer_addr());
+  ASSERT_NE(range.first, result.end());
+  ASSERT_NE(range.first, range.second);
+
+  std::set<std::string> tmp;
+  for (auto iter = range.first ; iter != range.second ; ++iter) {
+    tmp.insert(iter->second);
+  }
+  ASSERT_NE(tmp.end(), tmp.find("Hello, world! [1]"));
+  ASSERT_NE(tmp.end(), tmp.find("Hello, world! [3]"));
+
+  // First client should have got '[0]'
+  range = result.equal_range(client1.peer_addr());
+  ASSERT_NE(range.first, result.end());
+  ASSERT_NE(range.first, range.second);
+
+  tmp.clear();
+  for (auto iter = range.first ; iter != range.second ; ++iter) {
+    tmp.insert(iter->second);
+  }
+  ASSERT_NE(tmp.end(), tmp.find("Hello, world! [0]"));
+
+  // Second client should have got '[2]'
+  range = result.equal_range(client2.peer_addr());
+  ASSERT_NE(range.first, result.end());
+  ASSERT_NE(range.first, range.second);
+
+  tmp.clear();
+  for (auto iter = range.first ; iter != range.second ; ++iter) {
+    tmp.insert(iter->second);
+  }
+  ASSERT_NE(tmp.end(), tmp.find("Hello, world! [2]"));
 }
 
 
