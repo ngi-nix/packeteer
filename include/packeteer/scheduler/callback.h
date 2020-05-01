@@ -75,7 +75,7 @@ struct holder
 {
   T *               m_object = nullptr;
   bool const        m_owned = false;
-  std::atomic<int>  m_refcount = 0;
+  std::atomic<int>  m_refcount = 1;
 
   inline holder(T * obj)
     : m_object(obj)
@@ -85,7 +85,6 @@ struct holder
   inline holder(T const & obj)
     : m_object(new T{obj})
     , m_owned(true)
-    , m_refcount(1)
   {
   }
 
@@ -137,7 +136,7 @@ struct callback_helper_member : public callback_helper_base
 
 
   inline callback_helper_member(T const & obj, member_function_type func)
-    : m_holder(new holder<T>(obj))
+    : m_holder(new holder<T>{obj})
     , m_function(func)
     , m_hash(hash_of(&obj))
   {
@@ -235,7 +234,6 @@ struct callback_helper_operator : public callback_helper_base
       delete m_holder;
     }
     m_holder = nullptr;
-
   }
 
 
@@ -374,7 +372,7 @@ public:
 
 
   // Construct from an object reference that is not a copy constructor. This
-  // will be used by lambdas with capture.
+  // will be used by lambdas with capture or lambdas returned from functions.
   template <
     typename T,
     typename std::enable_if_t<!std::is_pointer<T>::value>* = nullptr,
