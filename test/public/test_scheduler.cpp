@@ -217,7 +217,7 @@ TEST_P(Scheduler, delayed_callback)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  p7r::callback cb{source, &test_callback::func};
+  p7r::callback cb{&source, &test_callback::func};
 
   sched.schedule_once(sc::milliseconds(1), cb);
 
@@ -240,7 +240,7 @@ TEST_P(Scheduler, soft_timeout)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  p7r::callback cb{source, &test_callback::func};
+  p7r::callback cb{&source, &test_callback::func};
 
   sched.schedule_once(sc::milliseconds(50), cb);
 
@@ -270,7 +270,7 @@ TEST_P(Scheduler, timed_callback)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  p7r::callback cb{source, &test_callback::func};
+  p7r::callback cb{&source, &test_callback::func};
 
   sched.schedule_at(p7r::clock::now() + sc::milliseconds(50), cb);
 
@@ -292,7 +292,7 @@ TEST_P(Scheduler, repeat_callback)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  p7r::callback cb{source, &test_callback::func};
+  p7r::callback cb{&source, &test_callback::func};
 
   sched.schedule(p7r::clock::now(), sc::milliseconds(20),
       3, cb);
@@ -324,7 +324,7 @@ TEST_P(Scheduler, infinite_callback)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  p7r::callback cb{source, &test_callback::func};
+  p7r::callback cb{&source, &test_callback::func};
 
   auto now = p7r::clock::now();
 
@@ -367,7 +367,7 @@ TEST_P(Scheduler, delayed_repeat_callback)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source;
-  p7r::callback cb{source, &test_callback::func};
+  p7r::callback cb{&source, &test_callback::func};
 
   sched.schedule(delay, interval, -1, cb);
 
@@ -400,9 +400,9 @@ TEST_P(Scheduler, parallel_callback_with_threads)
   p7r::scheduler sched(test_env->api, 2, static_cast<p7r::scheduler::scheduler_type>(td));
 
   thread_id_callback source1;
-  p7r::callback cb1{source1, &thread_id_callback::func};
+  p7r::callback cb1{&source1, &thread_id_callback::func};
   thread_id_callback source2;
-  p7r::callback cb2{source2, &thread_id_callback::func};
+  p7r::callback cb2{&source2, &thread_id_callback::func};
 
   sched.schedule_once(sc::milliseconds(50), cb1);
   sched.schedule_once(sc::milliseconds(50), cb2);
@@ -433,11 +433,11 @@ TEST_P(Scheduler, user_callback)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source1;
-  p7r::callback cb1{source1, &test_callback::func};
+  p7r::callback cb1{&source1, &test_callback::func};
   sched.register_event(EVENT_1 | EVENT_2 | EVENT_3, cb1);
 
   test_callback source2;
-  p7r::callback cb2{source2, &test_callback::func};
+  p7r::callback cb2{&source2, &test_callback::func};
   sched.register_event(EVENT_2 | EVENT_3, cb2);
 
   ASSERT_NE(cb1, cb2);
@@ -548,11 +548,11 @@ TEST_P(Scheduler, io_callback)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   test_callback source1;
-  p7r::callback cb1{source1, &test_callback::func};
+  p7r::callback cb1{&source1, &test_callback::func};
   sched.register_connector(p7r::PEV_IO_READ, pipe, cb1);
 
   test_callback source2;
-  p7r::callback cb2{source2, &test_callback::func};
+  p7r::callback cb2{&source2, &test_callback::func};
   sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb2);
 
   sched.process_events(sc::milliseconds(50));
@@ -571,7 +571,7 @@ TEST_P(Scheduler, io_callback)
   sched.unregister_connector(p7r::PEV_IO_WRITE, pipe, cb1);
 
   reading_callback reading(pipe);
-  p7r::callback rd{reading, &reading_callback::func};
+  p7r::callback rd{&reading, &reading_callback::func};
   sched.register_connector(p7r::PEV_IO_READ, pipe, rd);
 
   // So let's write something to the pipe. This will trigger the read callback
@@ -608,7 +608,7 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   counting_callback source;
-  p7r::callback cb{source, &counting_callback::func};
+  p7r::callback cb{&source, &counting_callback::func};
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
 
   sched.process_events(sc::milliseconds(50));
@@ -641,7 +641,7 @@ TEST_P(Scheduler, io_callback_registration_sequence)
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
   counting_callback source;
-  p7r::callback cb{source, &counting_callback::func};
+  p7r::callback cb{&source, &counting_callback::func};
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
 
   sched.process_events(sc::milliseconds(50));
