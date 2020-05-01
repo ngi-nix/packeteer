@@ -162,18 +162,18 @@ struct lambda_no_capture_ctx : public test_data_base
       p7r::error_t res)
     : test_data_base(n, ev, res)
   {
-    cb1 = [](p7r::time_point const &, p7r::events_t events, p7r::error_t,
+    cb1 = [](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
         p7r::connector *, void *) -> p7r::error_t
     {
-      EXPECT_EQ(71, events);
+      EXPECT_EQ(71, events_in);
       return 5;
     };
 
     // Same definition, but different lambda
-    cb2 = [](p7r::time_point const &, p7r::events_t events, p7r::error_t,
+    cb2 = [](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
         p7r::connector *, void *) -> p7r::error_t
     {
-      EXPECT_EQ(71, events);
+      EXPECT_EQ(71, events_in);
       return 5;
     };
   }
@@ -191,37 +191,37 @@ struct lambda_with_capture_ctx : public test_data_base
     int & capture = the_capture;
 
     if (by_reference) {
-      cb1 = [&capture](p7r::time_point const &, p7r::events_t events, p7r::error_t,
+      cb1 = [&capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
           p7r::connector *, void *) -> p7r::error_t
       {
-        EXPECT_EQ(73, events);
+        EXPECT_EQ(73, events_in);
         EXPECT_EQ(42, capture);
         return 6;
       };
 
       // Same definition, but different lambda
-      cb2 = [&capture](p7r::time_point const &, p7r::events_t events, p7r::error_t,
+      cb2 = [&capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
           p7r::connector *, void *) -> p7r::error_t
       {
-        EXPECT_EQ(73, events);
+        EXPECT_EQ(73, events_in);
         EXPECT_EQ(42, capture);
         return 6;
       };
     }
     else {
-      cb1 = [capture](p7r::time_point const &, p7r::events_t events, p7r::error_t,
+      cb1 = [capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
           p7r::connector *, void *) -> p7r::error_t
       {
-        EXPECT_EQ(79, events);
+        EXPECT_EQ(79, events_in);
         EXPECT_EQ(42, capture);
         return 7;
       };
 
       // Same definition, but different lambda
-      cb2 = [capture](p7r::time_point const &, p7r::events_t events, p7r::error_t,
+      cb2 = [capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
           p7r::connector *, void *) -> p7r::error_t
       {
-        EXPECT_EQ(79, events);
+        EXPECT_EQ(79, events_in);
         EXPECT_EQ(42, capture);
         return 7;
       };
