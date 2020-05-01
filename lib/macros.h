@@ -62,9 +62,21 @@
 
 // Specific log macros - error codes and system errors
 #if defined(PACKETEER_WIN32)
-#define ERR_LOG(msg, code) ELOG(msg \
-    << " // [0x" << std::setw(16) << std::setfill('0') << std::hex << code << std::dec << "] " \
-    << ::strerror(code))
+#define ERR_LOG(msg, code) do { \
+    wchar_t * s = NULL; \
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS, \
+        NULL, code, \
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), \
+        (LPWSTR) &s, 0, NULL); \
+    int size = WideCharToMultiByte(CP_UTF8, 0, s, -1, NULL, 0, NULL, NULL); \
+    char * buf = new char[size]; \
+    int e = WideCharToMultiByte(CP_UTF8, 0, s, -1, buf, size, NULL, NULL); \
+    ELOG(msg \
+      << " // [0x" << std::setw(16) << std::setfill('0') << std::hex << code << std::dec << "] " \
+      << buf); \
+    delete [] buf; \
+    LocalFree(s); \
+  } while (false);
 #define ERRNO_LOG(msg) ERR_LOG(msg, WSAGetLastError())
 #else // PACKETEER_WIN32
 #define ERR_LOG(msg, code) ELOG(msg << " // " << ::strerror(code))
