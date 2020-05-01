@@ -538,7 +538,7 @@ posixsrc = [
   'lib' / 'connector' / 'posix' / 'fd.cpp',
   'lib' / 'connector' / 'posix' / 'interface.cpp',
   'lib' / 'connector' / 'posix' / 'anon.cpp',
-  'lib' / 'connector' / 'posix' / 'pipe.cpp',
+  'lib' / 'connector' / 'posix' / 'fifo.cpp',
   'lib' / 'connector' / 'posix' / 'socket.cpp',
   'lib' / 'connector' / 'posix' / 'tcp.cpp',
   'lib' / 'connector' / 'posix' / 'udp.cpp',
@@ -546,7 +546,6 @@ posixsrc = [
 ]
 
 winsrc = [
-# TODO iocp scheduler/io
   'lib' / 'win32' / 'handle.cpp',
   'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
   'lib' / 'connector' / 'win32' / 'overlapped.cpp',

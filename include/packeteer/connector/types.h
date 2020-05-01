@@ -48,6 +48,7 @@ enum PACKETEER_API : connector_type
   CT_UDP,
   CT_LOCAL,
   CT_PIPE,
+  CT_FIFO,
   CT_ANON,
   CT_USER = 256, // First user-defined connector
 };

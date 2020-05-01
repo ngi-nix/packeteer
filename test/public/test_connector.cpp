@@ -65,8 +65,15 @@ struct parsing_test_data
   { "udp6://foo", false, p7r::CT_UNSPEC },
   { "file://", false, p7r::CT_UNSPEC },
   { "ipc://", false, p7r::CT_UNSPEC },
-  { "pipe://", false, p7r::CT_UNSPEC },
   { "anon://anything/here", false, p7r::CT_UNSPEC },
+
+#if defined(PACKETEER_WIN32)
+  { "pipe://", false, p7r::CT_UNSPEC },
+#endif
+
+#if defined(PACKETEER_POSIX)
+  { "fifo://", false, p7r::CT_UNSPEC },
+#endif
 
   // IPv4 hosts
   { "tcp://192.168.0.1",      true, p7r::CT_TCP },
@@ -145,9 +152,15 @@ struct parsing_test_data
   // All other types require path names. There's not much common
   // about path names, so our only requirement is that it exists.
   { "local:///foo", true, p7r::CT_LOCAL },
-  { "pipe:///foo", true, p7r::CT_PIPE },
   { "anon://", true, p7r::CT_ANON },
 
+#if defined(PACKETEER_WIN32)
+  { "pipe:///foo", true, p7r::CT_PIPE },
+#endif
+
+#if defined(PACKETEER_POSIX)
+  { "fifo:///foo", true, p7r::CT_FIFO },
+#endif
 };
 
 std::string connector_name(testing::TestParamInfo<parsing_test_data> const & info)
@@ -210,7 +223,7 @@ TEST(Connector, value_semantics)
   test_equality(original, copy);
 
   // Hashing and swapping require different types
-  p7r::connector different{test_env->api, "pipe:///foo"};
+  p7r::connector different{test_env->api, "tcp://127.0.0.1"};
   test_hashing_inequality(original, different);
   test_hashing_equality(original, copy);
   test_swapping(original, different);
@@ -271,6 +284,7 @@ struct streaming_test_data
   p7r::connector_type type;
   char const *        stream_blocking;
   char const *        stream_non_blocking;
+  bool                broadcast = false;
 } streaming_tests[] = {
   { p7r::CT_LOCAL,
     "local:///tmp/test-connector-local-stream-block?blocking=1",
@@ -281,9 +295,19 @@ struct streaming_test_data
   { p7r::CT_TCP6,
     "tcp6://[::1]:54321?blocking=1",
     "tcp6://[::1]:54321", },
+#if defined(PACKETEER_WIN32)
   { p7r::CT_PIPE,
     "pipe:///tmp/test-connector-pipe-block?blocking=1",
     "pipe:///tmp/test-connector-pipe-noblock", },
+#endif
+
+#if defined(PACKETEER_POSIX)
+  { p7r::CT_FIFO,
+    "fifo:///tmp/test-connector-pipe-block?blocking=1",
+    "fifo:///tmp/test-connector-pipe-noblock",
+    true,
+  },
+#endif
 };
 
 template <typename T>
@@ -307,6 +331,9 @@ std::string connector_name(testing::TestParamInfo<T> const & info)
 
     case p7r::CT_PIPE:
       return "pipe";
+
+    case p7r::CT_FIFO:
+      return "fifo";
 
       // TODO
     default:
@@ -426,6 +453,62 @@ void send_message_streaming_async(p7r::connector & sender, p7r::connector & rece
 }
 
 
+void setup_message_streaming_async(int index,
+    std::vector<std::string> & expected,
+    std::vector<std::string> & result,
+    p7r::connector & receiver,
+    p7r::scheduler & sched,
+    bool broadcast
+)
+{
+  // Create & register a message
+  std::string msg = "Hello, world! [" + std::to_string(index) + "]";
+  expected[index] = msg;
+  // std::cout << "Expect " << msg << " on " << receiver << std::endl;
+
+  // Register a read callback with the scheduler for the receiver connector.
+  auto lambda = [msg, index, broadcast, &result](
+      p7r::time_point const & now [[maybe_unused]],
+      p7r::events_t mask [[maybe_unused]],
+      p7r::error_t error [[maybe_unused]],
+      p7r::connector * conn, void *) -> p7r::error_t
+  {
+    EXPECT_EQ(mask, p7r::PEV_IO_READ);
+    EXPECT_NE(conn, nullptr);
+
+    // *Drain* the connector
+    p7r::error_t err = p7r::ERR_SUCCESS;
+    do {
+      std::vector<char> res;
+      res.resize(msg.size());
+      EXPECT_GT(res.capacity(), 0);
+
+      size_t amount = 0;
+      err = conn->read(&res[0], res.capacity(), amount);
+
+      if (err == p7r::ERR_SUCCESS) {
+        EXPECT_EQ(msg.size(), amount);
+
+        res.resize(amount);
+        std::string res_str{res.begin(), res.end()};
+        // std::cout << "Got " << res_str << " on " << *conn << " (" << broadcast << ")" << std::endl;
+
+        if (!broadcast) {
+          EXPECT_EQ(msg, res_str);
+        }
+        else {
+          result[index] += res_str;
+        }
+      }
+    } while (err == p7r::ERR_SUCCESS);
+
+    return p7r::ERR_SUCCESS;
+  };
+
+  sched.register_connector(p7r::PEV_IO_READ, receiver, lambda);
+}
+
+
 
 struct server_connect_callback
 {
@@ -517,7 +600,7 @@ setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & u
     // Connecting must result in p7r::ERR_ASYNC. We use a scheduler run to
     // understand when the connection attempt was finished.
     server_connect_callback server_struct(server);
-    p7r::callback server_cb{server_struct, &server_connect_callback::func};
+    p7r::callback server_cb{&server_struct, &server_connect_callback::func};
     sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, server, server_cb);
 
     // Give scheduler a chance to register connectors
@@ -525,7 +608,7 @@ setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & u
     EXPECT_EQ(p7r::ERR_ASYNC, client.connect());
 
     client_post_connect_callback client_struct;
-    p7r::callback client_cb{client_struct, &client_post_connect_callback::func};
+    p7r::callback client_cb{&client_struct, &client_post_connect_callback::func};
     sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, client, client_cb);
 
     // Wait for all callbacks to be invoked.
@@ -735,6 +818,86 @@ TEST_P(ConnectorStream, multiple_clients_blocking)
   send_message_streaming(client2, server2, 3);
   send_message_streaming(server2, client2, 4);
 }
+
+
+
+TEST_P(ConnectorStream, multiple_clients_async)
+{
+  // Test multiple clients connect to a single server, and can exchange
+  // messages.
+  auto td = GetParam();
+
+  auto url = p7r::util::url::parse(td.stream_non_blocking);
+  url.query["behaviour"] = "stream";
+
+  auto res = setup_stream_connection_async(td.type, url, 2);
+
+  auto client1 = res[0].first;
+  auto server1 = res[0].second;
+
+  auto client2 = res[1].first;
+  auto server2 = res[1].second;
+
+  // Messaging setup
+  std::vector<std::string> expected;
+  expected.resize(4);
+  std::vector<std::string> result;
+  result.resize(4);
+
+  p7r::scheduler sched(test_env->api, 0);
+
+  setup_message_streaming_async(0, expected, result, client1, sched, td.broadcast);
+  setup_message_streaming_async(1, expected, result, server1, sched, td.broadcast);
+  setup_message_streaming_async(2, expected, result, client2, sched, td.broadcast);
+  setup_message_streaming_async(3, expected, result, server2, sched, td.broadcast);
+
+  // Process events for registering callbacks
+  sched.process_events(TEST_SLEEP_TIME);
+
+  // Now send the messages.
+  size_t amount = 0;
+  ASSERT_EQ(p7r::ERR_SUCCESS, server1.write(expected[0].c_str(), expected[0].size(),
+        amount));
+  ASSERT_EQ(expected[0].size(), amount);
+
+  amount = 0;
+  ASSERT_EQ(p7r::ERR_SUCCESS, client1.write(expected[1].c_str(), expected[1].size(),
+        amount));
+  ASSERT_EQ(expected[1].size(), amount);
+
+  amount = 0;
+  ASSERT_EQ(p7r::ERR_SUCCESS, server2.write(expected[2].c_str(), expected[2].size(),
+        amount));
+  ASSERT_EQ(expected[2].size(), amount);
+
+  amount = 0;
+  ASSERT_EQ(p7r::ERR_SUCCESS, client2.write(expected[3].c_str(), expected[3].size(),
+        amount));
+  ASSERT_EQ(expected[3].size(), amount);
+
+  // Process I/O
+  sched.process_events(TEST_SLEEP_TIME * 2);
+
+  // There isn't really anything else to do now; the callbacks contain the
+  // actual tests. Except, when the connector is broadcasting (FIFO), then
+  // we need to check the result matches the expectations loosely.
+  if (td.broadcast) {
+    // We can't predict which of the connectors picks up how many of the messages,
+    // or in what order. It could be all on one, or spread out. So all we can
+    // do is concatenate all results, and search for our expected messages in
+    // that - all expected need to be found.
+    std::string concat;
+    for (auto & p : result) {
+      concat += p;
+    }
+
+    // Test
+    for (auto & exp : expected) {
+      ASSERT_NE(std::string::npos, concat.find(exp));
+    }
+  }
+}
+
 
 
 

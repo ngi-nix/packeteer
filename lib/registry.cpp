@@ -263,18 +263,43 @@ struct registry::registry_impl
         return new detail::connector_anon(opts);
       }}));
 
+#if defined(PACKETEER_WIN32)
   // Register pipe scheme
   FAIL_FAST(add_scheme("pipe", connector_info{CT_PIPE,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
       [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
       {
+        if (url.path.empty()) {
+          throw exception(ERR_FORMAT, "Pipe connectors need a path.");
+        }
+
         // Sanitize options
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
         return new detail::connector_pipe(url.path, opts);
       }}));
+#endif
+
+#if defined(PACKETEER_POSIX)
+  // Register fifo scheme
+  FAIL_FAST(add_scheme("fifo", connector_info{CT_FIFO,
+      CO_STREAM|CO_NON_BLOCKING,
+      CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
+      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
+      {
+        if (url.path.empty()) {
+          throw exception(ERR_FORMAT, "FIFO connectors need a path.");
+        }
+
+        // Sanitize options
+        auto opts = detail::sanitize_options(options, info->default_options,
+            info->possible_options);
+
+        return new detail::connector_fifo(url.path, opts);
+      }}));
+#endif
 
 #if defined(PACKETEER_POSIX)
   // Register posix local addresses, if possible.
