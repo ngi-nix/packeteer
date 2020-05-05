@@ -194,11 +194,11 @@ TEST(PipeOperations, poll_for_connection)
   EXPECT_FALSE(sys_handle->blocking);
 
   auto created = pd::poll_for_connection(res);
-  ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+  ASSERT_EQ(packeteer::ERR_ASYNC, created);
 
   // Calling this again should not be any different.
   created = pd::poll_for_connection(res);
-  ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+  ASSERT_EQ(packeteer::ERR_ASYNC, created);
 
   DisconnectNamedPipe(sys_handle->handle);
   CloseHandle(sys_handle->handle);
@@ -231,13 +231,13 @@ TEST(PipeOperations, open_pipe)
   EXPECT_FALSE(server_sys_handle->blocking);
 
   auto created = pd::poll_for_connection(server);
-  EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+  EXPECT_EQ(packeteer::ERR_ASYNC, created);
 
   // Client
   packeteer::handle client;
   auto err = pd::connect_to_pipe(client, "foo", false, true, true);
 
-  ASSERT_EQ(packeteer::ERR_SUCCESS, err);
+  ASSERT_EQ(packeteer::ERR_ASYNC, err);
   ASSERT_TRUE(client.valid());
 
   // Poll for connection again
@@ -264,13 +264,13 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
   EXPECT_FALSE(server_sys_handle->blocking);
 
   auto created = pd::poll_for_connection(server);
-  EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+  EXPECT_EQ(packeteer::ERR_ASYNC, created);
 
   // Client #1
   packeteer::handle client1;
   auto err = pd::connect_to_pipe(client1, "foo", false, true, true);
 
-  EXPECT_EQ(packeteer::ERR_SUCCESS, err);
+  EXPECT_EQ(packeteer::ERR_ASYNC, err);
   EXPECT_TRUE(client1.valid());
 
   // Poll for connection again
@@ -281,7 +281,7 @@ TEST(PipeOperations, open_pipe_multiple_clients_fail)
   packeteer::handle client2;
   err = pd::connect_to_pipe(client2, "foo", false, true, true);
 
-  ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, err);
+  ASSERT_EQ(packeteer::ERR_REPEAT_ACTION, err); // REPEAT means it's not scheduled
   ASSERT_FALSE(client2.valid());
 
   DisconnectNamedPipe(server_sys_handle->handle);
@@ -306,13 +306,13 @@ TEST(PipeOperations, messaging)
   EXPECT_FALSE(server_sys_handle->blocking);
 
   auto created = pd::poll_for_connection(server);
-  EXPECT_EQ(packeteer::ERR_REPEAT_ACTION, created);
+  EXPECT_EQ(packeteer::ERR_ASYNC, created);
 
   // Client #1
   packeteer::handle client1;
   auto err = pd::connect_to_pipe(client1, "foo", false, true, true);
 
-  EXPECT_EQ(packeteer::ERR_SUCCESS, err);
+  EXPECT_EQ(packeteer::ERR_ASYNC, err);
   EXPECT_TRUE(client1.valid());
 
   // Write server

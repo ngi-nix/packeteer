@@ -230,10 +230,7 @@ poll_for_connection(handle & handle)
         }
       });
 
-  // Translate, because this function should be called again in the same way.
-  if (err == ERR_ASYNC) {
-    err = ERR_REPEAT_ACTION;
-  }
+  // POSIX returns ERR_ASYNC, so we can do the same.
   return err;
 }
 
@@ -279,6 +276,9 @@ connect_to_pipe(handle & handle,
   if (result != INVALID_HANDLE_VALUE) {
     sys_handle->handle = result;
     handle.sys_handle() = sys_handle;
+    if (!blocking) {
+      return ERR_ASYNC;
+    }
     return ERR_SUCCESS;
   }
 
