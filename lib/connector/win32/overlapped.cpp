@@ -183,7 +183,26 @@ manager::schedule_read(HANDLE handle,
       continue;
     }
 
-    // We have a read on this handle already, check progress and return the
+    // If we have a pending, zero-byte read, then we have to tread a bit
+    // differently from other reads. We want to keep it pending until a
+    // "regular" read is scheduled.
+    if (context.buflen == 0) {
+      if (buflen == 0) {
+        // A zero-byte read was pending and scheduled. In this case, we
+        // just pretend the second of those was immediately successful.
+        return ERR_SUCCESS;
+      }
+
+      // A zero-byte read was pending, and a regular read was scheduled.
+      // This is good; we want to cancel the zero-byte read, and let the
+      // loop continue in the hopes we'll find a slot for the regular
+      // read.
+      CancelIoEx(context.handle, &context);
+      free_on_success(id, ERR_SUCCESS);
+      continue;
+    }
+
+    // We have a regular read on this handle already, check progress and return the
     // result.
     return free_on_success(id, callback(CHECK_PROGRESS, context));
   }
@@ -209,8 +228,16 @@ manager::schedule_read(HANDLE handle,
   auto & context = m_contexts[found];
   context.handle = handle;
   context.type = READ;
-  context.buflen = buflen ? buflen : PACKETEER_IO_BUFFER_SIZE;
-  context.buf = new char[context.buflen];
+  if (buflen <= 0) {
+    // Schedule read, even if we don't want any results.
+    context.buflen = 0;
+    context.buf = new char[1];
+  }
+  else {
+    // Schedule regular read.
+    context.buflen = buflen;
+    context.buf = new char[buflen];
+  }
   context.source_sig = 0;
 
   m_order.push_back(found);
