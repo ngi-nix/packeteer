@@ -45,6 +45,7 @@ namespace {
 inline bool
 register_handle(HANDLE iocp, std::set<HANDLE> & associated, handle const & handle)
 {
+  DLOG("Supposed to register: " << handle << " - " << handle.hash());
   ULONG_PTR completion_key = handle.hash();
   auto ret = CreateIoCompletionPort(handle.sys_handle()->handle,
       iocp, completion_key, 0);
@@ -54,6 +55,7 @@ register_handle(HANDLE iocp, std::set<HANDLE> & associated, handle const & handl
         {
           auto iter = associated.find(handle.sys_handle()->handle);
           if (iter != associated.end()) {
+            DLOG("Ignoring error, already registered.");
             return true; // Already associated
           }
         }
@@ -87,6 +89,7 @@ io_iocp::io_iocp()
 
 io_iocp::~io_iocp()
 {
+  DLOG("Closing IOCP handle.");
   CloseHandle(m_iocp);
   m_iocp = INVALID_HANDLE_VALUE;
 }
@@ -132,21 +135,22 @@ io_iocp::register_connectors(connector const * conns, size_t size,
       m_associated.insert(conn.get_write_handle().sys_handle()->handle);
     }
 
+    // Test if the read handle was already known...
+    bool found = m_sys_handles.find(conn.get_read_handle().sys_handle()) == m_sys_handles.end();
+
     // Either way, use the super class functionality to remember which events the
     // connector was registered for.
     io::register_connector(conn, events);
 
-    // If we've registered the connector for read handle for read events, we
-    // should schedule a PEEK... otherwise we won't be notified when a write
-    // occurs.
-    if (m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
-      char buf[PACKETEER_IO_BUFFER_SIZE];
-      // TODO turn into PEEK
-      size_t actually_read = 0;
-      // FIXME don't const_cast, make non-const.
+    // ... now if we have a previously unknown read handle, we should PEEK on it
+    // to be notified when the handle becomes readable.
+    if (!found && m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
+      DLOG("Request notification when handle becomes readable (effectively).");
+      // Schedule a read of size 0 - this will result in win32 scheduling
+      // overlapped I/O, but we never expect results.
       auto cn = const_cast<connector *>(&conn);
-      auto err = cn->read(buf, PACKETEER_IO_BUFFER_SIZE, actually_read);
-      // XXX ignore result; if we're just peeking, it doesn't matter.
+      size_t actually_read = 0;
+      cn->read(nullptr, 0, actually_read);
     }
   }
 }
@@ -207,9 +211,8 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
   } 
   DLOG("Dequeued " << read << " I/O events.");
 
-  // Every handle is writable with OVERLAPPED I/O. We need to add a PEV_IO_WRITE
-  // for every handle registered for write events. But we can also process events
-  // we received.
+  // First, go through actually received events and add them to the temporary
+  // map.
   std::map<connector, events_t> tmp_events;
   for (size_t i = 0 ; i < read ; ++i) {
     // Our OVERLAPPED are always io_context
@@ -229,7 +232,9 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
       // FIXME I'm not sure why this happens. The event was handled successfully
       //       in overlapped manager or its usage, but it seems to pop up here
       //       anyway.
-      DLOG("Got event on a handle that is not related to a known connector!");
+      if (ctx->handle != INVALID_HANDLE_VALUE) {
+        DLOG("Got event on a handle " << ctx->handle << " that is not related to a known connector!");
+      }
       continue;
     }
 
@@ -241,13 +246,27 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
     BOOL res = GetOverlappedResult(ctx->handle, ctx, &num_transferred, FALSE);
 
     if (!res) {
-      ERRNO_LOG("IOCP reports error for operation: " << static_cast<int>(ctx->type));
-      ev |= PEV_IO_ERROR;
+      switch (WSAGetLastError()) {
+        case ERROR_OPERATION_ABORTED:
+          // Arguably, this is not an error. It just means the user decided
+          // otherwise.
+          break;
+
+        default:
+          ERRNO_LOG("IOCP reports error for operation: " << static_cast<int>(ctx->type));
+          ev |= PEV_IO_ERROR;
+          break;
+      }
     }
     else {
-      DLOG("CTX TYPE: " << (int) ctx->type);
       // The values of ctx->type have the same values as events_t
       ev |= ctx->type;
+
+      // Since PEV_IO_OPEN is special to some platforms, automatically
+      // mark every open connector as writable.
+      if (ev & PEV_IO_OPEN && m_sys_handles[conn.get_write_handle().sys_handle()] & PEV_IO_WRITE) {
+        ev |= PEV_IO_WRITE;
+      }
 
       // TODO maybe repoort PEV_IO_CLOSE if ctx->type was PEV_IO_READ and
       //      num_transferred is zero?
@@ -261,7 +280,7 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
   // event for all valid and error free connectors that were *registered* for
   // write events, too.
   for (auto & [sys_handle, conn] : m_connectors) {
-    if (!conn) {
+    if (!conn || !conn.communicating()) {
       continue;
     }
 
