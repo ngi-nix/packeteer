@@ -83,9 +83,15 @@ connector_anon::create_pipe()
       true, // Readable,
       false // Non-writable
   );
-  if (ERR_SUCCESS != err) {
-    ET_LOG("Could not connect to anonymous pipe", err);
-    return err;
+  switch (err) {
+    case ERR_SUCCESS:
+    case ERR_ASYNC:
+      // Both good
+      break;
+
+    default:
+      ET_LOG("Could not connect to anonymous pipe", err);
+      return err;
   }
 
   // We poll for a connection, in a loop - this can block.

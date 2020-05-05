@@ -19,7 +19,7 @@
  **/
 #include <build-config.h>
 
-#include "../pipe.h"
+#include "pipe.h"
 
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
@@ -67,7 +67,7 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
   auto err = detail::poll_for_connection(h);
   switch (err) {
     case ERR_SUCCESS:
-    case ERR_REPEAT_ACTION:
+    case ERR_ASYNC:
       handle = h;
       DLOG("Successfully created new pipe instance!");
       return ERR_SUCCESS;
@@ -87,9 +87,7 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
 connector_pipe::connector_pipe(std::string const & path,
     connector_options const & options)
   : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
-  , m_addr(path)
-  , m_server(false)
-  , m_handle()
+  , m_addr{path}
 {
 }
 
@@ -98,9 +96,7 @@ connector_pipe::connector_pipe(std::string const & path,
 connector_pipe::connector_pipe(net::socket_address const & addr,
     connector_options const & options)
   : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
-  , m_addr(addr)
-  , m_server(false)
-  , m_handle()
+  , m_addr{addr}
 {
 }
 
@@ -126,6 +122,18 @@ connector_pipe::connect()
       true, // Readable
       true  // Writable
   );
+
+  switch (err) {
+    case ERR_SUCCESS:
+    case ERR_ASYNC:
+      m_connected = true;
+      break;
+
+    default:
+      ELOG("Connect failed.");
+      break;
+  }
+
   return err;
 }
 
@@ -160,7 +168,7 @@ connector_pipe::listening() const
 bool
 connector_pipe::connected() const
 {
-  return m_handle.valid() && !m_server;
+  return m_handle.valid() && m_connected;
 }
 
 
@@ -170,6 +178,7 @@ connector_pipe::accept(net::socket_address & /* unused */)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!listening()) {
+    ELOG("accept() called, but not listening.");
     return nullptr;
   }
 
@@ -203,6 +212,7 @@ connector_pipe::accept(net::socket_address & /* unused */)
   auto ret = new connector_pipe(m_addr, m_options);
   ret->m_handle = m_handle;
   ret->m_server = true;
+  ret->m_connected = true;
 
   // Reset self, then create new pipe instance.
   m_handle = handle{};
