@@ -428,6 +428,7 @@ void send_message_streaming_async(p7r::connector & sender, p7r::connector & rece
   };
 
   sched.register_connector(p7r::PEV_IO_READ, receiver, lambda);
+  sched.process_events(TEST_SLEEP_TIME);
 
   std::string msg = "Hello, world!";
   if (marker >= 0) {
@@ -438,9 +439,10 @@ void send_message_streaming_async(p7r::connector & sender, p7r::connector & rece
   ASSERT_EQ(p7r::ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
   ASSERT_EQ(msg.size(), amount);
 
-  sched.process_events(TEST_SLEEP_TIME * 2);
+  sched.process_events(TEST_SLEEP_TIME);
 
   sched.unregister_connector(p7r::PEV_IO_READ, receiver, lambda);
+  sched.process_events(TEST_SLEEP_TIME);
 
 
   // After this, we should have had the read callback invoked, and the message
@@ -561,8 +563,8 @@ struct client_post_connect_callback
 std::vector<
   std::pair<p7r::connector, p7r::connector>
 >
-setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & url,
-    int num_clients = 1)
+setup_stream_connection_async(p7r::scheduler & sched, p7r::connector_type type,
+    p7r::util::url const & url, int num_clients = 1)
 {
   // Server
   p7r::connector server{test_env->api, url};
@@ -582,8 +584,6 @@ setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & u
   EXPECT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, server.get_options());
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
-
-  p7r::scheduler sched(test_env->api, 0);
 
   std::vector<
     std::pair<p7r::connector, p7r::connector>
@@ -605,7 +605,8 @@ setup_stream_connection_async(p7r::connector_type type, p7r::util::url const & u
 
     // Give scheduler a chance to register connectors
     sched.process_events(TEST_SLEEP_TIME);
-    EXPECT_EQ(p7r::ERR_ASYNC, client.connect());
+    auto connect_res = client.connect();
+    EXPECT_EQ(p7r::ERR_ASYNC, connect_res);
 
     client_post_connect_callback client_struct;
     p7r::callback client_cb{&client_struct, &client_post_connect_callback::func};
@@ -758,13 +759,13 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   auto url = p7r::util::url::parse(td.stream_non_blocking);
   url.query["behaviour"] = "stream";
 
-  auto res = setup_stream_connection_async(td.type, url);
+  p7r::scheduler sched(test_env->api, 0);
+  auto res = setup_stream_connection_async(sched, td.type, url);
 
   auto client = res[0].first;
   auto server = res[0].second;
 
   // Communications
-  p7r::scheduler sched(test_env->api, 0);
   send_message_streaming(client, server, -1, &sched);
   send_message_streaming(server, client, -1, &sched);
 }
@@ -780,13 +781,13 @@ TEST_P(ConnectorStream, asynchronous_messaging)
   auto url = p7r::util::url::parse(td.stream_non_blocking);
   url.query["behaviour"] = "stream";
 
-  auto res = setup_stream_connection_async(td.type, url);
+  p7r::scheduler sched(test_env->api, 0);
+  auto res = setup_stream_connection_async(sched, td.type, url);
 
   auto client = res[0].first;
   auto server = res[0].second;
 
   // Communications
-  p7r::scheduler sched(test_env->api, 0);
   send_message_streaming_async(client, server, sched, 1);
   send_message_streaming_async(server, client, sched, 2);
 }
@@ -830,7 +831,8 @@ TEST_P(ConnectorStream, multiple_clients_async)
   auto url = p7r::util::url::parse(td.stream_non_blocking);
   url.query["behaviour"] = "stream";
 
-  auto res = setup_stream_connection_async(td.type, url, 2);
+  p7r::scheduler sched(test_env->api, 0);
+  auto res = setup_stream_connection_async(sched, td.type, url, 2);
 
   auto client1 = res[0].first;
   auto server1 = res[0].second;
@@ -843,8 +845,6 @@ TEST_P(ConnectorStream, multiple_clients_async)
   expected.resize(4);
   std::vector<std::string> result;
   result.resize(4);
-
-  p7r::scheduler sched(test_env->api, 0);
 
   setup_message_streaming_async(0, expected, result, client1, sched, td.broadcast);
   setup_message_streaming_async(1, expected, result, server1, sched, td.broadcast);
@@ -909,13 +909,13 @@ TEST_P(ConnectorStream, peek_from_write)
   auto url = p7r::util::url::parse(td.stream_non_blocking);
   url.query["behaviour"] = "stream";
 
-  auto res = setup_stream_connection_async(td.type, url);
+  p7r::scheduler sched(test_env->api, 0);
+  auto res = setup_stream_connection_async(sched, td.type, url);
 
   auto client = res[0].first;
   auto server = res[0].second;
 
   // Communications
-  p7r::scheduler sched(test_env->api, 0);
   peek_message_streaming(server, client, -1, &sched);
   peek_message_streaming(client, server, -1, &sched);
 }
