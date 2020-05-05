@@ -48,7 +48,12 @@ struct pipe_context
     EXPECT_TRUE(server.valid());
   
     auto err = pd::connect_to_pipe(client, name, blocking, true, true);
-    EXPECT_EQ(p7r::ERR_SUCCESS, err);
+    if (blocking) {
+      EXPECT_EQ(p7r::ERR_SUCCESS, err);
+    }
+    else {
+      EXPECT_EQ(p7r::ERR_ASYNC, err);
+    }
     EXPECT_TRUE(client.valid());
   
     err = pd::poll_for_connection(server);
