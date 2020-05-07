@@ -45,7 +45,7 @@ namespace {
 inline bool
 register_handle(HANDLE iocp, std::set<HANDLE> & associated, handle const & handle)
 {
-  DLOG("Supposed to register: " << handle << " - " << handle.hash());
+  DLOG("Supposed to register with IOCP: " << handle << " / " << handle.sys_handle()->handle);
   ULONG_PTR completion_key = handle.hash();
   auto ret = CreateIoCompletionPort(handle.sys_handle()->handle,
       iocp, completion_key, 0);
@@ -128,29 +128,32 @@ io_iocp::register_connectors(connector const * conns, size_t size,
       }
       m_associated.insert(conn.get_read_handle().sys_handle()->handle);
 
-      if (!register_handle(m_iocp, m_associated, conn.get_write_handle().sys_handle())) {
-        io::unregister_connector(conn, events);
-        continue;
+      if (conn.get_read_handle() != conn.get_write_handle()) {
+        if (!register_handle(m_iocp, m_associated, conn.get_write_handle().sys_handle())) {
+          io::unregister_connector(conn, events);
+          continue;
+        }
+        m_associated.insert(conn.get_write_handle().sys_handle()->handle);
       }
-      m_associated.insert(conn.get_write_handle().sys_handle()->handle);
     }
-
-    // Test if the read handle was already known...
-    bool found = m_sys_handles.find(conn.get_read_handle().sys_handle()) == m_sys_handles.end();
 
     // Either way, use the super class functionality to remember which events the
     // connector was registered for.
     io::register_connector(conn, events);
 
-    // ... now if we have a previously unknown read handle, we should PEEK on it
-    // to be notified when the handle becomes readable.
-    if (!found && m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
-      DLOG("Request notification when handle becomes readable (effectively).");
-      // Schedule a read of size 0 - this will result in win32 scheduling
-      // overlapped I/O, but we never expect results.
-      auto cn = const_cast<connector *>(&conn);
-      size_t actually_read = 0;
-      cn->read(nullptr, 0, actually_read);
+    // Every read handle should have a pending read on it, so the system
+    // notifies us when something is actually written on the other end. We'll
+    // ask the overlapped manager if there is anything pending.
+    if (m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
+      bool schedule_read = conn.get_read_handle().sys_handle()->overlapped_manager.read_scheduled() < 0;
+      if (schedule_read) {
+        DLOG("Request notification when handle becomes readable (effectively).");
+        // Schedule a read of size 0 - this will result in win32 scheduling
+        // overlapped I/O, but we never expect results.
+        auto cn = const_cast<connector *>(&conn);
+        size_t actually_read = 0;
+        cn->read(nullptr, 0, actually_read);
+      }
     }
   }
 }
