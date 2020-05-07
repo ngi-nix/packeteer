@@ -134,7 +134,7 @@ manager::schedule_connect(HANDLE handle,
   if (connecting) {
     DLOG("Connect already scheduled for handle, check progress.");
     auto & context = m_contexts[found];
-    return free_on_success(found, callback(CHECK_PROGRESS, context));
+    return free_unless_async(found, callback(CHECK_PROGRESS, context));
   }
 
   // We're good, so let's see if we found a free slot. If not, we need to grow.
@@ -162,7 +162,7 @@ manager::schedule_connect(HANDLE handle,
       << " operations are pending in total.");
 
   // Callback for the actual connection.
-  return free_on_success(found, callback(SCHEDULE, context));
+  return free_unless_async(found, callback(SCHEDULE, context));
 }
  
 
@@ -176,7 +176,7 @@ manager::schedule_read(HANDLE handle,
   // their status should be the result of the function. If the in-flight read
   // is still pending, let the caller try again later. If it's done, let the
   // caller schedule the next read. etc.
-  auto order_copy = m_order; // So we can run free_on_success() within the loop
+  auto order_copy = m_order; // So we can run free_unless_async() within the loop
   for (auto id : order_copy) {
     auto & context = m_contexts[id];
     if (context.handle != handle || context.type != READ) {
@@ -198,13 +198,13 @@ manager::schedule_read(HANDLE handle,
       // loop continue in the hopes we'll find a slot for the regular
       // read.
       CancelIoEx(context.handle, &context);
-      free_on_success(id, ERR_SUCCESS);
+      free_unless_async(id, ERR_SUCCESS);
       continue;
     }
 
     // We have a regular read on this handle already, check progress and return the
     // result.
-    return free_on_success(id, callback(CHECK_PROGRESS, context));
+    return free_unless_async(id, callback(CHECK_PROGRESS, context));
   }
 
   // Nothing scheduled, so let's find the first free slot; grow if necessary.
@@ -242,7 +242,7 @@ manager::schedule_read(HANDLE handle,
 
   m_order.push_back(found);
 
-  return free_on_success(found, callback(SCHEDULE, context));
+  return free_unless_async(found, callback(SCHEDULE, context));
 }
  
 
@@ -262,6 +262,7 @@ manager::schedule_write(HANDLE handle,
   // So first calculate our source_sig.
   size_t source_sig = 0;
   if (!source || !buflen) {
+    // FIXME
     DLOG("Can't write without anything to write.");
     return ERR_INVALID_VALUE;
   }
@@ -271,7 +272,7 @@ manager::schedule_write(HANDLE handle,
 
   // After that, we can check existing writes.
   bool found_same = false;
-  auto order_copy = m_order; // So we can run free_on_success() in the loop
+  auto order_copy = m_order; // So we can run free_unless_async() in the loop
   for (auto id : order_copy) {
     auto & context = m_contexts[id];
     if (context.handle != handle || context.type != WRITE) {
@@ -285,7 +286,7 @@ manager::schedule_write(HANDLE handle,
     }
 
     // We have a write on this handle already, check progress.
-    auto err = free_on_success(id, callback(CHECK_PROGRESS, context));
+    auto err = free_unless_async(id, callback(CHECK_PROGRESS, context));
     switch (err) {
       // Continue scheduling writes until we get errors.
       case ERR_SUCCESS:
@@ -331,7 +332,7 @@ manager::schedule_write(HANDLE handle,
 
   m_order.push_back(found);
 
-  return free_on_success(found, callback(SCHEDULE, context));
+  return free_unless_async(found, callback(SCHEDULE, context));
 }
 
 
@@ -352,19 +353,22 @@ manager::initialize(context_id id)
 
 
 error_t
-manager::free_on_success(context_id id, error_t code)
+manager::free_unless_async(context_id id, error_t code)
 {
-  if (ERR_SUCCESS != code) {
+  // Async results mean we have to revisit this context.
+  if (code == ERR_ASYNC) {
     return code;
   }
 
   initialize(id);
   m_order.remove(id);
 
-  DLOG("Freed completed slot " << id << "; currently "<< m_order.size()
+  DLOG("Freed "
+      << (code == ERR_SUCCESS ? "completed" : "errored")
+      << " slot " << id << "; currently "<< m_order.size()
       << " operations are pending in total.");
 
-  return ERR_SUCCESS;
+  return code;
 }
 
 
@@ -384,6 +388,28 @@ manager::signature(void * source, size_t buflen)
 
   // Hash the temporary value:
   return std::hash<std::string>{}(tmp);
+}
+
+
+
+ssize_t
+manager::read_scheduled() const
+{
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  for (auto id : m_order) {
+    auto & context = m_contexts[id];
+    if (context.handle == INVALID_HANDLE_VALUE) {
+      continue;
+    }
+    if (context.type != READ) {
+      continue;
+    }
+
+    return context.buflen;
+  }
+
+  return -1;
 }
 
 

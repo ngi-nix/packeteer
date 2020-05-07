@@ -216,6 +216,14 @@ public:
       void * source = nullptr);
 
   /**
+   * Is a read scheduled?
+   *
+   * >= 0 size of first scheduled read
+   * < 0 no read scheduled
+   */
+  ssize_t read_scheduled() const;
+
+  /**
    * Cancel I/O requests for the given handle. We don't distinguish further,
    * because that does not seem very useful.
    */
@@ -247,7 +255,7 @@ private:
 
   void initialize(context_id id);
 
-  error_t free_on_success(context_id id, error_t code);
+  error_t free_unless_async(context_id id, error_t code);
 
   size_t                  m_initial;
   ssize_t                 m_grow_by;
@@ -255,7 +263,7 @@ private:
   std::vector<io_context> m_contexts;
   std::list<context_id>   m_order;
 
-  std::mutex              m_mutex;
+  mutable std::mutex      m_mutex;
 };
 
 } // namespace packeteer::detail::overlapped
