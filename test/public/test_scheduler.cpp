@@ -32,6 +32,8 @@
 #include <thread>
 #include <chrono>
 
+#define TEST_SLEEP_TIME std::chrono::milliseconds(50)
+
 namespace p7r = packeteer;
 namespace sc = std::chrono;
 
@@ -60,7 +62,11 @@ struct test_callback
   {
     ++m_called;
     m_mask = mask;
-    DLOG("callback called: " << error << " - " << conn << " - " << mask);
+    std::string connid = "nullptr conn";
+    if (conn) {
+      connid = std::to_string(*conn);
+    }
+    DLOG("callback called: " << error << " - " << connid << " - " << mask << " [called: " << m_called << "]");
 
     return p7r::error_t(0);
   }
@@ -107,7 +113,7 @@ struct thread_id_callback
     m_tid = std::this_thread::get_id();
 
     DLOG("callback started");
-    std::this_thread::sleep_for(sc::milliseconds(50));
+    std::this_thread::sleep_for(TEST_SLEEP_TIME);
     DLOG("callback ended");
 
     return p7r::error_t(0);
@@ -242,7 +248,7 @@ TEST_P(Scheduler, soft_timeout)
   test_callback source;
   p7r::callback cb{&source, &test_callback::func};
 
-  sched.schedule_once(sc::milliseconds(50), cb);
+  sched.schedule_once(TEST_SLEEP_TIME, cb);
 
   auto before = p7r::clock::now();
   sched.process_events(sc::milliseconds(1), true);
@@ -272,7 +278,7 @@ TEST_P(Scheduler, timed_callback)
   test_callback source;
   p7r::callback cb{&source, &test_callback::func};
 
-  sched.schedule_at(p7r::clock::now() + sc::milliseconds(50), cb);
+  sched.schedule_at(p7r::clock::now() + TEST_SLEEP_TIME, cb);
 
   sched.process_events(sc::milliseconds(100));
 
@@ -300,10 +306,10 @@ TEST_P(Scheduler, repeat_callback)
   // If we process multiple times, each time the expiring callback should
   // kick us out of the loop - but no more than three times. The last wait
   // needs to time out.
-  sched.process_events(sc::milliseconds(50));
-  sched.process_events(sc::milliseconds(50));
-  sched.process_events(sc::milliseconds(50));
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
 
   int called = source.m_called;
   ASSERT_EQ(3, called);
@@ -328,13 +334,13 @@ TEST_P(Scheduler, infinite_callback)
 
   auto now = p7r::clock::now();
 
-  sched.schedule(now, sc::milliseconds(50), cb);
+  sched.schedule(now, TEST_SLEEP_TIME, cb);
 
   // Since the first invocation happens immediately, we want to sleep <
   // 3 * 50 msec
-  sched.process_events(sc::milliseconds(50));
-  sched.process_events(sc::milliseconds(50));
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
+  sched.process_events(TEST_SLEEP_TIME);
 
   int called = source.m_called;
   ASSERT_EQ(3, called);
@@ -344,7 +350,7 @@ TEST_P(Scheduler, infinite_callback)
 
   sched.unschedule(cb);
 
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // The amount of invocations may not have changed after the unschedule()
   // call above, even though we waited longer.
@@ -362,7 +368,7 @@ TEST_P(Scheduler, delayed_repeat_callback)
 
   // Repeat every 20 msec, but delay for 50msec
   sc::milliseconds interval = sc::milliseconds(20);
-  auto delay = p7r::clock::now() + sc::milliseconds(50);
+  auto delay = p7r::clock::now() + TEST_SLEEP_TIME;
 
   p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
 
@@ -404,8 +410,8 @@ TEST_P(Scheduler, parallel_callback_with_threads)
   thread_id_callback source2;
   p7r::callback cb2{&source2, &thread_id_callback::func};
 
-  sched.schedule_once(sc::milliseconds(50), cb1);
-  sched.schedule_once(sc::milliseconds(50), cb2);
+  sched.schedule_once(TEST_SLEEP_TIME, cb1);
+  sched.schedule_once(TEST_SLEEP_TIME, cb2);
 
   std::this_thread::sleep_for(sc::milliseconds(150));
 
@@ -554,12 +560,10 @@ TEST_P(Scheduler, io_callback)
   test_callback source2;
   p7r::callback cb2{&source2, &test_callback::func};
   sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb2);
-
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   sched.unregister_connector(p7r::PEV_IO_WRITE, pipe, cb2);
-
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // The second callback must have been invoked multiple times, because the
   // pipe is always (at this level of I/O load) writeable.
@@ -573,6 +577,7 @@ TEST_P(Scheduler, io_callback)
   reading_callback reading(pipe);
   p7r::callback rd{&reading, &reading_callback::func};
   sched.register_connector(p7r::PEV_IO_READ, pipe, rd);
+  sched.process_events(TEST_SLEEP_TIME);
 
   // So let's write something to the pipe. This will trigger the read callback
   // until we're reading from the pipe again.
@@ -581,7 +586,7 @@ TEST_P(Scheduler, io_callback)
   pipe.write(buf, sizeof(buf), amount);
   ASSERT_EQ(sizeof(buf), amount);
 
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // After writing, there must be a callback
   ASSERT_CALLBACK_GREATER(reading, 0, p7r::PEV_IO_READ);
@@ -610,8 +615,7 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
   counting_callback source;
   p7r::callback cb{&source, &counting_callback::func};
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
-
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // No read callbacks without writing.
   ASSERT_EQ(source.m_read_called, 0);
@@ -622,7 +626,7 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
   pipe.write(buf, sizeof(buf), amount);
   ASSERT_EQ(sizeof(buf), amount);
 
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // After writing, there must be a callback
   ASSERT_GT(source.m_read_called, 0);
@@ -644,7 +648,7 @@ TEST_P(Scheduler, io_callback_registration_sequence)
   p7r::callback cb{&source, &counting_callback::func};
   sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, pipe, cb);
 
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // No read callbacks without writing.
   ASSERT_EQ(source.m_read_called, 0);
@@ -655,7 +659,7 @@ TEST_P(Scheduler, io_callback_registration_sequence)
   pipe.write(buf, sizeof(buf), amount);
   ASSERT_EQ(sizeof(buf), amount);
 
-  sched.process_events(sc::milliseconds(50));
+  sched.process_events(TEST_SLEEP_TIME);
 
   // After writing, there must be a callback
   ASSERT_GT(source.m_read_called, 0);
