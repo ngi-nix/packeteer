@@ -530,7 +530,7 @@ struct server_connect_callback
       p7r::connector * conn [[maybe_unused]], void *)
   {
     if (!m_conn) {
-      DLOG(" ***** INCOMING " << mask << ":" << error << ":" << conn);
+      DLOG(" ***** INCOMING " << mask << ":" << error << ":" << *conn);
       // The accept() function clears the event.
       EXPECT_NO_THROW(m_conn = m_server.accept());
       EXPECT_TRUE(m_conn);
@@ -552,7 +552,7 @@ struct client_post_connect_callback
   {
     if (!m_connected) {
       m_connected = true;
-      DLOG(" ***** CONNECTED! " << mask << ":" << error << ":" << conn);
+      DLOG(" ***** CONNECTED! " << mask << ":" << error << ":" << *conn);
     }
 
     return p7r::ERR_SUCCESS;
@@ -639,6 +639,10 @@ setup_stream_connection_async(p7r::scheduler & sched, p7r::connector_type type,
 
     EXPECT_FALSE(client.is_blocking());
     EXPECT_EQ(p7r::CO_STREAM|p7r::CO_NON_BLOCKING, client.get_options());
+
+    // We're done with these local connectors
+    sched.unregister_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, server, server_cb);
+    sched.unregister_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, client, client_cb);
 
     result.push_back(std::make_pair(client, server_conn));
   }
