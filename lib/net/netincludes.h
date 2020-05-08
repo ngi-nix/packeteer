@@ -49,6 +49,7 @@
 
 #if defined(PACKETEER_HAVE_WINSOCK2_H)
 #  include <winsock2.h>
+#  pragma comment(lib, "Ws2_32.lib")
 #endif
 
 #if defined(PACKETEER_HAVE_WS2TCPIP_H)
