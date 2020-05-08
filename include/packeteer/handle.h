@@ -49,7 +49,7 @@ struct PACKETEER_API handle : public ::packeteer::util::operators<handle>
   // pointer.
   struct opaque_handle;
   using sys_handle_t = std::shared_ptr<opaque_handle>;
-  const sys_handle_t INVALID_SYS_HANDLE{};
+  static const sys_handle_t INVALID_SYS_HANDLE;
 
   // A few functions on the opaque structure are needed for the implementaiton
   // of the outer handle class.
@@ -61,7 +61,7 @@ private:
 public:
 #elif defined(PACKETEER_POSIX)
   using sys_handle_t = int;
-  const sys_handle_t INVALID_SYS_HANDLE{-1};
+  static const sys_handle_t INVALID_SYS_HANDLE{-1};
 #else
 #  error Handles are not supported on this platform!
 #endif
