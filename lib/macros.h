@@ -72,7 +72,7 @@
     char * buf = new char[size]; \
     int e = WideCharToMultiByte(CP_UTF8, 0, s, -1, buf, size, NULL, NULL); \
     ELOG(msg \
-      << " // [0x" << std::setw(16) << std::setfill('0') << std::hex << code << std::dec << "] " \
+      << " // [0x" << std::hex << code << std::dec << " (" << code << ")] " \
       << buf); \
     delete [] buf; \
     LocalFree(s); \
