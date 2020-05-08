@@ -99,7 +99,8 @@ translate_os_to_events(int os)
 
 
 
-io_poll::io_poll()
+io_poll::io_poll(std::shared_ptr<api> api)
+  : io(api)
 {
   DLOG("Poll based I/O subsystem created.");
 }

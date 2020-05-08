@@ -42,7 +42,7 @@ namespace packeteer::detail {
 struct io_epoll : public io
 {
 public:
-  io_epoll();
+  io_epoll(std::shared_ptr<api> api);
   ~io_epoll();
 
   void register_connector(connector const & conn, events_t const & events);

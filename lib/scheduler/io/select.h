@@ -44,7 +44,7 @@ namespace packeteer::detail {
 struct io_select : public io
 {
 public:
-  io_select();
+  io_select(std::shared_ptr<api> api);
   ~io_select();
 
   virtual void wait_for_events(std::vector<event_data> & events,

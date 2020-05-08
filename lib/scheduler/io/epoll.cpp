@@ -186,8 +186,9 @@ modify_conn_set(int epoll_fd, int action, connector const * conns, size_t size,
 
 
 
-io_epoll::io_epoll()
-  : m_epoll_fd(-1)
+io_epoll::io_epoll(std::shared_ptr<api> api)
+  : io(api)
+  , m_epoll_fd(-1)
 {
   int res = ::epoll_create1(EPOLL_CLOEXEC);
   if (res < 0) {

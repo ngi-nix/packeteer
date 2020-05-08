@@ -42,7 +42,7 @@ namespace packeteer::detail {
 struct io_kqueue : public io
 {
 public:
-  io_kqueue();
+  io_kqueue(std::shared_ptr<api> api);
   ~io_kqueue();
 
   void init();

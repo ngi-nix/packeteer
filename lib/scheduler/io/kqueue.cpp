@@ -227,8 +227,9 @@ modify_conn_set(int action, int queue, connector const * conns, size_t size,
 
 
 
-io_kqueue::io_kqueue()
-  : m_kqueue_fd(-1)
+io_kqueue::io_kqueue(std::shared_ptr<api> api)
+  : io(api)
+  , m_kqueue_fd(-1)
 {
   int res = ::kqueue();
   if (res < 0) {

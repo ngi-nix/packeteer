@@ -44,7 +44,7 @@ namespace packeteer::detail {
 struct io_poll : public io
 {
 public:
-  io_poll();
+  io_poll(std::shared_ptr<api> api);
   ~io_poll();
 
   virtual void wait_for_events(std::vector<event_data> & events, duration const & timeout);
