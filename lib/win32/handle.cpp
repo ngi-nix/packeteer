@@ -24,6 +24,11 @@
 
 namespace packeteer {
 
+
+const handle::sys_handle_t
+handle::INVALID_SYS_HANDLE = handle::sys_handle_t{};
+
+
 handle::sys_handle_t
 handle::sys_make_dummy(size_t const & value)
 {
