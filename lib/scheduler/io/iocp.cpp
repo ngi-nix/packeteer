@@ -34,6 +34,8 @@
 #include "../../win32/sys_handle.h"
 #include "../../connector/win32/overlapped.h"
 
+#include "iocp/socket_select.h"
+
 #include <vector>
 
 namespace sc = std::chrono;
@@ -42,6 +44,9 @@ namespace packeteer::detail {
 
 namespace {
 
+/**
+ * Register handle with IOCP.
+ **/
 inline bool
 register_handle(HANDLE iocp, std::set<HANDLE> & associated, handle const & handle)
 {
@@ -69,19 +74,148 @@ register_handle(HANDLE iocp, std::set<HANDLE> & associated, handle const & handl
   return true;
 }
 
+
+
+/**
+ * Unregister connector for READ events, based on the connector type.
+ **/
+inline void
+unregister_socket_from_read_events(iocp_socket_select & sock_select, connector & conn)
+{
+  DLOG("No longer interested when socket-like handle is readable.");
+  sock_select.configure_socket(conn.get_read_handle().sys_handle(), 0);
+}
+
+
+
+inline void
+unregister_pipe_from_read_events(connector & conn)
+{
+  DLOG("No longer interested when pipe-like handle is readable.");
+  auto & manager = conn.get_read_handle().sys_handle()->overlapped_manager;
+  manager.cancel_reads();
+}
+
+
+
+inline void
+unregister_from_read_events(iocp_socket_select & sock_select, connector & conn)
+{
+  // Distinguish between socket-like and pipe-like connectors.
+  // XXX See register.
+  switch (conn.type()) {
+    case CT_TCP4:
+    case CT_TCP6:
+    case CT_TCP:
+    case CT_UDP4:
+    case CT_UDP6:
+    case CT_UDP:
+    case CT_LOCAL:
+      return unregister_socket_from_read_events(sock_select, conn);
+
+    case CT_PIPE:
+    case CT_ANON:
+      return unregister_pipe_from_read_events(conn);
+
+    case CT_UNSPEC:
+    case CT_FIFO:
+    case CT_USER:
+      throw exception(ERR_INVALID_VALUE, "Connector of type "
+          + std::to_string(conn.type()) + " currently not supported by IOCP; "
+          "see https://gitlab.com/interpeer/packeteer/-/issues/12");
+  }
+}
+
+
+
+/**
+ * Register connector for READ events, based on the connector type.
+ **/
+inline void
+register_socket_for_read_events(iocp_socket_select & sock_select, connector & conn)
+{
+  DLOG("Request notification when socket-like handle becomes readable.");
+  sock_select.configure_socket(conn.get_read_handle().sys_handle(),
+      FD_ACCEPT | FD_CONNECT | FD_READ | FD_CLOSE);
+}
+
+
+
+inline void
+register_pipe_for_read_events(connector & conn)
+{
+  // Every read handle should have a pending read on it, so the system
+  // notifies us when something is actually written on the other end. We'll
+  // ask the overlapped manager if there is anything pending.
+  bool schedule_read = conn.get_read_handle().sys_handle()->overlapped_manager.read_scheduled() < 0;
+  if (schedule_read) {
+    DLOG("Request notification when pipe-like handle becomes readable.");
+    // Schedule a read of size 0 - this will result in win32 scheduling
+    // overlapped I/O, but we never expect results.
+    size_t actually_read = 0;
+    conn.read(nullptr, 0, actually_read);
+  }
+}
+
+
+
+inline void
+register_for_read_events(iocp_socket_select & sock_select, connector & conn)
+{
+  // Distinguish between socket-like and pipe-like connectors.
+  // XXX This is a highly non-portable hack, and will make life difficult for
+  //     extensions. However, in the interest of getting a version out, this
+  //     is what we'll do for now. See the related issue for fixing it:
+  //     https://gitlab.com/interpeer/packeteer/-/issues/12
+  switch (conn.type()) {
+    case CT_TCP4:
+    case CT_TCP6:
+    case CT_TCP:
+    case CT_UDP4:
+    case CT_UDP6:
+    case CT_UDP:
+    case CT_LOCAL:
+      return register_socket_for_read_events(sock_select, conn);
+
+    case CT_PIPE:
+    case CT_ANON:
+      return register_pipe_for_read_events(conn);
+
+    case CT_UNSPEC:
+    case CT_FIFO:
+    case CT_USER:
+      throw exception(ERR_INVALID_VALUE, "Connector of type "
+          + std::to_string(conn.type()) + " currently not supported by IOCP; "
+          "see https://gitlab.com/interpeer/packeteer/-/issues/12");
+  }
+}
+
 } // anonymous namespace
 
 
-io_iocp::io_iocp()
-  : m_iocp(INVALID_HANDLE_VALUE)
+io_iocp::io_iocp(std::shared_ptr<api> const & api)
+  : io(api)
 {
+  // Create IOCP
   HANDLE h = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, NULL, 0);
   if (h == INVALID_HANDLE_VALUE) {
     throw exception(ERR_UNEXPECTED, WSAGetLastError(),
         "Could not create I/O completion port");
   }
-
   m_iocp = h;
+
+  // Register own interrupt connector
+  m_interrupt = connector{m_api, "anon://"};
+  error_t err = m_interrupt.connect();
+  if (ERR_SUCCESS != err) {
+    throw exception(err, "Could not connect select loop pipe.");
+  }
+  DLOG("Select loop pipe is " << m_interrupt);
+  register_connector(m_interrupt, PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
+
+  // Create socket selection subsystem.
+  m_sock_select = new iocp_socket_select{m_interrupt};
+
   DLOG("I/O completion port subsystem created.");
 }
 
@@ -89,6 +223,9 @@ io_iocp::io_iocp()
 
 io_iocp::~io_iocp()
 {
+  delete m_sock_select;
+  m_sock_select = nullptr;
+
   DLOG("Closing IOCP handle.");
   CloseHandle(m_iocp);
   m_iocp = INVALID_HANDLE_VALUE;
@@ -141,19 +278,10 @@ io_iocp::register_connectors(connector const * conns, size_t size,
     // connector was registered for.
     io::register_connector(conn, events);
 
-    // Every read handle should have a pending read on it, so the system
-    // notifies us when something is actually written on the other end. We'll
-    // ask the overlapped manager if there is anything pending.
+    // Ensure we get READ events on the read handle, if that was requested.
     if (m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
-      bool schedule_read = conn.get_read_handle().sys_handle()->overlapped_manager.read_scheduled() < 0;
-      if (schedule_read) {
-        DLOG("Request notification when handle becomes readable (effectively).");
-        // Schedule a read of size 0 - this will result in win32 scheduling
-        // overlapped I/O, but we never expect results.
-        auto cn = const_cast<connector *>(&conn);
-        size_t actually_read = 0;
-        cn->read(nullptr, 0, actually_read);
-      }
+      auto cn = const_cast<connector *>(&conn);
+      register_for_read_events(*m_sock_select, *cn);
     }
   }
 }
@@ -164,10 +292,10 @@ io_iocp::register_connectors(connector const * conns, size_t size,
 void
 io_iocp::unregister_connector(connector const & conn, events_t const & events)
 {
-  // We can't actually unregister any conns - we can just filter here; the OS will
-  // keep the connector associated with the IOCP.
-  io::unregister_connector(conn, events);
+  connector conns[1] = { conn };
+  unregister_connectors(conns, 1, events);
 }
+
 
 
 
@@ -175,8 +303,18 @@ void
 io_iocp::unregister_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
-  // We can't actually unregister any conns - we can just filter here; the OS will
-  // keep the connector associated with the IOCP.
+  for (size_t i = 0 ; i < size ; ++i) {
+    connector const & conn = conns[i];
+    DLOG("Unregistering connector " << conn << " from events " << events);
+
+    // If the connector is registered for READ, we can unregister it.
+    if (m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
+      auto cn = const_cast<connector *>(&conn);
+      unregister_from_read_events(*m_sock_select, *cn);
+    }
+  }
+
+  // Pass to superclass
   io::unregister_connectors(conns, size, events);
 }
 
@@ -214,9 +352,24 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
   } 
   DLOG("Dequeued " << read << " I/O events.");
 
+  // Temporary events container
+  std::map<connector, events_t> tmp_events;
+
+  // Grab events from select loop. This may be over very soon, if there were no
+  // events detected there.
+  iocp_socket_select::result sock_events;
+  while (m_sock_select->collected_events.pop(sock_events)) {
+    // See if we can find a connector for the socket.
+    auto iter = m_connectors.find(sock_events.socket);
+    if (iter == m_connectors.end()) {
+      ELOG("Could not find connector for socket: " << sock_events.socket);
+      continue;
+    }
+    tmp_events[iter->second] = sock_events.events;
+  }
+
   // First, go through actually received events and add them to the temporary
   // map.
-  std::map<connector, events_t> tmp_events;
   for (size_t i = 0 ; i < read ; ++i) {
     // Our OVERLAPPED are always io_context
     detail::overlapped::io_context * ctx = reinterpret_cast<
@@ -238,6 +391,12 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
       if (ctx->handle != INVALID_HANDLE_VALUE) {
         DLOG("Got event on a handle " << ctx->handle << " that is not related to a known connector!");
       }
+      continue;
+    }
+
+    // If the connector is our own interrupt, clear it and continue.
+    if (conn == m_interrupt) {
+      clear_interrupt(m_interrupt);
       continue;
     }
 
@@ -270,13 +429,17 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
       if (ev & PEV_IO_OPEN && m_sys_handles[conn.get_write_handle().sys_handle()] & PEV_IO_WRITE) {
         ev |= PEV_IO_WRITE;
       }
+      if (ev & PEV_IO_OPEN && m_sys_handles[conn.get_write_handle().sys_handle()] & PEV_IO_READ) {
+        ev |= PEV_IO_READ;
+      }
+
 
       // TODO maybe repoort PEV_IO_CLOSE if ctx->type was PEV_IO_READ and
       //      num_transferred is zero?
     }
 
     DLOG("Events for connector " << conn << " are " << ev);
-    tmp_events[conn] = ev;
+    tmp_events[conn] |= ev;
   }
 
   // The temporary events now hold all *actual* events. Let's now add a write

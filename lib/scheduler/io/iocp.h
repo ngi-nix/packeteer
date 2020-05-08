@@ -38,11 +38,14 @@
 
 namespace packeteer::detail {
 
+// Typedef for helper class
+class iocp_socket_select;
+
 // I/O subsystem based on select.
 struct io_iocp : public io
 {
 public:
-  io_iocp();
+  io_iocp(std::shared_ptr<api> const & api);
   ~io_iocp();
 
   void init();
@@ -71,8 +74,10 @@ private:
   /***************************************************************************
    * Data
    **/
-  HANDLE                      m_iocp;
-  std::set<HANDLE>            m_associated;
+  HANDLE                      m_iocp = INVALID_HANDLE_VALUE;
+  std::set<HANDLE>            m_associated = {};
+  connector                   m_interrupt = {};
+  iocp_socket_select *        m_sock_select = nullptr;
 };
 
 
