@@ -224,10 +224,12 @@ public:
   ssize_t read_scheduled() const;
 
   /**
-   * Cancel I/O requests for the given handle. We don't distinguish further,
-   * because that does not seem very useful.
+   * Cancel read requests for the given handle.
+   *
+   * This is only implemented for read requests, because that's the only thing
+   * currently needed.
    */
-  error_t cancel(HANDLE handle);
+  void cancel_reads();
 
   /**
    * Cancel all I/O requests.

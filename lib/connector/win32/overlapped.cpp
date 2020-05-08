@@ -416,38 +416,39 @@ manager::read_scheduled() const
 
 
 
-error_t
-manager::cancel(HANDLE handle)
+void
+manager::cancel_reads()
 {
-  if (INVALID_HANDLE_VALUE == handle) {
-    return ERR_INVALID_VALUE;
-  }
-
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  // Cancel all I/O
-  auto ret = CancelIoEx(handle, nullptr);
-
-  std::set<context_id> to_free;
-  for (size_t i = 0 ; i < m_contexts.size() ; ++i) {
-    if (m_contexts[i].handle == handle) {
-      to_free.insert(i);
+  // There is only ever one read scheduled.
+  context_id found_id = -1;
+  for (auto id : m_order) {
+    auto & context = m_contexts[id];
+    if (context.type == READ) {
+      found_id = id;
+      break;
     }
   }
 
-  for (auto id : to_free) {
-    initialize(id);
-    m_order.remove(id);
+  if (found_id < 0) {
+    DLOG("Cancelling reads was requested, but no reads found.");
+    return;
   }
 
-  DLOG("Cancelled all I/O for handle; currently "<< m_order.size()
+  // Cancel this read.
+  auto & context = m_contexts[found_id];
+  auto ret = CancelIoEx(context.handle, &context);
+  if (!ret) {
+    ERRNO_LOG("Unexpected error cancelling READ operations.");
+  }
+
+  // Free slot
+  initialize(found_id);
+  m_order.remove(found_id);
+
+  DLOG("Cancelled all READs for handle; currently "<< m_order.size()
       << " operations are pending in total.");
-
-  if (ret || GetLastError() == ERROR_NOT_FOUND) {
-    return ERR_SUCCESS;
-  }
-  ERRNO_LOG("Unexpected error cancelling I/O operations.");
-  return ERR_UNEXPECTED;
 }
 
 
