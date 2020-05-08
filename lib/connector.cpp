@@ -505,11 +505,7 @@ connector::is_equal_to(connector const & other) const
   if (type() == CT_UNSPEC) {
     return ret;
   }
-  return ret && (
-      get_read_handle() == other.get_read_handle()
-      && get_write_handle() == other.get_write_handle()
-      && connect_url() == other.connect_url()
-  );
+  return hash() == other.hash();
 }
 
 
@@ -517,19 +513,7 @@ connector::is_equal_to(connector const & other) const
 bool
 connector::is_less_than(connector const & other) const
 {
-  if (type() == CT_UNSPEC) {
-    return true;
-  }
-  if (type() < other.type()) {
-    return true;
-  }
-  if (get_read_handle() < other.get_read_handle()) {
-    return true;
-  }
-  if (get_write_handle() < other.get_write_handle()) {
-    return true;
-  }
-  return connect_url() < other.connect_url();
+  return hash() < other.hash();
 }
 
 
