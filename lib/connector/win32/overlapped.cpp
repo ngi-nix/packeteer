@@ -422,7 +422,7 @@ manager::cancel_reads()
   std::lock_guard<std::mutex> lock(m_mutex);
 
   // There is only ever one read scheduled.
-  context_id found_id = -1;
+  ssize_t found_id = -1;
   for (auto id : m_order) {
     auto & context = m_contexts[id];
     if (context.type == READ) {
