@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2019 Jens Finkhaeuser.
+ * Copyright (c) 2019-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -29,10 +29,10 @@
 #  include "posix/local.h"
 #  include "posix/fifo.h"
 #else
-#  include "win32/pipe.h"
-// FIXME
-//#  include "win32/tcp.h"
+#  include "win32/tcp.h"
 //#  include "win32/udp.h"
+//#  include "posix/local.h"
+#  include "win32/pipe.h"
 #endif
 
 // Common includes

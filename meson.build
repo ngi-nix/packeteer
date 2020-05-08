@@ -531,7 +531,10 @@ if have_kqueue
 endif
 
 if have_iocp
-  libsrc +=  ['lib' / 'scheduler' / 'io' / 'iocp.cpp']
+  libsrc +=  [
+    'lib' / 'scheduler' / 'io' / 'iocp.cpp',
+    'lib' / 'scheduler' / 'io' / 'iocp' / 'socket_select.cpp',
+  ]
 endif
 
 posixsrc = [
@@ -555,8 +558,8 @@ winsrc = [
   'lib' / 'connector' / 'win32' / 'pipe.cpp',
 # TODO move to connector/win32
 #  'lib' / 'win32' / 'detail' / 'connector.cpp',
-#  'lib' / 'win32' / 'detail' / 'connector_socket.cpp',
-#  'lib' / 'win32' / 'detail' / 'connector_tcp.cpp',
+  'lib' / 'connector' / 'win32' / 'socket.cpp',
+  'lib' / 'connector' / 'win32' / 'tcp.cpp',
 #  'lib' / 'win32' / 'detail' / 'connector_udp.cpp',
 ]
 
