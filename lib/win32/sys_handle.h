@@ -34,7 +34,12 @@ namespace packeteer {
  */
 struct handle::opaque_handle
 {
-  HANDLE                        handle = INVALID_HANDLE_VALUE;
+  // Either HANDLE or SOCKET is used.
+  union {
+    HANDLE                      handle = INVALID_HANDLE_VALUE;
+    SOCKET                      socket;
+  };
+
   bool                          blocking = true;
   detail::overlapped::manager   overlapped_manager;
 
