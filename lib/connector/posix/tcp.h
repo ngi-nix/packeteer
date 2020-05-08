@@ -35,7 +35,7 @@
 namespace packeteer::detail {
 
 /**
- * Wrapper around the pipe class.
+ * TCP connector
  **/
 struct connector_tcp : public ::packeteer::detail::connector_socket
 {
