@@ -103,15 +103,15 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
   switch (type) {
     case TYPE_AUTOMATIC:
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
-      m_io = new detail::io_epoll();
+      m_io = new detail::io_epoll(m_api);
 #elif defined(PACKETEER_HAVE_KQUEUE)
-      m_io = new detail::io_kqueue();
+      m_io = new detail::io_kqueue(m_api);
 #elif defined(PACKETEER_HAVE_IOCP)
-      m_io = new detail::io_iocp();
+      m_io = new detail::io_iocp(m_api);
 #elif defined(PACKETEER_HAVE_POLL)
-      m_io = new detail::io_poll();
+      m_io = new detail::io_poll(m_api);
 #elif defined(PACKETEER_HAVE_SELECT)
-      m_io = new detail::io_select();
+      m_io = new detail::io_select(m_api);
 #else
       throw exception(ERR_UNEXPECTED, "unsupported platform.");
 #endif
@@ -122,7 +122,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 #if !defined(PACKETEER_HAVE_SELECT)
       throw exception(ERR_INVALID_OPTION, "select() is not supported on this platform.");
 #else
-      m_io = new detail::io_select();
+      m_io = new detail::io_select(m_api);
 #endif
       break;
 
@@ -131,7 +131,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 #if !defined(PACKETEER_HAVE_EPOLL_CREATE1)
       throw exception(ERR_INVALID_OPTION, "epoll() is not supported on this platform.");
 #else
-      m_io = new detail::io_epoll();
+      m_io = new detail::io_epoll(m_api);
 #endif
       break;
 
@@ -140,7 +140,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 #if !defined(PACKETEER_HAVE_POLL)
       throw exception(ERR_INVALID_OPTION, "poll() is not supported on this platform.");
 #else
-      m_io = new detail::io_poll();
+      m_io = new detail::io_poll(m_api);
 #endif
       break;
 
@@ -149,7 +149,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 #if !defined(PACKETEER_HAVE_KQUEUE)
       throw exception(ERR_INVALID_OPTION, "kqueue() is not supported on this platform.");
 #else
-      m_io = new detail::io_kqueue();
+      m_io = new detail::io_kqueue(m_api);
 #endif
       break;
 
@@ -158,7 +158,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 #if !defined(PACKETEER_HAVE_IOCP)
       throw exception(ERR_INVALID_OPTION, "I/O completion ports are not supported on this platform.");
 #else
-      m_io = new detail::io_iocp();
+      m_io = new detail::io_iocp(m_api);
 #endif
       break;
 

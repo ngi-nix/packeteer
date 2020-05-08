@@ -51,6 +51,11 @@ struct event_data;
 struct io
 {
 public:
+  io(std::shared_ptr<api> const & api)
+    : m_api(api)
+  {
+  }
+
   virtual ~io() {};
 
 
@@ -108,6 +113,8 @@ public:
       packeteer::duration const & timeout) = 0;
 
 protected:
+  std::shared_ptr<api> m_api;
+
   std::map<handle::sys_handle_t, events_t>  m_sys_handles;
   std::map<handle::sys_handle_t, connector> m_connectors;
 
