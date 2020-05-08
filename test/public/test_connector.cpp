@@ -249,10 +249,12 @@ TEST(Connector, default_constructed)
   ASSERT_EQ(conn, conn2);
   ASSERT_EQ(conn2, conn);
 
-  // Either default-constructed connector should consider
+  // Neither default-constructed connector should consider
   // itself smaller than the other.
-  ASSERT_LT(conn, conn2);
-  ASSERT_LT(conn2, conn);
+  ASSERT_LE(conn, conn2);
+  ASSERT_LE(conn2, conn);
+  ASSERT_GE(conn, conn2);
+  ASSERT_GE(conn2, conn);
 
   // Anonymous connectors are greater than default-constructed ones
   p7r::connector anon{test_env->api, "anon://"};
