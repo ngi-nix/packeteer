@@ -185,8 +185,10 @@ endif
 if compiler.has_header('ws2tcpip.h')
   conf_data.set('PACKETEER_HAVE_WS2TCPIP_H', true)
 endif
+have_afunix = false
 if compiler.has_header('afunix.h')
   conf_data.set('PACKETEER_HAVE_AFUNIX_H', true)
+  have_afunix = true
 endif
 if compiler.has_header('experimental/propagate_const')
   conf_data.set('PACKETEER_HAVE_EXPERIMENTAL_PROPAGATE_CONST', true)
@@ -490,6 +492,7 @@ install_headers(
   'include' / 'packeteer' / 'util' / 'operators.h',
   'include' / 'packeteer' / 'util' / 'hash.h',
   'include' / 'packeteer' / 'util' / 'url.h',
+  'include' / 'packeteer' / 'util' / 'tmp.h',
 
   subdir: 'packeteer' / 'util',
 )
@@ -511,6 +514,7 @@ libsrc = [
   'lib' / 'thread' / 'tasklet.cpp',
   'lib' / 'util' / 'url.cpp',
   'lib' / 'util' / 'string.cpp',
+  'lib' / 'util' / 'tmp.cpp',
 ]
 
 
@@ -556,12 +560,16 @@ winsrc = [
   'lib' / 'connector' / 'win32' / 'interface.cpp',
   'lib' / 'connector' / 'win32' / 'anon.cpp',
   'lib' / 'connector' / 'win32' / 'pipe.cpp',
-# TODO move to connector/win32
-#  'lib' / 'win32' / 'detail' / 'connector.cpp',
   'lib' / 'connector' / 'win32' / 'socket.cpp',
   'lib' / 'connector' / 'win32' / 'tcp.cpp',
-#  'lib' / 'win32' / 'detail' / 'connector_udp.cpp',
+  'lib' / 'connector' / 'win32' / 'udp.cpp',
 ]
+
+if have_afunix
+  winsrc += [
+    'lib' / 'connector' / 'win32' / 'local.cpp',
+  ]
+endif
 
 
 if host_type == 'posix' or host_type == 'android'
@@ -619,6 +627,7 @@ if not meson.is_subproject()
     'test' / 'public' / 'test_error.cpp',
     'test' / 'public' / 'test_handle.cpp',
     'test' / 'public' / 'test_util_url.cpp',
+    'test' / 'public' / 'test_util_tmp.cpp',
     'test' / 'public' / 'test_net_network.cpp',
     'test' / 'public' / 'test_net_socket_address.cpp',
     'test' / 'public' / 'test_scheduler_callback.cpp',
