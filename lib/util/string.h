@@ -43,10 +43,13 @@ ssize_t ifind(std::string const & haystack, std::string const & needle);
 #if defined(PACKETEER_WIN32)
 
 /**
- * Convert from Windows UCS-2 to UTF-8
+ * Convert from Windows UCS-2 to UTF-8 and back.
  */
 PACKETEER_PRIVATE
 std::string to_utf8(TCHAR const * source);
+
+PACKETEER_PRIVATE
+std::wstring from_utf8(char const * source);
 
 #endif
 

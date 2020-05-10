@@ -108,6 +108,18 @@ to_utf8(TCHAR const * source)
   return {buf.begin(), buf.end()};
 }
 
+
+
+std::wstring
+from_utf8(char const * source)
+{
+  size_t size = MultiByteToWideChar(CP_UTF8, 0, source, -1, nullptr, 0);
+  std::vector<wchar_t> buf(size, 0);
+  MultiByteToWideChar(CP_UTF8, 0, source, -1, &buf[0], size);
+  return {buf.begin(), buf.end()};
+}
+
+
 #endif // Win32
 
 
