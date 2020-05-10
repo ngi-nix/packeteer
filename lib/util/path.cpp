@@ -17,7 +17,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include "path.h"
+#include <packeteer/util/path.h>
 
 #include <vector>
 

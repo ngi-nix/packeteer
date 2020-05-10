@@ -27,8 +27,10 @@
 
 #include <packeteer/error.h>
 #include <packeteer/util/hash.h>
+#include <packeteer/util/path.h>
 
 #include "cidr.h"
+
 
 namespace packeteer::net {
 /*****************************************************************************
@@ -66,9 +68,15 @@ parse_address(detail::address_data & data, T const & source, uint16_t port)
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
   // If parsing got aborted, we either have AF_UNIX or AF_UNSPEC as the
   // actual socket type.
+#if defined(PACKETEER_WIN32)
+  std::string converted = util::to_win32_path(source);
+  auto unwrapped = converted.c_str();
+#else // PACKETEER_WIN32
+  auto unwrapped = unwrap(source);
+#endif // PACKETEER_WIN32
   ::memset(&data.sa_storage, 0, sizeof(data));
-  data.sa_un.sun_family = ::strlen(unwrap(source)) > 0 ? AF_UNIX : AF_UNSPEC;
-  ::snprintf(data.sa_un.sun_path, UNIX_PATH_MAX, "%s", unwrap(source));
+  data.sa_un.sun_family = ::strlen(unwrapped) > 0 ? AF_UNIX : AF_UNSPEC;
+  ::snprintf(data.sa_un.sun_path, UNIX_PATH_MAX, "%s", unwrapped);
 #endif
 }
 
@@ -206,7 +214,11 @@ socket_address::full_str() const
 
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
     case AF_UNIX:
+#if defined(PACKETEER_WIN32)
+      s << util::to_posix_path(data.sa_un.sun_path);
+#else // PACKETEER_WIN32
       s << data.sa_un.sun_path;
+#endif // PACKETEER_WIN32
       break;
 #endif
 

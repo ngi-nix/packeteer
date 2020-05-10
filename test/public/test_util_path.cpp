@@ -17,7 +17,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#include "../../lib/util/path.h"
+#include <packeteer/util/path.h>
 
 #include <gtest/gtest.h>
 
