@@ -493,6 +493,7 @@ install_headers(
   'include' / 'packeteer' / 'util' / 'hash.h',
   'include' / 'packeteer' / 'util' / 'url.h',
   'include' / 'packeteer' / 'util' / 'tmp.h',
+  'include' / 'packeteer' / 'util' / 'path.h',
 
   subdir: 'packeteer' / 'util',
 )
@@ -629,6 +630,7 @@ if not meson.is_subproject()
     'test' / 'public' / 'test_handle.cpp',
     'test' / 'public' / 'test_util_url.cpp',
     'test' / 'public' / 'test_util_tmp.cpp',
+    'test' / 'public' / 'test_util_path.cpp',
     'test' / 'public' / 'test_net_network.cpp',
     'test' / 'public' / 'test_net_socket_address.cpp',
     'test' / 'public' / 'test_scheduler_callback.cpp',
@@ -644,7 +646,6 @@ if not meson.is_subproject()
     'test' / 'private' / 'test_scheduler_containers.cpp',
     'test' / 'private' / 'test_net_cidr.cpp',
     'test' / 'private' / 'test_util_string.cpp',
-    'test' / 'private' / 'test_util_path.cpp',
     'test' / 'private' / 'test_thread_binder.cpp',
     'test' / 'private' / 'test_thread_tasklet.cpp',
     'test' / 'runner.cpp',
