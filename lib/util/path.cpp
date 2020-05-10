@@ -88,7 +88,7 @@ join(std::vector<std::string> const & tokens, std::string const & delim)
 {
   std::string ret;
 
-  for (auto idx = 0 ; idx < tokens.size() - 1 ; ++idx) {
+  for (size_t idx = 0 ; idx < tokens.size() - 1 ; ++idx) {
     ret.append(tokens[idx]).append(delim);
   }
 
