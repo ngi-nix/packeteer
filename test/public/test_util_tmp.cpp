@@ -24,7 +24,7 @@
 
 namespace util = packeteer::util;
 
-TEST(TmpDir, has_value)
+TEST(Tmp, has_value)
 {
   auto tmp = util::temp_name();
   // std::cout << "TMP: "<< tmp << std::endl;
@@ -35,7 +35,7 @@ TEST(TmpDir, has_value)
 
 
 
-TEST(TmpDir, contains_prefix)
+TEST(Tmp, contains_prefix)
 {
   auto tmp = util::temp_name("p7r");
   // std::cout << "TMP: "<< tmp << std::endl;
