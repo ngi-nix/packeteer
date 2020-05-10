@@ -30,8 +30,10 @@
 #  include "posix/fifo.h"
 #else
 #  include "win32/tcp.h"
-//#  include "win32/udp.h"
-//#  include "posix/local.h"
+#  include "win32/udp.h"
+#  if defined(PACKETEER_HAVE_AFUNIX_H)
+#    include "win32/local.h"
+#  endif
 #  include "win32/pipe.h"
 #endif
 

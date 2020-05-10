@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2019 Jens Finkhaeuser.
+ * Copyright (c) 2019-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -301,7 +301,7 @@ struct registry::registry_impl
       }}));
 #endif
 
-#if defined(PACKETEER_POSIX)
+#if defined(PACKETEER_POSIX) || defined(PACKETEER_HAVE_AFUNIX_H)
   // Register posix local addresses, if possible.
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
