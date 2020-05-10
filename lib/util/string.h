@@ -35,6 +35,14 @@ std::string to_upper(std::string const & other);
 
 
 /**
+ * Replace needle in haystack with substitute.
+ */
+PACKETEER_PRIVATE
+std::string replace(std::string const & haystack, std::string const & needle,
+    std::string const & substitute, bool first_only = false);
+
+
+/**
  * Perform case-insensitive search.
  */
 PACKETEER_PRIVATE

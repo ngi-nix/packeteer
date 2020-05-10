@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2019 Jens Finkhaeuser.
+ * Copyright (c) 2019-2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -75,4 +75,16 @@ TEST(UtilString, case_insensitive_search)
   ASSERT_EQ(0, pu::ifind("foobar", ""));
   // .. except in an empty string
   ASSERT_EQ(-1, pu::ifind("", ""));
+}
+
+
+TEST(UtilString, replace)
+{
+  namespace pu = packeteer::util;
+
+  ASSERT_EQ("foo", pu::replace("f0o", "0", "o"));
+  ASSERT_EQ("fo0", pu::replace("f00", "0", "o", true));
+
+  ASSERT_EQ("\\\\quoted\\\\and\\\\separated\\\\",
+      pu::replace("\\quoted\\and\\separated\\", "\\", "\\\\"));
 }

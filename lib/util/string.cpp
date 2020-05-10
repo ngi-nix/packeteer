@@ -59,6 +59,41 @@ to_upper(std::string const & value)
 }
 
 
+
+std::string
+replace(std::string const & haystack, std::string const & needle,
+    std::string const & substitute, bool first_only /* = false */)
+{
+  std::string ret;
+
+  std::string::size_type start = 0;
+  do {
+    auto delim_pos = haystack.find(needle, start);
+
+    // Skip until the end.
+    if (delim_pos == std::string::npos) {
+      ret += haystack.substr(start);
+      break;
+    }
+
+    // Take everything up until the needle, then add substitute
+    ret += haystack.substr(start, delim_pos - start);
+    ret += substitute;
+
+    // Advance start by length of needle.
+    start = delim_pos + needle.size();
+
+    // If we only wanted the first match, bail out early.
+    if (first_only) {
+      ret += haystack.substr(start);
+      break;
+    }
+  } while (start < haystack.length());
+
+  return ret;
+}
+
+
 namespace {
 
 //
