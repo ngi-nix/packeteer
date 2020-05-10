@@ -22,6 +22,8 @@
 
 #include <packeteer/connector.h>
 #include <packeteer/scheduler.h>
+#include <packeteer/util/tmp.h>
+#include <packeteer/util/path.h>
 
 #include "../lib/macros.h"
 
@@ -281,16 +283,18 @@ TEST(Connector, default_constructed)
  */
 namespace {
 
+namespace pu = packeteer::util;
+
 struct streaming_test_data
 {
   p7r::connector_type type;
-  char const *        stream_blocking;
-  char const *        stream_non_blocking;
+  std::string         stream_blocking;
+  std::string         stream_non_blocking;
   bool                broadcast = false;
 } streaming_tests[] = {
   { p7r::CT_LOCAL,
-    "local:///tmp/test-connector-local-stream-block?blocking=1",
-    "local:///tmp/test-connector-local-stream-noblock", },
+    "local://" + pu::to_posix_path(pu::temp_name()) + "/test-connector-local-stream-block?blocking=1",
+    "local://" + pu::to_posix_path(pu::temp_name()) + "/test-connector-local-stream-noblock", },
   { p7r::CT_TCP4,
     "tcp4://127.0.0.1:54321?blocking=1",
     "tcp4://127.0.0.1:54321", },
@@ -299,14 +303,17 @@ struct streaming_test_data
     "tcp6://[::1]:54321", },
 #if defined(PACKETEER_WIN32)
   { p7r::CT_PIPE,
+    // Pipe pathname normalization is different from the win32/posix path conversion we
+    // use for CT_LOCAL.
     "pipe:///tmp/test-connector-pipe-block?blocking=1",
     "pipe:///tmp/test-connector-pipe-noblock", },
 #endif
 
 #if defined(PACKETEER_POSIX)
   { p7r::CT_FIFO,
-    "fifo:///tmp/test-connector-pipe-block?blocking=1",
-    "fifo:///tmp/test-connector-pipe-noblock",
+    // No need to convert from POSIX to POSIX
+    "fifo://" + pu::temp_name() + "/test-connector-pipe-block?blocking=1",
+    "fifo://" + pu::temp_name() + "/test-connector-pipe-noblock",
     true,
   },
 #endif
