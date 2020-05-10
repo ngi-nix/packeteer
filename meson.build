@@ -515,6 +515,7 @@ libsrc = [
   'lib' / 'util' / 'url.cpp',
   'lib' / 'util' / 'string.cpp',
   'lib' / 'util' / 'tmp.cpp',
+  'lib' / 'util' / 'path.cpp',
 ]
 
 
@@ -643,6 +644,7 @@ if not meson.is_subproject()
     'test' / 'private' / 'test_scheduler_containers.cpp',
     'test' / 'private' / 'test_net_cidr.cpp',
     'test' / 'private' / 'test_util_string.cpp',
+    'test' / 'private' / 'test_util_path.cpp',
     'test' / 'private' / 'test_thread_binder.cpp',
     'test' / 'private' / 'test_thread_tasklet.cpp',
     'test' / 'runner.cpp',
