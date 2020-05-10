@@ -402,7 +402,7 @@ connector_socket::socket_accept(handle::sys_handle_t & new_handle, net::socket_a
 bool
 connector_socket::is_blocking() const
 {
-  return m_handle->blocking;
+  return m_handle != handle::INVALID_SYS_HANDLE && m_handle->blocking;
 }
 
 
