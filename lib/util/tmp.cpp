@@ -59,15 +59,48 @@ temp_name(std::string const & prefix /* = "" */)
 
 #else // PACKETEER_WIN32
 
-#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <vector>
 
 namespace packeteer::util {
 
 std::string
 temp_name(std::string const & prefix /* = "" */)
 {
-  DLOG("RESULT: " << tmpnam()); // TODO
-  PACKETEER_FLOW_CONTROL_GUARD;
+  // Get temporary directory
+  char const * tmpdir = getenv("TMPDIR");
+  if (!tmpdir) {
+    tmpdir = "/tmp";
+  }
+
+  // Template
+  std::string templ = tmpdir;
+  if (prefix.empty()) {
+    templ += "/packeteer-XXXXXX";
+  }
+  else {
+    templ += "/" + prefix + "-XXXXXX";
+  }
+
+  // Copy to writable buffer
+  std::vector<char> buf{templ.begin(), templ.end()};
+  buf.push_back(0);
+
+  // Create temporary file
+  int fd = mkstemp(&buf[0]);
+  if (fd < 0) {
+    ERRNO_LOG("mkstemp failed.");
+    throw exception(ERR_UNEXPECTED, "mkstemp failed.");
+  }
+  std::string ret{buf.begin(), buf.end()};
+
+  // Cleanup
+  close(fd);
+  unlink(ret.c_str());
+
+  return ret;
 }
 
 
