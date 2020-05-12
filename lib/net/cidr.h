@@ -69,7 +69,7 @@ namespace packeteer::net::detail {
 
 struct PACKETEER_PRIVATE parse_result_t
 {
-  inline parse_result_t(address_data & data)
+  inline explicit parse_result_t(address_data & data)
     : proto(AF_UNSPEC)
     , address(data)
     , mask(-1)

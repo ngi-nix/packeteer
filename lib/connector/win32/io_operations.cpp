@@ -20,8 +20,8 @@
 
 #include "io_operations.h"
 
-#include ",,/../macros.h"
-#include "../../lib/win32/sys_handle.h"
+#include "../../macros.h"
+#include "../../win32/sys_handle.h"
 
 namespace packeteer::detail::io {
 

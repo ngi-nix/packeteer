@@ -696,6 +696,12 @@ if cppcheck.found()
     cppcheck.path(),
     '--cppcheck-build-dir=@0@/cppcheck'.format(meson.current_build_dir()),
     '--enable=all', '-v',
-    '@0@/packeteer'.format(meson.current_source_dir()),
+    '--suppress=missingIncludeSystem',
+    '-I', '@0@/include'.format(meson.current_source_dir()),
+    '-I', meson.current_build_dir(),
+    '--std=c++14', # FIXME best we have
+    '-DDEBUG',
+    '--quiet',
+    '@0@/lib'.format(meson.current_source_dir()),
   ])
 endif

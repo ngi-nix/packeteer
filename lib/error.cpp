@@ -147,6 +147,7 @@ void combine_error(std::string & result, error_t code, int errnum, std::string c
       result += details;
     }
   } catch (...) {
+    result = "Error copying error message.";
   }
 }
 

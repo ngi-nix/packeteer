@@ -38,6 +38,6 @@
 #endif
 
 // Common includes
-#include "connector/anon.h"
+#include "anon.h"
 
 #endif // guard

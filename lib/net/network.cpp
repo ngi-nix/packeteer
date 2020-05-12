@@ -103,7 +103,7 @@ struct network::network_impl
   sa_family_t               m_family;
   std::set<socket_address>  m_allocated;
 
-  network_impl(std::string const & netspec)
+  inline explicit network_impl(std::string const & netspec)
     : m_netspec(netspec)
     , m_network("0.0.0.0") // Fake for now, see below
     , m_mask_size(0)

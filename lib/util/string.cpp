@@ -104,12 +104,12 @@ struct case_insensitive_equal
 {
   std::locale const & m_loc;
 
-  case_insensitive_equal(std::locale const & loc)
+  inline explicit case_insensitive_equal(std::locale const & loc)
     : m_loc(loc)
   {
-  } 
+  }
 
-  bool operator()(T const & first, T const & second)
+  inline bool operator()(T const & first, T const & second)
   {
     return std::tolower(first, m_loc) == std::tolower(second, m_loc);
   }

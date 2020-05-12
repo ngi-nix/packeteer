@@ -52,8 +52,6 @@ static void tasklet_wrapper(void * arg)
 tasklet::tasklet(std::condition_variable_any * condition, std::recursive_mutex * mutex,
     tasklet::function const & func, void * baton /* = nullptr */, bool start_now /* = false */)
   : m_tasklet_info(new tasklet_info(this, func, baton))
-  , m_thread()
-  , m_running(false)
   , m_condition(condition)
   , m_tasklet_mutex(mutex)
   , m_condition_owned(false)
@@ -69,8 +67,6 @@ tasklet::tasklet(std::condition_variable_any * condition, std::recursive_mutex *
 tasklet::tasklet(tasklet::function const & func, void * baton /* = nullptr */,
     bool start_now /* = false */)
   : m_tasklet_info(new tasklet_info(this, func, baton))
-  , m_thread()
-  , m_running(false)
   , m_condition(new std::condition_variable_any())
   , m_tasklet_mutex(new std::recursive_mutex())
   , m_condition_owned(true)

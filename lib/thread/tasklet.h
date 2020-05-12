@@ -179,15 +179,15 @@ private:
   /***************************************************************************
    * Data
    **/
-  struct tasklet_info *                   m_tasklet_info;
-  std::thread                             m_thread;
+  struct tasklet_info *                   m_tasklet_info = nullptr;
+  std::thread                             m_thread{};
 
-  volatile bool                           m_running;
+  volatile bool                           m_running{false};
 
-  mutable std::condition_variable_any *   m_condition;
-  mutable std::recursive_mutex *          m_tasklet_mutex;
-  bool                                    m_condition_owned;
-  bool                                    m_mutex_owned;
+  mutable std::condition_variable_any *   m_condition = nullptr;
+  mutable std::recursive_mutex *          m_tasklet_mutex = nullptr;
+  bool                                    m_condition_owned = false;
+  bool                                    m_mutex_owned = false;
 };
 
 } // namespace packeteer::thread
