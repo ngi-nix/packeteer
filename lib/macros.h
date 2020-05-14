@@ -48,10 +48,10 @@
 #include <iostream>
 #include <string.h>
 #define _LOG_BASE(severity, msg) { \
-  std::stringstream s; \
-  s << "[" << __FILE__ << ":" \
+  std::stringstream sstream; \
+  sstream << "[" << __FILE__ << ":" \
   << __LINE__ << "] " << severity << ": " << msg << std::endl; \
-  std::cerr << s.str(); \
+  std::cerr << sstream.str(); \
 }
 #define DLOG(msg) _LOG_BASE("DEBUG", msg)
 #define ELOG(msg) _LOG_BASE("ERROR", msg)
@@ -116,12 +116,31 @@
 /**
  * Flow control guard; if this line is reached, an exception is thrown.
  **/
-#define PACKETEER_FLOW_CONTROL_GUARD                                \
+#define PACKETEER_FLOW_CONTROL_GUARD_WITH(msg)                      \
   {                                                                 \
     std::stringstream flowcontrol;                                  \
+    std::string mess{msg};                                          \
+    if (!mess.empty()) {                                            \
+      flowcontrol << mess << " - ";                                 \
+    }                                                               \
     flowcontrol << "Control should never have reached this line: "  \
       << __FILE__ << ":" << __LINE__;                               \
     throw exception(ERR_UNEXPECTED, flowcontrol.str());             \
   }
+
+#define PACKETEER_FLOW_CONTROL_GUARD PACKETEER_FLOW_CONTROL_GUARD_WITH("")
+
+
+/**
+ * Support for clang/OCLint suppressions
+ **/
+#if defined(__clang__) and defined(OCLINT_IS_RUNNING)
+#  define OCLINT_SUPPRESS(suppression) \
+    __attribute__(( \
+      annotate("oclint:suppress[" suppression "]") \
+    ))
+#else
+#  define OCLINT_SUPPRESS(annotation)
+#endif
 
 #endif // guard

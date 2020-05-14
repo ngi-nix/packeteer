@@ -739,6 +739,7 @@ if oclint.found()
       '--std=@0@'.format(get_option('cpp_std')),
       cpp_args,
       cpp_lib_defines,
+      '-DOCLINT_IS_RUNNING',
     ],
     depends: oclint_config,
   )
