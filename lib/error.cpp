@@ -100,7 +100,9 @@ namespace {
 
 // Helper function for trying to create a verbose error message. This may fail
 // if there can't be any more allocations, for example, so be extra careful.
-void combine_error(std::string & result, error_t code, int errnum, std::string const & details)
+void
+combine_error(std::string & result, error_t code, int errnum,
+    std::string const & details)
 {
   try {
     result = "[" + std::string{error_name(code)} + "] ";
@@ -154,7 +156,8 @@ void combine_error(std::string & result, error_t code, int errnum, std::string c
 } // anonymous namespace
 
 
-exception::exception(error_t code, std::string const & details /* = "" */) throw()
+exception::exception(error_t code,
+    std::string const & details /* = "" */) throw()
   : std::runtime_error("")
   , m_code(code)
 {
@@ -163,7 +166,8 @@ exception::exception(error_t code, std::string const & details /* = "" */) throw
 
 
 
-exception::exception(error_t code, int errnum, std::string const & details /* = "" */) throw()
+exception::exception(error_t code, int errnum,
+    std::string const & details /* = "" */) throw()
   : std::runtime_error("")
   , m_code(code)
 {

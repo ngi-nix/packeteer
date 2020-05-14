@@ -46,7 +46,8 @@ api::api()
   DLOG("WSA Description: " << data.szDescription);
   if (res != 0) {
     DLOG("WSA System Status: " << data.szSystemStatus);
-    throw exception(ERR_INITIALIZATION, WSAGetLastError(), "WSAStartup failed!");
+    throw exception(ERR_INITIALIZATION, WSAGetLastError(),
+        "WSAStartup failed!");
   }
 #endif // win32
 }

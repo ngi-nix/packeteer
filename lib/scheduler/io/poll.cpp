@@ -122,12 +122,12 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   std::vector<::pollfd> fds;
   fds.resize(size);
 
-  size_t i = 0;
+  size_t idx = 0;
   for (auto entry : m_sys_handles) {
-    fds[i].fd = entry.first;
-    fds[i].events = translate_events_to_os(entry.second);
-    fds[i].revents = 0;
-    ++i;
+    fds[idx].fd = entry.first;
+    fds[idx].events = translate_events_to_os(entry.second);
+    fds[idx].revents = 0;
+    ++idx;
   }
 
   // Wait for events
@@ -138,7 +138,8 @@ io_poll::wait_for_events(std::vector<event_data> & events,
 
     int ret = ::ppoll(&fds[0], size, &ts, nullptr);
 #else
-    int ret = ::poll(&fds[0], size, sc::ceil<sc::milliseconds>(timeout).count());
+    int ret = ::poll(&fds[0], size,
+        sc::ceil<sc::milliseconds>(timeout).count());
 #endif
 
     if (ret >= 0) {
@@ -152,7 +153,8 @@ io_poll::wait_for_events(std::vector<event_data> & events,
 
       case EFAULT:
       case EINVAL:
-        throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in poll set.");
+        throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in poll "
+            "set.");
         break;
 
       case ENOMEM:
@@ -168,11 +170,11 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   // Map events; we'll need to iterate over the available file descriptors again
   // (conceivably, we could just use the subset in the FD sets, but that uses
   // additional memory).
-  for (i = 0 ; i < size ; ++i) {
-    events_t translated = translate_os_to_events(fds[i].revents);
+  for (idx = 0 ; idx < size ; ++idx) {
+    events_t translated = translate_os_to_events(fds[idx].revents);
     if (translated) {
       event_data ev = {
-        m_connectors[fds[i].fd],
+        m_connectors[fds[idx].fd],
         translated
       };
       events.push_back(ev);

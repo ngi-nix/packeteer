@@ -87,6 +87,7 @@ void clear_interrupt(connector & pipe)
  **/
 scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
     ssize_t num_workers, scheduler_type type)
+  OCLINT_SUPPRESS("long method")
   : m_api{api}
   , m_num_workers{num_workers}
   , m_workers{}
@@ -120,7 +121,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 
     case TYPE_SELECT:
 #if !defined(PACKETEER_HAVE_SELECT)
-      throw exception(ERR_INVALID_OPTION, "select() is not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "select() is not supported on this "
+          "platform.");
 #else
       m_io = new detail::io_select(m_api);
 #endif
@@ -129,7 +131,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 
     case TYPE_EPOLL:
 #if !defined(PACKETEER_HAVE_EPOLL_CREATE1)
-      throw exception(ERR_INVALID_OPTION, "epoll() is not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "epoll() is not supported on this "
+          "platform.");
 #else
       m_io = new detail::io_epoll(m_api);
 #endif
@@ -138,7 +141,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 
     case TYPE_POLL:
 #if !defined(PACKETEER_HAVE_POLL)
-      throw exception(ERR_INVALID_OPTION, "poll() is not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "poll() is not supported on this "
+          "platform.");
 #else
       m_io = new detail::io_poll(m_api);
 #endif
@@ -147,7 +151,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 
     case TYPE_KQUEUE:
 #if !defined(PACKETEER_HAVE_KQUEUE)
-      throw exception(ERR_INVALID_OPTION, "kqueue() is not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "kqueue() is not supported on this "
+          "platform.");
 #else
       m_io = new detail::io_kqueue(m_api);
 #endif
@@ -156,7 +161,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 
     case TYPE_IOCP:
 #if !defined(PACKETEER_HAVE_IOCP)
-      throw exception(ERR_INVALID_OPTION, "I/O completion ports are not supported on this platform.");
+      throw exception(ERR_INVALID_OPTION, "I/O completion ports are not "
+          "supported on this platform.");
 #else
       m_io = new detail::io_iocp(m_api);
 #endif
@@ -259,7 +265,8 @@ scheduler::scheduler_impl::adjust_workers(ssize_t num_workers)
   ssize_t have = m_workers.size();
 
   if (num_workers < have) {
-    DLOG("Decreasing worker count from " << have << " to " << num_workers << ".");
+    DLOG("Decreasing worker count from " << have << " to "
+        << num_workers << ".");
     size_t to_stop = have - num_workers;
     size_t remain = have - to_stop;
 
@@ -274,9 +281,11 @@ scheduler::scheduler_impl::adjust_workers(ssize_t num_workers)
     m_workers.resize(remain);
   }
   else if (num_workers > have) {
-    DLOG("Increasing worker count from " << have << " to " << num_workers << ".");
+    DLOG("Increasing worker count from " << have << " to "
+        << num_workers << ".");
     for (ssize_t i = have ; i < num_workers ; ++i) {
-      auto worker = new pdt::worker(m_worker_condition, m_worker_mutex, m_out_queue);
+      auto worker = new pdt::worker(m_worker_condition, m_worker_mutex,
+          m_out_queue);
       worker->start();
       m_workers.push_back(worker);
     }
@@ -322,7 +331,7 @@ scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 
       default:
         delete item.second;
-        throw exception(ERR_UNEXPECTED, "Bad callback entry type, unreachable line reached");
+        PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad callback entry type");
         break;
     }
   }
@@ -426,7 +435,7 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
     default:
       delete entry;
-      throw exception(ERR_UNEXPECTED, "Bad action for user callback, unreachable line reached");
+      PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad action for user callback");
   }
 }
 
@@ -446,7 +455,8 @@ scheduler::scheduler_impl::dispatch_io_callbacks(
     }
 
     // Find callback(s).
-    auto callbacks = m_io_callbacks.copy_matching(event.m_connector, event.m_events);
+    auto callbacks = m_io_callbacks.copy_matching(event.m_connector,
+        event.m_events);
     to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
   }
 }
@@ -505,7 +515,8 @@ scheduler::scheduler_impl::dispatch_scheduled_callbacks(
 
 
 void
-scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggered,
+scheduler::scheduler_impl::dispatch_user_callbacks(
+    entry_list_t const & triggered,
     entry_list_t & to_schedule)
 {
   for (auto & e : triggered) {
@@ -532,6 +543,7 @@ scheduler::scheduler_impl::dispatch_user_callbacks(entry_list_t const & triggere
 
 void
 scheduler::scheduler_impl::main_scheduler_loop()
+  OCLINT_SUPPRESS("deep nested block")
 {
   DLOG("Scheduler main loop started.");
 
@@ -540,21 +552,22 @@ scheduler::scheduler_impl::main_scheduler_loop()
       // Timeout is *fixed*, because:
       // - I/O events will interrupt this anyway.
       // - OSX has a minimum timeout of 20 msec for *select*
-      // - It would not make sense for user/scheduled callbacks to be triggered at
-      //   different resolution on different platforms.
+      // - It would not make sense for user/scheduled callbacks to be triggered 
+      //   at different resolution on different platforms.
       entry_list_t to_schedule;
       wait_for_events(sc::nanoseconds(PACKETEER_EVENT_WAIT_INTERVAL_USEC),
           true, // Soft timeout
           to_schedule);
 
-      // After callbacks of all kinds have been added to to_schedule, we can push
-      // those entries to the out queue and wake workers.
+      // After callbacks of all kinds have been added to to_schedule, we can
+      // push those entries to the out queue and wake workers.
       if (!to_schedule.empty()) {
         m_out_queue.push_range(to_schedule.begin(), to_schedule.end());
 
         // We need to interrupt the worker pipe more than once, in order to wake
-        // up multiple workers. But we don't want to interrupt the pipe more than
-        // there are workers or jobs, either, to avoid needless lock contention.
+        // up multiple workers. But we don't want to interrupt the pipe more
+        // than there are workers or jobs, either, to avoid needless lock
+        // contention.
         std::lock_guard<std::recursive_mutex> lock(m_worker_mutex);
         size_t interrupts = std::min(to_schedule.size(), m_workers.size());
         while (interrupts--) {
@@ -690,7 +703,7 @@ handle_entry(detail::callback_entry * entry)
   try {
     err = execute_callback(entry);
     if (ERR_SUCCESS != err) {
-      ELOG("Error in callback: [" << error_name(err) << "] " << error_message(err));
+      ET_LOG("Error in callback", err);
     }
   } catch (exception const & ex) {
     EXC_LOG("Error in callback", ex);

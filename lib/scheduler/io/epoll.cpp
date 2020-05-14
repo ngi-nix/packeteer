@@ -92,6 +92,7 @@ translate_os_to_events(int os)
 inline void
 modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
     events_t const & events)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   int translated = translate_events_to_os(events);
 
@@ -102,51 +103,57 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
     event.data.fd = fds[i];
     int ret = ::epoll_ctl(epoll_fd, action, fds[i], &event);
 
-    if (-1 == ret) {
-      switch (errno) {
-        case EEXIST:
-          if (EPOLL_CTL_ADD == action) {
-            int again_fds[] = { fds[i] };
-            modify_fd_set(epoll_fd, EPOLL_CTL_MOD, again_fds,
-                sizeof(again_fds) / sizeof(int), events);
-          }
-          else {
-            throw exception(ERR_UNEXPECTED, errno);
-          }
-          break;
+    if (ret >= 0) {
+      continue;
+    }
 
-        case ENOENT:
-          if (EPOLL_CTL_DEL == action) {
-            // silently ignore
-          }
-          else if (EPOLL_CTL_MOD == action) {
-            // Can only be reached via the modify_fd_set call above, so we are
-            // safe to just bail out.
-            throw exception(ERR_INVALID_VALUE, errno, "Cannot modify event mask for unknown file descriptor.");
-          }
-          else {
-            throw exception(ERR_UNEXPECTED, errno);
-          }
-          break;
-
-        case ENOMEM:
-          throw exception(ERR_OUT_OF_MEMORY, errno, "No more memory for epoll.");
-          break;
-
-        case ENOSPC:
-          throw exception(ERR_NUM_FILES, errno, "Could not register new file descriptor.");
-          break;
-
-        case EBADF:
-        case EINVAL:
-        case EPERM:
-          throw exception(ERR_INVALID_VALUE, errno, "Invalid file descriptor provided.");
-          break;
-
-        default:
+    // Error handling
+    switch (errno) {
+      case EEXIST:
+        if (EPOLL_CTL_ADD == action) {
+          int again_fds[] = { fds[i] };
+          modify_fd_set(epoll_fd, EPOLL_CTL_MOD, again_fds,
+              sizeof(again_fds) / sizeof(int), events);
+        }
+        else {
           throw exception(ERR_UNEXPECTED, errno);
-          break;
-      }
+        }
+        break;
+
+      case ENOENT:
+        if (EPOLL_CTL_DEL == action) { //!OCLINT
+          // silently ignore
+        }
+        else if (EPOLL_CTL_MOD == action) {
+          // Can only be reached via the modify_fd_set call above, so we are
+          // safe to just bail out.
+          throw exception(ERR_INVALID_VALUE, errno, "Cannot modify event mask "
+              "for unknown file descriptor.");
+        }
+        else {
+          throw exception(ERR_UNEXPECTED, errno);
+        }
+        break;
+
+      case ENOMEM:
+        throw exception(ERR_OUT_OF_MEMORY, errno, "No more memory for epoll.");
+        break;
+
+      case ENOSPC:
+        throw exception(ERR_NUM_FILES, errno, "Could not register new file "
+            "descriptor.");
+        break;
+
+      case EBADF:
+      case EINVAL:
+      case EPERM:
+        throw exception(ERR_INVALID_VALUE, errno, "Invalid file descriptor "
+            "provided.");
+        break;
+
+      default:
+        throw exception(ERR_UNEXPECTED, errno);
+        break;
     }
   }
 }
@@ -195,11 +202,13 @@ io_epoll::io_epoll(std::shared_ptr<api> api)
     switch (errno) {
       case EMFILE:
       case ENFILE:
-        throw exception(ERR_NUM_FILES, errno, "Could not create epoll file descriptor.");
+        throw exception(ERR_NUM_FILES, errno, "Could not create epoll file "
+            "descriptor.");
         break;
 
       case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY, errno, "Could not create epoll file descriptor.");
+        throw exception(ERR_OUT_OF_MEMORY, errno, "Could not create epoll file "
+            "descriptor.");
         break;
 
       default:
@@ -299,7 +308,8 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
 
       case EBADF:
       case EINVAL:
-        throw exception(ERR_INVALID_VALUE, errno, "File descriptor for epoll was invalid.");
+        throw exception(ERR_INVALID_VALUE, errno, "File descriptor for epoll "
+            "was invalid.");
         break;
 
       default:

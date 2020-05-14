@@ -62,6 +62,8 @@ io_select::~io_select()
 void
 io_select::wait_for_events(std::vector<event_data> & events,
       duration const & timeout)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
+  OCLINT_SUPPRESS("long method")
 {
   // FD sets
   ::fd_set read_fds;
@@ -95,7 +97,8 @@ io_select::wait_for_events(std::vector<event_data> & events,
     ::timespec ts;
     ::packeteer::thread::chrono::convert(timeout, ts);
 
-    int ret = ::pselect(max_fd + 1, &read_fds, &write_fds, &err_fds, &ts, nullptr);
+    int ret = ::pselect(max_fd + 1, &read_fds, &write_fds, &err_fds, &ts,
+        nullptr);
 #else
     ::timeval tv;
     ::packeteer::thread::chrono::convert(timeout, tv);
@@ -114,7 +117,8 @@ io_select::wait_for_events(std::vector<event_data> & events,
 
       case EBADF:
       case EINVAL:
-        throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in select set.");
+        throw exception(ERR_INVALID_VALUE, errno, "Bad file descriptor in "
+            "select set.");
 
       case ENOMEM:
         throw exception(ERR_OUT_OF_MEMORY, errno, "OOM in select call.");
@@ -129,13 +133,13 @@ io_select::wait_for_events(std::vector<event_data> & events,
   // additional memory).
   for (auto entry : m_sys_handles) {
     events_t mask = 0;
-    if (FD_ISSET(entry.first, &read_fds)) {
+    if (FD_ISSET(entry.first, &read_fds)) { //!OCLINT(in FD_ISSET)
       mask |= PEV_IO_READ;
     }
-    if (FD_ISSET(entry.first, &write_fds)) {
+    if (FD_ISSET(entry.first, &write_fds)) { //!OCLINT(in FD_ISSET)
       mask |= PEV_IO_WRITE;
     }
-    if (FD_ISSET(entry.first, &err_fds)) {
+    if (FD_ISSET(entry.first, &err_fds)) { //!OCLINT(in FD_ISSET)
       mask |= PEV_IO_ERROR;
     }
 

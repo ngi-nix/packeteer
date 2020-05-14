@@ -96,7 +96,8 @@ socket_address::socket_address()
 socket_address::socket_address(void const * buf, size_t len)
 {
   if (static_cast<size_t>(len) > sizeof(data)) {
-    throw exception(ERR_INVALID_VALUE, "socket_address: input buffer too large.");
+    throw exception(ERR_INVALID_VALUE, "socket_address: input buffer too "
+        "large.");
   }
 
   // Need to zero data.
@@ -130,7 +131,7 @@ socket_address::verify_cidr(std::string const & address)
   detail::address_data dummy_addr;
   detail::parse_result_t result(dummy_addr);
   error_t err = detail::parse_extended_cidr(address, true, result);
-  return (ERR_SUCCESS == err);
+  return ERR_SUCCESS == err;
 }
 
 
@@ -139,14 +140,12 @@ bool
 socket_address::verify_netmask(size_t const & netmask) const
 {
   if (AF_INET == data.sa_storage.ss_family) {
-    return (netmask <= 32);
+    return netmask <= 32;
   }
   else if (AF_INET6 == data.sa_storage.ss_family) {
-    return (netmask <= 128);
+    return netmask <= 128;
   }
-  else {
-    return false;
-  }
+  return false;
 }
 
 
@@ -201,23 +200,23 @@ socket_address::port() const
 std::string
 socket_address::full_str() const
 {
-  std::stringstream s;
+  std::stringstream sstream;
 
   switch (data.sa_storage.ss_family) {
     case AF_INET:
-      s << cidr_str() << ":" << port();
+      sstream << cidr_str() << ":" << port();
       break;
 
     case AF_INET6:
-      s << "[" << cidr_str() << "]:" << port();
+      sstream << "[" << cidr_str() << "]:" << port();
       break;
 
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
     case AF_UNIX:
 #if defined(PACKETEER_WIN32)
-      s << util::to_posix_path(data.sa_un.sun_path);
+      sstream << util::to_posix_path(data.sa_un.sun_path);
 #else // PACKETEER_WIN32
-      s << data.sa_un.sun_path;
+      sstream << data.sa_un.sun_path;
 #endif // PACKETEER_WIN32
       break;
 #endif
@@ -226,7 +225,7 @@ socket_address::full_str() const
       break;
   }
 
-  return s.str();
+  return sstream.str();
 }
 
 
@@ -244,7 +243,8 @@ socket_address::bufsize() const
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
     case AF_UNIX:
       {
-        return offsetof(sockaddr_un, sun_path) + ::strlen(data.sa_un.sun_path) + 1;
+        return offsetof(sockaddr_un, sun_path)
+          + ::strlen(data.sa_un.sun_path) + 1;
       }
 #endif
 
@@ -365,28 +365,29 @@ socket_address::is_less_than(socket_address const & other) const
 
   // Now compare depending on family. IPv4 is simple.
   if (AF_INET == data.sa_storage.ss_family) {
-    if (ntohl(data.sa_in.sin_addr.s_addr) < ntohl(other.data.sa_in.sin_addr.s_addr)) {
+    if (ntohl(data.sa_in.sin_addr.s_addr)
+        < ntohl(other.data.sa_in.sin_addr.s_addr)) {
       return true;
     }
-    return (ntohs(data.sa_in.sin_port) < ntohs(other.data.sa_in.sin_port));
+    return ntohs(data.sa_in.sin_port) < ntohs(other.data.sa_in.sin_port);
   }
 
   // IPv6 is harder, but not too hard. We need to compare byte by byte.
   else if (AF_INET6 == data.sa_storage.ss_family) {
     for (ssize_t i = 0 ; i < 16 ; ++i) {
-      if (data.sa_in6.sin6_addr.s6_addr[i] < other.data.sa_in6.sin6_addr.s6_addr[i]) {
+      if (data.sa_in6.sin6_addr.s6_addr[i]
+          < other.data.sa_in6.sin6_addr.s6_addr[i]) {
         return true;
       }
     }
 
-    return (ntohs(data.sa_in6.sin6_port) < ntohs(other.data.sa_in6.sin6_port));
+    return ntohs(data.sa_in6.sin6_port) < ntohs(other.data.sa_in6.sin6_port);
   }
 
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
   // Unix paths are simple again.
-  else {
-    return 0 > ::memcmp(data.sa_un.sun_path, other.data.sa_un.sun_path, UNIX_PATH_MAX);
-  }
+  return 0 > ::memcmp(data.sa_un.sun_path, other.data.sa_un.sun_path,
+      UNIX_PATH_MAX);
 #else
   // We don't know what to do, really.
   return false;
@@ -402,6 +403,7 @@ socket_address::operator++()
   if (AF_INET == data.sa_storage.ss_family) {
     uint32_t ip = ntohl(data.sa_in.sin_addr.s_addr);
     data.sa_in.sin_addr.s_addr = htonl(ip + 1);
+    return;
   }
   else if (AF_INET6 == data.sa_storage.ss_family) {
     // IPv6 is still simple enough, we just have to handle overflow from one
@@ -413,10 +415,10 @@ socket_address::operator++()
         done = true;
       }
     }
+    return;
   }
-  else {
-    throw exception(ERR_UNSUPPORTED_ACTION, "Don't know how to increment paths.");
-  }
+
+  throw exception(ERR_UNSUPPORTED_ACTION, "Don't know how to increment paths.");
 }
 
 

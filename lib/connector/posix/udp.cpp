@@ -83,7 +83,8 @@ connector_udp::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::socket_bind(select_domain(m_addr), SOCK_DGRAM, fd);
+  error_t err = connector_socket::socket_bind(select_domain(m_addr),
+      SOCK_DGRAM, fd);
   if (ERR_SUCCESS != err) {
     return err;
   }

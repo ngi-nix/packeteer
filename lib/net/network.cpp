@@ -80,9 +80,9 @@ inline uint64_t pow2(size_t exp)
     8796093022208, 17592186044416, 35184372088832, 70368744177664,
     140737488355328, 281474976710656, 562949953421312, 1125899906842624,
     2251799813685248, 4503599627370496, 9007199254740992, 18014398509481984,
-    36028797018963968, 72057594037927936, 144115188075855872, 288230376151711744,
-    576460752303423488, 1152921504606846976, 2305843009213693952,
-    4611686018427387904, 9223372036854775808ULL,
+    36028797018963968, 72057594037927936, 144115188075855872,
+    288230376151711744, 576460752303423488, 1152921504606846976,
+    2305843009213693952, 4611686018427387904, 9223372036854775808ULL,
   };
   return powers[exp];
 }
@@ -133,7 +133,8 @@ struct network::network_impl
 
     ssize_t max_exp = limit - m_mask_size;
     if (max_exp < 0) {
-      throw exception(ERR_UNEXPECTED, "It seems the network limit is smaller than the network mask.");
+      throw exception(ERR_UNEXPECTED, "It seems the network limit is smaller "
+          "than the network mask.");
     }
 
     return pow2(max_exp) - 2;
@@ -171,7 +172,7 @@ network::verify_netspec(std::string const & netspec)
   detail::address_data dummy_addr;
   detail::parse_result_t result(dummy_addr);
   error_t err = detail::parse_extended_cidr(netspec, false, result);
-  return (err == ERR_SUCCESS);
+  return err == ERR_SUCCESS;
 }
 
 
@@ -324,7 +325,7 @@ network::reserve_address(std::string const & identifier)
   ++alloc;
 
   // Increment the allocated address as often as the hash value now.
-  for (uint32_t i = 0 ; i < hash ; ++i, ++alloc);
+  for (uint32_t i = 0 ; i < hash ; ++i, ++alloc); //!OCLINT
 
   // The address we found may already be allocated. In this version of
   // reserve_address() we just give up, then.
@@ -336,7 +337,8 @@ network::reserve_address(std::string const & identifier)
   }
 
   // Well, it looks grim. There must have been a collision.
-  throw exception(ERR_NUM_ITEMS, "Possible hash collision when allocating addresses.");
+  throw exception(ERR_NUM_ITEMS, "Possible hash collision when allocating "
+      "addresses.");
 }
 
 
@@ -345,7 +347,8 @@ socket_address
 network::reserve_address(void const * identifier, size_t const & length)
 {
   if (nullptr == identifier || 0 == length) {
-    throw exception(ERR_INVALID_VALUE, "No or zero length identifier specified.");
+    throw exception(ERR_INVALID_VALUE, "No or zero length identifier "
+        "specified.");
   }
 
   return reserve_address(std::string(static_cast<char const *>(identifier),
@@ -432,9 +435,9 @@ network::max_size() const
 bool
 network::is_equal_to(network const & other) const
 {
-  return (m_impl->m_mask_size == other.m_impl->m_mask_size
+  return m_impl->m_mask_size == other.m_impl->m_mask_size
       && m_impl->m_family == other.m_impl->m_family
-      && m_impl->m_network == other.m_impl->m_network);
+      && m_impl->m_network == other.m_impl->m_network;
 }
 
 bool
@@ -452,7 +455,7 @@ network::is_less_than(network const & other) const
   }
 
   // Compare masks
-  return (m_impl->m_mask_size < other.m_impl->m_mask_size);
+  return m_impl->m_mask_size < other.m_impl->m_mask_size;
 }
 
 

@@ -66,12 +66,10 @@ connector_anon::create_pipe()
       case ENFILE:
         close();
         return ERR_NUM_FILES;
-        break;
 
       default:
         close();
         return ERR_UNEXPECTED;
-        break;
     }
   }
 
@@ -132,7 +130,8 @@ connector_anon::connected() const
 connector_interface *
 connector_anon::accept(net::socket_address & /* unused */)
 {
-  // There is no need for accept(); we've already got the connection established.
+  // There is no need for accept(); we've already got the connection
+  // established.
   if (!connected()) {
     return nullptr;
   }
@@ -182,15 +181,18 @@ connector_anon::is_blocking() const
   bool states[2] = { false, false };
   error_t err = detail::get_blocking_mode(m_handles[0].sys_handle(), states[0]);
   if (ERR_SUCCESS != err) {
-    throw exception(err, "Could not determine blocking mode from file descriptor!");
+    throw exception(err, "Could not determine blocking mode from file "
+        "descriptor!");
   }
   err = detail::get_blocking_mode(m_handles[1].sys_handle(), states[1]);
   if (ERR_SUCCESS != err) {
-    throw exception(err, "Could not determine blocking mode from file descriptor!");
+    throw exception(err, "Could not determine blocking mode from file "
+        "descriptor!");
   }
 
   if (states[0] != states[1]) {
-    throw exception(ERR_UNEXPECTED, "The two file descriptors had differing blocking modes.");
+    throw exception(ERR_UNEXPECTED, "The two file descriptors had differing "
+        "blocking modes.");
   }
 
   return states[0];

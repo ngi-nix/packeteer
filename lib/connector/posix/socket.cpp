@@ -43,6 +43,8 @@ namespace {
 
 error_t
 create_socket(int domain, int type, int & fd, bool blocking)
+  OCLINT_SUPPRESS("high ncss method")
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   DLOG("create_socket(" << blocking << ")");
   fd = ::socket(domain, type, 0);
@@ -85,26 +87,29 @@ create_socket(int domain, int type, int & fd, bool blocking)
   option.l_onoff = 1;
   option.l_linger = 0;
   int ret = ::setsockopt(fd, SOL_SOCKET, SO_LINGER, &option, sizeof(option));
-  if (ret < 0) {
-    ::close(fd);
-    fd = -1;
-
-    ERRNO_LOG("create_socket setsockopt failed!");
-    switch (errno) {
-      case EBADF:
-      case EFAULT:
-      case EINVAL:
-        return ERR_INVALID_VALUE;
-
-      case ENOPROTOOPT:
-      case ENOTSOCK:
-        return ERR_UNSUPPORTED_ACTION;
-
-      default:
-        return ERR_UNEXPECTED;
-    }
+  if (ret >= 0) {
+    return ERR_SUCCESS;
   }
-  return ERR_SUCCESS;
+
+  ::close(fd);
+  fd = -1;
+
+  ERRNO_LOG("create_socket setsockopt failed!");
+  switch (errno) {
+    case EBADF:
+    case EFAULT:
+    case EINVAL:
+      return ERR_INVALID_VALUE;
+
+    case ENOPROTOOPT:
+    case ENOTSOCK:
+      return ERR_UNSUPPORTED_ACTION;
+
+    default:
+      return ERR_UNEXPECTED;
+  }
+
+  PACKETEER_FLOW_CONTROL_GUARD;
 }
 
 
@@ -130,6 +135,10 @@ connector_socket::connector_socket(connector_options const & options)
 
 error_t
 connector_socket::socket_connect(int domain, int type)
+  OCLINT_SUPPRESS("high ncss method")
+  OCLINT_SUPPRESS("high npath complexity")
+  OCLINT_SUPPRESS("high cyclomatic complexity")
+  OCLINT_SUPPRESS("long method")
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
@@ -144,7 +153,8 @@ connector_socket::socket_connect(int domain, int type)
 
   // Now try to connect the socket with the path
   while (true) {
-    int ret = ::connect(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
+    int ret = ::connect(fd,
+        reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
         m_addr.bufsize());
     if (ret >= 0) {
       // Finally, set the fd
@@ -234,6 +244,8 @@ connector_socket::socket_create(int domain, int type, int & fd)
 
 error_t
 connector_socket::socket_bind(int domain, int type, int & fd)
+  OCLINT_SUPPRESS("high npath complexity")
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
@@ -247,52 +259,55 @@ connector_socket::socket_bind(int domain, int type, int & fd)
   }
 
   // Now try to bind the socket to the address
-  int ret = ::bind(fd, reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
+  int ret = ::bind(fd,
+      reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
       m_addr.bufsize());
-  if (ret < 0) {
-    ::close(fd);
-
-    ERRNO_LOG("connector_socket bind failed; address is: " << m_addr.full_str());
-    switch (errno) {
-      case EACCES:
-        return ERR_ACCESS_VIOLATION;
-
-      case EADDRINUSE:
-        return ERR_ADDRESS_IN_USE;
-
-      case EADDRNOTAVAIL:
-        return ERR_ADDRESS_NOT_AVAILABLE;
-
-      case EAFNOSUPPORT:
-        return ERR_INVALID_OPTION;
-
-      case EAGAIN:
-        return ERR_NUM_FILES; // technically, ports.
-
-      case EINVAL:
-      case ENAMETOOLONG:
-        return ERR_INVALID_VALUE;
-
-      case EBADF:
-      case ENOTSOCK:
-        return ERR_INITIALIZATION;
-
-      case ENOMEM:
-        return ERR_OUT_OF_MEMORY;
-
-      case ENOENT:
-      case ENOTDIR:
-      case EROFS:
-        return ERR_FS_ERROR;
-
-      case EFAULT:
-      case ELOOP:
-      default:
-        return ERR_UNEXPECTED;
-    }
+  if (ret >= 0) {
+    return ERR_SUCCESS;
   }
 
-  return ERR_SUCCESS;
+  ::close(fd);
+
+  ERRNO_LOG("connector_socket bind failed; address is: " << m_addr.full_str());
+  switch (errno) {
+    case EACCES:
+      return ERR_ACCESS_VIOLATION;
+
+    case EADDRINUSE:
+      return ERR_ADDRESS_IN_USE;
+
+    case EADDRNOTAVAIL:
+      return ERR_ADDRESS_NOT_AVAILABLE;
+
+    case EAFNOSUPPORT:
+      return ERR_INVALID_OPTION;
+
+    case EAGAIN:
+      return ERR_NUM_FILES; // technically, ports.
+
+    case EINVAL:
+    case ENAMETOOLONG:
+      return ERR_INVALID_VALUE;
+
+    case EBADF:
+    case ENOTSOCK:
+      return ERR_INITIALIZATION;
+
+    case ENOMEM:
+      return ERR_OUT_OF_MEMORY;
+
+    case ENOENT:
+    case ENOTDIR:
+    case EROFS:
+      return ERR_FS_ERROR;
+
+    case EFAULT:
+    case ELOOP:
+    default:
+      return ERR_UNEXPECTED;
+  }
+
+  PACKETEER_FLOW_CONTROL_GUARD;
 }
 
 
@@ -305,26 +320,29 @@ connector_socket::socket_listen(int fd)
 
   // Turn the socket into a listening socket.
   int ret = ::listen(fd, PACKETEER_LISTEN_BACKLOG);
-  if (ret < 0) {
-    ::close(fd);
-
-    ERRNO_LOG("connector_socket listen failed!");
-    switch (errno) {
-      case EADDRINUSE:
-        return ERR_ADDRESS_IN_USE;
-
-      case EBADF:
-      case ENOTSOCK:
-        return ERR_INVALID_VALUE;
-
-      case EOPNOTSUPP:
-        return ERR_UNSUPPORTED_ACTION;
-
-      default:
-        return ERR_UNEXPECTED;
-    }
+  if (ret >= 0) {
+    return ERR_SUCCESS;
   }
-  return ERR_SUCCESS;
+
+  ::close(fd);
+
+  ERRNO_LOG("connector_socket listen failed!");
+  switch (errno) {
+    case EADDRINUSE:
+      return ERR_ADDRESS_IN_USE;
+
+    case EBADF:
+    case ENOTSOCK:
+      return ERR_INVALID_VALUE;
+
+    case EOPNOTSUPP:
+      return ERR_UNSUPPORTED_ACTION;
+
+    default:
+      return ERR_UNEXPECTED;
+  }
+
+  PACKETEER_FLOW_CONTROL_GUARD;
 }
 
 
@@ -384,8 +402,11 @@ connector_socket::socket_close()
 
 error_t
 connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
+  OCLINT_SUPPRESS("long method")
 {
-  // There is no need for accept(); we've already got the connection established.
+  // There is no need for accept(); we've already got the connection
+  // established.
   if (!listening()) {
     return ERR_INITIALIZATION;
   }
@@ -468,7 +489,8 @@ connector_socket::is_blocking() const
   bool state = false;
   error_t err = detail::get_blocking_mode(m_fd, state);
   if (ERR_SUCCESS != err) {
-    throw exception(err, "Could not determine blocking mode from file descriptor!");
+    throw exception(err, "Could not determine blocking mode from file "
+        "descriptor!");
   }
   return state;
 }

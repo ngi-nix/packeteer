@@ -32,10 +32,10 @@ to_lower(std::string const & value)
   ret.resize(value.size());
   std::transform(
       value.begin(), value.end(), ret.begin(),
-      [] (std::string::value_type c) -> std::string::value_type
+      [] (std::string::value_type ch) -> std::string::value_type
       {
         return std::tolower<std::string::value_type>(
-            c, std::locale());
+            ch, std::locale());
       }
   );
   return ret;
@@ -49,10 +49,10 @@ to_upper(std::string const & value)
   ret.resize(value.size());
   std::transform(
       value.begin(), value.end(), ret.begin(),
-      [] (std::string::value_type c) -> std::string::value_type
+      [] (std::string::value_type ch) -> std::string::value_type
       {
         return std::toupper<std::string::value_type>(
-            c, std::locale());
+            ch, std::locale());
       }
   );
   return ret;
@@ -137,7 +137,8 @@ ifind(std::string const & haystack, std::string const & needle)
 std::string
 to_utf8(TCHAR const * source)
 {
-  size_t size = WideCharToMultiByte(CP_UTF8, 0, source, -1, nullptr, 0, nullptr, nullptr);
+  size_t size = WideCharToMultiByte(CP_UTF8, 0, source, -1, nullptr, 0,
+      nullptr, nullptr);
   std::vector<char> buf(size, '\0');
   WideCharToMultiByte(CP_UTF8, 0, source, -1, &buf[0], size, nullptr, nullptr);
   return {buf.begin(), buf.end()};

@@ -27,6 +27,8 @@
 
 #include "string.h"
 
+#include "../macros.h"
+
 namespace packeteer::util {
 
 namespace {
@@ -96,10 +98,14 @@ url::parse(char const * url_string)
 
 url
 url::parse(std::string const & url_string)
+  OCLINT_SUPPRESS("high npath complexity")
+  OCLINT_SUPPRESS("high cyclomatic complexity")
+  OCLINT_SUPPRESS("long method")
 {
   url ret;
 
-  // We'll find the first occurrence of a colon; that *should* delimit the scheme.
+  // We'll find the first occurrence of a colon; that *should* delimit the
+  // scheme.
   auto end = url_string.find_first_of(':');
   if (std::string::npos == end) {
     throw exception(ERR_FORMAT,

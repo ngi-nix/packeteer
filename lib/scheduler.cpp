@@ -77,7 +77,8 @@ scheduler::unregister_connector(events_t const & events, connector const & conn,
 error_t
 scheduler::schedule_once(duration const & delay, callback const & callback)
 {
-  auto entry = new detail::scheduled_callback_entry(callback, clock::now() + delay);
+  auto entry = new detail::scheduled_callback_entry(callback,
+      clock::now() + delay);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
 
   return ERR_SUCCESS;
@@ -191,8 +192,7 @@ scheduler::process_events(duration const & timeout,
   }
 
   // Then handle these events on the worker's main function.
-  error_t err = drain_work_queue(to_schedule, exit_on_failure);
-  return err;
+  return drain_work_queue(to_schedule, exit_on_failure);
 }
 
 

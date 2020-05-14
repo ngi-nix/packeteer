@@ -49,8 +49,11 @@ static void tasklet_wrapper(void * arg)
 } // anonymous namespace
 
 
-tasklet::tasklet(std::condition_variable_any * condition, std::recursive_mutex * mutex,
-    tasklet::function const & func, void * baton /* = nullptr */, bool start_now /* = false */)
+tasklet::tasklet(std::condition_variable_any * condition,
+    std::recursive_mutex * mutex,
+    tasklet::function const & func,
+    void * baton /* = nullptr */,
+    bool start_now /* = false */)
   : m_tasklet_info(new tasklet_info(this, func, baton))
   , m_condition(condition)
   , m_tasklet_mutex(mutex)

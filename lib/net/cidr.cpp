@@ -26,11 +26,17 @@
 #include <cstring>
 #include <vector>
 
+#include "../macros.h"
+
 namespace packeteer::net::detail {
 
 packeteer::error_t
 parse_extended_cidr(std::string const & cidr, bool no_mask,
     parse_result_t & result, uint16_t port /* = 0 */)
+  OCLINT_SUPPRESS("high npath complexity")
+  OCLINT_SUPPRESS("high ncss method")
+  OCLINT_SUPPRESS("high cyclomatic complexity")
+  OCLINT_SUPPRESS("long method")
 {
   // We need to copy the cidr string because we need to manipulate it during
   // this function (a little). Because of the memory management and layout
@@ -121,7 +127,9 @@ parse_extended_cidr(std::string const & cidr, bool no_mask,
     result.address.sa_in.sin_family = result.proto = AF_INET;
     result.address.sa_in.sin_port = htons(detected_port);
   }
-  else if (1 == inet_pton(AF_INET6, cidr_start, &(result.address.sa_in6.sin6_addr))) {
+  else if (1 == inet_pton(AF_INET6, cidr_start,
+        &(result.address.sa_in6.sin6_addr)))
+  {
     // It's IPv6.
     result.address.sa_in6.sin6_family = result.proto = AF_INET6;
     result.address.sa_in6.sin6_port = htons(detected_port);

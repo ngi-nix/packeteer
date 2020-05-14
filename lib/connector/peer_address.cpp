@@ -26,6 +26,8 @@
 
 #include <packeteer/util/hash.h>
 
+#include "../macros.h"
+
 namespace packeteer {
 
 namespace {
@@ -50,6 +52,7 @@ static const schemes_map_t sc_schemes =
 inline connector_type
 best_match(connector_type const & ct_type,
     net::address_type const & sa_type)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   switch (ct_type) {
     case CT_TCP:
@@ -115,6 +118,9 @@ best_match(connector_type const & ct_type,
         return ct_type;
       }
       break;
+
+    default:
+      PACKETEER_FLOW_CONTROL_GUARD;
   }
   return CT_UNSPEC;
 }
@@ -133,7 +139,8 @@ verify_best(connector_type const & ct_type,
 
 
 inline void
-initialize(util::url const & url, net::socket_address & sockaddr, connector_type & ctype)
+initialize(util::url const & url, net::socket_address & sockaddr,
+    connector_type & ctype)
 {
   ctype = CT_UNSPEC;
   for (auto entry : sc_schemes) {
@@ -156,6 +163,7 @@ initialize(util::url const & url, net::socket_address & sockaddr, connector_type
 
     default:
       sockaddr = net::socket_address(url.path);
+      break;
   }
 
   // Verify
@@ -337,10 +345,10 @@ peer_address::is_less_than(peer_address const & other) const
  * Friend functions
  **/
 std::ostream &
-operator<<(std::ostream & os, peer_address const & addr)
+operator<<(std::ostream & ostream, peer_address const & addr)
 {
-  os << addr.str();
-  return os;
+  ostream << addr.str();
+  return ostream;
 }
 
 

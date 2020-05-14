@@ -110,24 +110,28 @@ struct connector::connector_impl
     if (requested != CO_DEFAULT) {
       // Ensure the requested value is valid.
       if (!(m_possible_options & requested)) {
-        throw exception(ERR_FORMAT, "The requested options are not supported by the connector type!");
+        throw exception(ERR_FORMAT, "The requested options are not supported "
+            "by the connector type!");
       }
       options = requested;
     }
 
     // Sanity check options - the flags are mutually exclusive.
     if (options & CO_STREAM and options & CO_DATAGRAM) {
-      throw exception(ERR_INVALID_OPTION, "Cannot choose both stream and datagram behaviour!");
+      throw exception(ERR_INVALID_OPTION, "Cannot choose both stream and "
+          "datagram behaviour!");
     }
     if (options & CO_BLOCKING and options & CO_NON_BLOCKING) {
-      throw exception(ERR_INVALID_OPTION, "Cannot choose both blocking and non-blocking mode!");
+      throw exception(ERR_INVALID_OPTION, "Cannot choose both blocking and "
+          "non-blocking mode!");
     }
     DLOG("Got connector options: " << options << " for type " << ctype);
 
     // Try to create the implementation
     auto iconn = m_creator(m_url, ctype, options, &info);
     if (!iconn) {
-      throw exception(ERR_INITIALIZATION, "Could not instantiate connector scheme.");
+      throw exception(ERR_INITIALIZATION, "Could not instantiate connector "
+          "scheme.");
     }
 
     m_type = ctype;
@@ -304,11 +308,13 @@ connector
 connector::accept() const
 {
   if (!m_impl || !*m_impl) {
-    throw exception(ERR_INITIALIZATION, "Can't accept() an uninitialized connector!");
+    throw exception(ERR_INITIALIZATION, "Can't accept() an uninitialized "
+        "connector!");
   }
 
   if (!listening()) {
-    throw exception(ERR_UNSUPPORTED_ACTION, "Can't accept() on a non-server connector!");
+    throw exception(ERR_UNSUPPORTED_ACTION, "Can't accept() on a non-server "
+        "connector!");
   }
 
   net::socket_address peer;
@@ -328,7 +334,8 @@ connector::accept() const
     }
     else {
       // Address is identical, but connector is not
-      result.m_impl = std::make_shared<connector_impl>(m_impl->m_api, m_impl->m_url, iconn);
+      result.m_impl = std::make_shared<connector_impl>(m_impl->m_api,
+          m_impl->m_url, iconn);
     }
   }
   else {
@@ -337,13 +344,15 @@ connector::accept() const
     // have to prevent that.
     if (iconn == m_impl->m_iconn) {
       iconn = nullptr;
-      throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but with new peer address.");
+      throw exception(ERR_UNEXPECTED, "Connector's accept() returned self but "
+          "with new peer address.");
     }
 
     auto peer_addr = m_impl->m_url.scheme + "://" + peer.full_str();
     DLOG("Peer address is: " << peer_addr << " - " << iconn);
 
-    result.m_impl = std::make_shared<connector_impl>(m_impl->m_api, util::url::parse(peer_addr), iconn);
+    result.m_impl = std::make_shared<connector_impl>(m_impl->m_api,
+        util::url::parse(peer_addr), iconn);
   }
 
   return result;
@@ -406,7 +415,8 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
     return ERR_INITIALIZATION;
   }
 
-  error_t err = (*m_impl)->receive(buf, bufsize, bytes_read, sender.socket_address());
+  error_t err = (*m_impl)->receive(buf, bufsize, bytes_read,
+      sender.socket_address());
   sender.conn_type() = m_impl->m_address.conn_type();
   return err;
 }
@@ -420,7 +430,8 @@ connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
   if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return (*m_impl)->send(buf, bufsize, bytes_written, recipient.socket_address());
+  return (*m_impl)->send(buf, bufsize, bytes_written,
+      recipient.socket_address());
 }
 
 
@@ -538,17 +549,17 @@ connector::hash() const
 
 
 std::ostream &
-operator<<(std::ostream & os, connector const & conn)
+operator<<(std::ostream & ostream, connector const & conn)
 {
   if (!conn.m_impl) {
-    os << "[undefined]";
+    ostream << "[undefined]";
   }
   else {
-    os << "[" << conn.peer_addr() << "]<" << conn.hash()
+    ostream << "[" << conn.peer_addr() << "]<" << conn.hash()
       << ">(R " << conn.get_read_handle() << " / W "
       << conn.get_write_handle() << ")";
   }
-  return os;
+  return ostream;
 }
 
 

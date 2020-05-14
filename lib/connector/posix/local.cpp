@@ -91,7 +91,8 @@ connector_local::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::socket_bind(AF_LOCAL, sock_type(m_options), fd);
+  error_t err = connector_socket::socket_bind(AF_LOCAL, sock_type(m_options),
+      fd);
   if (ERR_SUCCESS != err) {
     return err;
   }

@@ -32,6 +32,7 @@ namespace {
 
 inline error_t
 translate_fcntl_errno()
+  OCLINT_SUPPRESS("high cyclomatic complexity]")
 {
   ERRNO_LOG("fcntl error");
   switch (errno) {

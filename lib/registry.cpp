@@ -40,6 +40,8 @@ namespace {
 connector_interface *
 inet_creator(util::url const & url, connector_type const & ctype,
     connector_options const & options, registry::connector_info const * info)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
+  OCLINT_SUPPRESS("long method")
 {
   if (url.authority.empty()) {
     throw exception(ERR_FORMAT, "Require address part in address string.");
@@ -81,13 +83,11 @@ inet_creator(util::url const & url, connector_type const & ctype,
     case CT_TCP4:
     case CT_TCP6:
       return new detail::connector_tcp(addr, opts);
-      break;
 
     case CT_UDP:
     case CT_UDP4:
     case CT_UDP6:
       return new detail::connector_udp(addr, opts);
-      break;
 
     default:
       PACKETEER_FLOW_CONTROL_GUARD;
@@ -213,7 +213,10 @@ struct registry::registry_impl
    */
   std::map<std::string, connector_info> scheme_map;
 
-  void init_schemes()
+  void
+  init_schemes()
+    OCLINT_SUPPRESS("high cyclomatic complexity")
+    OCLINT_SUPPRESS("high npath complexity")
   {
     if (!scheme_map.empty()) {
       return;
@@ -250,10 +253,13 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("anon", connector_info{CT_ANON,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
+      [] (util::url const & url, connector_type const &,
+          connector_options const & options, connector_info const * info)
+        -> connector_interface *
       {
         if (!url.path.empty()) {
-          throw exception(ERR_FORMAT, "Path component makes no sense for anon:// connectors.");
+          throw exception(ERR_FORMAT,
+              "Path component makes no sense for anon:// connectors.");
         }
 
         // Sanitize options
@@ -268,7 +274,9 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("pipe", connector_info{CT_PIPE,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
+      [] (util::url const & url, connector_type const &,
+          connector_options const & options, connector_info const * info)
+        -> connector_interface *
       {
         if (url.path.empty()) {
           throw exception(ERR_FORMAT, "Pipe connectors need a path.");
@@ -287,7 +295,9 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("fifo", connector_info{CT_FIFO,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
+      [] (util::url const & url, connector_type const &,
+          connector_options const & options, connector_info const * info)
+        -> connector_interface *
       {
         if (url.path.empty()) {
           throw exception(ERR_FORMAT, "FIFO connectors need a path.");
@@ -306,7 +316,9 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &, connector_options const & options, connector_info const * info) -> connector_interface *
+      [] (util::url const & url, connector_type const &,
+          connector_options const & options, connector_info const * info)
+        -> connector_interface *
       {
         // Sanitize options
         auto opts = detail::sanitize_options(options, info->default_options,

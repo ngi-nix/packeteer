@@ -46,6 +46,7 @@ namespace {
 
 error_t
 create_fifo(std::string const & path)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   // Common to mkfifo and mknod
 #if defined(PACKETEER_HAVE_MKFIFO) || defined(PACKETEER_HAVE_MKNOD)
@@ -65,47 +66,49 @@ create_fifo(std::string const & path)
 
   // Common to mkfifo and mknod
 #if defined(PACKETEER_HAVE_MKFIFO) || defined(PACKETEER_HAVE_MKNOD)
-  if (ret < 0) {
-    ERRNO_LOG("Creating named pipe failed!");
-    switch (errno) {
-      case EACCES:
-      case EFAULT:
-        return ERR_ACCESS_VIOLATION;
-
-      case EDQUOT:
-      case ELOOP:
-      case ENOENT:
-      case ENOSPC:
-      case ENOTDIR:
-      case EROFS:
-        return ERR_FS_ERROR;
-
-      case EEXIST:
-        // Can't do anything but try to use this existing file as a pipe
-        break;
-
-      case ENAMETOOLONG:
-        return ERR_INVALID_OPTION;
-
-      case ENOMEM:
-        return ERR_OUT_OF_MEMORY;
-
-      case EPERM:
-      case EINVAL:
-      case EBADF:
-      default:
-        return ERR_UNEXPECTED;
-    }
+  if (ret >= 0) {
+    return ERR_SUCCESS;
   }
 
-  // Pipe was either created here, or file exists.
+  ERRNO_LOG("Creating named pipe failed!");
+  switch (errno) {
+    case EACCES:
+    case EFAULT:
+      return ERR_ACCESS_VIOLATION;
+
+    case EDQUOT:
+    case ELOOP:
+    case ENOENT:
+    case ENOSPC:
+    case ENOTDIR:
+    case EROFS:
+      return ERR_FS_ERROR;
+
+    case EEXIST:
+      // Can't do anything but try to use this existing file as a pipe
+      break;
+
+    case ENAMETOOLONG:
+      return ERR_INVALID_OPTION;
+
+    case ENOMEM:
+      return ERR_OUT_OF_MEMORY;
+
+    case EPERM:
+    case EINVAL:
+    case EBADF:
+    default:
+      return ERR_UNEXPECTED;
+  }
+
 #endif
-  return ERR_SUCCESS;
+  PACKETEER_FLOW_CONTROL_GUARD;
 }
 
 
 error_t
 translate_open_error()
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   switch (errno) {
     case EINTR: // signal interrupt handling
@@ -140,9 +143,9 @@ translate_open_error()
       return ERR_OUT_OF_MEMORY;
 
     // FIXME
-    // ENXIO  O_NONBLOCK | O_WRONLY is set, the named file is a FIFO, and no process has the  FIFO
-    //        open for reading.  Or, the file is a device special file and no corresponding device
-    //        exists.
+    // ENXIO  O_NONBLOCK | O_WRONLY is set, the named file is a FIFO, and no
+    //        process has the FIFO open for reading. Or, the file is a
+    //        device special file and no corresponding device exists.
 
     case ENXIO:
     case EOPNOTSUPP:
@@ -205,11 +208,11 @@ connector_fifo::connect()
 
     ERRNO_LOG("connect() named pipe connector failed to open fifo");
     error_t err = translate_open_error();
-    if (ERR_SUCCESS == err) {
-      // signal interrupt handling
-      continue;
+    if (ERR_SUCCESS != err) {
+      return err;
     }
-    return err;
+
+    // May continue due to EINTR
   }
 
   m_handle = handle{fd};
@@ -252,11 +255,11 @@ connector_fifo::listen()
 
     ERRNO_LOG("listen() named pipe connector failed to open fifo");
     err = translate_open_error();
-    if (ERR_SUCCESS == err) {
-      // signal interrupt handling
-      continue;
+    if (ERR_SUCCESS != err) {
+      return err;
     }
-    return err;
+
+    // May continue due to EINTR
   }
 
   m_handle = handle{fd};
@@ -367,7 +370,8 @@ connector_fifo::is_blocking() const
   bool state = false;
   error_t err = detail::get_blocking_mode(m_handle.sys_handle(), state);
   if (ERR_SUCCESS != err) {
-    throw exception(err, "Could not determine blocking mode from file descriptor!");
+    throw exception(err, "Could not determine blocking mode from file "
+        "descriptor!");
   }
   return state;
 }

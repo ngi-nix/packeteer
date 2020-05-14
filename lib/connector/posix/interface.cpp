@@ -29,6 +29,55 @@
 
 namespace packeteer {
 
+
+namespace {
+
+inline error_t
+translate_errno()
+  OCLINT_SUPPRESS("high cyclomatic complexity]")
+{
+  switch (errno) {
+    case EAGAIN: // EWOULDBLOCK
+    case EINTR:
+      return ERR_REPEAT_ACTION;
+
+    case EALREADY:
+      return ERR_ASYNC;
+
+    case EBADF:
+    case ENOTSOCK:
+    case EINVAL:
+      return ERR_INVALID_VALUE;
+
+    case ECONNREFUSED:
+      return ERR_CONNECTION_REFUSED;
+
+    case ENOTCONN:
+      return ERR_NO_CONNECTION;
+
+    case EFAULT:
+      return ERR_ACCESS_VIOLATION;
+
+    case ENOMEM:
+      return ERR_OUT_OF_MEMORY;
+
+    case ECONNRESET:
+    case EPIPE:
+      return ERR_CONNECTION_ABORTED;
+
+    case EOPNOTSUPP:
+      return ERR_UNSUPPORTED_ACTION;
+
+    default:
+      return ERR_UNEXPECTED;
+  }
+
+}
+
+} // anonymous namespace
+
+
+
 connector_interface::connector_interface(connector_options const & options)
   : m_options(options)
 {
@@ -56,55 +105,6 @@ connector_interface::receive(void * buf, size_t bufsize, size_t & bytes_read,
   if (amount < 0) {
     ERRNO_LOG("recvfrom failed!");
     switch (errno) {
-      case EAGAIN: // EWOULDBLOCK
-      case EINTR:
-        return ERR_REPEAT_ACTION;
-
-      case EBADF:
-      case ENOTSOCK:
-      case EINVAL:
-        return ERR_INVALID_VALUE;
-
-      case ECONNREFUSED:
-        return ERR_CONNECTION_REFUSED;
-
-      case ENOTCONN:
-        return ERR_NO_CONNECTION;
-
-      case EFAULT:
-        return ERR_ACCESS_VIOLATION;
-
-      case ENOMEM:
-        return ERR_OUT_OF_MEMORY;
-
-      default:
-        return ERR_UNEXPECTED;
-    }
-  }
-
-  bytes_read = amount;
-  return ERR_SUCCESS;
-}
-
-
-
-error_t
-connector_interface::send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient)
-{
-  ssize_t amount = ::sendto(get_write_handle().sys_handle(),
-      buf, bufsize, MSG_DONTWAIT,
-      static_cast<sockaddr const *>(recipient.buffer()), recipient.bufsize());
-  if (amount < 0) {
-    ERRNO_LOG("sendto failed!");
-    switch (errno) {
-      case EAGAIN: // EWOULDBLOCK
-      case EINTR:
-        return ERR_REPEAT_ACTION;
-
-      case EALREADY:
-        return ERR_ASYNC;
-
       case EDESTADDRREQ: // Nont connection-mode socket, but no peer given.
       case EISCONN: // Connection-mode socket.
         return ERR_INVALID_OPTION;
@@ -115,33 +115,27 @@ connector_interface::send(void const * buf, size_t bufsize, size_t & bytes_writt
       case ENOBUFS: // Send buffer overflow
         return ERR_NUM_ITEMS;
 
-      case EBADF:
-      case ENOTSOCK:
-      case EINVAL:
-        return ERR_INVALID_VALUE;
-
-      case ECONNREFUSED:
-        return ERR_CONNECTION_REFUSED;
-
-      case ECONNRESET:
-      case EPIPE:
-        return ERR_CONNECTION_ABORTED;
-
-      case ENOTCONN:
-        return ERR_NO_CONNECTION;
-
-      case EFAULT:
-        return ERR_ACCESS_VIOLATION;
-
-      case ENOMEM:
-        return ERR_OUT_OF_MEMORY;
-
-      case EOPNOTSUPP:
-        return ERR_UNSUPPORTED_ACTION;
-
       default:
-        return ERR_UNEXPECTED;
+        return translate_errno();
     }
+  }
+
+  bytes_read = amount;
+  return ERR_SUCCESS;
+}
+
+
+
+error_t
+connector_interface::send(void const * buf, size_t bufsize,
+    size_t & bytes_written, ::packeteer::net::socket_address const & recipient)
+{
+  ssize_t amount = ::sendto(get_write_handle().sys_handle(),
+      buf, bufsize, MSG_DONTWAIT,
+      static_cast<sockaddr const *>(recipient.buffer()), recipient.bufsize());
+  if (amount < 0) {
+    ERRNO_LOG("sendto failed!");
+    return translate_errno();
   }
 
   bytes_written = amount;
@@ -154,36 +148,39 @@ size_t
 connector_interface::peek() const
 {
   if (!connected() && !listening()) {
-    throw exception(ERR_INITIALIZATION, "Can't peek() without listening or being connected!");
+    throw exception(ERR_INITIALIZATION, "Can't peek() without listening or "
+        "being connected!");
   }
 
   int bytes_available = 0;
   int err = ::ioctl(get_read_handle().sys_handle(), FIONREAD, &bytes_available);
-  if (err < 0) {
-    ERRNO_LOG("ioctl failed in peek");
-    switch (errno) {
-      case EBADF:
-        throw exception(ERR_INVALID_VALUE, errno, "Attempting to peek failed!");
-
-      case EFAULT:
-        throw exception(ERR_ACCESS_VIOLATION, errno, "Attempting to peek failed!");
-
-      case EINVAL:
-      case ENOTTY:
-        throw exception(ERR_INVALID_VALUE, errno, "Attempting to peek failed!");
-
-      default:
-        throw exception(ERR_UNEXPECTED, errno, "Attempting to peek failed!");
-    }
+  if (err >= 0) {
+    return bytes_available;
   }
 
-  return bytes_available;
+  ERRNO_LOG("ioctl failed in peek");
+  switch (errno) {
+    case EBADF:
+      throw exception(ERR_INVALID_VALUE, errno, "Attempting to peek failed!");
+
+    case EFAULT:
+      throw exception(ERR_ACCESS_VIOLATION, errno, "Attempting to peek "
+          "failed!");
+
+    case EINVAL:
+    case ENOTTY:
+      throw exception(ERR_INVALID_VALUE, errno, "Attempting to peek failed!");
+
+    default:
+      throw exception(ERR_UNEXPECTED, errno, "Attempting to peek failed!");
+  }
 }
 
 
 
 error_t
 connector_interface::read(void * buf, size_t bufsize, size_t & bytes_read)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
@@ -228,7 +225,9 @@ connector_interface::read(void * buf, size_t bufsize, size_t & bytes_read)
 
 
 error_t
-connector_interface::write(void const * buf, size_t bufsize, size_t & bytes_written)
+connector_interface::write(void const * buf, size_t bufsize,
+    size_t & bytes_written)
+  OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
