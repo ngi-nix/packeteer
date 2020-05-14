@@ -65,48 +65,59 @@ endif
 ### Compiler flags
 compiler_id = compiler.get_id()
 
+cpp_lib_defines = []
+cpp_args = []
+
 posix_common_args = [
   '-Wall', '-Wextra', '-Wpedantic', '-Wshadow', '-Wstrict-aliasing',
   '-Wstrict-overflow=5', '-Wcast-align', '-Wmissing-declarations',
   '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast', '-Wabi',
 ]
 if compiler_id == 'clang'
-  cpp_args = posix_common_args + [
+  cpp_args += posix_common_args + [
     '-Wabi',
   ]
-  cpp_lib_args = ['-DPACKETEER_IS_BUILDING=1']
+  cpp_lib_defines += ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'gcc'
-  cpp_args = posix_common_args + [
+  cpp_args += posix_common_args + [
     '-Wstrict-null-sentinel',
   ]
-  cpp_lib_args = ['-DPACKETEER_IS_BUILDING=1']
+  cpp_lib_defines += ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'msvc'
-  cpp_args = [
+  cpp_args += [
     '/wd4250', '/wd4251', '/wd4275',
   ]
-  cpp_lib_args = ['/DPACKETEER_IS_BUILDING=1']
+  cpp_lib_defines += ['/DPACKETEER_IS_BUILDING=1']
 endif
 
 bt = get_option('buildtype')
 if bt in ['debug', 'debugoptimized']
   if compiler_id == 'clang'
-    cpp_args += ['-ggdb', '-DDEBUG']
+    cpp_args += ['-ggdb']
+    cpp_lib_defines += ['-DDEBUG']
   elif compiler_id == 'gcc'
-    cpp_args += ['-g3', '-DDEBUG']
+    cpp_args += ['-g3']
+    cpp_lib_defines += ['-DDEBUG']
   elif compiler_id == 'msvc'
-    cpp_args += ['/FS', '/DDEBUG=1']
+    cpp_args += ['/FS']
+    cpp_lib_defines += ['/DDEBUG=1']
   endif
 else
   posix_release_args = [
-    '-DNDEBUG',
     '-fvisibility=hidden', '-fvisibility-inlines-hidden',
+  ]
+  posix_release_defines = [
+    '-DNDEBUG',
   ]
   if compiler_id == 'clang'
     cpp_args += posix_release_args
+    cpp_lib_defines += posix_release_defines
   elif compiler_id == 'gcc'
     cpp_args += posix_release_args
+    cpp_lib_defines += posix_release_defines
   elif compiler_id == 'msvc'
-    cpp_args += ['/Oi', '/DNDEBUG=1']
+    cpp_args += ['/Oi']
+    cpp_lib_defines += ['/DNDEBUG=1']
   endif
 endif
 
@@ -585,7 +596,7 @@ lib = library('packeteer', libsrc,
     include_directories: [includes, libincludes],
     dependencies: [thread],
     link_args: link_args,
-    cpp_args: cpp_lib_args,
+    cpp_args: cpp_args + cpp_lib_defines,
     version: LIB_VERSION,
     soversion: ABI_VERSION,
     install: true)
@@ -698,10 +709,37 @@ if cppcheck.found()
     '--enable=all', '-v',
     '--suppress=missingIncludeSystem',
     '-I', '@0@/include'.format(meson.current_source_dir()),
+    '-I', '@0@/lib'.format(meson.current_source_dir()),
     '-I', meson.current_build_dir(),
     '--std=c++14', # FIXME best we have
-    '-DDEBUG',
+    cpp_lib_defines,
     '--quiet',
     '@0@/lib'.format(meson.current_source_dir()),
   ])
+endif
+
+oclint = find_program('oclint', required: false)
+
+if oclint.found()
+  oclint_config = custom_target('oclint_config',
+      output: '.oclint',
+      input: '.oclint',
+      command: ['cp', '@INPUT@', '@OUTPUT@'],
+      install: false,
+  )
+
+  run_target('oclint', command: [
+      oclint.path(),
+      libsrc,
+      '-o', '@0@/oclint.log'.format(meson.current_build_dir()),
+      '--',
+      '-I', '@0@/include'.format(meson.current_source_dir()),
+      '-I', '@0@/lib'.format(meson.current_source_dir()),
+      '-I', meson.current_build_dir(),
+      '--std=@0@'.format(get_option('cpp_std')),
+      cpp_args,
+      cpp_lib_defines,
+    ],
+    depends: oclint_config,
+  )
 endif

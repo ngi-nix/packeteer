@@ -1,0 +1,15 @@
+disable-rules:
+- BitwiseOperatorInConditional    # Used a fair bit, and for good reason.
+- InvertedLogic                   # Complains about "if (!foo) shortpath;"
+- ParameterReassignment           # Complains about out parameters
+- UnnecessaryDefaultStatement     # Good to have if enum changes
+- TooFewBranchesInSwitchStatement # Prefer switches for enums
+rule-configurations:
+- key: LONG_LINE                  # Shorten the default
+  value: 80
+- key: LONG_METHOD                # Lengthen the default
+  value: 75
+- key: SHORT_VARIABLE_NAME        # Shorten default by one - two is often ok
+  value: 2
+- key: NCSS_METHOD                # Lengthen the default
+  value: 50
