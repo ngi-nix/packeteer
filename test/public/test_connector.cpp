@@ -285,35 +285,76 @@ namespace {
 
 namespace pu = packeteer::util;
 
+inline std::string
+name_with(std::string const & base, bool blocking)
+{
+  std::string name = base;
+  if (blocking) {
+    name += "-block";
+  }
+  else {
+    name += "-noblock";
+  }
+
+  name = pu::to_posix_path(pu::temp_name(name));
+
+  if (blocking) {
+    name += "?blocking=1";
+  }
+
+  return name;
+}
+
+
+
 struct streaming_test_data
 {
-  p7r::connector_type type;
-  std::string         stream_blocking;
-  std::string         stream_non_blocking;
-  bool                broadcast = false;
+  p7r::connector_type               type;
+  std::function<std::string (bool)> generator;
+  bool                              broadcast = false;
 } streaming_tests[] = {
   { p7r::CT_LOCAL,
-    "local://" + pu::to_posix_path(pu::temp_name()) + "/test-connector-local-stream-block?blocking=1",
-    "local://" + pu::to_posix_path(pu::temp_name()) + "/test-connector-local-stream-noblock", },
+    [](bool blocking) -> std::string
+    {
+      return "local://" + name_with("test-connector-local", blocking);
+    },
+  },
   { p7r::CT_TCP4,
-    "tcp4://127.0.0.1:54321?blocking=1",
-    "tcp4://127.0.0.1:54321", },
+    [](bool blocking) -> std::string
+    {
+      std::string ret = "tcp4://127.0.0.1:" + std::to_string(54321 + (rand() % 100));
+      if (blocking) {
+        ret += "?blocking=1";
+      }
+      return ret;
+    },
+  },
   { p7r::CT_TCP6,
-    "tcp6://[::1]:54321?blocking=1",
-    "tcp6://[::1]:54321", },
+    [](bool blocking) -> std::string
+    {
+      std::string ret = "tcp6://[::1]:" + std::to_string(54321 + (rand() % 100));
+      if (blocking) {
+        ret += "?blocking=1";
+      }
+      return ret;
+    },
+  },
 #if defined(PACKETEER_WIN32)
   { p7r::CT_PIPE,
-    // Pipe pathname normalization is different from the win32/posix path conversion we
-    // use for CT_LOCAL.
-    "pipe:///tmp/test-connector-pipe-block?blocking=1",
-    "pipe:///tmp/test-connector-pipe-noblock", },
+    [](bool blocking) -> std::string
+    {
+      return "pipe://" + name_with("test-connector-pipe", blocking);
+    },
+  },
 #endif
 
 #if defined(PACKETEER_POSIX)
   { p7r::CT_FIFO,
+    [](bool blocking) -> std::string
+    {
+      return "fifo://" + name_with("test-connector-fifo", blocking);
+    },
     // No need to convert from POSIX to POSIX
-    "fifo://" + pu::temp_name() + "/test-connector-pipe-block?blocking=1",
-    "fifo://" + pu::temp_name() + "/test-connector-pipe-noblock",
     true,
   },
 #endif
@@ -747,8 +788,9 @@ TEST_P(ConnectorStream, blocking_messaging)
   // reliable delivery - in blocking mode, making the setup/teardown very simple.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.stream_blocking);
+  auto url = p7r::util::url::parse(td.generator(true));
   url.query["behaviour"] = "stream";
+  std::cout << "URL: " << url << std::endl;
 
   auto res = setup_stream_connection(td.type, url);
 
@@ -769,7 +811,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   // events with the scheduler.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.stream_non_blocking);
+  auto url = p7r::util::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
@@ -791,7 +833,7 @@ TEST_P(ConnectorStream, asynchronous_messaging)
   // messaging asynchronously.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.stream_non_blocking);
+  auto url = p7r::util::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
@@ -813,7 +855,7 @@ TEST_P(ConnectorStream, multiple_clients_blocking)
   // messages.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.stream_blocking);
+  auto url = p7r::util::url::parse(td.generator(true));
   url.query["behaviour"] = "stream";
 
   auto res = setup_stream_connection(td.type, url, 2);
@@ -841,7 +883,7 @@ TEST_P(ConnectorStream, multiple_clients_async)
   // messages.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.stream_non_blocking);
+  auto url = p7r::util::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
@@ -919,7 +961,7 @@ TEST_P(ConnectorStream, peek_from_write)
   // Peek using
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.stream_non_blocking);
+  auto url = p7r::util::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
