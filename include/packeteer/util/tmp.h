@@ -35,11 +35,8 @@ namespace packeteer::util {
  *
  * This is useful for e.g. local, pipe or fifo connectors.
  *
- * Note that the function does not guarantee the same name is not used
- * by other processes after it returns.
- *
- * Note also that on Win32, only the first three characters of the prefix
- * string are used.
+ * Note that the function cannot absolutely guarantee uniqeness of the file
+ * name returned; consider it a best-effort attempt.
  */
 PACKETEER_API
 std::string temp_name(std::string const & prefix = "");

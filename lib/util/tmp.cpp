@@ -24,6 +24,9 @@
 
 #if defined(PACKETEER_WIN32)
 
+#include <chrono>
+#include <sstream>
+
 #include "string.h"
 
 namespace packeteer::util {
@@ -40,19 +43,21 @@ temp_name(std::string const & prefix /* = "" */)
   }
 
   // Now get the temporary file name
-  wchar_t buf[MAX_PATH + 1] = { 0 };
-  auto wprefix = from_utf8(prefix.c_str());
-  len = GetTempFileName(tmpdir, wprefix.c_str(), 0, buf);
-  if ( len <= 0) {
-    ERRNO_LOG("GetTempFileName failed.");
-    throw exception(ERR_UNEXPECTED, "GetTempFileName failed.");
+  auto now = std::chrono::steady_clock::now();
+  std::stringstream ts;
+  ts << std::hex << now.time_since_epoch().count();
+
+  // Generate return value
+  std::string ret = to_utf8(tmpdir);
+  if (prefix.empty()) {
+    ret += "packeteer";
   }
+  else {
+    ret += prefix;
+  }
+  ret += "-" + ts.str() + ".tmp";
 
-  // Delete temporary file
-  DeleteFile(buf);
-
-  // Done
-  return to_utf8(buf);
+  return ret;
 }
 
 } // namespace packeteer::util
