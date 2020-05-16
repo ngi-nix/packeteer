@@ -65,7 +65,7 @@ endif
 ### Compiler flags
 compiler_id = compiler.get_id()
 
-cpp_lib_defines = []
+cpp_lib_is_building = []
 cpp_args = []
 
 posix_common_args = [
@@ -77,47 +77,39 @@ if compiler_id == 'clang'
   cpp_args += posix_common_args + [
     '-Wabi',
   ]
-  cpp_lib_defines += ['-DPACKETEER_IS_BUILDING=1']
+  cpp_lib_is_building = ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'gcc'
   cpp_args += posix_common_args + [
     '-Wstrict-null-sentinel',
   ]
-  cpp_lib_defines += ['-DPACKETEER_IS_BUILDING=1']
+  cpp_lib_is_building = ['-DPACKETEER_IS_BUILDING=1']
 elif compiler_id == 'msvc'
   cpp_args += [
     '/wd4250', '/wd4251', '/wd4275',
   ]
-  cpp_lib_defines += ['/DPACKETEER_IS_BUILDING=1']
+  cpp_lib_is_building = ['/DPACKETEER_IS_BUILDING=1']
 endif
 
 bt = get_option('buildtype')
 if bt in ['debug', 'debugoptimized']
   if compiler_id == 'clang'
-    cpp_args += ['-ggdb']
-    cpp_lib_defines += ['-DDEBUG']
+    cpp_args += ['-ggdb', '-DDEBUG']
   elif compiler_id == 'gcc'
-    cpp_args += ['-g3']
-    cpp_lib_defines += ['-DDEBUG']
+    cpp_args += ['-g3', '-DDEBUG']
   elif compiler_id == 'msvc'
-    cpp_args += ['/FS']
-    cpp_lib_defines += ['/DDEBUG=1']
+    cpp_args += ['/FS', '/DDEBUG=1']
   endif
 else
   posix_release_args = [
     '-fvisibility=hidden', '-fvisibility-inlines-hidden',
-  ]
-  posix_release_defines = [
     '-DNDEBUG',
   ]
   if compiler_id == 'clang'
     cpp_args += posix_release_args
-    cpp_lib_defines += posix_release_defines
   elif compiler_id == 'gcc'
     cpp_args += posix_release_args
-    cpp_lib_defines += posix_release_defines
   elif compiler_id == 'msvc'
-    cpp_args += ['/Oi']
-    cpp_lib_defines += ['/DNDEBUG=1']
+    cpp_args += ['/Oi', '/DNDEBUG=1']
   endif
 endif
 
@@ -596,7 +588,7 @@ lib = library('packeteer', libsrc,
     include_directories: [includes, libincludes],
     dependencies: [thread],
     link_args: link_args,
-    cpp_args: cpp_args + cpp_lib_defines,
+    cpp_args: cpp_lib_is_building,
     version: LIB_VERSION,
     soversion: ABI_VERSION,
     install: true)
@@ -712,7 +704,7 @@ if cppcheck.found()
     '-I', '@0@/lib'.format(meson.current_source_dir()),
     '-I', meson.current_build_dir(),
     '--std=c++14', # FIXME best we have
-    cpp_lib_defines,
+    cpp_lib_is_building,
     '--quiet',
     '@0@/lib'.format(meson.current_source_dir()),
   ])
@@ -738,7 +730,7 @@ if oclint.found()
       '-I', meson.current_build_dir(),
       '--std=@0@'.format(get_option('cpp_std')),
       cpp_args,
-      cpp_lib_defines,
+      cpp_lib_is_building,
       '-DOCLINT_IS_RUNNING',
     ],
     depends: oclint_config,
