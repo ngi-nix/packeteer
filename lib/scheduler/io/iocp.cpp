@@ -325,6 +325,8 @@ void
 io_iocp::wait_for_events(std::vector<event_data> & events,
       duration const & timeout)
 {
+  DLOG("Wait for IOCP events.");
+
   // Wait for I/O completion.
   OVERLAPPED_ENTRY entries[PACKETEER_IOCP_MAXEVENTS] = {};
   ULONG read = 0;
@@ -367,6 +369,7 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
     }
     tmp_events[iter->second] = sock_events.events;
   }
+  DLOG("Collected " << tmp_events.size() << " socket events.");
 
   // First, go through actually received events and add them to the temporary
   // map.
