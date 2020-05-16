@@ -35,7 +35,7 @@
 namespace packeteer::detail {
 
 connector_anon::connector_anon(connector_options const & options)
-  : connector_interface(options)
+  : connector_common(options)
 {
 }
 

@@ -22,12 +22,14 @@
 
 #include <packeteer/connector/interface.h>
 
+#include "common.h"
+
 #include "../../macros.h"
 
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-namespace packeteer {
+namespace packeteer::detail {
 
 
 namespace {
@@ -78,15 +80,15 @@ translate_errno()
 
 
 
-connector_interface::connector_interface(connector_options const & options)
+connector_common::connector_common(connector_options const & options)
   : m_options(options)
 {
-  DLOG("connector_interface::connector_interface(" << options << ")");
+  DLOG("connector_common::connector_common(" << options << ")");
 }
 
 
 
-connector_interface::~connector_interface()
+connector_common::~connector_common()
 {
 }
 
@@ -95,7 +97,7 @@ connector_interface::~connector_interface()
 //     iovec style call?
 
 error_t
-connector_interface::receive(void * buf, size_t bufsize, size_t & bytes_read,
+connector_common::receive(void * buf, size_t bufsize, size_t & bytes_read,
       ::packeteer::net::socket_address & sender)
 {
   socklen_t socklen = sender.bufsize_available();
@@ -127,7 +129,7 @@ connector_interface::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
 
 error_t
-connector_interface::send(void const * buf, size_t bufsize,
+connector_common::send(void const * buf, size_t bufsize,
     size_t & bytes_written, ::packeteer::net::socket_address const & recipient)
 {
   ssize_t amount = ::sendto(get_write_handle().sys_handle(),
@@ -145,7 +147,7 @@ connector_interface::send(void const * buf, size_t bufsize,
 
 
 size_t
-connector_interface::peek() const
+connector_common::peek() const
 {
   if (!connected() && !listening()) {
     throw exception(ERR_INITIALIZATION, "Can't peek() without listening or "
@@ -179,7 +181,7 @@ connector_interface::peek() const
 
 
 error_t
-connector_interface::read(void * buf, size_t bufsize, size_t & bytes_read)
+connector_common::read(void * buf, size_t bufsize, size_t & bytes_read)
   OCLINT_SUPPRESS("high cyclomatic complexity")
 {
   if (!connected() && !listening()) {
@@ -225,7 +227,7 @@ connector_interface::read(void * buf, size_t bufsize, size_t & bytes_read)
 
 
 error_t
-connector_interface::write(void const * buf, size_t bufsize,
+connector_common::write(void const * buf, size_t bufsize,
     size_t & bytes_written)
   OCLINT_SUPPRESS("high cyclomatic complexity")
 {
@@ -271,10 +273,10 @@ connector_interface::write(void const * buf, size_t bufsize,
 
 
 connector_options
-connector_interface::get_options() const
+connector_common::get_options() const
 {
   return m_options;
 }
 
 
-} // namespace packeteer
+} // namespace packeteer::detail

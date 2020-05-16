@@ -548,7 +548,7 @@ endif
 
 posixsrc = [
   'lib' / 'connector' / 'posix' / 'fd.cpp',
-  'lib' / 'connector' / 'posix' / 'interface.cpp',
+  'lib' / 'connector' / 'posix' / 'common.cpp',
   'lib' / 'connector' / 'posix' / 'anon.cpp',
   'lib' / 'connector' / 'posix' / 'fifo.cpp',
   'lib' / 'connector' / 'posix' / 'socket.cpp',
@@ -562,7 +562,7 @@ winsrc = [
   'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
   'lib' / 'connector' / 'win32' / 'overlapped.cpp',
   'lib' / 'connector' / 'win32' / 'io_operations.cpp',
-  'lib' / 'connector' / 'win32' / 'interface.cpp',
+  'lib' / 'connector' / 'win32' / 'common.cpp',
   'lib' / 'connector' / 'win32' / 'anon.cpp',
   'lib' / 'connector' / 'win32' / 'pipe.cpp',
   'lib' / 'connector' / 'win32' / 'socket.cpp',

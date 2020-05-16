@@ -119,7 +119,7 @@ create_socket(int domain, int type, int & fd, bool blocking)
 
 connector_socket::connector_socket(net::socket_address const & addr,
     connector_options const & options)
-  : connector_interface(options)
+  : connector_common(options)
   , m_addr(addr)
 {
 }
@@ -127,7 +127,7 @@ connector_socket::connector_socket(net::socket_address const & addr,
 
 
 connector_socket::connector_socket(connector_options const & options)
-  : connector_interface(options)
+  : connector_common(options)
 {
 }
 

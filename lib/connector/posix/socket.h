@@ -26,16 +26,16 @@
 
 #include <packeteer.h>
 
-#include <packeteer/connector/interface.h>
-
 #include <packeteer/net/socket_address.h>
+
+#include "common.h"
 
 namespace packeteer::detail {
 
 /**
  * Base for socket-style I/O on POSIX systems
  **/
-struct connector_socket : public ::packeteer::connector_interface
+struct connector_socket : public ::packeteer::detail::connector_common
 {
 public:
   connector_socket(::packeteer::net::socket_address const & addr,

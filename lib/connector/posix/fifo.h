@@ -28,16 +28,16 @@
 
 #include <packeteer/handle.h>
 
-#include <packeteer/connector/interface.h>
-
 #include <packeteer/net/socket_address.h>
+
+#include "common.h"
 
 namespace packeteer::detail {
 
 /**
  * Wrapper around the fifo class.
  **/
-struct connector_fifo : public ::packeteer::connector_interface
+struct connector_fifo : public connector_common
 {
 public:
   connector_fifo(std::string const & path, connector_options const & options);

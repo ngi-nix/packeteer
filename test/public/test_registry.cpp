@@ -106,9 +106,9 @@ namespace {
 struct test_connector : packeteer::connector_interface
 {
   test_connector()
-    : connector_interface(packeteer::CO_DEFAULT)
   {
   }
+
   virtual ~test_connector() {};
 
   virtual packeteer::error_t listen() { return packeteer::ERR_SUCCESS; }
@@ -135,6 +135,16 @@ struct test_connector : packeteer::connector_interface
   virtual packeteer::error_t close() { return packeteer::ERR_SUCCESS; }
 
   virtual bool is_blocking() const { return true; }
+  virtual packeteer::connector_options get_options() const { return packeteer::CO_DEFAULT; }
+
+  virtual packeteer::error_t receive(void *, size_t, size_t &,
+      ::packeteer::net::socket_address &) { return packeteer::ERR_SUCCESS; }
+  virtual packeteer::error_t send(void const *, size_t, size_t &,
+      ::packeteer::net::socket_address const &) { return packeteer::ERR_SUCCESS; }
+  virtual size_t peek() const { return 0; }
+
+  virtual packeteer::error_t read(void *, size_t, size_t &) { return packeteer::ERR_SUCCESS; }
+  virtual packeteer::error_t write(void const *, size_t, size_t &) { return packeteer::ERR_SUCCESS; }
 };
 
 } // anonymous namespace

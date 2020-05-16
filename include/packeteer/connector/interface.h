@@ -46,16 +46,11 @@ public:
   /***************************************************************************
    * Always to be implemented by child classes
    **/
-  /**
-   * Either implement, or call from other constructors. Most implementations
-   * will accept more constructor parameters.
-   */
-  connector_interface(connector_options const & options);
 
   /**
    * Expected to close() the connector.
    */
-  virtual ~connector_interface();
+  virtual ~connector_interface() {};
 
   virtual error_t listen() = 0;
   virtual bool listening() const = 0;
@@ -83,26 +78,20 @@ public:
    * Retrieve connector options. is_blocking() may return the blocking mode
    * set on a file descriptor instead of from the options.
    */
-  virtual connector_options get_options() const;
+  virtual connector_options get_options() const = 0;
   virtual bool is_blocking() const = 0;
 
   /***************************************************************************
    * Default (POSIX-oriented) implementations; may be subclassed if necessary.
    **/
   virtual error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender);
+      ::packeteer::net::socket_address & sender) = 0;
   virtual error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient);
-  virtual size_t peek() const;
+      ::packeteer::net::socket_address const & recipient) = 0;
+  virtual size_t peek() const = 0;
 
-  virtual error_t read(void * buf, size_t bufsize, size_t & bytes_read);
-  virtual error_t write(void const * buf, size_t bufsize, size_t & bytes_written);
-
-protected:
-  // The connector behaviour is stored here as a reference for derived classes;
-  // they can use it to determine how to initialize themselves.
-  // It's set during construction, and can afterwards only be read.
-  connector_options m_options;
+  virtual error_t read(void * buf, size_t bufsize, size_t & bytes_read) = 0;
+  virtual error_t write(void const * buf, size_t bufsize, size_t & bytes_written) = 0;
 };
 
 } // namespace packeteer

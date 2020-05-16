@@ -163,7 +163,7 @@ translate_open_error()
 
 connector_fifo::connector_fifo(std::string const & path,
     connector_options const & options)
-  : connector_interface(options)
+  : connector_common(options)
   , m_addr{path}
 {
 }
@@ -172,7 +172,7 @@ connector_fifo::connector_fifo(std::string const & path,
 
 connector_fifo::connector_fifo(net::socket_address const & addr,
     connector_options const & options)
-  : connector_interface(options)
+  : connector_common(options)
   , m_addr{addr}
 {
 }

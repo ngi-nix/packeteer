@@ -27,14 +27,20 @@
 
 #include <packeteer.h>
 
-#include <packeteer/connector/interface.h>
+#if defined(PACKETEER_WIN32)
+#  include "win32/common.h"
+#elif defined(PACKETEER_POSIX)
+#  include "posix/common.h"
+#else
+#  error Unsupported platform.
+#endif
 
 namespace packeteer::detail {
 
 /**
  * Unidirectional pipe (UNIX)
  **/
-struct connector_anon : public ::packeteer::connector_interface
+struct connector_anon : public connector_common
 {
 public:
   connector_anon(connector_options const & options);
