@@ -96,6 +96,7 @@ add_socket(iocp_socket_select::socket_data & data, handle::sys_handle_t const & 
   data.events.push_back(ev);
 
   // Register handle for events.
+  DLOG("Adding " << sock << " select events: " << events);
   auto err = WSAEventSelect(sock->socket, ev, events);
   if (err == SOCKET_ERROR) {
     ERRNO_LOG("WSAEventSelect failed.");
@@ -113,6 +114,7 @@ modify_socket(iocp_socket_select::socket_data & data, size_t idx, int events)
   auto & ev = data.events[idx];
   auto & sock = data.sockets[idx];
 
+  DLOG("Modifying " << sock << " select events: " << events);
   auto err = WSAEventSelect(sock->socket, ev, events);
   if (err == SOCKET_ERROR) {
     ERRNO_LOG("WSAEventSelect failed.");
@@ -130,6 +132,7 @@ delete_socket(iocp_socket_select::socket_data & data, size_t idx)
   auto & ev = data.events[idx];
   auto & sock = data.sockets[idx];
 
+  DLOG("Unregistering " << sock << " from select events.");
   auto err = WSAEventSelect(sock->socket, ev, 0);
   if (err == SOCKET_ERROR) {
     ERRNO_LOG("WSAEventSelect failed, but we ignore that.");
@@ -246,15 +249,20 @@ iocp_socket_select::run_loop()
 {
   // We keep running until the running flag is unset
   DLOG("IOCP socket select loop start.");
+
+  // Copy event handle data. This is so that subsequent calls to
+  // configure_socket() don't block, and we have the association of events to
+  // sockets intact. We do this once before the loop, and then after every
+  // wakeup - that way, we filter out irrelevant events from sockets that we're
+  // no longer interested in since the last copying, and prepare the list
+  // for the next wait.
+  socket_data data;
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    data = *m_sock_data;
+  }
+
   while (m_running) {
-    // Copy event handle data. This is so that subsequent calls to
-    // configure_socket() don't block, and we have the association of events to
-    // sockets intact.
-    socket_data data;
-    {
-      std::lock_guard<std::mutex> lock(m_mutex);
-      data = *m_sock_data;
-    }
 
     // At this point we may have slightly outdated event data, but that doesn't
     // matter. We can work with this.
@@ -280,6 +288,12 @@ iocp_socket_select::run_loop()
 
     // Some events returned.
     auto first = ret - WSA_WAIT_EVENT_0;
+
+    // Update data
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      data = *m_sock_data;
+    }
 
     bool notify = false;
     for (auto idx = first ; idx < data.events.size() ; ++idx) {
