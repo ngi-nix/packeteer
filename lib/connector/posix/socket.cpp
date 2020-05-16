@@ -84,7 +84,7 @@ create_socket(int domain, int type, int & fd, bool blocking)
 
   // Set socket to close forcibly.
   ::linger option;
-  option.l_onoff = TRUE;
+  option.l_onoff = 1;
   option.l_linger = 0;
   int ret = ::setsockopt(fd, SOL_SOCKET, SO_LINGER, &option, sizeof(option));
   if (ret >= 0) {
