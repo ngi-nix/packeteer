@@ -28,16 +28,16 @@
 
 #include <packeteer/handle.h>
 
-#include <packeteer/connector/interface.h>
-
 #include <packeteer/net/socket_address.h>
+
+#include "common.h"
 
 namespace packeteer::detail {
 
 /**
  * Wrapper around the pipe class.
  **/
-struct connector_pipe : public ::packeteer::connector_interface
+struct connector_pipe : public connector_common
 {
 public:
   connector_pipe(std::string const & path, connector_options const & options);
@@ -59,6 +59,13 @@ public:
   error_t close();
 
   bool is_blocking() const;
+
+  error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
+      ::packeteer::net::socket_address & sender);
+  error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
+      ::packeteer::net::socket_address const & recipient);
+  size_t peek() const;
+
 
 private:
   connector_pipe();

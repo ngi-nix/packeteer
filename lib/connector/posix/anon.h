@@ -18,8 +18,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_CONNECTOR_ANON_H
-#define PACKETEER_CONNECTOR_ANON_H
+#ifndef PACKETEER_CONNECTOR_POSIX_ANON_H
+#define PACKETEER_CONNECTOR_POSIX_ANON_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -27,13 +27,7 @@
 
 #include <packeteer.h>
 
-#if defined(PACKETEER_WIN32)
-#  include "win32/common.h"
-#elif defined(PACKETEER_POSIX)
-#  include "posix/common.h"
-#else
-#  error Unsupported platform.
-#endif
+#include "common.h"
 
 namespace packeteer::detail {
 

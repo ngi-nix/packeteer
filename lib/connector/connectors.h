@@ -24,11 +24,13 @@
 
 // POSIX vs Windows includes
 #if defined(PACKETEER_POSIX)
+#  include "posix/anon.h"
 #  include "posix/tcp.h"
 #  include "posix/udp.h"
 #  include "posix/local.h"
 #  include "posix/fifo.h"
 #else
+#  include "win32/anon.h"
 #  include "win32/tcp.h"
 #  include "win32/udp.h"
 #  if defined(PACKETEER_HAVE_AFUNIX_H)
@@ -37,7 +39,5 @@
 #  include "win32/pipe.h"
 #endif
 
-// Common includes
-#include "anon.h"
 
 #endif // guard
