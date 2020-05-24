@@ -64,7 +64,8 @@ public:
 private:
   error_t create_pipe();
 
-  handle  m_handles[2];
+  handle      m_handles[2];
+  std::string m_addr;
 };
 
 } // namespace packeteer::detail

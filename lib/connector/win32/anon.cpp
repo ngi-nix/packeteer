@@ -19,11 +19,13 @@
  **/
 #include <build-config.h>
 
-#include "../anon.h"
+#include "anon.h"
 
 #include "../../macros.h"
-#include "../../connector/win32/pipe_operations.h"
 #include "../../win32/sys_handle.h"
+
+#include "pipe_operations.h"
+#include "io_operations.h"
 
 #include <packeteer/handle.h>
 
@@ -31,7 +33,7 @@
 namespace packeteer::detail {
 
 connector_anon::connector_anon(connector_options const & options)
-  : connector_interface(CO_STREAM | (options & CO_BLOCKING))
+  : connector_common(CO_STREAM | (options & CO_BLOCKING))
   , m_handles{{}, {}}
 {
 }
@@ -117,6 +119,7 @@ connector_anon::create_pipe()
   // All good - keep the handles!
   m_handles[0] = client;
   m_handles[1] = server;
+  m_addr = addr;
 
   return ERR_SUCCESS;
 }
@@ -159,7 +162,6 @@ connector_interface *
 connector_anon::accept(net::socket_address & /* unused */)
 {
   // There is no need for accept(); we've already got the connection established.
-	// FIXME
   if (!connected()) {
     return nullptr;
   }
@@ -190,13 +192,11 @@ connector_anon::close()
   if (!connected()) {
     return ERR_INITIALIZATION;
   }
-// FIXME
-// FIXME  // We ignore errors from close() here. This is a problem with NFS, as the man
-// FIXME  // pages state, but it's the price of the abstraction.
-// FIXME  ::close(m_fds[0]);
-// FIXME  ::close(m_fds[1]);
-// FIXME
-// FIXME  m_fds[0] = m_fds[1] = -1;
+
+  CloseHandle(m_handles[0].sys_handle()->handle);
+  CloseHandle(m_handles[1].sys_handle()->handle);
+
+  m_handles[0] = m_handles[1] = handle{};
 
   return ERR_SUCCESS;
 }
@@ -206,24 +206,48 @@ connector_anon::close()
 bool
 connector_anon::is_blocking() const
 {
-// FIXME  bool states[2] = { false, false };
-//  error_t err = ::packeteer::get_blocking_mode(m_fds[0], states[0]);
-//  if (err != ERR_SUCCESS) {
-//    return err;
-//  }
-//  err = ::packeteer::get_blocking_mode(m_fds[1], states[1]);
-//  if (err != ERR_SUCCESS) {
-//    return err;
-//  }
-//
-//  if (states[0] != states[1]) {
-//    LOG("The two file descriptors had differing blocking modes.");
-//    return ERR_UNEXPECTED;
-//  }
-//
-//  state = states[0];
-  return false;
+  return m_options & CO_BLOCKING;
 }
+
+
+error_t
+connector_anon::receive(void * buf, size_t bufsize, size_t & bytes_read,
+      ::packeteer::net::socket_address & sender)
+{
+  // Receive is like read, but we copy the sender address. With anonymous pipes,
+  // sender and receiver have identical addresses.
+  if (!connected() && !listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  ssize_t read = -1;
+  auto err = detail::io::read(get_read_handle(), buf, bufsize, read);
+  if (ERR_SUCCESS == err) {
+    bytes_read = read;
+    sender = net::socket_address{m_addr};
+  }
+  return err;
+}
+
+
+
+error_t
+connector_anon::send(void const * buf, size_t bufsize, size_t & bytes_written,
+      ::packeteer::net::socket_address const & recipient)
+{
+  // Send is like write - we just don't use the recipient.
+  return write(buf, bufsize, bytes_written);
+}
+
+
+
+size_t
+connector_anon::peek() const
+{
+  return detail::io::pipe_peek(get_read_handle());
+}
+
+
 
 
 } // namespace packeteer::detail
