@@ -31,7 +31,7 @@
 #include "../../win32/sys_handle.h"
 
 #include "pipe_operations.h"
-
+#include "io_operations.h"
 
 
 namespace packeteer::detail {
@@ -86,7 +86,7 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
 
 connector_pipe::connector_pipe(std::string const & path,
     connector_options const & options)
-  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_common((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr{path}
 {
 }
@@ -95,7 +95,7 @@ connector_pipe::connector_pipe(std::string const & path,
 
 connector_pipe::connector_pipe(net::socket_address const & addr,
     connector_options const & options)
-  : connector_interface((options | CO_STREAM) & ~CO_DATAGRAM)
+  : connector_common((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr{addr}
 {
 }
@@ -272,5 +272,47 @@ connector_pipe::is_blocking() const
 {
   return m_options & CO_BLOCKING;
 }
+
+
+
+error_t
+connector_pipe::receive(void * buf, size_t bufsize, size_t & bytes_read,
+      ::packeteer::net::socket_address & sender)
+{
+  // Receive is like read, but we copy the sender address. With pipes,
+  // sender and receiver have identical addresses.
+  if (!connected() && !listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  ssize_t read = -1;
+  auto err = detail::io::read(get_read_handle(), buf, bufsize, read);
+  if (ERR_SUCCESS == err) {
+    bytes_read = read;
+    sender = net::socket_address{m_addr};
+  }
+  return err;
+}
+
+
+
+error_t
+connector_pipe::send(void const * buf, size_t bufsize, size_t & bytes_written,
+      ::packeteer::net::socket_address const & recipient)
+{
+  // Send is like write - we just don't use the recipient.
+  return write(buf, bufsize, bytes_written);
+}
+
+
+
+
+size_t
+connector_pipe::peek() const
+{
+  return detail::io::pipe_peek(get_read_handle());
+}
+
+
 
 } // namespace packeteer::detail
