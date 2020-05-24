@@ -51,6 +51,16 @@ error_t write(
     void const * buf, size_t amount, ssize_t & written);
 
 
+/**
+ * Peek a named pipe handle or socket. Uses the simple peek semantics of our
+ * connectors where no actual data is returned.
+ */
+PACKETEER_PRIVATE
+size_t pipe_peek(::packeteer::handle handle);
+
+PACKETEER_PRIVATE
+size_t socket_peek(::packeteer::handle handle);
+
 } // namespace packeteer::detail::io
 
 #endif // guard

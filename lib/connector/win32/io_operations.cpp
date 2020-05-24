@@ -188,4 +188,35 @@ write(
 
 
 
+size_t
+pipe_peek(::packeteer::handle handle)
+{
+  DWORD available = 0;
+  BOOL res = PeekNamedPipe(handle.sys_handle()->handle,
+      NULL, 0, NULL,
+      &available,
+      NULL);
+  if (!res) {
+    ERRNO_LOG("PeekNamedPipe failed.");
+    return 0;
+  }
+  return available;
+}
+
+
+
+size_t
+socket_peek(::packeteer::handle handle)
+{
+  u_long amount = 0;
+  int res = ioctlsocket(handle.sys_handle()->socket,
+      FIONREAD, &amount);
+  if (res == SOCKET_ERROR) {
+    ERRNO_LOG("ioctlsocket failed");
+    return 0;
+  }
+  return amount;
+}
+
+
 } // namespace packeteer::detail::io
