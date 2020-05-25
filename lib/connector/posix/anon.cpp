@@ -20,7 +20,7 @@
  **/
 #include <build-config.h>
 
-#include "../anon.h"
+#include "anon.h"
 
 #include "fd.h"
 #include "../../macros.h"
