@@ -33,10 +33,10 @@ namespace packeteer::util {
  * In the end, it's this functionality that allows you to use POSIX-style
  * path segments in URLs, and have them map to Windows paths on WIN32.
  */
-PACKETEER_PRIVATE
+PACKETEER_API
 std::string to_posix_path(std::string const & other);
 
-PACKETEER_PRIVATE
+PACKETEER_API
 std::string to_win32_path(std::string const & other);
 
 } // namespace packeteer::util
