@@ -595,7 +595,7 @@ lib = library('packeteer', libsrc,
 
 packeteer_dep = declare_dependency(
     include_directories: [includes],
-    sources: [lib],
+    link_with: [lib],
     version: LIB_VERSION,
 )
 
@@ -663,26 +663,23 @@ if not meson.is_subproject()
   endif
 
   public_tests = executable('public_tests', public_test_src,
-      include_directories: [includes],  # public headers only!
       dependencies: [
-        gtest.get_variable('gtest_dep')
+        packeteer_dep,
+        gtest.get_variable('gtest_dep'),
       ],
-      link_with: lib,
       cpp_args: test_args,
-      link_args: link_args,
   )
   test('public_tests', public_tests)
 
   # Due to symbol visibility, private tests won't link for non-debug builds
   if bt in ['debug', 'debugoptimized']
     private_tests = executable('private_tests', private_test_src,
-        include_directories: [includes, libincludes],  # public and private headers
+        include_directories: [libincludes],  # Also private headers
         dependencies: [
-          gtest.get_variable('gtest_dep')
+          packeteer_dep,
+          gtest.get_variable('gtest_dep'),
         ],
-        link_with: lib,
         cpp_args: test_args,
-        link_args: link_args,
     )
     test('private_tests', private_tests)
   endif
