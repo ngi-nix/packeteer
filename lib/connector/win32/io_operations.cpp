@@ -29,6 +29,79 @@ namespace o = ::packeteer::detail::overlapped;
 
 namespace {
 
+inline error_t
+translate_error()
+{
+  switch (WSAGetLastError()) {
+    case ERROR_IO_PENDING:
+    case ERROR_IO_INCOMPLETE: // GetOverlappedResultEx()
+    // case WSA_IO_PENDING: == ERROR_IO_PENDING
+    case WSAEINPROGRESS:
+    case WAIT_TIMEOUT:
+      // Perfectly fine, overlapped I/O.
+      return ERR_ASYNC;
+
+    case ERROR_OPERATION_ABORTED:
+    // case WSA_OPERATION_ABORTED: == ERROR_OPERATION_ABORTED
+      ERRNO_LOG("Operation aborted");
+      return ERR_ABORTED;
+
+    case WSAEACCES:
+      return ERR_ACCESS_VIOLATION;
+
+    case WSAEADDRNOTAVAIL:
+      return ERR_ADDRESS_NOT_AVAILABLE;
+
+    case WSAEAFNOSUPPORT:
+      return ERR_INVALID_OPTION;
+
+    case WSAECONNRESET:
+    case WSAEINTR:
+      return ERR_CONNECTION_ABORTED;
+
+    case WSAEDESTADDRREQ:
+    case WSAEFAULT:
+    case WSAEINVAL:
+    case WSAEMSGSIZE:
+      return ERR_INVALID_VALUE;
+
+    case WSAENETRESET:
+    case WSAEHOSTUNREACH:
+    case WSAENETUNREACH:
+      return ERR_NETWORK_UNREACHABLE;
+
+    case WSAENOTCONN:
+    case WSAENETDOWN:
+    case WSAESHUTDOWN:
+      return ERR_NO_CONNECTION;
+
+    case WSAENOTSOCK:
+      return ERR_UNSUPPORTED_ACTION;
+
+    case WSAEWOULDBLOCK:
+      return ERR_REPEAT_ACTION;
+
+    case WSANOTINITIALISED:
+      return ERR_INITIALIZATION;
+
+    case WSAENOBUFS:
+    case ERROR_NOT_ENOUGH_MEMORY:
+    case ERROR_INVALID_USER_BUFFER:
+    case ERROR_NOT_ENOUGH_QUOTA:
+    case ERROR_INSUFFICIENT_BUFFER:
+      ERRNO_LOG("OOM");
+      return ERR_OUT_OF_MEMORY;
+
+    case ERROR_BROKEN_PIPE:
+    case ERROR_HANDLE_EOF: // XXX Maybe handle differently?
+    default:
+      ERRNO_LOG("Unexpected error");
+      return ERR_UNEXPECTED;
+  }
+}
+
+
+
 error_t
 read_op(::packeteer::handle handle,
     void * buf, size_t amount, ssize_t & read,
@@ -85,30 +158,7 @@ read_op(::packeteer::handle handle,
       return ERR_SUCCESS;
     }
 
-    switch (WSAGetLastError()) {
-      // TODO WSARecvFrom error codes
-      case ERROR_IO_PENDING:
-      case ERROR_IO_INCOMPLETE: // GetOverlappedResultEx()
-      case WAIT_TIMEOUT:
-        return ERR_ASYNC;
-
-      case ERROR_OPERATION_ABORTED:
-        ERRNO_LOG("Read operationg aborted");
-        return ERR_ABORTED;
-
-      case ERROR_NOT_ENOUGH_MEMORY:
-      case ERROR_INVALID_USER_BUFFER:
-      case ERROR_NOT_ENOUGH_QUOTA:
-      case ERROR_INSUFFICIENT_BUFFER:
-        ERRNO_LOG("OOM when reading");
-        return ERR_OUT_OF_MEMORY;
-
-      case ERROR_BROKEN_PIPE:
-      case ERROR_HANDLE_EOF: // XXX Maybe handle differently?
-      default:
-        ERRNO_LOG("Unexpected error when reading");
-        return ERR_UNEXPECTED;
-    }
+    return translate_error();
   };
 
 
@@ -178,30 +228,7 @@ write_op(::packeteer::handle handle,
       return ERR_SUCCESS;
     }
 
-    switch (WSAGetLastError()) {
-      // TODO WSASendTo error codes
-      case ERROR_IO_PENDING:
-      case ERROR_IO_INCOMPLETE: // GetOverlappedResultEx()
-      case WAIT_TIMEOUT:
-        return ERR_ASYNC;
-
-      case ERROR_OPERATION_ABORTED:
-        ERRNO_LOG("Write operationg aborted");
-        return ERR_ABORTED;
-
-      case ERROR_NOT_ENOUGH_MEMORY:
-      case ERROR_INVALID_USER_BUFFER:
-      case ERROR_NOT_ENOUGH_QUOTA:
-      case ERROR_INSUFFICIENT_BUFFER:
-        ERRNO_LOG("OOM when writing");
-        return ERR_OUT_OF_MEMORY;
-
-      case ERROR_BROKEN_PIPE:
-      case ERROR_HANDLE_EOF: // XXX Maybe handle differently?
-      default:
-        ERRNO_LOG("Unexpected error when writing");
-        return ERR_UNEXPECTED;
-    }
+    return translate_error();
   };
 
 
