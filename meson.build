@@ -733,3 +733,8 @@ if oclint.found()
     depends: oclint_config,
   )
 endif
+
+
+##############################################################################
+# Subdirectories
+subdir('examples')
