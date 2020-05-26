@@ -27,10 +27,12 @@ namespace packeteer::detail::io {
 
 namespace o = ::packeteer::detail::overlapped;
 
+namespace {
+
 error_t
-read(
-    ::packeteer::handle handle,
-    void * buf, size_t amount, ssize_t & read)
+read_op(::packeteer::handle handle,
+    void * buf, size_t amount, ssize_t & read,
+    net::socket_address * addr)
 {
   if (!handle.valid()) {
     return ERR_INVALID_VALUE;
@@ -43,7 +45,7 @@ read(
   auto sys_handle = handle.sys_handle();
   const bool blocking = sys_handle->blocking;
 
-  auto callback = [&buf, &read, blocking](o::io_action action, o::io_context & ctx) -> error_t
+  auto callback = [&buf, &read, blocking, &addr](o::io_action action, o::io_context & ctx) -> error_t
   {
     DWORD have_read = 0;
     BOOL res = FALSE;
@@ -53,7 +55,21 @@ read(
           FALSE);
     }
     else {
-      res = ReadFile(ctx.handle, ctx.buf, ctx.buflen, &have_read, &ctx);
+      if (ctx.datagram) {
+        WSABUF buf;
+        buf.buf = reinterpret_cast<CHAR *>(ctx.buf);
+        buf.len = ctx.buflen;
+        DWORD flags = 0;
+        INT len = ctx.address.bufsize_available();
+        res = !WSARecvFrom(ctx.socket, &buf, 1,
+            &have_read, &flags,
+            reinterpret_cast<sockaddr *>(ctx.address.buffer()),
+            &len,
+            &ctx, nullptr);
+      }
+      else {
+        res = ReadFile(ctx.handle, ctx.buf, ctx.buflen, &have_read, &ctx);
+      }
     }
 
     if (res) {
@@ -62,10 +78,15 @@ read(
       if (read > 0) {
         ::memcpy(buf, ctx.buf, read);
       }
+      if (ctx.datagram) {
+        // Also store address
+        *addr = ctx.address;
+      }
       return ERR_SUCCESS;
     }
 
     switch (WSAGetLastError()) {
+      // TODO WSARecvFrom error codes
       case ERROR_IO_PENDING:
       case ERROR_IO_INCOMPLETE: // GetOverlappedResultEx()
       case WAIT_TIMEOUT:
@@ -98,7 +119,8 @@ read(
     err = sys_handle->overlapped_manager.schedule_overlapped(
         sys_handle->handle,
         overlapped::READ,
-        callback, amount);
+        callback, amount, nullptr,
+        addr);
   } while (blocking && ERR_ASYNC == err);
 
   if (ERR_ASYNC == err) {
@@ -110,9 +132,9 @@ read(
 
 
 error_t
-write(
-    ::packeteer::handle handle,
-    void const * buf, size_t amount, ssize_t & written)
+write_op(::packeteer::handle handle,
+    void const * buf, size_t amount, ssize_t & written,
+    net::socket_address const * addr)
 {
   if (!handle.valid()) {
     return ERR_INVALID_VALUE;
@@ -135,7 +157,19 @@ write(
           FALSE);
     }
     else {
-      res = WriteFile(ctx.handle, ctx.buf, ctx.buflen, &have_written, &ctx);
+      if (ctx.datagram) {
+        WSABUF buf;
+        buf.buf = reinterpret_cast<CHAR *>(ctx.buf);
+        buf.len = ctx.buflen;
+        res = !WSASendTo(ctx.socket, &buf, 1,
+            &have_written, 0,
+            reinterpret_cast<sockaddr const *>(ctx.address.buffer()),
+            ctx.address.bufsize(),
+            &ctx, nullptr);
+      }
+      else {
+        res = WriteFile(ctx.handle, ctx.buf, ctx.buflen, &have_written, &ctx);
+      }
     }
 
     if (res) {
@@ -145,6 +179,7 @@ write(
     }
 
     switch (WSAGetLastError()) {
+      // TODO WSASendTo error codes
       case ERROR_IO_PENDING:
       case ERROR_IO_INCOMPLETE: // GetOverlappedResultEx()
       case WAIT_TIMEOUT:
@@ -177,13 +212,55 @@ write(
     err = sys_handle->overlapped_manager.schedule_overlapped(
         sys_handle->handle,
         overlapped::WRITE,
-        callback, amount, const_cast<void *>(buf));
+        callback, amount, const_cast<void *>(buf),
+        const_cast<net::socket_address *>(addr));
   } while (blocking && ERR_ASYNC == err);
 
   if (ERR_ASYNC == err) {
     err = ERR_REPEAT_ACTION;
   }
   return err;
+}
+
+
+} // anonymous namespace
+
+
+error_t
+read(::packeteer::handle handle,
+    void * buf, size_t amount, ssize_t & read)
+{
+  return read_op(handle, buf, amount, read, nullptr);
+}
+
+
+
+error_t
+write(::packeteer::handle handle,
+    void const * buf, size_t amount, ssize_t & written)
+{
+  return write_op(handle, buf, amount, written, nullptr);
+}
+
+
+
+
+error_t
+receive(::packeteer::handle handle,
+    void * buf, size_t amount, ssize_t & read,
+    ::packeteer::net::socket_address & sender)
+{
+  return read_op(handle, buf, amount, read, &sender);
+}
+
+
+
+error_t
+send(::packeteer::handle handle,
+    void const * buf, size_t amount, ssize_t & written,
+    ::packeteer::net::socket_address const & recipient)
+{
+  return write_op(handle, buf, amount, written, &recipient);
 }
 
 
