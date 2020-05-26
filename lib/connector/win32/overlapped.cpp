@@ -73,10 +73,11 @@ manager::grow()
 
 
 error_t
-manager::schedule_overlapped(HANDLE handle, io_type type,
+manager::schedule_overlapped(handle_union handle, io_type type,
     request_callback && callback,
-    size_t buflen /* = -1*/,
-    void * source /* = nullptr*/)
+    size_t buflen /* = -1 */,
+    void * source /* = nullptr */,
+    net::socket_address * addr /* = nullptr */)
 {
   std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -86,11 +87,12 @@ manager::schedule_overlapped(HANDLE handle, io_type type,
 
     case READ:
       return schedule_read(handle, std::move(callback),
-          buflen);
+          buflen,
+          addr ? true : false);
 
     case WRITE:
       return schedule_write(handle, std::move(callback),
-          buflen, source);
+          buflen, source, addr);
   }
 
   PACKETEER_FLOW_CONTROL_GUARD;
@@ -99,7 +101,7 @@ manager::schedule_overlapped(HANDLE handle, io_type type,
 
 
 error_t
-manager::schedule_connect(HANDLE handle,
+manager::schedule_connect(handle_union handle,
     request_callback && callback)
 {
   // If there are any slots in use for this handle, return an error. Also
@@ -110,7 +112,7 @@ manager::schedule_connect(HANDLE handle,
     auto & context = m_contexts[i];
 
     // Error out on duplicates
-    if (context.handle == handle) {
+    if (context.handle == handle.handle) {
       // Special case: if this context is already attempting a connection,
       // we want to check progress on it.
       // Since we bail out on any other slot type, this must not only be the
@@ -151,7 +153,7 @@ manager::schedule_connect(HANDLE handle,
   // Whether through growing or not, we've got a slot index. Initalize this
   // context to what we need, and pass it on to the callback.
   auto & context = m_contexts[found];
-  context.handle = handle;
+  context.handle = handle.handle;
   context.type = CONNECT;
   context.buf = nullptr;
   context.buflen = 0;
@@ -168,9 +170,10 @@ manager::schedule_connect(HANDLE handle,
 
 
 error_t
-manager::schedule_read(HANDLE handle,
+manager::schedule_read(handle_union handle,
     request_callback && callback,
-    size_t buflen)
+    size_t buflen,
+    bool datagram)
 {
   // When reading, we want to check if there are other reads in flight. If so,
   // their status should be the result of the function. If the in-flight read
@@ -179,7 +182,7 @@ manager::schedule_read(HANDLE handle,
   auto order_copy = m_order; // So we can run free_unless_async() within the loop
   for (auto id : order_copy) {
     auto & context = m_contexts[id];
-    if (context.handle != handle || context.type != READ) {
+    if (context.handle != handle.handle || context.type != READ) {
       continue;
     }
 
@@ -226,7 +229,7 @@ manager::schedule_read(HANDLE handle,
 
   // We have a slot for the read. Use it!
   auto & context = m_contexts[found];
-  context.handle = handle;
+  context.handle = handle.handle;
   context.type = READ;
   if (buflen <= 0) {
     // Schedule read, even if we don't want any results.
@@ -239,6 +242,7 @@ manager::schedule_read(HANDLE handle,
     context.buf = new char[buflen];
   }
   context.source_sig = 0;
+  context.datagram = datagram;
 
   m_order.push_back(found);
 
@@ -248,10 +252,11 @@ manager::schedule_read(HANDLE handle,
 
 
 error_t
-manager::schedule_write(HANDLE handle,
+manager::schedule_write(handle_union handle,
     request_callback && callback,
     size_t buflen,
-    void * source)
+    void * source,
+    net::socket_address * addr)
 {
   // When writing, we can check the progress on *all* pending writes on the
   // handle (wheras with reading, we want to keep the order).
@@ -269,7 +274,7 @@ manager::schedule_write(HANDLE handle,
     return ERR_INVALID_VALUE;
   }
   source_sig = signature(source, buflen);
-  DLOG("Source signature for WRITE on handle " << std::hex << handle
+  DLOG("Source signature for WRITE on handle " << std::hex << handle.handle
       << " is: " << source_sig << std::dec);
 
   // After that, we can check existing writes.
@@ -277,7 +282,7 @@ manager::schedule_write(HANDLE handle,
   auto order_copy = m_order; // So we can run free_unless_async() in the loop
   for (auto id : order_copy) {
     auto & context = m_contexts[id];
-    if (context.handle != handle || context.type != WRITE) {
+    if (context.handle != handle.handle || context.type != WRITE) {
       continue;
     }
 
@@ -325,12 +330,17 @@ manager::schedule_write(HANDLE handle,
 
   // We have a slot for the read. Use it!
   auto & context = m_contexts[found];
-  context.handle = handle;
+  context.handle = handle.handle;
   context.type = WRITE;
   context.buflen = buflen;
   context.buf = new char[buflen];
   ::memcpy(context.buf, source, buflen);
   context.source_sig = source_sig;
+  context.datagram = false;
+  if (addr) {
+    context.datagram = true;
+    context.address = *addr;
+  }
 
   m_order.push_back(found);
 

@@ -30,6 +30,8 @@
 
 #include <packeteer/handle.h>
 #include <packeteer/scheduler/events.h>
+#include <packeteer/net/socket_address.h>
+#include <packeteer/connector/types.h>
 
 #include "../../net/netincludes.h"
 
@@ -90,12 +92,45 @@ enum PACKETEER_PRIVATE io_type : uint8_t
 };
 
 
+
+/**
+ * Simple union type to avoid casting.
+ * XXX: Note that opaque_handle and io_context below both declare the same
+ *      union, but anonymous. It may be worthwhile re-using the same type here,
+ *      but it doesn't exactly improve readability - we'd access
+ *      handle.sys_handle().handle_union.handle or some such. For now, I'd
+ *      rather keep things this way.
+ **/
+union handle_union
+{
+  handle_union(HANDLE h)
+    : handle(h)
+  {
+  }
+
+  handle_union(SOCKET s)
+    : socket(s)
+  {
+  }
+
+  HANDLE handle = INVALID_HANDLE_VALUE;
+  SOCKET socket;
+};
+
+ 
+
 /**
  * Overlapped context
  */
 struct PACKETEER_PRIVATE io_context : public OVERLAPPED
 {
-  HANDLE     handle = INVALID_HANDLE_VALUE; // The file, etc.
+  // Either HANDLE or SOCKET is used - not re-using handle_union
+  // above, because then we'd have to name the variable and everything gets
+  // longer (FIXME)
+  union {
+    HANDLE handle = INVALID_HANDLE_VALUE;
+    SOCKET socket;
+  };
 
   io_type    type;              // Buffers are only used for READ/WRITE
 
@@ -104,6 +139,9 @@ struct PACKETEER_PRIVATE io_context : public OVERLAPPED
 
   size_t     source_sig = 0;    // For writes, contains a signature of
                                 // the content being written.
+
+  bool       datagram = false;  // Datagram operations (send/recv)
+  net::socket_address address;  // For datagram operations.
 };
 
 
@@ -210,10 +248,11 @@ public:
    *   A callback has determined that the schedule_overlapped() function
    *   should error out prematurely.
    */
-  error_t schedule_overlapped(HANDLE handle, io_type type,
+  error_t schedule_overlapped(handle_union handle, io_type type,
       request_callback && callback,
       size_t buflen = -1,
-      void * source = nullptr);
+      void * source = nullptr,
+      net::socket_address * addr = nullptr);
 
   /**
    * Is a read scheduled?
@@ -241,17 +280,19 @@ private:
   // All private functions are *unlocked*. Lock in the public functions.
   bool grow();
 
-  error_t schedule_connect(HANDLE handle,
+  error_t schedule_connect(handle_union handle,
       request_callback && callback);
 
-  error_t schedule_read(HANDLE handle,
-      request_callback && callback,
-      size_t buflen);
-
-  error_t schedule_write(HANDLE handle,
+  error_t schedule_read(handle_union handle,
       request_callback && callback,
       size_t buflen,
-      void * source);
+      bool datagram);
+
+  error_t schedule_write(handle_union handle,
+      request_callback && callback,
+      size_t buflen,
+      void * source,
+      net::socket_address * addr);
 
   size_t signature(void * source, size_t buflen);
 
