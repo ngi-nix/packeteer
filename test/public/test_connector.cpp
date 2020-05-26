@@ -396,22 +396,14 @@ std::string connector_name(testing::TestParamInfo<T> const & info)
 
 
 void peek_message_streaming(p7r::connector & sender, p7r::connector & receiver,
-    int marker = -1, p7r::scheduler * sched = nullptr)
+    p7r::scheduler & sched)
 {
   std::string msg = "Hello, world!";
-  if (marker >= 0) {
-    msg += " [" + std::to_string(marker) + "]";
-  }
   size_t amount = 0;
   ASSERT_EQ(p7r::ERR_SUCCESS, sender.write(msg.c_str(), msg.size(), amount));
   ASSERT_EQ(msg.size(), amount);
 
-  if (sched) {
-    sched->process_events(TEST_SLEEP_TIME);
-  }
-  else {
-    std::this_thread::sleep_for(TEST_SLEEP_TIME);
-  }
+  sched.process_events(TEST_SLEEP_TIME);
 
   auto peeked = receiver.peek();
 
@@ -653,8 +645,9 @@ setup_stream_connection_async(p7r::scheduler & sched, p7r::connector_type type,
     p7r::callback server_cb{&server_struct, &server_connect_callback::func};
     sched.register_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, server, server_cb);
 
-    // Give scheduler a chance to register connectors
     sched.process_events(TEST_SLEEP_TIME);
+
+    // Try to connect the client.
     auto connect_res = client.connect();
     EXPECT_EQ(p7r::ERR_ASYNC, connect_res);
 
@@ -693,6 +686,7 @@ setup_stream_connection_async(p7r::scheduler & sched, p7r::connector_type type,
     // We're done with these local connectors
     sched.unregister_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, server, server_cb);
     sched.unregister_connector(p7r::PEV_IO_READ|p7r::PEV_IO_WRITE, client, client_cb);
+    sched.process_events(TEST_SLEEP_TIME);
 
     result.push_back(std::make_pair(client, server_conn));
   }
@@ -790,7 +784,6 @@ TEST_P(ConnectorStream, blocking_messaging)
 
   auto url = p7r::util::url::parse(td.generator(true));
   url.query["behaviour"] = "stream";
-  std::cout << "URL: " << url << std::endl;
 
   auto res = setup_stream_connection(td.type, url);
 
@@ -971,8 +964,8 @@ TEST_P(ConnectorStream, peek_from_write)
   auto server = res[0].second;
 
   // Communications
-  peek_message_streaming(server, client, -1, &sched);
-  peek_message_streaming(client, server, -1, &sched);
+  peek_message_streaming(server, client, sched);
+  peek_message_streaming(client, server, sched);
 }
 
 
@@ -994,10 +987,13 @@ struct dgram_test_data
   char const *        dgram_second;
   char const *        dgram_third;
 } dgram_tests[] = {
+#if defined(PACKETEER_POSIX)
+  // Datagram behaviour not supported on Windows
   { p7r::CT_LOCAL,
     "local:///tmp/test-connector-local-dgram-first?blocking=1",
     "local:///tmp/test-connector-local-dgram-second?blocking=1",
     "local:///tmp/test-connector-local-dgram-third?blocking=1", },
+#endif // PACKETEER_POSIX
   { p7r::CT_UDP4,
     "udp4://127.0.0.1:54321?blocking=1",
     "udp4://127.0.0.1:54322?blocking=1",
@@ -1122,7 +1118,7 @@ std::pair<
   std::vector<p7r::connector>
 >
 setup_dgram_connection(p7r::connector_type type, p7r::util::url const & server_url,
-    std::vector<p7r::util::url> const & client_urls)
+    std::vector<p7r::util::url> const & client_urls, bool async = false)
 {
   // Server
   p7r::connector server{test_env->api, server_url};
@@ -1138,8 +1134,14 @@ setup_dgram_connection(p7r::connector_type type, p7r::util::url const & server_u
   EXPECT_FALSE(server.connected());
   EXPECT_TRUE(server.communicating());
 
-  EXPECT_TRUE(server.is_blocking());
-  EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_BLOCKING, server.get_options());
+  if (async) {
+    EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_NON_BLOCKING, server.get_options());
+    EXPECT_FALSE(server.is_blocking());
+  }
+  else {
+    EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_BLOCKING, server.get_options());
+    EXPECT_TRUE(server.is_blocking());
+  }
 
   std::this_thread::sleep_for(TEST_SLEEP_TIME);
 
@@ -1159,8 +1161,14 @@ setup_dgram_connection(p7r::connector_type type, p7r::util::url const & server_u
     EXPECT_FALSE(client.connected());
     EXPECT_TRUE(client.communicating());
 
-    EXPECT_TRUE(client.is_blocking());
-    EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_BLOCKING, client.get_options());
+    if (async) {
+      EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_NON_BLOCKING, client.get_options());
+      EXPECT_FALSE(client.is_blocking());
+    }
+    else {
+      EXPECT_EQ(p7r::CO_DATAGRAM|p7r::CO_BLOCKING, client.get_options());
+      EXPECT_TRUE(client.is_blocking());
+    }
 
     result.push_back(client);
   }
@@ -1261,12 +1269,15 @@ TEST_P(ConnectorDGram, multiple_clients_async)
 
   auto surl = p7r::util::url::parse(td.dgram_first);
   surl.query["behaviour"] = "datagram";
+  surl.query["blocking"] = "0";
   auto curl1 = p7r::util::url::parse(td.dgram_second);
   curl1.query["behaviour"] = "datagram";
+  curl1.query["blocking"] = "0";
   auto curl2 = p7r::util::url::parse(td.dgram_third);
   curl2.query["behaviour"] = "datagram";
+  curl2.query["blocking"] = "0";
 
-  auto res = setup_dgram_connection(td.type, surl, {curl1, curl2});
+  auto res = setup_dgram_connection(td.type, surl, {curl1, curl2}, true);
 
   auto server = res.first;
   auto client1 = res.second[0];
