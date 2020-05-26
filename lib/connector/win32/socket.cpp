@@ -30,6 +30,8 @@
 
 #include "../../win32/sys_handle.h"
 
+#include "io_operations.h"
+
 
 namespace packeteer::detail {
 
@@ -76,9 +78,11 @@ translate_system_error(int err)
     case WSAEOPNOTSUPP:
       return ERR_UNSUPPORTED_ACTION;
 
-    case WSAENETRESET:
     case WSAENOTCONN:
     case WSAENETDOWN:
+      return ERR_NO_CONNECTION;
+
+    case WSAENETRESET:
     case WSAEHOSTUNREACH:
       return ERR_NETWORK_UNREACHABLE;
 
@@ -131,19 +135,21 @@ create_socket_handle(int domain, int type, int proto,
   }
 
   // Set socket to close forcibly.
-  ::linger option;
-  option.l_onoff = TRUE;
-  option.l_linger = 0;
-  int ret = ::setsockopt(sock, SOL_SOCKET, SO_LINGER,
-      reinterpret_cast<char *>(&option), sizeof(option));
-  if (ret == SOCKET_ERROR) {
-    auto err = WSAGetLastError();
+  if (SOCK_STREAM == type) {
+    ::linger option;
+    option.l_onoff = TRUE;
+    option.l_linger = 0;
+    int ret = ::setsockopt(sock, SOL_SOCKET, SO_LINGER,
+        reinterpret_cast<char *>(&option), sizeof(option));
+    if (ret == SOCKET_ERROR) {
+      auto err = WSAGetLastError();
 
-    do_close(sock);
-    h = handle::INVALID_SYS_HANDLE;
+      do_close(sock);
+      h = handle::INVALID_SYS_HANDLE;
 
-    ERR_LOG("create_socket setsockopt failed!", err);
-    return translate_system_error(err);
+      ERR_LOG("create_socket setsockopt failed!", err);
+      return translate_system_error(err);
+    }
   }
 
   // Set security flag - prevent other processes from binding to the same
@@ -151,7 +157,7 @@ create_socket_handle(int domain, int type, int proto,
   // binding the client to an address the server is listening to.
   if (domain != AF_UNIX) {
     int exclusive = 1;
-    ret = ::setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
+    int ret = ::setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
         reinterpret_cast<char *>(&exclusive), sizeof(exclusive));
     if (ret == SOCKET_ERROR) {
       auto err = WSAGetLastError();
@@ -179,7 +185,7 @@ create_socket_handle(int domain, int type, int proto,
 
 connector_socket::connector_socket(net::socket_address const & addr,
     connector_options const & options)
-  : connector_interface(options)
+  : connector_common(options)
   , m_addr(addr)
 {
 }
@@ -187,7 +193,7 @@ connector_socket::connector_socket(net::socket_address const & addr,
 
 
 connector_socket::connector_socket(connector_options const & options)
-  : connector_interface(options)
+  : connector_common(options)
 {
 }
 
@@ -409,6 +415,11 @@ connector_socket::socket_accept(handle::sys_handle_t & new_handle, net::socket_a
       continue;
     }
 
+    if (err == WSAEWOULDBLOCK) {
+      // TODO maybe also on POSIX side?
+      return ERR_ASYNC;
+    }
+
     ERR_LOG("connector_socket accept failed!", err);
     return translate_system_error(err);
   }
@@ -429,6 +440,53 @@ bool
 connector_socket::is_blocking() const
 {
   return m_handle != handle::INVALID_SYS_HANDLE && m_handle->blocking;
+}
+
+
+
+error_t
+connector_socket::receive(void * buf, size_t bufsize, size_t & bytes_read,
+      ::packeteer::net::socket_address & sender)
+{
+  if (!connected() && !listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  ssize_t read = -1;
+  net::socket_address addr;
+  auto err = detail::io::receive(get_read_handle(), buf, bufsize, read, addr);
+  if (ERR_SUCCESS == err) {
+    bytes_read = read;
+    sender = addr;
+  }
+  return err;
+}
+
+
+
+error_t
+connector_socket::send(void const * buf, size_t bufsize, size_t & bytes_written,
+      ::packeteer::net::socket_address const & recipient)
+{
+  if (!connected() && !listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  ssize_t written = -1;
+  auto err = detail::io::send(get_write_handle(), buf, bufsize, written,
+      recipient);
+  if (ERR_SUCCESS == err) {
+    bytes_written = written;
+  }
+  return err;
+}
+
+
+
+size_t
+connector_socket::peek() const
+{
+  return detail::io::socket_peek(get_read_handle());
 }
 
 
