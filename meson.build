@@ -738,3 +738,4 @@ endif
 ##############################################################################
 # Subdirectories
 subdir('examples')
+subdir('benchmarks')
