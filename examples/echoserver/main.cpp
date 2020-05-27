@@ -12,7 +12,7 @@ namespace p7r = packeteer;
 
 
 p7r::error_t
-echo_callback_stream(p7r::time_point const & now, p7r::events_t mask, p7r::error_t error, p7r::connector * conn, void * baton)
+echo_callback_stream(p7r::time_point const &, p7r::events_t mask, p7r::error_t, p7r::connector * conn, void *)
 {
   if (!(mask & p7r::PEV_IO_READ)) {
     return p7r::ERR_SUCCESS;
@@ -33,13 +33,16 @@ echo_callback_stream(p7r::time_point const & now, p7r::events_t mask, p7r::error
   // Echo right back.
   size_t written = 0;
   err = conn->write(buf, read, written);
+  if (err == p7r::ERR_ASYNC) {
+    return p7r::ERR_SUCCESS;
+  }
   return err;
 }
 
 
 
 p7r::error_t
-echo_callback_dgram(p7r::time_point const & now, p7r::events_t mask, p7r::error_t error, p7r::connector * conn, void * baton)
+echo_callback_dgram(p7r::time_point const &, p7r::events_t mask, p7r::error_t, p7r::connector * conn, void *)
 {
   if (!(mask & p7r::PEV_IO_READ)) {
     return p7r::ERR_SUCCESS;
@@ -61,6 +64,9 @@ echo_callback_dgram(p7r::time_point const & now, p7r::events_t mask, p7r::error_
   // Echo right back.
   size_t written = 0;
   err = conn->send(buf, read, written, sender);
+  if (err == p7r::ERR_ASYNC) {
+    return p7r::ERR_SUCCESS;
+  }
   return err;
 }
 
@@ -114,10 +120,19 @@ int main(int argc, char **argv)
           // If this connector is stream based, we'll accept() and schedule a new
           // callback for the resulting connector.
           if (conn->get_options() & p7r::CO_STREAM) {
-            std::cout << "Incoming connection." << std::endl;
-            auto new_conn = conn->accept();
-            scheduler.register_connector(p7r::PEV_IO_READ, new_conn, echo_callback_stream);
-            return p7r::ERR_SUCCESS;
+            try {
+              auto new_conn = conn->accept();
+              if (new_conn.communicating()) {
+                std::cout << "Incoming connection accepted." << std::endl;
+                scheduler.register_connector(p7r::PEV_IO_READ, new_conn, echo_callback_stream);
+              }
+              return p7r::ERR_SUCCESS;
+            } catch (p7r::exception const & ex) {
+              if (ex.code() == p7r::ERR_REPEAT_ACTION) {
+                return p7r::ERR_SUCCESS;
+              }
+              return ex.code();
+            }
           }
 
           // Otherwise call the echo callback.

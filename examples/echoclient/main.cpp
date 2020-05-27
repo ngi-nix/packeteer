@@ -13,7 +13,7 @@ namespace p7r = packeteer;
 
 
 p7r::error_t
-read_callback_stream(p7r::time_point const & now, p7r::events_t mask, p7r::error_t error, p7r::connector * conn, void * baton)
+read_callback_stream(p7r::time_point const &, p7r::events_t mask, p7r::error_t, p7r::connector * conn, void *)
 {
   if (!(mask & p7r::PEV_IO_READ)) {
     return p7r::ERR_SUCCESS;
@@ -37,7 +37,7 @@ read_callback_stream(p7r::time_point const & now, p7r::events_t mask, p7r::error
 
 
 p7r::error_t
-read_callback_dgram(p7r::time_point const & now, p7r::events_t mask, p7r::error_t error, p7r::connector * conn, void * baton)
+read_callback_dgram(p7r::time_point const &, p7r::events_t mask, p7r::error_t, p7r::connector * conn, void *)
 {
   if (!(mask & p7r::PEV_IO_READ)) {
     return p7r::ERR_SUCCESS;
