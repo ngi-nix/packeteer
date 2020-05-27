@@ -428,9 +428,12 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
       case EINTR: // signal interrupt handling
         continue;
 
-      case EAGAIN: // EWOUlDBLOCK
-        // Non-blocking server and no pending connections
-        return ERR_UNEXPECTED;
+      case EAGAIN: // EWOULDBLOCK
+        // This is not an error; it just means there is no
+        // pending connection on a non-blocking connector.
+        // But epoll() etc. still claim the server socket is
+        // readable, which is not convenient.
+        return ERR_REPEAT_ACTION;
 
       case EBADF:
       case EINVAL:
