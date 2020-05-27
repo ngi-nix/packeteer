@@ -148,7 +148,6 @@ translate_open_error()
       //        device special file and no corresponding device exists.
       return ERR_NO_CONNECTION;
 
-    case ENXIO:
     case EOPNOTSUPP:
       return ERR_UNSUPPORTED_ACTION;
 
