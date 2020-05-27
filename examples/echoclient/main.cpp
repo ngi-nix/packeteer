@@ -64,7 +64,9 @@ read_callback_dgram(p7r::time_point const &, p7r::events_t mask, p7r::error_t, p
 int main(int argc, char **argv)
 {
   if (argc < 2) {
-    std::cerr << "Usage: echoserver connect-url [listen-url]" << std::endl;
+    std::cerr << "Usage: echoserver connect-url [listen-url]" << std::endl << std::endl;
+    std::cerr << "Stream-based connectors need a URL to connect to. Datagram-based" << std::endl;
+    std::cerr << "additionally need a URL to listen on." << std::endl;
     exit(1);
   }
 

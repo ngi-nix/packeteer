@@ -128,6 +128,10 @@ int main(int argc, char **argv)
               }
               return p7r::ERR_SUCCESS;
             } catch (p7r::exception const & ex) {
+              // We may have been notified of being readable a second time
+              // before the first time's accept() has succeeded. When accept()
+              // cannot currently accept a connection, it raises
+              // ERR_REPEAT_ACTION.
               if (ex.code() == p7r::ERR_REPEAT_ACTION) {
                 return p7r::ERR_SUCCESS;
               }
