@@ -267,9 +267,9 @@ manager::schedule_write(handle_union handle,
   // So first calculate our source_sig.
   size_t source_sig = 0;
   if (!source || !buflen) {
-    // FIXME it may be worthwile to allow zero-byte writes, e.g. if we can use
-    //       it in the same way we're using zero-byte reads in the IOCP
-    //       subsystem.
+    // XXX it may be worthwile to allow zero-byte writes, e.g. if we can use
+    //     it in the same way we're using zero-byte reads in the IOCP
+    //     subsystem.
     DLOG("Can't write without anything to write.");
     return ERR_INVALID_VALUE;
   }

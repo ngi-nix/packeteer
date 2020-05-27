@@ -142,10 +142,11 @@ translate_open_error()
     case EOVERFLOW:
       return ERR_OUT_OF_MEMORY;
 
-    // FIXME
-    // ENXIO  O_NONBLOCK | O_WRONLY is set, the named file is a FIFO, and no
-    //        process has the FIFO open for reading. Or, the file is a
-    //        device special file and no corresponding device exists.
+    case ENXIO:
+      // ENXIO  O_NONBLOCK | O_WRONLY is set, the named file is a FIFO, and no
+      //        process has the FIFO open for reading. Or, the file is a
+      //        device special file and no corresponding device exists.
+      return ERR_NO_CONNECTION;
 
     case ENXIO:
     case EOPNOTSUPP:

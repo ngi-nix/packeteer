@@ -464,9 +464,9 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
       case ETIMEDOUT:
         return ERR_TIMEOUT;
 
-      // FIXME Linux only case ENOSR:
       case ESOCKTNOSUPPORT:
       case EPROTONOSUPPORT:
+      // Linux only case ENOSR:
       default:
         return ERR_UNEXPECTED;
     }

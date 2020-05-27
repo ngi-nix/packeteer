@@ -126,7 +126,7 @@ struct PACKETEER_PRIVATE io_context : public OVERLAPPED
 {
   // Either HANDLE or SOCKET is used - not re-using handle_union
   // above, because then we'd have to name the variable and everything gets
-  // longer (FIXME)
+  // longer (XXX: see comment in ../../win32/sys_handle.h)
   union {
     HANDLE handle = INVALID_HANDLE_VALUE;
     SOCKET socket;

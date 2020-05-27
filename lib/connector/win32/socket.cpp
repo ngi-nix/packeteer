@@ -67,8 +67,8 @@ translate_system_error(int err)
     case WSAEMFILE:
       return ERR_NUM_FILES;
 
-    case WSAEADDRNOTAVAIL:  // Technically, ports
-      return ERR_ADDRESS_NOT_AVAILABLE; // FIXME check posix
+    case WSAEADDRNOTAVAIL:
+      return ERR_NUM_FILES; // technically, ports.
 
     case WSAENOBUFS:
       return ERR_OUT_OF_MEMORY;
@@ -104,7 +104,9 @@ translate_system_error(int err)
     case WSAEISCONN:
       return ERR_INITIALIZATION;
 
-#if 0 // FIXME AF_LOCAL
+    // XXX on POSIX for AF_LOCAL
+    // There is no documented Win32 equivalent, but it surely exists.
+#if 0
     case ENOENT:
     case ENOTDIR:
     case EROFS:
@@ -214,7 +216,6 @@ connector_socket::socket_connect(int domain, int type, int proto)
     return err;
   }
 
-  // FIXME posix docs
   // Now try to connect the socket with the address
   while (true) {
     int ret = ::connect(h->socket,
@@ -416,8 +417,8 @@ connector_socket::socket_accept(handle::sys_handle_t & new_handle, net::socket_a
     }
 
     if (err == WSAEWOULDBLOCK) {
-      // TODO maybe also on POSIX side?
-      return ERR_ASYNC;
+      // See comment in posix/socket.cpp
+      return ERR_REPEAT_ACTION;
     }
 
     ERR_LOG("connector_socket accept failed!", err);
