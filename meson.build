@@ -602,6 +602,7 @@ packeteer_dep = declare_dependency(
 ##############################################################################
 # Meson Wrap Dependencies
 gtest = subproject('gtest')
+clipp = subproject('muellan-clipp')
 
 ##############################################################################
 # Tests
