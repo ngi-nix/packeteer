@@ -48,7 +48,10 @@ if not meson.is_subproject()
   # TODO add other third-party
 
   executable('bench_event', event_src,
-      dependencies: event_deps
+      dependencies: [
+        event_deps,
+        clipp.get_variable('clipp_dep'),
+      ]
   )
 
 endif

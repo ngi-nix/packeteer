@@ -17,19 +17,51 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#ifndef P7R_BENCH_EVENT_BACKENDS_H
+#define P7R_BENCH_EVENT_BACKENDS_H
+
 #include <iostream>
+#include <vector>
+#include <functional>
 
-#include "backends.h"
-
-struct libevent_ops : public backend_ops
+enum class backends
 {
-  virtual void init(options const & opts)
-  {
-    std::cout << "lalala" << std::endl;
-  }
-
+  PACKETEER = 0,
+  LIBEVENT,
+  LIBEV,
+  LIBUV,
+  ASIO,
 };
 
-static const int __unused = (register_backend(backends::LIBEVENT,
-      "libevent", {"event", "libevent"},
-      new libevent_ops{}), 0);
+std::ostream & operator<<(std::ostream & os, backends const & b);
+
+
+
+struct options
+{
+  backends  backend = backends::PACKETEER;
+  size_t    conns = 100;
+  size_t    active = 1;
+  size_t    writes = 100;
+  bool      verbose = false;
+};
+
+
+
+struct backend_ops
+{
+  virtual ~backend_ops() {};
+
+  virtual void init(options const &) {};
+  // TODO
+};
+
+
+
+void register_backend(backends b,
+    std::string const & name,
+    std::vector<std::string> const & matches,
+    backend_ops * ops);
+
+
+#endif // P7R_BENCH_EVENT_BACKENDS_H
