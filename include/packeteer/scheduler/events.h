@@ -52,6 +52,9 @@ enum PACKETEER_API : events_t
                                // registered for.
   PEV_ERROR      = (1 <<  8),  // Internal scheduler error.
 
+  PEV_ALL_BUILTIN = PEV_IO_READ | PEV_IO_WRITE | PEV_IO_ERROR | PEV_IO_OPEN
+      | PEV_IO_CLOSE | PEV_TIMEOUT | PEV_ERROR,
+
   PEV_USER       = (1 << 15), // A user-defined event was fired (see below).
 };
 

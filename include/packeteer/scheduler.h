@@ -126,6 +126,17 @@ public:
   error_t unregister_connector(events_t const & events, connector const & conn,
       callback const & callback);
 
+  /**
+   * Stop listening to the given events on the given connector without
+   * specifying a callback - any callbacks are removed.
+   **/
+  error_t unregister_connector(events_t const & events, connector const & conn);
+
+  /**
+   * Stop listening to any events on the given connector.
+   **/
+  error_t unregister_connector(connector const & conn);
+
 
   /**
    * Schedule a callback:

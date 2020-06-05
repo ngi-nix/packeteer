@@ -602,6 +602,85 @@ TEST_P(Scheduler, io_callback)
 }
 
 
+
+TEST_P(Scheduler, io_callback_remove_all_callbacks)
+{
+  auto td = GetParam();
+
+  // The simplest way to test I/O callbacks is with a pipe.
+  p7r::connector pipe{test_env->api, "anon://"};
+  pipe.connect();
+
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
+
+  counting_callback source1;
+  p7r::callback cb1{&source1, &counting_callback::func};
+  sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb1);
+
+  counting_callback source2;
+  p7r::callback cb2{&source2, &counting_callback::func};
+
+  // Register callbacks and process
+  sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb2);
+  sched.process_events(TEST_SLEEP_TIME);
+
+  // Both callbacks must have been invoked.
+  ASSERT_GE(source1.m_write_called, 0);
+  ASSERT_GE(source2.m_write_called, 0);
+
+  // Now if we unregister the entire connector without specifying a
+  // callback, we should not get more callbacks.
+  int s1 = source1.m_write_called;
+  int s2 = source2.m_write_called;
+
+  sched.unregister_connector(p7r::PEV_IO_WRITE, pipe);
+  sched.process_events(TEST_SLEEP_TIME);
+
+  ASSERT_EQ(s1, source1.m_write_called);
+  ASSERT_EQ(s2, source2.m_write_called);
+}
+
+
+
+TEST_P(Scheduler, io_callback_remove_completely)
+{
+  auto td = GetParam();
+
+  // The simplest way to test I/O callbacks is with a pipe.
+  p7r::connector pipe{test_env->api, "anon://"};
+  pipe.connect();
+
+  p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
+
+  counting_callback source1;
+  p7r::callback cb1{&source1, &counting_callback::func};
+  sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb1);
+
+  counting_callback source2;
+  p7r::callback cb2{&source2, &counting_callback::func};
+
+  // Register callbacks and process
+  sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb2);
+  sched.process_events(TEST_SLEEP_TIME);
+
+  // Both callbacks must have been invoked.
+  ASSERT_GE(source1.m_write_called, 0);
+  ASSERT_GE(source2.m_write_called, 0);
+
+  // Now if we unregister the entire connector, we should not get any more
+  // callbacks.
+  int s1 = source1.m_write_called;
+  int s2 = source2.m_write_called;
+
+  sched.unregister_connector(pipe);
+  sched.process_events(TEST_SLEEP_TIME);
+
+  ASSERT_EQ(s1, source1.m_write_called);
+  ASSERT_EQ(s2, source2.m_write_called);
+}
+
+
+
 TEST_P(Scheduler, io_callback_registration_simultaneous)
 {
   auto td = GetParam();

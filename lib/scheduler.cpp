@@ -75,6 +75,27 @@ scheduler::unregister_connector(events_t const & events, connector const & conn,
 
 
 error_t
+scheduler::unregister_connector(events_t const & events, connector const & conn)
+{
+  auto entry = new detail::io_callback_entry(nullptr, conn, events);
+  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  return ERR_SUCCESS;
+}
+
+
+
+error_t
+scheduler::unregister_connector(connector const & conn)
+{
+  auto entry = new detail::io_callback_entry(nullptr, conn, PEV_ALL_BUILTIN);
+  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  return ERR_SUCCESS;
+}
+
+
+
+
+error_t
 scheduler::schedule_once(duration const & delay, callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback,
