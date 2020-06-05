@@ -19,6 +19,8 @@
  **/
 #include <iostream>
 #include <map>
+#include <memory>
+#include <chrono>
 
 #include <clipp.h>
 
@@ -36,7 +38,7 @@ struct backend_meta
 
 using backend_map = std::map<
     backends,
-    std::pair<backend_meta, backend_ops *>
+    std::pair<backend_meta, std::shared_ptr<backend_ops>>
 >;
 
 static backend_map REGISTERED_BACKENDS = backend_map{};
@@ -79,15 +81,24 @@ options parse_cli(int argc, char **argv)
         .doc("Select the backend to run the benchmark with. Possible values "
           "are: packeteer, libevent, TODO"
          ),
-      option("--num-conns", "-n")
+
+      option("-n", "--num-conns")
         .doc("The number of conns to use in the test.")
         & value("connectors", opts.conns),
-      option("--active-conns", "-a")
+      option("-a", "--active-conns")
         .doc("The number of active conns at any given interval.")
         & value("active", opts.active),
-      option("--writes", "-w")
+      option("-w", "--writes")
         .doc("The number total writes to perform.")
         & value("writes", opts.writes),
+
+      option("-p", "--port-range-start")
+        .doc("Start of the port range to use.")
+        & value("start", opts.port_range_start),
+
+      option("-r", "--runs")
+        .doc("Number of test runs to perform.")
+        & value("runs", opts.runs),
 
       option("-v", "--verbose")
         .set(opts.verbose)
@@ -112,6 +123,8 @@ options parse_cli(int argc, char **argv)
     std::cout << "  Number of connectors: " << opts.conns << std::endl;
     std::cout << "  Active connectors:    " << opts.active << std::endl;
     std::cout << "  Number of writes:     " << opts.writes << std::endl;
+    std::cout << "  Start of port range:  " << opts.port_range_start << std::endl;
+    std::cout << "  Test runs:            " << opts.runs << std::endl;
   }
 
   return opts;
@@ -140,9 +153,84 @@ void register_backend(backends b,
     backend_ops * ops)
 {
   backend_meta meta{name, matches};
-  REGISTERED_BACKENDS[b] = std::make_pair(meta, ops);
+  REGISTERED_BACKENDS[b] = std::make_pair(meta,
+      std::shared_ptr<backend_ops>(ops));
 }
 
+
+
+struct test_context
+{
+  options       opts;
+  backend_ops & backend;
+
+  size_t fired = 0;
+  size_t space = 0;
+  size_t send_errors = 0;
+  size_t recv_errors = 0;
+  size_t bytes_received = 0;
+  size_t received = 0;
+
+  char send_buf[1] = { 'e' };
+
+  test_context(options const & _opts, backend_ops & _backend)
+    : opts(_opts)
+    , backend(_backend)
+  {
+    space = opts.conns / opts.active;
+    // TODO more parameters?
+    VERBOSE_LOG(opts, "Space between active connections: " << space);
+  }
+
+
+  conn_index send_index(conn_index from_idx)
+  {
+    return (from_idx + 1) % opts.conns;
+  }
+
+
+  bool send_and_count_errors(conn_index from_idx)
+  {
+    auto success = backend.sendto(from_idx, send_index(from_idx), send_buf,
+        sizeof(send_buf));
+
+    if (!success) {
+      ++send_errors;
+    }
+    return success;
+  }
+
+
+  void fire_initial_events()
+  {
+    for (conn_index i = 0 ; i < opts.active ; ++i, ++fired) {
+      send_and_count_errors(i * space);
+    }
+  }
+
+
+  void read_callback_impl(backend_ops & the_backend, conn_index index)
+  {
+    // Read from the indicated index.
+    auto read = the_backend.recv(index);
+    if (read >= 0) {
+      bytes_received += read;
+      ++received;
+      VERBOSE_LOG(opts, "Received " << read << " Bytes on " << index << ".");
+    }
+    else {
+      ++recv_errors;
+      VERBOSE_LOG(opts, "Error on " << index);
+    }
+
+    // If we still have writes to perform, select a write index and write.
+    if (fired < opts.writes) {
+      send_and_count_errors(index);
+      ++fired;
+    }
+  }
+
+};
 
 
 int main(int argc, char **argv)
@@ -153,4 +241,30 @@ int main(int argc, char **argv)
   auto & backend = REGISTERED_BACKENDS[opts.backend].second;
 
   backend->init(opts);
+  VERBOSE_LOG(opts, "Backend initialized.");
+
+  for (size_t run = 0 ; run < opts.runs ; ++run) {
+    VERBOSE_LOG(opts, "=== Start of test run: " << run);
+
+    test_context ctx{opts, *backend.get()};
+    using namespace std::placeholders;
+    auto func = std::bind(&test_context::read_callback_impl, &ctx, _1, _2);
+    backend->start_run(func);
+
+    ctx.fire_initial_events();
+
+    auto start_ts = std::chrono::steady_clock::now();
+    do {
+      backend->poll_events();
+    } while (ctx.fired > ctx.received);
+    auto end_ts = std::chrono::steady_clock::now();
+
+    backend->end_run();
+
+    auto diff = end_ts - start_ts;
+    auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(diff);
+    std::cout << "Run " << run << " completed in " << nsec.count() << " usec." << std::endl;
+
+    VERBOSE_LOG(opts, "=== End of test run: " << run);
+  }
 }

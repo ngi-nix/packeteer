@@ -24,6 +24,15 @@
 #include <vector>
 #include <functional>
 
+#define _LOG_BASE(opts, os, msg) \
+  if (opts.verbose) { \
+    os << msg << std::endl; \
+  }
+
+#define VERBOSE_LOG(opts, msg) _LOG_BASE(opts, std::cout, msg)
+#define VERBOSE_ERR(opts, msg) _LOG_BASE(opts, std::cerr, msg)
+
+
 enum class backends
 {
   PACKETEER = 0,
@@ -43,17 +52,59 @@ struct options
   size_t    conns = 100;
   size_t    active = 1;
   size_t    writes = 100;
+  uint16_t  port_range_start = 2000;
+  size_t    runs = 25;
   bool      verbose = false;
 };
 
 
+struct backend_ops;
 
+using conn_index = size_t;
+using read_callback = std::function<void (backend_ops & backend, conn_index index)>;
+
+
+/**
+ * For a new event backend, implement this interface and register it.
+ *
+ * Note: in order to keep the backend's management of sockets, etc. to the
+ *       backend, the main test loop operates on the assumption that each
+ *       connection has a unique conn_index, and the conn_index is between
+ *       zero and opts.conns.
+ */
 struct backend_ops
 {
   virtual ~backend_ops() {};
 
+  /**
+   * Initialize backend. Use this to open sockets, etc.
+   */
   virtual void init(options const &) {};
-  // TODO
+
+  /**
+   * Start and end a single test run. At the start of the test run, a
+   * read_callback is to be registered for all connections for the test
+   * run to work.
+   */
+  virtual void start_run(read_callback callback) = 0;
+  virtual void end_run() {};
+
+  /**
+   * Poll events from the backend once. This should typically register
+   * callbacks or fire callbacks due to the writes issued just before.
+   */
+  virtual void poll_events() = 0;
+
+  /**
+   * Backend-specific reading and writing function, operating on the
+   * connection indicated by from_idx, and sending to the socket indicated
+   * by to_idx.
+   *
+   * Return true if sendto succeeded, false if it failed. When reading, we
+   * care about the amount of bytes received, but not the actual data.
+   */
+  virtual bool sendto(conn_index from_idx, conn_index to_idx, void const * buf, size_t buflen) = 0;
+  virtual ssize_t recv(conn_index from_idx) = 0;
 };
 
 
@@ -62,6 +113,7 @@ void register_backend(backends b,
     std::string const & name,
     std::vector<std::string> const & matches,
     backend_ops * ops);
+
 
 
 #endif // P7R_BENCH_EVENT_BACKENDS_H
