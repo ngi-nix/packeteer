@@ -35,6 +35,8 @@
 #include <algorithm>
 #include <map>
 
+#include <stdlib.h>
+
 #include <packeteer/error.h>
 #include <packeteer/registry.h>
 
@@ -64,6 +66,7 @@ struct connector::connector_impl
   peer_address              m_address;
   connector_interface *     m_iconn;
 
+  size_t                    m_hash_seed = rand();
   size_t                    m_hash_cache = 0;
 
   connector_impl(std::shared_ptr<api> api, util::url const & connect_url,
@@ -153,25 +156,25 @@ struct connector::connector_impl
   }
 
 
-  connector_interface & operator*()
+  inline connector_interface & operator*()
   {
     return *m_iconn;
   }
 
 
-  connector_interface * operator->()
+  inline connector_interface * operator->()
   {
     return m_iconn;
   }
 
 
-  operator bool() const
+  inline operator bool() const
   {
     return m_iconn != nullptr;
   }
 
 
-  size_t hash() const
+  inline size_t hash() const
   {
     return m_hash_cache;
   }
@@ -180,15 +183,9 @@ struct connector::connector_impl
   void update_hash()
   {
     size_t value = packeteer::util::multi_hash(
+        m_hash_seed,
         static_cast<int>(m_type),
         m_url);
-
-    if (m_iconn) {
-      packeteer::util::hash_combine(value,
-          packeteer::util::multi_hash(
-            m_iconn->get_read_handle(),
-            m_iconn->get_write_handle()));
-    }
 
     m_hash_cache = value;
   }

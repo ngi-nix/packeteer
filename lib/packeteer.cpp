@@ -21,6 +21,10 @@
  **/
 #include <packeteer.h>
 
+#include <chrono>
+
+#include <stdlib.h>
+
 #include <packeteer/registry.h>
 
 #include "net/netincludes.h"
@@ -50,6 +54,10 @@ api::api()
         "WSAStartup failed!");
   }
 #endif // win32
+
+  // Initialize random seed used in connector construction.
+  auto now = std::chrono::steady_clock::now().time_since_epoch();
+  srand(now.count());
 }
 
 
