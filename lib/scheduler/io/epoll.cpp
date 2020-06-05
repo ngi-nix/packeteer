@@ -98,7 +98,6 @@ modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
 
   for (size_t i = 0 ; i < size ; ++i) {
     ::epoll_event event;
-    ::memset(&event, 0, sizeof(event));
     event.events = translated;
     event.data.fd = fds[i];
     int ret = ::epoll_ctl(epoll_fd, action, fds[i], &event);
@@ -294,7 +293,6 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
   int ready = -1;
 
   while (true) {
-    ::memset(&epoll_events, 0, sizeof(epoll_events));
     ready = ::epoll_pwait(m_epoll_fd, epoll_events, PACKETEER_EPOLL_MAXEVENTS,
         sc::ceil<sc::milliseconds>(timeout).count(), nullptr);
     if (-1 != ready) {
