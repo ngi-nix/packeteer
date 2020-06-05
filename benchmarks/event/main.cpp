@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <chrono>
+#include <fstream>
 
 #include <clipp.h>
 
@@ -100,6 +101,10 @@ options parse_cli(int argc, char **argv)
         .doc("Number of test runs to perform.")
         & value("runs", opts.runs),
 
+      option("-o", "--output")
+        .doc("Output file (CSV) for test results.")
+        & value("output_file", opts.output_file),
+
       option("-v", "--verbose")
         .set(opts.verbose)
         .doc("Be verbose."),
@@ -125,6 +130,7 @@ options parse_cli(int argc, char **argv)
     std::cout << "  Number of writes:     " << opts.writes << std::endl;
     std::cout << "  Start of port range:  " << opts.port_range_start << std::endl;
     std::cout << "  Test runs:            " << opts.runs << std::endl;
+    std::cout << "  Output file:          " << opts.output_file << std::endl;
   }
 
   return opts;
@@ -178,7 +184,6 @@ struct test_context
     , backend(_backend)
   {
     space = opts.conns / opts.active;
-    // TODO more parameters?
     VERBOSE_LOG(opts, "Space between active connections: " << space);
   }
 
@@ -229,8 +234,62 @@ struct test_context
       ++fired;
     }
   }
-
 };
+
+
+void output_console(int run, int usec, test_context const & ctx)
+{
+  std::cout << "Run " << run << " completed in " << usec << " usec." << std::endl;
+  std::cout << "  Fired:        " << ctx.fired << std::endl;
+  std::cout << "  Received:     " << ctx.received << std::endl;
+  std::cout << "  Bytes:        " << ctx.bytes_received << std::endl;
+  std::cout << "  Send errors:  " << ctx.send_errors << std::endl;
+  std::cout << "  Recv errors:  " << ctx.recv_errors << std::endl;
+}
+
+
+void output_csv(int run, int usec, test_context const & ctx, std::ofstream & file)
+{
+  file << REGISTERED_BACKENDS[ctx.opts.backend].first.name << ",";
+  file << ctx.opts.conns << ",";
+  file << ctx.opts.active << ",";
+  file << ctx.opts.writes << ",";
+  file << ctx.opts.runs << ",";
+
+  file << run << ",";
+  file << usec << ",";
+
+  file << ctx.fired << ",";
+  file << ctx.received << ",";
+  file << ctx.bytes_received << ",";
+  file << ctx.send_errors << ",";
+  file << ctx.recv_errors << ",";
+
+  file << "\n";
+
+}
+
+
+void output_csv_header(options const & opts, std::ofstream & file)
+{
+  file << "Backend,";
+  file << "Connections,";
+  file << "Active,";
+  file << "Writes,";
+  file << "Total Runs,";
+
+  file << "Run,";
+  file << "Time (usec),";
+
+  file << "Fired,";
+  file << "Received,";
+  file << "Bytes Received,";
+  file << "Send Errors,";
+  file << "Receive Errors,";
+
+  file << "\n";
+}
+
 
 
 int main(int argc, char **argv)
@@ -245,6 +304,13 @@ int main(int argc, char **argv)
 
   bool io_errors = false;
   bool duplication_errors = false;
+
+
+  std::ofstream output_file;
+  if (!opts.output_file.empty()) {
+    output_file.open(opts.output_file);
+    output_csv_header(opts, output_file);
+  }
 
   for (size_t run = 0 ; run < opts.runs ; ++run) {
     VERBOSE_LOG(opts, "=== Start of test run: " << run);
@@ -265,13 +331,13 @@ int main(int argc, char **argv)
     backend->end_run();
 
     auto diff = end_ts - start_ts;
-    auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(diff);
-    std::cout << "Run " << run << " completed in " << nsec.count() << " usec." << std::endl;
-    std::cout << "  Fired:        " << ctx.fired << std::endl;
-    std::cout << "  Received:     " << ctx.received << std::endl;
-    std::cout << "  Bytes:        " << ctx.bytes_received << std::endl;
-    std::cout << "  Send errors:  " << ctx.send_errors << std::endl;
-    std::cout << "  Recv errors:  " << ctx.recv_errors << std::endl;
+    auto usec = std::chrono::duration_cast<std::chrono::microseconds>(diff);
+
+    output_console(run, usec.count(), ctx);
+    if (output_file.is_open()) {
+      output_csv(run, usec.count(), ctx, output_file);
+    }
+
     if (ctx.send_errors || ctx.recv_errors) {
       io_errors = true;
     }
@@ -280,6 +346,10 @@ int main(int argc, char **argv)
     }
 
     VERBOSE_LOG(opts, "=== End of test run: " << run);
+  }
+
+  if (output_file.is_open()) {
+    output_file.close();
   }
 
   if (io_errors) {

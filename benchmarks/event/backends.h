@@ -23,6 +23,7 @@
 #include <iostream>
 #include <vector>
 #include <functional>
+#include <string>
 
 #define _LOG_BASE(opts, os, msg) \
   if (opts.verbose) { \
@@ -48,13 +49,14 @@ std::ostream & operator<<(std::ostream & os, backends const & b);
 
 struct options
 {
-  backends  backend = backends::PACKETEER;
-  size_t    conns = 100;
-  size_t    active = 1;
-  size_t    writes = 100;
-  uint16_t  port_range_start = 2000;
-  size_t    runs = 25;
-  bool      verbose = false;
+  backends    backend = backends::PACKETEER;
+  size_t      conns = 100;
+  size_t      active = 1;
+  size_t      writes = 100;
+  uint16_t    port_range_start = 2000;
+  size_t      runs = 25;
+  bool        verbose = false;
+  std::string output_file;
 };
 
 
