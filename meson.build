@@ -91,13 +91,21 @@ elif compiler_id == 'msvc'
 endif
 
 bt = get_option('buildtype')
-if bt in ['debug', 'debugoptimized']
+if bt in ['debug']
   if compiler_id == 'clang'
     cpp_args += ['-ggdb', '-DDEBUG']
   elif compiler_id == 'gcc'
     cpp_args += ['-g3', '-DDEBUG']
   elif compiler_id == 'msvc'
     cpp_args += ['/FS', '/DDEBUG=1']
+  endif
+elif bt in ['debugoptimized']
+  if compiler_id == 'clang'
+    cpp_args += ['-ggdb', '-DNDEBUG']
+  elif compiler_id == 'gcc'
+    cpp_args += ['-g3', '-DNDEBUG']
+  elif compiler_id == 'msvc'
+    cpp_args += ['/FS', '/DNDEBUG=1']
   endif
 else
   posix_release_args = [
