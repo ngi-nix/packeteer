@@ -112,7 +112,7 @@ struct registry::registry_impl
   /***************************************************************************
    * Query parameter registry
    */
-  std::map<std::string, registry::option_mapper> option_mappers;
+  std::unordered_map<std::string, registry::option_mapper> option_mappers;
 
 
   void init_params()

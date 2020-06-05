@@ -32,9 +32,6 @@
 
 #include <cctype>
 
-#include <algorithm>
-#include <map>
-
 #include <stdlib.h>
 
 #include <packeteer/error.h>

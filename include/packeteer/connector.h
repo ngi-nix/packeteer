@@ -334,7 +334,7 @@ namespace std {
 
 template <> struct PACKETEER_API hash<::packeteer::connector>
 {
-  inline size_t operator()(::packeteer::connector const & conn)
+  inline size_t operator()(::packeteer::connector const & conn) const
   {
     return conn.hash();
   }

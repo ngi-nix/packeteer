@@ -21,7 +21,7 @@
 
 #include <packeteer/connector/peer_address.h>
 
-#include <map>
+#include <unordered_map>
 #include <algorithm>
 
 #include <packeteer/util/hash.h>
@@ -32,7 +32,7 @@ namespace packeteer {
 
 namespace {
 
-using schemes_map_t = std::map<connector_type, std::string>;
+using schemes_map_t = std::unordered_map<connector_type, std::string>;
 static const schemes_map_t sc_schemes =
 {
   { CT_UNSPEC, "" },

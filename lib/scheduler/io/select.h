@@ -32,8 +32,6 @@
 #error select not detected
 #endif
 
-#include <map>
-
 #include <packeteer/scheduler/events.h>
 
 #include "../io.h"

@@ -21,7 +21,7 @@
 
 #include "iocp.h"
 
-#include <set>
+#include <unordered_set>
 
 #include <packeteer/error.h>
 #include <packeteer/types.h>
@@ -48,7 +48,7 @@ namespace {
  * Register handle with IOCP.
  **/
 inline bool
-register_handle(HANDLE iocp, std::set<HANDLE> & associated, handle const & handle)
+register_handle(HANDLE iocp, std::unordered_set<HANDLE> & associated, handle const & handle)
 {
   DLOG("Supposed to register with IOCP: " << handle << " / " << handle.sys_handle()->handle);
   ULONG_PTR completion_key = handle.hash();
@@ -355,7 +355,7 @@ io_iocp::wait_for_events(std::vector<event_data> & events,
   DLOG("Dequeued " << read << " I/O events.");
 
   // Temporary events container
-  std::map<connector, events_t> tmp_events;
+  std::unordered_map<connector, events_t> tmp_events;
 
   // Grab events from select loop. This may be over very soon, if there were no
   // events detected there.

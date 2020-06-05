@@ -31,7 +31,7 @@
 #include <packeteer/types.h>
 #include <packeteer/connector.h>
 
-#include <map>
+#include <unordered_map>
 
 namespace packeteer::detail {
 
@@ -201,7 +201,7 @@ struct io_callbacks_t
 
 private:
   // For the same file descriptor, we may have multiple callback entries.
-  std::multimap<connector, io_callback_entry *> m_callback_map;
+  std::unordered_multimap<connector, io_callback_entry *> m_callback_map;
 };
 
 

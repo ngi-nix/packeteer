@@ -30,7 +30,7 @@
 #error I/O completion ports not detected
 #endif
 
-#include <set>
+#include <unordered_set>
 
 #include <packeteer/scheduler/events.h>
 
@@ -75,7 +75,7 @@ private:
    * Data
    **/
   HANDLE                      m_iocp = INVALID_HANDLE_VALUE;
-  std::set<HANDLE>            m_associated = {};
+  std::unordered_set<HANDLE>  m_associated = {};
   connector                   m_interrupt = {};
   iocp_socket_select *        m_sock_select = nullptr;
 };

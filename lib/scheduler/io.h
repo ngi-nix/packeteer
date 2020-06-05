@@ -30,7 +30,7 @@
 
 #include <vector>
 #include <chrono>
-#include <map>
+#include <unordered_map>
 
 #include <packeteer/types.h>
 #include <packeteer/connector.h>
@@ -115,8 +115,8 @@ public:
 protected:
   std::shared_ptr<api> m_api;
 
-  std::map<handle::sys_handle_t, events_t>  m_sys_handles;
-  std::map<handle::sys_handle_t, connector> m_connectors;
+  std::unordered_map<handle::sys_handle_t, events_t>  m_sys_handles;
+  std::unordered_map<handle::sys_handle_t, connector> m_connectors;
 
 private:
   inline void
