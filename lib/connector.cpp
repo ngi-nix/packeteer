@@ -64,6 +64,8 @@ struct connector::connector_impl
   peer_address              m_address;
   connector_interface *     m_iconn;
 
+  size_t                    m_hash_cache = 0;
+
   connector_impl(std::shared_ptr<api> api, util::url const & connect_url,
       connector_interface * iconn)
     : m_api(api)
@@ -82,6 +84,8 @@ struct connector::connector_impl
     m_default_options = info.default_options;
     m_possible_options = info.possible_options;
     m_creator = info.creator;
+
+    update_hash();
   }
 
 
@@ -136,6 +140,8 @@ struct connector::connector_impl
 
     m_type = ctype;
     m_iconn = iconn;
+
+    update_hash();
   }
 
 
@@ -167,6 +173,12 @@ struct connector::connector_impl
 
   size_t hash() const
   {
+    return m_hash_cache;
+  }
+
+
+  void update_hash()
+  {
     size_t value = packeteer::util::multi_hash(
         static_cast<int>(m_type),
         m_url);
@@ -177,7 +189,8 @@ struct connector::connector_impl
             m_iconn->get_read_handle(),
             m_iconn->get_write_handle()));
     }
-    return value;
+
+    m_hash_cache = value;
   }
 };
 
