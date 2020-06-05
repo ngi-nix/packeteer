@@ -243,6 +243,9 @@ int main(int argc, char **argv)
   backend->init(opts);
   VERBOSE_LOG(opts, "Backend initialized.");
 
+  bool io_errors = false;
+  bool duplication_errors = false;
+
   for (size_t run = 0 ; run < opts.runs ; ++run) {
     VERBOSE_LOG(opts, "=== Start of test run: " << run);
 
@@ -264,7 +267,29 @@ int main(int argc, char **argv)
     auto diff = end_ts - start_ts;
     auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(diff);
     std::cout << "Run " << run << " completed in " << nsec.count() << " usec." << std::endl;
+    std::cout << "  Fired:        " << ctx.fired << std::endl;
+    std::cout << "  Received:     " << ctx.received << std::endl;
+    std::cout << "  Bytes:        " << ctx.bytes_received << std::endl;
+    std::cout << "  Send errors:  " << ctx.send_errors << std::endl;
+    std::cout << "  Recv errors:  " << ctx.recv_errors << std::endl;
+    if (ctx.send_errors || ctx.recv_errors) {
+      io_errors = true;
+    }
+    if (ctx.bytes_received != ctx.received) {
+      duplication_errors = true;
+    }
 
     VERBOSE_LOG(opts, "=== End of test run: " << run);
   }
+
+  if (io_errors) {
+    std::cout << "Benchmark failure due to I/O errors." << std::endl;
+  }
+  if (duplication_errors) {
+    std::cout << "Benchmark failure due to message duplication errors." << std::endl;
+  }
+  if (io_errors || duplication_errors) {
+    return -1;
+  }
+  return 0;
 }
