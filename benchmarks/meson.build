@@ -45,6 +45,14 @@ if not meson.is_subproject()
     event_deps += [libevent_dep]
   endif
 
+  if libev_dep.found()
+    event_src += [
+      'event' / 'libev.cpp',
+    ]
+    event_deps += [libev_dep]
+  endif
+
+
   # TODO add other third-party
 
   executable('bench_event', event_src,
