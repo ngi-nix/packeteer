@@ -244,6 +244,76 @@ iocp_socket_select::configure_socket(handle::sys_handle_t const & sock, int even
 
 
 
+bool
+iocp_socket_select::partial_loop_iteration(socket_data data, size_t offset, size_t size,
+      DWORD timeout, bool & notify)
+{
+  // Wait for the window of events given in the offset/size parameters.
+  // DLOG("IOCP socket select loop going to sleep.");
+  auto ret = WSAWaitForMultipleEvents(size, &(data.events[offset]),
+      FALSE, timeout, FALSE);
+  // DLOG("IOCP socket select loop wakeup.");
+
+  // If we're no longer running, exit immediately
+  if (!m_running) {
+    return false;
+  }
+
+  switch (ret) {
+    case WSA_WAIT_IO_COMPLETION:
+    case WSA_WAIT_TIMEOUT:
+      // No events.
+      return true;
+
+    case WSA_WAIT_FAILED:
+      ERRNO_LOG("WSAWaitForMultipleEvents() failed.");
+      // It's unclear what we should do, so let's just continue.
+      return true;
+
+    default:
+      break;
+  }
+
+  // Some events returned.
+  auto first = ret - WSA_WAIT_EVENT_0;
+
+  notify = false;
+  for (auto idx = offset + first ; idx < offset + size ; ++idx) {
+    // Internal event; just reset it fast and go on.
+    auto & sock = data.sockets[idx];
+    auto & ev = data.events[idx];
+
+    if (idx == 0) {
+      WSAResetEvent(ev);
+      continue;
+    }
+
+    // Figure out which events were fired. Really, this is largely a moot
+    // question due to its usage, but let's keep this code a tiny bit more
+    // generically useful.
+    WSANETWORKEVENTS events;
+    auto ret = WSAEnumNetworkEvents(sock->socket, ev, &events);
+    if (ret == SOCKET_ERROR) {
+      ERRNO_LOG("Error enumerating network events; ignoring.");
+    }
+
+    // Queue the events
+    result res = {
+      sock,
+      translate_events(events),
+    };
+    if (res.events) {
+      collected_events.push(res);
+      notify = true;
+    }
+  }
+
+  return true;
+}
+
+
+
+
 void
 iocp_socket_select::run_loop()
 {
@@ -263,73 +333,66 @@ iocp_socket_select::run_loop()
   }
 
   while (m_running) {
-
-    // At this point we may have slightly outdated event data, but that doesn't
-    // matter. We can work with this.
-    // DLOG("IOCP socket select loop going to sleep.");
-    auto ret = WSAWaitForMultipleEvents(data.events.size(), &(data.events[0]),
-        FALSE, WSA_INFINITE, FALSE);
-    // DLOG("IOCP socket select loop wakeup.");
-
-    // If we're no longer running, exit immediately
-    if (!m_running) {
-      break;
-    }
-
-    switch (ret) {
-      case WSA_WAIT_IO_COMPLETION:
-      case WSA_WAIT_TIMEOUT:
-        // No events.
-        continue;
-
-      default:
+    // We may be watching a smallish number of sockets, or a large one - due to
+    // the limitations of the Win32 API, in the second case, we have to chop up
+    // our events into windows of WSA_MAXIMUM_WAIT_EVENTS size, and wait for
+    // each window separately. Of course if we do that, it makes no sense to
+    // wait for a very long time, as we may miss events outside our current
+    // window.
+    if (data.events.size() <= WSA_MAXIMUM_WAIT_EVENTS) {
+      // The simple case.
+      bool notify = false;
+      if (!partial_loop_iteration(data, 0, data.events.size(), WSA_INFINITE, notify)) {
         break;
+      }
+
+      // If we produced events, notify the main IOCP loop
+      if (notify) {
+        DLOG("Notifying IOCP loop of events.");
+        interrupt(m_interrupt);
+      }
+    }
+    else {
+      bool exit_run_loop = false;
+
+      size_t offset = 0;
+      for ( ; offset < data.events.size() ; offset += WSA_MAXIMUM_WAIT_EVENTS) {
+        size_t remaining = data.events.size() - offset;
+        size_t size = std::min(size_t(WSA_MAXIMUM_WAIT_EVENTS), remaining);
+        bool notify = false;
+        // We want to go through the first windows really fast, and linger only
+        // a little on the last window. This is a compromise between not waiting
+        // delaying unnecessarily that events in later windows are checked, and
+        // busy-looping all the time.
+        // XXX: Maybe picking the window at which we're waiting randomly, or
+        //      moving it forward deterministically would be the fairest
+        //      approach?
+        DWORD timeout = 0;
+        if (offset + size >= data.events.size()) {
+          // Last window
+          timeout = PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000;
+        }
+        if (!partial_loop_iteration(data, offset, size, timeout, notify)) {
+          exit_run_loop = true;
+          break;
+        }
+
+        // If we produced events, notify the main IOCP loop
+        if (notify) {
+          DLOG("Notifying IOCP loop of events.");
+          interrupt(m_interrupt);
+        }
+      }
+
+      if (exit_run_loop) {
+        break;
+      }
     }
 
-    // Some events returned.
-    auto first = ret - WSA_WAIT_EVENT_0;
-
-    // Update data
+    // Update data for the next iteration
     {
       std::lock_guard<std::mutex> lock(m_mutex);
       data = *m_sock_data;
-    }
-
-    bool notify = false;
-    for (auto idx = first ; idx < data.events.size() ; ++idx) {
-      // Internal event; just reset it fast and go on.
-      auto & sock = data.sockets[idx];
-      auto & ev = data.events[idx];
-
-      if (idx == 0) {
-        WSAResetEvent(ev);
-        continue;
-      }
-
-      // Figure out which events were fired. Really, this is largely a moot
-      // question due to its usage, but let's keep this code a tiny bit more
-      // generically useful.
-      WSANETWORKEVENTS events;
-      auto ret = WSAEnumNetworkEvents(sock->socket, ev, &events);
-      if (ret == SOCKET_ERROR) {
-        ERRNO_LOG("Error enumerating network events; ignoring.");
-      }
-
-      // Queue the events
-      result res = {
-        sock,
-        translate_events(events),
-      };
-      if (res.events) {
-        collected_events.push(res);
-        notify = true;
-      }
-    }
-
-    // If we produced events, notify the main IOCP loop
-    if (notify) {
-      DLOG("Notifying IOCP loop of events.");
-      interrupt(m_interrupt);
     }
   }
   DLOG("IOCP socket select loop end.");

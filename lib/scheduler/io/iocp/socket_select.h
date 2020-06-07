@@ -67,6 +67,9 @@ public:
 private:
   void run_loop();
 
+  bool partial_loop_iteration(socket_data data, size_t offset, size_t size,
+      DWORD timeout, bool & notify);
+
   // Mutex protects the pointer
   std::mutex    m_mutex = {};
   socket_data * m_sock_data = nullptr;
