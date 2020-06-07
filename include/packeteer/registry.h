@@ -168,7 +168,7 @@ private:
   friend class api;
 
   struct registry_impl;
-  PACKETEER_PROPAGATE_CONST(std::unique_ptr<registry_impl>) m_impl;
+  std::unique_ptr<registry_impl> m_impl;
 };
 
 } // namespace packeteer

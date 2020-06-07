@@ -41,7 +41,6 @@
 #mesondefine PACKETEER_HAVE_WINSOCK2_H
 #mesondefine PACKETEER_HAVE_WS2TCPIP_H
 #mesondefine PACKETEER_HAVE_AFUNIX_H
-#mesondefine PACKETEER_HAVE_EXPERIMENTAL_PROPAGATE_CONST
 
 /*****************************************************************************
  * Symbols

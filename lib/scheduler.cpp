@@ -47,7 +47,8 @@ scheduler::scheduler(std::shared_ptr<api> api, ssize_t num_workers,
 
 scheduler::~scheduler()
 {
-  // Not default because of std::experimental::propagate_const
+  // Not default because of std::unique_ptr<> of an undeclared struct,
+  // apparently.
 }
 
 
