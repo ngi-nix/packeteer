@@ -25,6 +25,9 @@
 #include <functional>
 #include <string>
 
+// For ssize_t
+#include <packeteer/types.h>
+
 #define _LOG_BASE(opts, os, msg) \
   if (opts.verbose) { \
     os << msg << std::endl; \
