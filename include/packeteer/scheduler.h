@@ -94,7 +94,6 @@ public:
   scheduler(std::shared_ptr<api> api, ssize_t num_workers = -1,
       scheduler_type type = TYPE_AUTOMATIC);
 
-  // Not default because of std::experimental::propagate_const
   ~scheduler();
 
   /**
@@ -285,7 +284,7 @@ public:
 private:
   // pimpl
   struct scheduler_impl;
-  PACKETEER_PROPAGATE_CONST(std::unique_ptr<scheduler_impl>) m_impl;
+  std::unique_ptr<scheduler_impl> m_impl;
 };
 
 } // namespace packeteer

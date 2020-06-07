@@ -201,9 +201,6 @@ if compiler.has_header('afunix.h')
   conf_data.set('PACKETEER_HAVE_AFUNIX_H', true)
   have_afunix = true
 endif
-if compiler.has_header('experimental/propagate_const')
-  conf_data.set('PACKETEER_HAVE_EXPERIMENTAL_PROPAGATE_CONST', true)
-endif
 
 
 ### Types

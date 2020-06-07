@@ -44,11 +44,4 @@
 using ssize_t = SSIZE_T;
 #endif
 
-#if defined(PACKETEER_HAVE_EXPERIMENTAL_PROPAGATE_CONST)
-#  include <experimental/propagate_const>
-#  define PACKETEER_PROPAGATE_CONST(type) std::experimental::propagate_const<type>
-#else
-#  define PACKETEER_PROPAGATE_CONST(type) type
-#endif
-
 #endif // guard

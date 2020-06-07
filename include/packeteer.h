@@ -111,7 +111,7 @@ private:
   api();
 
   struct api_impl;
-  PACKETEER_PROPAGATE_CONST(std::unique_ptr<api_impl>) m_impl;
+  std::unique_ptr<api_impl> m_impl;
 };
 
 } // namespace packeteer

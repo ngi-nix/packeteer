@@ -161,7 +161,7 @@ protected:
 private:
   // Pointer to implementation
   struct network_impl;
-  PACKETEER_PROPAGATE_CONST(std::unique_ptr<network_impl>) m_impl;
+  std::unique_ptr<network_impl> m_impl;
 
   // Creates a version of the given input address with the netmask applied.
   socket_address make_masked(socket_address const & input) const;
