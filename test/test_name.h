@@ -27,6 +27,7 @@
 inline std::string
 symbolize_name(std::string const & other)
 {
+  // std::cout << "NAME IS: >" << other << "< - " << other.size() << std::endl;
   std::string res;
 
   if (other.empty()) {
@@ -36,6 +37,7 @@ symbolize_name(std::string const & other)
     // Replace non-symbol with a sequence
     for (auto c : other) {
       switch (c) {
+        REPLACE_HELPER('\0', "_null_");
         REPLACE_HELPER('.', "_dot_");
         REPLACE_HELPER(':', "_colon_");
         REPLACE_HELPER('/', "_slash_");
@@ -44,6 +46,8 @@ symbolize_name(std::string const & other)
         REPLACE_HELPER(' ', "_");
         REPLACE_HELPER('\\', "_backslash_");
         REPLACE_HELPER('+', "_plus_");
+        REPLACE_HELPER('-', "_minus_");
+        REPLACE_HELPER('%', "_percent_");
 
         default:
           res += c;
