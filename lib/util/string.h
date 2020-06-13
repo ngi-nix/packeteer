@@ -61,6 +61,16 @@ std::wstring from_utf8(char const * source);
 
 #endif
 
+/**
+ * URL encode and decode.
+ **/
+PACKETEER_PRIVATE
+std::string urlencode(std::string const & input);
+
+PACKETEER_PRIVATE
+std::string urldecode(std::string const & input);
+
+
 } // namespace packeteer::util
 
 #endif // guard

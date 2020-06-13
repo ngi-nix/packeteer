@@ -22,6 +22,9 @@
 #include <algorithm>
 #include <locale>
 #include <cctype>
+#include <sstream>
+#include <iomanip>
+#include <iostream> // FIXME
 
 namespace packeteer::util {
 
@@ -158,5 +161,57 @@ from_utf8(char const * source)
 
 #endif // Win32
 
+
+
+std::string
+urlencode(std::string const & input)
+{
+  std::string ret;
+
+  for (auto ch : input) {
+    // Keep alphanumeric and other accepted characters intact
+    if (isalnum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '/') {
+      ret += ch;
+      continue;
+    }
+
+    ret += "%";
+    std::stringstream s;
+    s.fill('0');
+    s << std::hex << std::uppercase << std::setw(2)
+      << static_cast<int>(static_cast<unsigned char>(ch));
+    ret += s.str();
+  }
+
+  return ret;
+}
+
+
+
+std::string
+urldecode(std::string const & input)
+{
+  std::string ret;
+
+  for (std::string::size_type i = 0 ; i < input.size() ; ++i) {
+    auto ch = input[i];
+
+    // Percent-encoded
+    if (ch == '%') {
+      auto sub = input.substr(i + 1, 2);
+      unsigned int val = 0;
+      ::sscanf(sub.c_str(), "%x", &val);
+
+      ret += static_cast<char>(val);
+      i += 2;
+      continue;
+    }
+
+    // Regular value
+    ret += ch;
+  }
+
+  return ret;
+}
 
 } // namespace packeteer::util

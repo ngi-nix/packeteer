@@ -88,3 +88,26 @@ TEST(UtilString, replace)
   ASSERT_EQ("\\\\quoted\\\\and\\\\separated\\\\",
       pu::replace("\\quoted\\and\\separated\\", "\\", "\\\\"));
 }
+
+
+TEST(UtilString, urlencode)
+{
+  namespace pu = packeteer::util;
+
+  ASSERT_EQ("foo/bar", pu::urlencode("foo/bar"));
+  ASSERT_EQ("/%7Efoo/bar", pu::urlencode("/~foo/bar"));
+  ASSERT_EQ("%00abstract", pu::urlencode(std::string{"\0abstract", 9}));
+  ASSERT_EQ("%25asdf", pu::urlencode("%asdf"));
+}
+
+
+
+TEST(UtilString, urldecode)
+{
+  namespace pu = packeteer::util;
+
+  ASSERT_EQ(pu::urldecode("foo/bar"), "foo/bar");
+  ASSERT_EQ(pu::urldecode("/%7Efoo/bar"), "/~foo/bar");
+  ASSERT_EQ(pu::urldecode("%00abstract"), (std::string{"\0abstract", 9}));
+  ASSERT_EQ(pu::urldecode("%25asdf"), "%asdf");
+}
