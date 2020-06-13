@@ -71,7 +71,7 @@ split_query(std::map<std::string, std::string> & params,
       auto key = to_lower(query.substr(start, end - start));
 
       // std::cout << "got simple: " << key << std::endl;
-      params[key] = "1"; // Treat as boolean
+      params[urldecode(key)] = "1"; // Treat as boolean
       start = end + 1;
     }
     else {
@@ -79,7 +79,7 @@ split_query(std::map<std::string, std::string> & params,
       auto key = to_lower(query.substr(start, equal - start));
       auto value = normalize_value(query.substr(equal + 1, end - equal - 1));
       // std::cout << "got kv: " << key << " = " << value << std::endl;
-      params[key] = value;
+      params[urldecode(key)] = urldecode(value);
       start = end + 1;
     }
   } while (keep_going);
@@ -103,6 +103,8 @@ url::parse(std::string const & url_string)
   OCLINT_SUPPRESS("long method")
 {
   url ret;
+
+  // std::cout << "string: " << url_string << " - " << url_string.size() << std::endl;
 
   // We'll find the first occurrence of a colon; that *should* delimit the
   // scheme.
@@ -151,7 +153,7 @@ url::parse(std::string const & url_string)
     }
   }
   // std::cout << "new end: " << end << std::endl;
-  ret.authority = url_string.substr(start, end - start);
+  ret.authority = urldecode(url_string.substr(start, end - start));
   // std::cout << "got authority: " << ret.authority << std::endl;
 
   // The path is anything up until a '?' or '#' or the end - whichever
@@ -167,7 +169,7 @@ url::parse(std::string const & url_string)
     end = url_string.length();
   }
   // std::cout << "new end: " << end << std::endl;
-  ret.path = url_string.substr(start, end - start);
+  ret.path = urldecode(url_string.substr(start, end - start));
   // std::cout << "got path: " << ret.path << std::endl;
 
   // The query is anything until the end or npos
@@ -183,9 +185,9 @@ url::parse(std::string const & url_string)
     // std::cout << "got query: " << query << std::endl;
     split_query(ret.query, query);
 
-    // for (auto elem : ret.query) {
-    //   std::cout << "  " << elem.first << " = " << elem.second << std::endl;
-    // }
+    for (auto elem : ret.query) {
+      // std::cout << "  " << elem.first << " = " << elem.second << std::endl;
+    }
   }
 
   // Last, the fragment
@@ -226,13 +228,13 @@ std::string
 url::str() const
 {
   std::string ret = scheme + "://";
-  ret += authority;
-  ret += path;
+  ret += urlencode(authority);
+  ret += urlencode(path);
 
   if (!query.empty()) {
     ret += "?";
     for (auto elem : query) {
-      ret += elem.first + "=" + elem.second + "&";
+      ret += urlencode(elem.first) + "=" + urlencode(elem.second) + "&";
     }
     ret.resize(ret.length() - 1);
   }
