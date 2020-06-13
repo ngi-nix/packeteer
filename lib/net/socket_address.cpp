@@ -458,6 +458,10 @@ socket_address::type() const
 size_t
 socket_address::hash() const
 {
+  if (AF_UNSPEC == data.sa_storage.ss_family) {
+    return 0;
+  }
+
   // Figure out buffer to compare.
   void const * hash_buf = nullptr;
   size_t hash_size = 0;

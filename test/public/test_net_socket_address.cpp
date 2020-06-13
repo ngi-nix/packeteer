@@ -117,8 +117,6 @@ std::string generate_name_parsing(testing::TestParamInfo<parsing_test_data> cons
 pnet::socket_address create_address(parsing_test_data const & data)
 {
   using namespace pnet;
-  std::cout << "data.type: " << data.type << std::endl;
-  std::cout << "data.address: " << data.address << std::endl;
 
   // IPv4
   if (AF_INET == data.type) {
