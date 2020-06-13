@@ -48,8 +48,8 @@ struct parsing_test_data
 {
   int                 type;
   pnet::address_type  sa_type;
-  char const *        address;
-  char const *        expected;
+  std::string         address;
+  std::string         expected;
   uint16_t            port;
 } parsing_tests[] = {
   { AF_INET,  pnet::AT_INET4, "192.168.0.1", "192.168.0.1", 12344, },
@@ -68,6 +68,8 @@ struct parsing_test_data
   { AF_INET6, pnet::AT_INET6, "::", "::", 12345, },
   { AF_UNIX,  pnet::AT_LOCAL, "/foo/bar", "/foo/bar", 0 },
   { AF_UNIX,  pnet::AT_LOCAL, "something else", "something else", 0 },
+  { AF_UNIX,  pnet::AT_LOCAL, std::string{"\0abstract", 9}, std::string{"\0abstract", 9}, 0 },
+  { AF_UNSPEC,  pnet::AT_UNSPEC, "", "", 0 },
 };
 
 
@@ -86,7 +88,7 @@ full_expected(parsing_test_data const & td, uint16_t port = 0)
     s << "]";
   }
 
-  if (pnet::AT_LOCAL != td.sa_type) {
+  if (pnet::AT_INET4 == td.sa_type || pnet::AT_INET6 == td.sa_type) {
     s << ":" << port;
   }
 
@@ -104,7 +106,7 @@ std::string generate_name_parsing(testing::TestParamInfo<parsing_test_data> cons
   name += "_";
   name += info.param.address;
 
-  if (AT_LOCAL != info.param.sa_type) {
+  if (AT_INET4 == info.param.sa_type || AT_INET6 == info.param.sa_type) {
     name += "_port_";
     name += std::to_string(info.param.port);
   }
@@ -115,15 +117,17 @@ std::string generate_name_parsing(testing::TestParamInfo<parsing_test_data> cons
 pnet::socket_address create_address(parsing_test_data const & data)
 {
   using namespace pnet;
+  std::cout << "data.type: " << data.type << std::endl;
+  std::cout << "data.address: " << data.address << std::endl;
 
   // IPv4
   if (AF_INET == data.type) {
     sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(data.port);
-    inet_pton(AF_INET, data.address, &addr.sin_addr);
+    inet_pton(AF_INET, data.address.c_str(), &addr.sin_addr);
 
-    return socket_address(&addr, sizeof(addr));
+    return socket_address{&addr, sizeof(addr)};
   }
 
   // IPv6
@@ -131,17 +135,23 @@ pnet::socket_address create_address(parsing_test_data const & data)
     sockaddr_in6 addr;
     addr.sin6_family = AF_INET6;
     addr.sin6_port = htons(data.port);
-    inet_pton(AF_INET6, data.address, &addr.sin6_addr);
+    inet_pton(AF_INET6, data.address.c_str(), &addr.sin6_addr);
 
-    return socket_address(&addr, sizeof(addr));
+    return socket_address{&addr, sizeof(addr)};
   }
 
   // Pipes
-  sockaddr_un addr;
-  addr.sun_family = AF_UNIX;
-  ::snprintf(addr.sun_path, UNIX_PATH_MAX, "%s", data.address);
+  if (AF_UNIX == data.type) {
+    sockaddr_un addr;
+    addr.sun_family = AF_UNIX;
+    ::memset(&addr.sun_path, 0, UNIX_PATH_MAX);
+    ::memcpy(addr.sun_path, data.address.c_str(), data.address.size() + 1);
 
-  return socket_address(&addr, sizeof(addr));
+    return socket_address{&addr, sizeof(addr)};
+  }
+
+  // Unspec
+  return socket_address{};
 }
 
 
@@ -158,7 +168,7 @@ TEST_P(SocketAddressParsing, verify_CIDR)
   // Tests that the verify_cidr() function works as expected.
   using namespace pnet;
   auto td = GetParam();
-  if (AT_LOCAL == td.sa_type) {
+  if (AT_LOCAL == td.sa_type || AT_UNSPEC == td.sa_type) {
     GTEST_SKIP();
     return;
   }
@@ -178,6 +188,7 @@ TEST_P(SocketAddressParsing, raw_construction)
   socket_address address = create_address(td);
 
   ASSERT_EQ(td.sa_type, address.type());
+  // XXX: this works also for AT_UNSPEC
   if (AT_LOCAL != td.sa_type) {
     ASSERT_EQ(std::string(td.expected), address.cidr_str());
   }
@@ -201,6 +212,7 @@ TEST_P(SocketAddressParsing, string_construction_without_port)
   socket_address address(td.address);
 
   ASSERT_EQ(td.sa_type, address.type());
+  // XXX: this also works for AT_UNSPEC
   if (AT_LOCAL != td.sa_type) {
    ASSERT_EQ(std::string(td.expected), address.cidr_str());
   }
@@ -213,7 +225,7 @@ TEST_P(SocketAddressParsing, string_construction_without_port)
   ASSERT_EQ(s2, s.str());
 
   // Let's also test the verify_netmask() function.
-  if (AT_LOCAL != td.sa_type) {
+  if (AT_INET4 == td.sa_type || AT_INET6 == td.sa_type) {
     size_t max = AF_INET == td.type ? 32 : 128;
     for (size_t j = 0 ; j <= max ; ++j) {
       ASSERT_TRUE(address.verify_netmask(j));
@@ -235,7 +247,7 @@ TEST_P(SocketAddressParsing, string_construction_with_port)
   socket_address address(td.address, td.port);
 
   ASSERT_EQ(td.sa_type, address.type());
-  if (AT_LOCAL != td.sa_type) {
+  if (AT_INET4 == td.sa_type || AT_INET6 == td.sa_type) {
     ASSERT_EQ(std::string(td.expected), address.cidr_str());
   }
   ASSERT_EQ(td.port, address.port());
@@ -248,7 +260,7 @@ TEST_P(SocketAddressParsing, string_construction_with_port)
   ASSERT_EQ(s2, s.str());
 
   // Let's also test the verify_netmask() function.
-  if (AT_LOCAL != td.sa_type) {
+  if (AT_INET4 == td.sa_type || AT_INET6 == td.sa_type) {
     size_t max = AF_INET == td.type ? 32 : 128;
     for (size_t j = 0 ; j <= max ; ++j) {
       ASSERT_TRUE(address.verify_netmask(j));

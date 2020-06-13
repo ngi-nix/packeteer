@@ -24,6 +24,7 @@
 
 #include <cstring>
 #include <sstream>
+#include <algorithm>
 
 #include <packeteer/error.h>
 #include <packeteer/util/hash.h>
@@ -53,7 +54,7 @@ char const * unwrap<std::string>(std::string const & source)
 
 template <typename T>
 void
-parse_address(detail::address_data & data, T const & source, uint16_t port)
+parse_address(detail::address_data & data, T const & source, size_t size, uint16_t port)
 {
   // Need to zero data.
   ::memset(&data.sa_storage, 0, sizeof(data));
@@ -75,8 +76,9 @@ parse_address(detail::address_data & data, T const & source, uint16_t port)
   auto unwrapped = unwrap(source);
 #endif // PACKETEER_WIN32
   ::memset(&data.sa_storage, 0, sizeof(data));
-  data.sa_un.sun_family = ::strlen(unwrapped) > 0 ? AF_UNIX : AF_UNSPEC;
-  ::snprintf(data.sa_un.sun_path, UNIX_PATH_MAX, "%s", unwrapped);
+  data.sa_un.sun_family = size > 0 ? AF_UNIX : AF_UNSPEC;
+  ::memcpy(data.sa_un.sun_path, unwrapped,
+      std::min(size, size_t{UNIX_PATH_MAX}));
 #endif
 }
 
@@ -113,14 +115,15 @@ socket_address::socket_address(void const * buf, size_t len)
 socket_address::socket_address(std::string const & address,
     uint16_t port /* = 0 */)
 {
-  parse_address(data, address, port);
+  parse_address(data, address, address.size(), port);
 }
 
 
 
-socket_address::socket_address(char const * address, uint16_t port /* = 0 */)
+socket_address::socket_address(char const * address, uint16_t port /* = 0 */
+    , size_t size /* = 0 */)
 {
-  parse_address(data, address, port);
+  parse_address(data, address, size > 0 ? size : ::strlen(address), port);
 }
 
 
@@ -213,14 +216,21 @@ socket_address::full_str() const
 
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
     case AF_UNIX:
+      {
+        std::string tmp{data.sa_un.sun_path, UNIX_PATH_MAX};
+        auto last = tmp.find_last_not_of('\0');
+        tmp.resize(last + 1);
+
 #if defined(PACKETEER_WIN32)
-      sstream << util::to_posix_path(data.sa_un.sun_path);
+        sstream << util::to_posix_path(tmp);
 #else // PACKETEER_WIN32
-      sstream << data.sa_un.sun_path;
+        sstream << tmp;
 #endif // PACKETEER_WIN32
+      }
       break;
 #endif
 
+    case AF_UNSPEC:
     default:
       break;
   }

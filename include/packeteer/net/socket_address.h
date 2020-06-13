@@ -110,7 +110,7 @@ public:
    * Throws exception if parsing fails.
    **/
   explicit socket_address(std::string const & address, uint16_t port = 0);
-  explicit socket_address(char const * address, uint16_t port = 0);
+  explicit socket_address(char const * address, uint16_t port = 0, size_t size = 0);
 
 
   /**
