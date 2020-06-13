@@ -103,10 +103,16 @@ best_match(connector_type const & ct_type,
       }
       break;
 
-    case CT_LOCAL:
     case CT_PIPE:
-      // LOCAL and PIPE must have LOCAL address
+      // PIPE must have LOCAL address
       if (net::AT_LOCAL == sa_type) {
+        return ct_type;
+      }
+      break;
+
+    case CT_LOCAL:
+      // LOCAL may have a LOCAL or UNSPEC address.
+      if (net::AT_LOCAL == sa_type || net::AT_UNSPEC == sa_type) {
         return ct_type;
       }
       break;
