@@ -55,6 +55,9 @@ struct test_data
   { "anon",  "anon://",            packeteer::CT_ANON,  pnet::AT_UNSPEC, "anon://",              },
   { "pipe",  "pipe:///foo",        packeteer::CT_PIPE,  pnet::AT_LOCAL,  "pipe:///foo",          },
   { "local", "local:///foo",       packeteer::CT_LOCAL, pnet::AT_LOCAL,  "local:///foo",         },
+  { "local", "local://",           packeteer::CT_LOCAL, pnet::AT_UNSPEC, "local://",             },
+  { "local", std::string{"local:///\0abstract", 18}, packeteer::CT_LOCAL, pnet::AT_LOCAL,  std::string{"local:///\0abstract", 18},   },
+  { "local", std::string{"local:///%00abstract", 20}, packeteer::CT_LOCAL, pnet::AT_LOCAL,  std::string{"local:///\0abstract", 18},   },
 
   // ports
   { "tcp4",  "tcp://192.168.0.1:1234", packeteer::CT_TCP4,  pnet::AT_INET4,  "tcp4://192.168.0.1:1234", },
@@ -84,7 +87,9 @@ TEST_P(PeerAddress, string_construction)
   // formatting
   using namespace packeteer;
 
-  peer_address address(td.address);
+  peer_address address;
+
+  ASSERT_NO_THROW(address = peer_address{td.address});
 
   ASSERT_EQ(td.scheme,  address.scheme());
   ASSERT_EQ(td.sa_type, address.socket_address().type());
