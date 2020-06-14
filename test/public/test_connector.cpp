@@ -323,6 +323,7 @@ struct streaming_test_data
       return "local://" + name_with("test-connector-local", blocking);
     },
   },
+#if defined(PACKETEER_POSIX)
   { p7r::CT_LOCAL,
     "local_abstract",
     [](bool blocking) -> std::string
@@ -337,6 +338,7 @@ struct streaming_test_data
       return ret;
     },
   },
+#endif // PACKETEER_POSIX
   // TODO: https://gitlab.com/interpeer/packeteer/-/issues/18
 //  { p7r::CT_LOCAL,
 //    "local_unnamed",
