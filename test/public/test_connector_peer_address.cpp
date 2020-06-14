@@ -56,8 +56,8 @@ struct test_data
   { "pipe",  "pipe:///foo",        packeteer::CT_PIPE,  pnet::AT_LOCAL,  "pipe:///foo",          },
   { "local", "local:///foo",       packeteer::CT_LOCAL, pnet::AT_LOCAL,  "local:///foo",         },
   { "local", "local://",           packeteer::CT_LOCAL, pnet::AT_UNSPEC, "local://",             },
-  { "local", std::string{"local:///\0abstract", 18}, packeteer::CT_LOCAL, pnet::AT_LOCAL,  std::string{"local:///\0abstract", 18},   },
-  { "local", std::string{"local:///%00abstract", 20}, packeteer::CT_LOCAL, pnet::AT_LOCAL,  std::string{"local:///\0abstract", 18},   },
+  { "local", std::string{"local:///\0abstract", 18}, packeteer::CT_LOCAL, pnet::AT_LOCAL, "local:///%00abstract", },
+  { "local", "local:///%00abstract",                 packeteer::CT_LOCAL, pnet::AT_LOCAL, "local:///%00abstract", },
 
   // ports
   { "tcp4",  "tcp://192.168.0.1:1234", packeteer::CT_TCP4,  pnet::AT_INET4,  "tcp4://192.168.0.1:1234", },
