@@ -164,11 +164,27 @@ initialize(util::url const & url, net::socket_address & sockaddr,
     case CT_UDP4:
     case CT_UDP6:
     case CT_UDP:
-      sockaddr = net::socket_address(url.authority);
+      sockaddr = net::socket_address{url.authority};
+      break;
+
+    case CT_LOCAL:
+      // URLs by definition contain *absolute* paths, which means this URL will
+      // contain a leading '/'. We therefore cannot detect abstract path names
+      // by a leading '\0'; instead, it is the second character that would have
+      // to be a zero byte.
+      if (url.path.size() > 1 && url.path[1] == '\0') {
+        // Got an abstract name - we need to strip the leading slash.
+        auto tmp = std::string{url.path.c_str() + 1, url.path.size() - 1};
+        sockaddr = net::socket_address{tmp};
+      }
+      else {
+        // Got an actual path name
+        sockaddr = net::socket_address{url.path};
+      }
       break;
 
     default:
-      sockaddr = net::socket_address(url.path);
+      sockaddr = net::socket_address{url.path};
       break;
   }
 
@@ -284,7 +300,14 @@ peer_address::str() const
     return "";
   }
 
-  return iter->second + "://" + m_sockaddr.full_str();
+  auto str = m_sockaddr.full_str();
+  if (m_sockaddr.type() == net::AT_LOCAL) {
+    if (str[0] == '\0') {
+      std::string tmp{"/%00"};
+      str = tmp + (str.c_str() + 1);
+    }
+  }
+  return iter->second + "://" + str;
 }
 
 
