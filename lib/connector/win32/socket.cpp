@@ -208,6 +208,12 @@ connector_socket::socket_connect(int domain, int type, int proto)
     return ERR_INITIALIZATION;
   }
 
+  // https://gitlab.com/interpeer/packeteer/-/issues/18
+  if (m_addr.type() == net::AT_UNSPEC) {
+    ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
+    return ERR_INVALID_VALUE;
+  }
+
   // First, create handle
   handle::sys_handle_t h = handle::INVALID_SYS_HANDLE;
   error_t err = create_socket_handle(domain, type, proto, h,
@@ -285,6 +291,12 @@ connector_socket::socket_bind(int domain, int type, int proto, handle::sys_handl
 {
   if (connected() || listening()) {
     return ERR_INITIALIZATION;
+  }
+
+  // https://gitlab.com/interpeer/packeteer/-/issues/18
+  if (m_addr.type() == net::AT_UNSPEC) {
+    ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
+    return ERR_INVALID_VALUE;
   }
 
   // First, create handle
