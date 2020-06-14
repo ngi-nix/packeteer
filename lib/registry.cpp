@@ -19,6 +19,8 @@
  **/
 #include <packeteer/registry.h>
 
+#include <packeteer/connector/peer_address.h>
+
 #include "macros.h"
 #include "util/string.h"
 #include "connector/connectors.h"
@@ -48,7 +50,7 @@ inet_creator(util::url const & url, connector_type const & ctype,
   }
 
   // Parse socket address.
-  auto addr = net::socket_address(url.authority);
+  auto addr = net::socket_address{url.authority};
 
   // Make sure the parsed address type matches the protocol.
   if (net::AT_INET4 == addr.type()) {
@@ -82,12 +84,12 @@ inet_creator(util::url const & url, connector_type const & ctype,
     case CT_TCP:
     case CT_TCP4:
     case CT_TCP6:
-      return new detail::connector_tcp(addr, opts);
+      return new detail::connector_tcp{addr, opts};
 
     case CT_UDP:
     case CT_UDP4:
     case CT_UDP6:
-      return new detail::connector_udp(addr, opts);
+      return new detail::connector_udp{addr, opts};
 
     default:
       PACKETEER_FLOW_CONTROL_GUARD;
@@ -324,7 +326,8 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        return new detail::connector_local(url.path, opts);
+        auto addr = peer_address{url};
+        return new detail::connector_local{addr.socket_address(), opts};
       }}));
 #endif
   }

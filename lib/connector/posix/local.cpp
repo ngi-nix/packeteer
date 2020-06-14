@@ -54,15 +54,6 @@ sock_type(connector_options const & options)
 
 
 
-
-connector_local::connector_local(std::string const & path,
-    connector_options const & options)
-  : connector_socket(net::socket_address(path), options)
-{
-}
-
-
-
 connector_local::connector_local(net::socket_address const & addr,
     connector_options const & options)
   : connector_socket(addr, options)
@@ -119,9 +110,16 @@ error_t
 connector_local::close()
 {
   error_t err = connector_socket::socket_close();
+
   if (m_owner) {
-    DLOG("Server closing; remove file system entry: " << m_addr.full_str());
-    ::unlink(m_addr.full_str().c_str());
+    auto str = m_addr.full_str();
+    if (str[0] != '\0') {
+      DLOG("Server closing; remove file system entry: " << m_addr);
+      auto ret = ::unlink(m_addr.full_str().c_str());
+      if (ret < 0) {
+        ERRNO_LOG("Unlink failed");
+      }
+    }
   }
   return err;
 }
