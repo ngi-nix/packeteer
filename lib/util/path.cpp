@@ -87,6 +87,9 @@ inline std::string
 join(std::vector<std::string> const & tokens, std::string const & delim)
 {
   std::string ret;
+  if (tokens.empty()) {
+    return ret;
+  }
 
   for (size_t idx = 0 ; idx < tokens.size() - 1 ; ++idx) {
     ret.append(tokens[idx]).append(delim);
