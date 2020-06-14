@@ -253,8 +253,14 @@ socket_address::bufsize() const
 #if defined(PACKETEER_HAVE_SOCKADDR_UN)
     case AF_UNIX:
       {
-        return offsetof(sockaddr_un, sun_path)
-          + ::strlen(data.sa_un.sun_path) + 1;
+        if (data.sa_un.sun_path[0] == '\0') {
+          return offsetof(sockaddr_un, sun_path)
+            + ::strlen(&data.sa_un.sun_path[1]) + 2;
+        }
+        else {
+          return offsetof(sockaddr_un, sun_path)
+            + ::strlen(data.sa_un.sun_path) + 1;
+        }
       }
 #endif
 
