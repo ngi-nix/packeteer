@@ -151,9 +151,11 @@ struct parsing_test_data
   { "udP6://192.168.0.1",      false, p7r::CT_UNSPEC },
   { "uDp6://192.168.0.1:8080", false, p7r::CT_UNSPEC },
 
-  // All other types require path names. There's not much common
+  // All other types may require path names. There's not much common
   // about path names, so our only requirement is that it exists.
   { "local:///foo", true, p7r::CT_LOCAL },
+  { "local://", true, p7r::CT_LOCAL },
+  { "local:///\0abstract-name", true, p7r::CT_LOCAL },
   { "anon://", true, p7r::CT_ANON },
 
 #if defined(PACKETEER_WIN32)
@@ -310,16 +312,41 @@ name_with(std::string const & base, bool blocking)
 struct streaming_test_data
 {
   p7r::connector_type               type;
+  std::string                       name;
   std::function<std::string (bool)> generator;
   bool                              broadcast = false;
 } streaming_tests[] = {
   { p7r::CT_LOCAL,
+    "local_pathname",
     [](bool blocking) -> std::string
     {
       return "local://" + name_with("test-connector-local", blocking);
     },
   },
+  { p7r::CT_LOCAL,
+    "local_abstract",
+    [](bool blocking) -> std::string
+    {
+      std::string ret = "local:///%00test-connector-local-abstract";
+      if (blocking) {
+        ret += "-block?blocking";
+      }
+      else {
+        ret += "-noblock";
+      }
+      return ret;
+    },
+  },
+  // TODO: https://gitlab.com/interpeer/packeteer/-/issues/18
+//  { p7r::CT_LOCAL,
+//    "local_unnamed",
+//    [](bool blocking) -> std::string
+//    {
+//      return std::string{"local://?blocking="} + (blocking ? "1" : "0");
+//    },
+//  },
   { p7r::CT_TCP4,
+    "tcp4",
     [](bool blocking) -> std::string
     {
       std::string ret = "tcp4://127.0.0.1:" + std::to_string(54321 + (rand() % 100));
@@ -330,6 +357,7 @@ struct streaming_test_data
     },
   },
   { p7r::CT_TCP6,
+    "tcp6",
     [](bool blocking) -> std::string
     {
       std::string ret = "tcp6://[::1]:" + std::to_string(54321 + (rand() % 100));
@@ -341,6 +369,7 @@ struct streaming_test_data
   },
 #if defined(PACKETEER_WIN32)
   { p7r::CT_PIPE,
+    "pipe",
     [](bool blocking) -> std::string
     {
       return "pipe://" + name_with("test-connector-pipe", blocking);
@@ -350,6 +379,7 @@ struct streaming_test_data
 
 #if defined(PACKETEER_POSIX)
   { p7r::CT_FIFO,
+    "fifo",
     [](bool blocking) -> std::string
     {
       return "fifo://" + name_with("test-connector-fifo", blocking);
@@ -363,34 +393,7 @@ struct streaming_test_data
 template <typename T>
 std::string connector_name(testing::TestParamInfo<T> const & info)
 {
-  switch (info.param.type) {
-    case p7r::CT_TCP4:
-      return "tcp4";
-
-    case p7r::CT_TCP6:
-      return "tcp6";
-
-    case p7r::CT_UDP4:
-      return "udp4";
-
-    case p7r::CT_UDP6:
-      return "udp6";
-
-    case p7r::CT_LOCAL:
-      return "local";
-
-    case p7r::CT_PIPE:
-      return "pipe";
-
-    case p7r::CT_FIFO:
-      return "fifo";
-
-      // TODO
-    default:
-      ADD_FAILURE_AT(__FILE__, __LINE__) << "Unreachable line reached.";
-  }
-
-  return {}; // silence compiler warnings
+  return info.param.name;
 }
 
 
@@ -983,6 +986,7 @@ namespace {
 struct dgram_test_data
 {
   p7r::connector_type type;
+  std::string         name;
   char const *        dgram_first;
   char const *        dgram_second;
   char const *        dgram_third;
@@ -990,15 +994,23 @@ struct dgram_test_data
 #if defined(PACKETEER_POSIX)
   // Datagram behaviour not supported on Windows
   { p7r::CT_LOCAL,
+    "local_pathname",
     "local:///tmp/test-connector-local-dgram-first?blocking=1",
     "local:///tmp/test-connector-local-dgram-second?blocking=1",
     "local:///tmp/test-connector-local-dgram-third?blocking=1", },
+  { p7r::CT_LOCAL,
+    "local_abstract",
+    "local:///%00test-connector-local-abstract-dgram-first?blocking=1",
+    "local:///%00test-connector-local-abstract-dgram-second?blocking=1",
+    "local:///%00test-connector-local-abstract-dgram-third?blocking=1", },
 #endif // PACKETEER_POSIX
   { p7r::CT_UDP4,
+    "udp4",
     "udp4://127.0.0.1:54321?blocking=1",
     "udp4://127.0.0.1:54322?blocking=1",
     "udp4://127.0.0.1:54323?blocking=1", },
   { p7r::CT_UDP6,
+    "udp6",
     "udp6://[::1]:54321?blocking=1",
     "udp6://[::1]:54322?blocking=1",
     "udp6://[::1]:54323?blocking=1", },
