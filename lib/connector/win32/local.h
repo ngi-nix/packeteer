@@ -40,8 +40,6 @@ namespace packeteer::detail {
 struct connector_local : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_local(std::string const & path,
-      connector_options const & options);
   connector_local(::packeteer::net::socket_address const & addr,
       connector_options const & options);
   virtual ~connector_local();

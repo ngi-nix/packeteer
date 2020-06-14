@@ -44,15 +44,6 @@ sock_type(connector_options const & options)
 
 
 
-
-connector_local::connector_local(std::string const & path,
-    connector_options const & options)
-  : connector_socket(net::socket_address(path), options)
-{
-}
-
-
-
 connector_local::connector_local(net::socket_address const & addr,
     connector_options const & options)
   : connector_socket(addr, options)
