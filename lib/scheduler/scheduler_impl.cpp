@@ -159,7 +159,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       break;
 
 
-    case TYPE_IOCP:
+    case TYPE_WIN32:
 #if !defined(PACKETEER_HAVE_IOCP)
       throw exception(ERR_INVALID_OPTION, "I/O completion ports are not "
           "supported on this platform.");

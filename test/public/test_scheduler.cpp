@@ -196,7 +196,7 @@ std::string scheduler_name(testing::TestParamInfo<packeteer::scheduler::schedule
     case packeteer::scheduler::TYPE_SELECT:
       return "select";
 
-    case packeteer::scheduler::TYPE_IOCP:
+    case packeteer::scheduler::TYPE_WIN32:
       return "iocp";
 
     default:
@@ -774,7 +774,7 @@ namespace {
       , packeteer::scheduler::TYPE_SELECT
 #endif
 #if defined(PACKETEER_HAVE_IOCP)
-      , packeteer::scheduler::TYPE_IOCP
+      , packeteer::scheduler::TYPE_WIN32
 #endif
     );
   };

@@ -68,7 +68,7 @@ public:
     TYPE_KQUEUE,  // BSDs, including OSX
     TYPE_POLL,    // POSIX (old)
     TYPE_SELECT,  // POSIX (newer)
-    TYPE_IOCP,    // WIN32 I/O completion ports.
+    TYPE_WIN32,   // WIN32 I/O completion ports + select
   };
 
 
