@@ -517,6 +517,7 @@ libsrc = [
   'lib' / 'connector' / 'peer_address.cpp',
   'lib' / 'scheduler' / 'worker.cpp',
   'lib' / 'scheduler' / 'scheduler_impl.cpp',
+  'lib' / 'scheduler' / 'io_thread.cpp',
   'lib' / 'net' / 'socket_address.cpp',
   'lib' / 'net' / 'network.cpp',
   'lib' / 'net' / 'cidr.cpp',
@@ -566,6 +567,7 @@ winsrc = [
   'lib' / 'win32' / 'handle.cpp',
   'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
   'lib' / 'connector' / 'win32' / 'overlapped.cpp',
+  'lib' / 'connector' / 'win32' / 'socketpair.cpp',
   'lib' / 'connector' / 'win32' / 'io_operations.cpp',
   'lib' / 'connector' / 'win32' / 'common.cpp',
   'lib' / 'connector' / 'win32' / 'anon.cpp',
@@ -657,6 +659,7 @@ if not meson.is_subproject()
     'test' / 'private' / 'test_util_string.cpp',
     'test' / 'private' / 'test_thread_binder.cpp',
     'test' / 'private' / 'test_thread_tasklet.cpp',
+    'test' / 'private' / 'test_io_thread.cpp',
     'test' / 'runner.cpp',
   ]
 
@@ -664,6 +667,7 @@ if not meson.is_subproject()
     private_test_src += [
       'test' / 'private' / 'test_pipe_operations.cpp',
       'test' / 'private' / 'test_overlapped.cpp',
+      'test' / 'private' / 'test_socketpair.cpp',
       'test' / 'private' / 'test_io_operations.cpp',
     ]
   endif
