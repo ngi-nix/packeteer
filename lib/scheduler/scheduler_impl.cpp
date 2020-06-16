@@ -30,23 +30,23 @@
 #include "worker.h"
 
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
-#include "io/epoll.h"
+#include "io/posix/epoll.h"
 #endif
 
 #if defined(PACKETEER_HAVE_SELECT)
-#include "io/select.h"
+#include "io/posix/select.h"
 #endif
 
 #if defined(PACKETEER_HAVE_POLL)
-#include "io/poll.h"
+#include "io/posix/poll.h"
 #endif
 
 #if defined(PACKETEER_HAVE_KQUEUE)
-#include "io/kqueue.h"
+#include "io/posix/kqueue.h"
 #endif
 
 #if defined(PACKETEER_HAVE_IOCP)
-#include "io/iocp.h"
+#include "io/win32/iocp.h"
 #endif
 
 namespace pdt = packeteer::detail;
@@ -549,11 +549,7 @@ scheduler::scheduler_impl::main_scheduler_loop()
 
   try {
     while (m_main_loop_continue) {
-      // Timeout is *fixed*, because:
-      // - I/O events will interrupt this anyway.
-      // - OSX has a minimum timeout of 20 msec for *select*
-      // - It would not make sense for user/scheduled callbacks to be triggered 
-      //   at different resolution on different platforms.
+      // Timeout is *soft*, meaning wait_for_events() adjusts it.
       entry_list_t to_schedule;
       wait_for_events(sc::nanoseconds(PACKETEER_EVENT_WAIT_INTERVAL_USEC),
           true, // Soft timeout
