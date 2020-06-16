@@ -324,6 +324,8 @@ struct streaming_test_data
     },
   },
 #if defined(PACKETEER_POSIX)
+  // See https://github.com/microsoft/WSL/issues/4240 - looks like WSL specific,
+  // but actually is a known win32 issue.
   { p7r::CT_LOCAL,
     "local_abstract",
     [](bool blocking) -> std::string

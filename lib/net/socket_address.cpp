@@ -254,11 +254,10 @@ socket_address::bufsize() const
     case AF_UNIX:
       {
         if (data.sa_un.sun_path[0] == '\0') {
-          return offsetof(sockaddr_un, sun_path)
-            + ::strlen(&data.sa_un.sun_path[1]) + 2;
+          return sizeof(sockaddr_un);
         }
         else {
-          return offsetof(sockaddr_un, sun_path)
+          return sizeof(sa_family_t)
             + ::strlen(data.sa_un.sun_path) + 1;
         }
       }
