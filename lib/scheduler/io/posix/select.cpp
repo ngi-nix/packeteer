@@ -45,7 +45,7 @@ namespace sc = std::chrono;
 
 namespace packeteer::detail {
 
-io_select::io_select(std::shared_ptr<api> api)
+io_select::io_select(std::shared_ptr<api> const & api)
   : io(api)
 {
   DLOG("Select based I/O subsystem created.");
