@@ -35,29 +35,32 @@
 
 #include <packeteer/scheduler/events.h>
 
-#include "../iocp.h"
+#include "iocp.h"
 #include "../../../concurrent_queue.h"
 
 namespace packeteer::detail {
 
+// FIXME derive from io, etc.
 
 class iocp_socket_select
 {
 public:
-  struct socket_data
-  {
-    std::vector<handle::sys_handle_t> sockets;
-    std::vector<WSAEVENT>             events;
-  };
-
+  // FIXME rename
   struct result
   {
     handle::sys_handle_t  socket;
     events_t              events;
   };
+  // FIXME unwrap
+  struct socket_data
+  {
+    std::vector<result> sockets;
+//    std::vector<WSAEVENT>             events;
+  };
 
 
-  iocp_socket_select(connector & interrupt);
+
+  iocp_socket_select(std::shared_ptr<api> api, connector & interrupt);
   ~iocp_socket_select();
 
   void configure_socket(handle::sys_handle_t const & sock, int events);
@@ -77,6 +80,7 @@ private:
   std::thread   m_thread = {};
   volatile bool m_running = true;
 
+  connector     m_pipe; // FIXME name?
   connector &   m_interrupt;
 };
 

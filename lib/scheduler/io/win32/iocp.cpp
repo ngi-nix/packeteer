@@ -27,14 +27,14 @@
 #include <packeteer/types.h>
 #include <packeteer/scheduler/events.h>
 
-#include "../../globals.h"
-#include "../scheduler_impl.h"
-#include "../../thread/chrono.h"
+#include "../../../globals.h"
+#include "../../scheduler_impl.h"
+#include "../../../thread/chrono.h"
 
-#include "../../win32/sys_handle.h"
-#include "../../connector/win32/overlapped.h"
+#include "../../../win32/sys_handle.h"
+#include "../../../connector/win32/overlapped.h"
 
-#include "iocp/socket_select.h"
+#include "select.h"
 
 #include <vector>
 
@@ -136,6 +136,7 @@ register_socket_for_read_events(iocp_socket_select & sock_select, connector & co
 {
   DLOG("Request notification when socket-like handle becomes readable.");
   sock_select.configure_socket(conn.get_read_handle().sys_handle(),
+      // FIXME all wrong. Use packeteer events here
       FD_ACCEPT | FD_CONNECT | FD_READ | FD_CLOSE);
 }
 
@@ -214,7 +215,7 @@ io_iocp::io_iocp(std::shared_ptr<api> const & api)
   register_connector(m_interrupt, PEV_IO_READ | PEV_IO_ERROR | PEV_IO_CLOSE);
 
   // Create socket selection subsystem.
-  m_sock_select = new iocp_socket_select{m_interrupt};
+  m_sock_select = new iocp_socket_select{m_api, m_interrupt};
 
   DLOG("I/O completion port subsystem created.");
 }

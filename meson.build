@@ -529,25 +529,25 @@ libsrc = [
 
 
 if have_epoll_create
-  libsrc += ['lib' / 'scheduler' / 'io' / 'epoll.cpp']
+  libsrc += ['lib' / 'scheduler' / 'io' / 'posix' / 'epoll.cpp']
 endif
 
 if have_select
-  libsrc += ['lib' / 'scheduler' / 'io' / 'select.cpp']
+  libsrc += ['lib' / 'scheduler' / 'io' / 'posix' / 'select.cpp']
 endif
 
 if have_poll
-  libsrc +=  ['lib' / 'scheduler' / 'io' / 'poll.cpp']
+  libsrc +=  ['lib' / 'scheduler' / 'io' / 'posix' / 'poll.cpp']
 endif
 
 if have_kqueue
-  libsrc +=  ['lib' / 'scheduler' / 'io' / 'kqueue.cpp']
+  libsrc +=  ['lib' / 'scheduler' / 'io' / 'posix' / 'kqueue.cpp']
 endif
 
 if have_iocp
   libsrc +=  [
-    'lib' / 'scheduler' / 'io' / 'iocp.cpp',
-    'lib' / 'scheduler' / 'io' / 'iocp' / 'socket_select.cpp',
+    'lib' / 'scheduler' / 'io' / 'win32' / 'iocp.cpp',
+    'lib' / 'scheduler' / 'io' / 'win32' / 'select.cpp',
   ]
 endif
 

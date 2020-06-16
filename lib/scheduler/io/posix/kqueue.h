@@ -19,8 +19,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_SCHEDULER_IO_SELECT_H
-#define PACKETEER_SCHEDULER_IO_SELECT_H
+#ifndef PACKETEER_SCHEDULER_IO_POSIX_KQUEUE_H
+#define PACKETEER_SCHEDULER_IO_POSIX_KQUEUE_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -28,25 +28,42 @@
 
 #include <packeteer.h>
 
-#if !defined(PACKETEER_HAVE_SELECT)
-#error select not detected
+#if !defined(PACKETEER_HAVE_KQUEUE)
+#error KQueue not detected
 #endif
 
 #include <packeteer/scheduler/events.h>
 
-#include "../io.h"
+#include "../../io.h"
 
 namespace packeteer::detail {
 
 // I/O subsystem based on select.
-struct io_select : public io
+struct io_kqueue : public io
 {
 public:
-  io_select(std::shared_ptr<api> api);
-  ~io_select();
+  io_kqueue(std::shared_ptr<api> api);
+  ~io_kqueue();
+
+  void init();
+  void deinit();
+
+  virtual void register_connector(connector const & conn, events_t const & events);
+  virtual void register_connectors(connector const * conns, size_t amount,
+      events_t const & events);
+
+  virtual void unregister_connector(connector const & conn, events_t const & events);
+  virtual void unregister_connectors(connector const * conns, size_t amount,
+      events_t const & events);
 
   virtual void wait_for_events(std::vector<event_data> & events,
-      duration const & timeout);
+      packeteer::duration const & timeout);
+
+private:
+  /***************************************************************************
+   * Data
+   **/
+  int m_kqueue_fd;
 };
 
 

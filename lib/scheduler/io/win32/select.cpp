@@ -19,7 +19,7 @@
  **/
 #include <build-config.h>
 
-#include "socket_select.h"
+#include "select.h"
 
 #include <packeteer/scheduler/events.h>
 
@@ -82,9 +82,10 @@ remove(std::vector<valueT> & vec, size_t idx)
 
 inline void
 add_socket(iocp_socket_select::socket_data & data, handle::sys_handle_t const & sock,
-    int events)
+    events_t events)
 {
   // New socket, so create event handle.
+#if 0
   auto ev = WSACreateEvent();
   if (ev == WSA_INVALID_EVENT) {
     ERRNO_LOG("Failed to create WSA event handle.");
@@ -92,9 +93,11 @@ add_socket(iocp_socket_select::socket_data & data, handle::sys_handle_t const & 
   }
 
   // Push socket and event to the data.
-  data.sockets.push_back(sock);
   data.events.push_back(ev);
+#endif
+  data.sockets.push_back({ sock, events });
 
+#if 0
   // Register handle for events.
   DLOG("Adding " << sock << " select events: " << events);
   auto err = WSAEventSelect(sock->socket, ev, events);
@@ -102,6 +105,7 @@ add_socket(iocp_socket_select::socket_data & data, handle::sys_handle_t const & 
     ERRNO_LOG("WSAEventSelect failed.");
     throw exception(ERR_UNEXPECTED, "WSAEventSelect failed.");
   }
+#endif
 }
 
 
@@ -111,8 +115,9 @@ modify_socket(iocp_socket_select::socket_data & data, size_t idx, int events)
 {
   // Modification is the simple part. Just find the associated event handle,
   // and update the events.
-  auto & ev = data.events[idx];
   auto & sock = data.sockets[idx];
+#if 0
+  auto & ev = data.events[idx];
 
   DLOG("Modifying " << sock << " select events: " << events);
   auto err = WSAEventSelect(sock->socket, ev, events);
@@ -120,6 +125,7 @@ modify_socket(iocp_socket_select::socket_data & data, size_t idx, int events)
     ERRNO_LOG("WSAEventSelect failed.");
     throw exception(ERR_UNEXPECTED, "WSAEventSelect failed.");
   }
+#endif
 }
 
 
@@ -129,9 +135,10 @@ delete_socket(iocp_socket_select::socket_data & data, size_t idx)
 {
   // First, stop listening for events. If errors occur here, we just ignore
   // them.
-  auto & ev = data.events[idx];
+//  auto & ev = data.events[idx];
   auto & sock = data.sockets[idx];
 
+#if 0
   DLOG("Unregistering " << sock << " from select events.");
   auto err = WSAEventSelect(sock->socket, ev, 0);
   if (err == SOCKET_ERROR) {
@@ -146,11 +153,12 @@ delete_socket(iocp_socket_select::socket_data & data, size_t idx)
 
   // Free the slots
   data.events[idx] = WSA_INVALID_EVENT;
-  data.sockets[idx] = handle::INVALID_SYS_HANDLE;
+#endif
+  data.sockets[idx] = { handle::INVALID_SYS_HANDLE, 0 };
 
   // Since we don't know where in the vectors we freed the slots, we need to
   // compact them both.
-  remove(data.events, idx);
+//  remove(data.events, idx); FIXME
   remove(data.sockets, idx);
 }
 
@@ -158,21 +166,35 @@ delete_socket(iocp_socket_select::socket_data & data, size_t idx)
 
 } // anonymous namespace
 
-iocp_socket_select::iocp_socket_select(connector & interrupt)
-  : m_interrupt(interrupt)
+iocp_socket_select::iocp_socket_select(std::shared_ptr<api> api, connector & interrupt)
+  : m_interrupt{interrupt}
   , m_sock_data(new socket_data{})
 {
+  std::cout << "-- before " << std::endl;
+  m_pipe = connector{api, "local://\0packeteer-iocp-socket-select"};
+  std::cout << "-- after" << std::endl;
+  error_t err = m_pipe.connect();
+  if (ERR_SUCCESS != err) {
+    throw exception(err, "Could not connect select loop pipe.");
+  }
+  DLOG("Select loop pipe is " << m_pipe);
+
   // Internal handle for interrupting exiting the thread loop
+#if 0
   auto ev = WSACreateEvent();
   if (ev == WSA_INVALID_EVENT) {
     ERRNO_LOG("Failed to create WSA event handle.");
     throw exception(ERR_UNEXPECTED, "Failed to create WSA event handle.");
   }
+#endif
 
   // Add handle with fake socket to the socket data.
-  m_sock_data->events.push_back(ev);
-  m_sock_data->sockets.push_back(handle::INVALID_SYS_HANDLE);
-
+  // FIXME m_sock_data->events.push_back(ev);
+//  m_sock_data->sockets.push_back({
+//      m_pipe.get_read_handle().sys_handle(),
+//      PEV_IO_READ,
+//  });
+//
   // Start thread
   m_thread = std::thread([this]() -> void
   {
@@ -189,7 +211,9 @@ iocp_socket_select::~iocp_socket_select()
 
     // Signal the thread to stop running.
     m_running = false;
-    WSASetEvent(m_sock_data->events[0]);
+    interrupt(m_pipe);
+
+    // FIXME WSASetEvent(m_sock_data->events[0]);
   }
 
   m_thread.join();
@@ -198,11 +222,11 @@ iocp_socket_select::~iocp_socket_select()
   std::lock_guard<std::mutex> lock(m_mutex);
 
   // Close all events. We use the delete_socket function for most of them.
-  for (size_t idx = 1 ; idx < m_sock_data->events.size() ; ++idx) {
-    delete_socket(*m_sock_data, idx);
-  }
+  // FIXME for (size_t idx = 1 ; idx < m_sock_data->events.size() ; ++idx) {
+  // FIXME   delete_socket(*m_sock_data, idx);
+  // FIXME }
 
-  WSACloseEvent(m_sock_data->events[0]);
+  // FIXME WSACloseEvent(m_sock_data->events[0]);
 
   delete m_sock_data;
 
@@ -219,19 +243,19 @@ iocp_socket_select::configure_socket(handle::sys_handle_t const & sock, int even
   // Find the socket in the vector
   ssize_t idx = -1;
   for (size_t i = 0 ; i < m_sock_data->sockets.size() ; ++i) {
-    if (m_sock_data->sockets[i] == sock) {
+    if (m_sock_data->sockets[i].socket == sock) {
       idx = i;
       break;
     }
   }
   if (idx < 0) {
-    add_socket(*m_sock_data, sock, events);
+    add_socket(*m_sock_data, sock, PEV_IO_READ); // TODO others?
   }
   else {
     // The socket exists. What are the events? This determines whether to
     // modify or delete the socket.
     if (events) {
-      modify_socket(*m_sock_data, idx, events);
+      modify_socket(*m_sock_data, idx, PEV_IO_READ); // TODO others?
     }
     else {
       delete_socket(*m_sock_data, idx);
@@ -239,7 +263,8 @@ iocp_socket_select::configure_socket(handle::sys_handle_t const & sock, int even
   }
 
   // Finally, signal main loop
-  WSASetEvent(m_sock_data->events[0]);
+  // FIXME WSASetEvent(m_sock_data->events[0]);
+  interrupt(m_pipe);
 }
 
 
@@ -250,8 +275,68 @@ iocp_socket_select::partial_loop_iteration(socket_data data, size_t offset, size
 {
   // Wait for the window of events given in the offset/size parameters.
   // DLOG("IOCP socket select loop going to sleep.");
-  auto ret = WSAWaitForMultipleEvents(size, &(data.events[offset]),
-      FALSE, timeout, FALSE);
+  FD_SET read_set;
+  FD_SET write_set;
+  FD_SET error_set;
+  FD_ZERO(&read_set);
+  FD_ZERO(&write_set);
+  FD_ZERO(&error_set);
+
+  FD_SET(m_pipe.get_read_handle().sys_handle()->socket, &read_set);
+
+  for (auto sock : data.sockets) {
+    // FIXME check for registered events; let's do this well in future
+    if (sock.socket == handle::INVALID_SYS_HANDLE) {
+      continue;
+    }
+
+    if (sock.events & PEV_IO_READ) {
+      FD_SET(sock.socket->socket, &read_set);
+    }
+    if (sock.events & PEV_IO_WRITE) {
+      FD_SET(sock.socket->socket, &write_set);
+    }
+    // TODO
+  }
+
+  timeval tv;
+  tv.tv_sec = timeout / 1000;
+  tv.tv_usec = (timeout % 1000) * 1000;
+  std::cout << "Enter select."<<std::endl;
+  auto total = select(0, &read_set, &write_set, &error_set, &tv);
+  if (total == SOCKET_ERROR) {
+    std::cerr << "AAARGH" << std::endl;
+    ERRNO_LOG("select failed.");
+    return true;
+  }
+
+  std::cout << "got: "<< total << std::endl;
+
+  for (auto sock : data.sockets) {
+    if (sock.socket == m_pipe.get_read_handle().sys_handle()) {
+      clear_interrupt(m_pipe);
+      continue;
+    }
+
+    result res = {
+      sock.socket,
+      0, // FIXME translate_events(events),
+    };
+    if (FD_ISSET(sock.socket->socket, &read_set)) {
+      res.events |= PEV_IO_READ;
+    }
+    if (FD_ISSET(sock.socket->socket, &write_set)) {
+      res.events |= PEV_IO_WRITE;
+    }
+    // TODO
+    if (res.events) {
+      collected_events.push(res);
+      notify = true;
+    }
+  }
+#if 0
+//  auto ret = WSAWaitForMultipleEvents(size, &(data.events[offset]),
+//      FALSE, timeout, FALSE);
   // DLOG("IOCP socket select loop wakeup.");
 
   // If we're no longer running, exit immediately
@@ -307,7 +392,7 @@ iocp_socket_select::partial_loop_iteration(socket_data data, size_t offset, size
       notify = true;
     }
   }
-
+#endif
   return true;
 }
 
@@ -333,6 +418,7 @@ iocp_socket_select::run_loop()
   }
 
   while (m_running) {
+#if 0
     // We may be watching a smallish number of sockets, or a large one - due to
     // the limitations of the Win32 API, in the second case, we have to chop up
     // our events into windows of WSA_MAXIMUM_WAIT_EVENTS size, and wait for
@@ -340,9 +426,10 @@ iocp_socket_select::run_loop()
     // wait for a very long time, as we may miss events outside our current
     // window.
     if (data.events.size() <= WSA_MAXIMUM_WAIT_EVENTS) {
+#endif
       // The simple case.
       bool notify = false;
-      if (!partial_loop_iteration(data, 0, data.events.size(), WSA_INFINITE, notify)) {
+      if (!partial_loop_iteration(data, 0, data.sockets.size(), WSA_INFINITE, notify)) {
         break;
       }
 
@@ -351,6 +438,7 @@ iocp_socket_select::run_loop()
         DLOG("Notifying IOCP loop of events.");
         interrupt(m_interrupt);
       }
+#if 0
     }
     else {
       bool exit_run_loop = false;
@@ -368,10 +456,10 @@ iocp_socket_select::run_loop()
         //      moving it forward deterministically would be the fairest
         //      approach?
         DWORD timeout = 0;
-        if (offset + size >= data.events.size()) {
-          // Last window
-          timeout = PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000;
-        }
+        //if (offset + size >= data.events.size()) {
+        //  // Last window
+        //  timeout = PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000;
+        //}
         if (!partial_loop_iteration(data, offset, size, timeout, notify)) {
           exit_run_loop = true;
           break;
@@ -388,6 +476,7 @@ iocp_socket_select::run_loop()
         break;
       }
     }
+#endif
 
     // Update data for the next iteration
     {
