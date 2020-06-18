@@ -26,8 +26,8 @@
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 
-#include "../scheduler_impl.h"
-#include "../../thread/chrono.h"
+#include "../../scheduler_impl.h"
+#include "../../../thread/chrono.h"
 
 // Posix
 #include <poll.h>
@@ -114,7 +114,7 @@ io_poll::~io_poll()
 
 
 void
-io_poll::wait_for_events(std::vector<event_data> & events,
+io_poll::wait_for_events(io_events & events,
       duration const & timeout)
 {
   // Prepare FD set
@@ -173,7 +173,7 @@ io_poll::wait_for_events(std::vector<event_data> & events,
   for (idx = 0 ; idx < size ; ++idx) {
     events_t translated = translate_os_to_events(fds[idx].revents);
     if (translated) {
-      event_data ev = {
+      io_event ev = {
         m_connectors[fds[idx].fd],
         translated
       };

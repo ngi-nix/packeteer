@@ -54,12 +54,12 @@ namespace pu = packeteer::util;
 namespace pd = packeteer::detail;
 namespace sc = std::chrono;
 
-using creator = std::function<pd::io * (std::shared_ptr<p7r::api> api)>;
+using creator_func = std::function<pd::io * (std::shared_ptr<p7r::api> api)>;
 
 struct test_data
 {
   std::string   name;
-  creator       creator;
+  creator_func  creator;
   std::string   io_interrupt_name;
 };
 
@@ -218,7 +218,7 @@ TEST(IOThreadMisc, exception_in_io)
     {
     }
 
-    void wait_for_events(pd::io_events & events, p7r::duration const & timeout)
+    void wait_for_events(pd::io_events &, p7r::duration const &)
     {
       throw std::runtime_error("Here's an error.");
     }

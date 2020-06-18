@@ -26,8 +26,8 @@
 #include <packeteer/error.h>
 #include <packeteer/types.h>
 
-#include "../scheduler_impl.h"
-#include "../../thread/chrono.h"
+#include "../../scheduler_impl.h"
+#include "../../../thread/chrono.h"
 
 // Posix
 #include <sys/select.h>
@@ -60,7 +60,7 @@ io_select::~io_select()
 
 
 void
-io_select::wait_for_events(std::vector<event_data> & events,
+io_select::wait_for_events(io_events & events,
       duration const & timeout)
   OCLINT_SUPPRESS("high cyclomatic complexity")
   OCLINT_SUPPRESS("long method")
@@ -144,7 +144,7 @@ io_select::wait_for_events(std::vector<event_data> & events,
     }
 
     if (mask) {
-      event_data ev = {
+      io_event ev = {
         m_connectors[entry.first],
         mask
       };

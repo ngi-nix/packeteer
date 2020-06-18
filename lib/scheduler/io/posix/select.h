@@ -45,7 +45,7 @@ public:
   io_select(std::shared_ptr<api> const & api);
   ~io_select();
 
-  virtual void wait_for_events(std::vector<event_data> & events,
+  virtual void wait_for_events(io_events & events,
       duration const & timeout);
 };
 

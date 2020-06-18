@@ -44,7 +44,7 @@ namespace packeteer::detail {
  */
 struct io_event
 {
-  connector connector;
+  packeteer::connector connector;
   events_t  events;
 };
 

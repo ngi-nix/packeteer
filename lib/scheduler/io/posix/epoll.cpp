@@ -23,8 +23,8 @@
 
 #include "epoll.h"
 
-#include "../../globals.h"
-#include "../scheduler_impl.h"
+#include "../../../globals.h"
+#include "../../scheduler_impl.h"
 
 #include <unistd.h>
 #include <sys/epoll.h>
@@ -285,7 +285,7 @@ io_epoll::unregister_connectors(connector const * conns, size_t size,
 
 
 void
-io_epoll::wait_for_events(std::vector<event_data> & events,
+io_epoll::wait_for_events(io_events & events,
       duration const & timeout)
 {
   // Wait for events
@@ -318,7 +318,7 @@ io_epoll::wait_for_events(std::vector<event_data> & events,
 
   // Translate events
   for (int i = 0 ; i < ready ; ++i) {
-    event_data data = {
+    io_event data = {
       m_connectors[epoll_events[i].data.fd],
       translate_os_to_events(epoll_events[i].events)
     };

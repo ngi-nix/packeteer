@@ -51,7 +51,7 @@ public:
   void unregister_connector(connector const & conn, events_t const & events);
   void unregister_connectors(connector const * conns, size_t amount, events_t const & events);
 
-  virtual void wait_for_events(std::vector<event_data> & events,
+  virtual void wait_for_events(io_events & events,
       duration const & timeout);
 
 private:

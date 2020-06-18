@@ -27,9 +27,9 @@
 #include <packeteer/types.h>
 #include <packeteer/scheduler/events.h>
 
-#include "../../globals.h"
-#include "../scheduler_impl.h"
-#include "../../thread/chrono.h"
+#include "../../../globals.h"
+#include "../../scheduler_impl.h"
+#include "../../../thread/chrono.h"
 
 
 // Posix
@@ -316,7 +316,7 @@ io_kqueue::unregister_connectors(connector const * conns, size_t size,
 
 
 void
-io_kqueue::wait_for_events(std::vector<event_data> & events,
+io_kqueue::wait_for_events(io_events & events,
       duration const & timeout)
 {
   // The entire event queue is already in the kernel, all we need to do is check
@@ -359,14 +359,14 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
   // Map events
   for (int i = 0 ; i < ret ; ++i) {
     if (kqueue_events[i].flags & EV_ERROR) {
-      event_data data = {
+      io_event data = {
         m_connectors[kqueue_events[i].ident],
         PEV_IO_ERROR
       };
       events.push_back(data);
     }
     else if (kqueue_events[i].flags & EV_EOF) {
-      event_data data = {
+      io_event data = {
         m_connectors[kqueue_events[i].ident],
         PEV_IO_CLOSE
       };
@@ -375,7 +375,7 @@ io_kqueue::wait_for_events(std::vector<event_data> & events,
     else {
       events_t translated = translate_os_to_events(kqueue_events[i].filter);
       if (translated >= 0) {
-        event_data data = {
+        io_event data = {
           m_connectors[kqueue_events[i].ident],
           translated
         };

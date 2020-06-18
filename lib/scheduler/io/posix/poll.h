@@ -45,7 +45,7 @@ public:
   io_poll(std::shared_ptr<api> api);
   ~io_poll();
 
-  virtual void wait_for_events(std::vector<event_data> & events, duration const & timeout);
+  virtual void wait_for_events(io_events & events, duration const & timeout);
 };
 
 
