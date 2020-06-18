@@ -251,5 +251,11 @@ TEST(IOThreadMisc, exception_in_io)
   ASSERT_FALSE(thread.is_running());
   auto exc = thread.error();
   ASSERT_NE(nullptr, exc);
-  ASSERT_EQ(std::string{exc->what()}, "Here's an error.");
+
+  // Check caught exception
+  try {
+    std::rethrow_exception(exc);
+  } catch (std::exception const & ex) {
+    ASSERT_EQ(std::string{ex.what()}, "Here's an error.");
+  }
 }

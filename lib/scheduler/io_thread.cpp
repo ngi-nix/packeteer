@@ -59,15 +59,15 @@ io_thread::start()
     m_thread = std::thread{std::bind(&io_thread::thread_loop, this)};
   } catch (packeteer::exception const & ex) {
     EXC_LOG("I/O thread start failed.", ex);
-    m_error = new packeteer::exception(ex);
+    m_error = std::current_exception();
     return ex.code();
   } catch (std::exception const & ex) {
     EXC_LOG("I/O thread start failed.", ex);
-    m_error = new std::exception(ex);
+    m_error = std::current_exception();
     return ERR_UNEXPECTED;
   } catch (...) {
     ELOG("I/O thread start failed with unknown error.");
-    m_error = new packeteer::exception(ERR_UNEXPECTED, "Caught unknown exception in I/O thread.");
+    m_error = std::make_exception_ptr(exception{ERR_UNEXPECTED, "Caught unknown exception in I/O thread start."});
     return ERR_UNEXPECTED;
   }
   return ERR_SUCCESS;
@@ -92,12 +92,10 @@ io_thread::stop()
 
 
 
-std::unique_ptr<std::exception>
+std::exception_ptr
 io_thread::error() const
 {
-  auto ret = std::unique_ptr<std::exception>(const_cast<std::exception *>(m_error));
-  m_error = nullptr;
-  return ret;
+  return m_error;
 }
 
 
@@ -133,13 +131,13 @@ io_thread::thread_loop()
 
   } catch (packeteer::exception const & ex) {
     EXC_LOG("I/O thread loop failed.", ex);
-    m_error = new packeteer::exception(ex);
+    m_error = std::current_exception();
   } catch (std::exception const & ex) {
     EXC_LOG("I/O thread loop failed.", ex);
-    m_error = new std::exception(ex);
+    m_error = std::current_exception();
   } catch (...) {
     ELOG("I/O thread loop failed with unknown error.");
-    m_error = new packeteer::exception(ERR_UNEXPECTED, "Caught unknown exception in I/O thread.");
+    m_error = std::make_exception_ptr(exception{ERR_UNEXPECTED, "Caught unknown exception in I/O thread loop."});
   }
 
   // Thread is not running.

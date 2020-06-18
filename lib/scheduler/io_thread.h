@@ -83,10 +83,9 @@ public:
 
   /**
    * Return an error instance if the thread ended with error,
-   * or nullptr. Ownership goes to the caller, after which the
-   * thread no longer remembers the error.
+   * or nullptr.
    */
-  std::unique_ptr<std::exception> error() const;
+  std::exception_ptr error() const;
 
 
 private:
@@ -98,9 +97,9 @@ private:
   out_queue_t &       m_out_queue;
   connector           m_queue_interrupt;
 
-  volatile bool                     m_running = true;
-  std::thread                       m_thread;
-  volatile mutable std::exception * m_error = nullptr;
+  volatile bool               m_running = true;
+  std::thread                 m_thread;
+  mutable std::exception_ptr  m_error = nullptr;
 };
 
 
