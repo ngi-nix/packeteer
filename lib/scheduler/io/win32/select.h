@@ -30,58 +30,23 @@
 #error I/O completion ports not detected
 #endif
 
-#include <mutex>
-#include <thread>
-
 #include <packeteer/scheduler/events.h>
 
-#include "iocp.h"
-#include "../../../concurrent_queue.h"
+#include "../../io.h"
 
 namespace packeteer::detail {
 
-// FIXME derive from io, etc.
-
-class iocp_socket_select
+// I/O subsystem based on Win32 select, i.e. only for socket-like
+// handles.
+class PACKETEER_PRIVATE io_select : public io
 {
 public:
-  // FIXME rename
-  struct result
-  {
-    handle::sys_handle_t  socket;
-    events_t              events;
-  };
-  // FIXME unwrap
-  struct socket_data
-  {
-    std::vector<result> sockets;
-//    std::vector<WSAEVENT>             events;
-  };
 
+  io_select(std::shared_ptr<api> const & api);
+  ~io_select();
 
-
-  iocp_socket_select(std::shared_ptr<api> api, connector & interrupt);
-  ~iocp_socket_select();
-
-  void configure_socket(handle::sys_handle_t const & sock, int events);
-
-  concurrent_queue<result>  collected_events;
-
-private:
-  void run_loop();
-
-  bool partial_loop_iteration(socket_data data, size_t offset, size_t size,
-      DWORD timeout, bool & notify);
-
-  // Mutex protects the pointer
-  std::mutex    m_mutex = {};
-  socket_data * m_sock_data = nullptr;
-
-  std::thread   m_thread = {};
-  volatile bool m_running = true;
-
-  connector     m_pipe; // FIXME name?
-  connector &   m_interrupt;
+  virtual void wait_for_events(std::vector<event_data> & events,
+      duration const & timeout);
 };
 
 

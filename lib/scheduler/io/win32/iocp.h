@@ -38,12 +38,8 @@
 
 namespace packeteer::detail {
 
-// FIXME update name.
-// Typedef for helper class
-class iocp_socket_select;
-
-// I/O subsystem based on select.
-struct io_iocp : public io
+// I/O subsystem based on I/O completion ports.
+struct PACKETEER_PRIVATE io_iocp : public io
 {
 public:
   io_iocp(std::shared_ptr<api> const & api);
@@ -70,15 +66,11 @@ public:
       duration const & timeout);
 
 private:
-  using handle_key_t = size_t;
-
   /***************************************************************************
    * Data
    **/
   HANDLE                      m_iocp = INVALID_HANDLE_VALUE;
   std::unordered_set<HANDLE>  m_associated = {};
-  connector                   m_interrupt = {};
-  iocp_socket_select *        m_sock_select = nullptr;
 };
 
 

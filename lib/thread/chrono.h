@@ -35,6 +35,11 @@
 #include <time.h>
 #endif
 
+#ifdef PACKETEER_WIN32
+#include <Winsock2.h>
+#define timeval TIMEVAL
+#endif
+
 #include <chrono>
 
 #include <packeteer/error.h>
@@ -48,7 +53,7 @@ inline void convert(inT const &, outT &)
       "std::chrono::duration to selected type not implemented.!");
 }
 
-#ifdef PACKETEER_HAVE_SYS_TIME_H
+#if defined(PACKETEER_HAVE_SYS_TIME_H) || defined(PACKETEER_WIN32)
 template <typename inT>
 inline void convert(inT const & in, ::timeval & val)
 {
