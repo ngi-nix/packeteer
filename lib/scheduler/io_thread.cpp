@@ -100,6 +100,14 @@ io_thread::error() const
 
 
 
+io *
+io_thread::get_io()
+{
+  return m_io.get();
+}
+
+
+
 void
 io_thread::thread_loop()
 {

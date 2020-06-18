@@ -87,6 +87,11 @@ public:
    */
   std::exception_ptr error() const;
 
+  /**
+   * Access the underlying I/O object
+   */
+  io * get_io();
+
 
 private:
 
