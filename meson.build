@@ -564,6 +564,7 @@ if have_iocp
   libsrc +=  [
     'lib' / 'scheduler' / 'io' / 'win32' / 'iocp.cpp',
     'lib' / 'scheduler' / 'io' / 'win32' / 'select.cpp',
+    'lib' / 'scheduler' / 'io' / 'win32' / 'win32.cpp',
   ]
 endif
 

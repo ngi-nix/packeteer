@@ -46,6 +46,7 @@
 #if defined(PACKETEER_HAVE_IOCP)
 #include "../../lib/scheduler/io/win32/iocp.h"
 #include "../../lib/scheduler/io/win32/select.h"
+#include "../../lib/scheduler/io/win32/win32.h"
 #endif
 
 
@@ -187,6 +188,14 @@ namespace {
         return new pd::io_select{api};
       },
       "local://",
+    },
+    {
+      "win32",
+      [](std::shared_ptr<p7r::api> api) -> pd::io *
+      {
+        return new pd::io_win32{api};
+      },
+      "anon://",
     },
 #endif
   };
