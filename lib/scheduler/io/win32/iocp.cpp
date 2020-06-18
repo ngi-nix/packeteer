@@ -34,8 +34,6 @@
 #include "../../../win32/sys_handle.h"
 #include "../../../connector/win32/overlapped.h"
 
-#include "select.h"
-
 #include <vector>
 
 namespace sc = std::chrono;
