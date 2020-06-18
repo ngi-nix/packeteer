@@ -341,14 +341,6 @@ struct streaming_test_data
     },
   },
 #endif // PACKETEER_POSIX
-  // TODO: https://gitlab.com/interpeer/packeteer/-/issues/18
-//  { p7r::CT_LOCAL,
-//    "local_unnamed",
-//    [](bool blocking) -> std::string
-//    {
-//      return std::string{"local://?blocking="} + (blocking ? "1" : "0");
-//    },
-//  },
   { p7r::CT_TCP4,
     "tcp4",
     [](bool blocking) -> std::string
@@ -1361,13 +1353,42 @@ INSTANTIATE_TEST_SUITE_P(net, ConnectorDGram,
 /*****************************************************************************
  * ConnectorMisc
  */
+namespace {
 
-TEST(ConnectorMisc, anon_connector)
+struct misc_test_data
 {
+  p7r::connector_type type;
+  std::string         name;
+  char const *        address;
+} misc_tests[] = {
+  { p7r::CT_LOCAL,
+    "local_unnamed",
+    "local://",
+  },
+  {
+    p7r::CT_ANON,
+    "anon",
+    "anon://",
+  },
+};
+
+
+} // anonymous namespace
+
+class ConnectorMisc
+  : public testing::TestWithParam<misc_test_data>
+{
+};
+
+
+TEST_P(ConnectorMisc, connector_test)
+{
+  auto td = GetParam();
+
   // Anonymous pipes are special in that they need only one connector for
   // communications.
-  p7r::connector conn{test_env->api, "anon://"};
-  ASSERT_EQ(p7r::CT_ANON, conn.type());
+  p7r::connector conn{test_env->api, td.address};
+  ASSERT_EQ(td.type, conn.type());
 
   ASSERT_FALSE(conn.listening());
   ASSERT_FALSE(conn.connected());
@@ -1395,3 +1416,8 @@ TEST(ConnectorMisc, anon_connector)
   }
 }
 
+
+
+INSTANTIATE_TEST_SUITE_P(net, ConnectorMisc,
+    testing::ValuesIn(misc_tests),
+    connector_name<misc_test_data>);
