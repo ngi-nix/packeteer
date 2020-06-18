@@ -37,15 +37,6 @@ namespace packeteer::detail {
 
 namespace {
 
-inline void
-do_close(SOCKET sock)
-{
-  shutdown(sock, SD_BOTH);
-  closesocket(sock);
-}
-
-
-
 inline error_t
 translate_system_error(int err)
 {
@@ -130,6 +121,29 @@ create_socket_handle(int domain, int type, int proto,
     bool blocking)
 {
   DLOG("create_socket_handle(" << blocking << ")");
+  SOCKET sock = INVALID_SOCKET;
+  auto err = create_socket(domain, type, proto, sock,
+      true); // We want blocking handles and OVERLAPPED here.
+  if (err != ERR_SUCCESS) {
+    return err;
+  }
+
+  // Result
+  h = std::make_shared<handle::opaque_handle>(
+      reinterpret_cast<HANDLE>(sock));
+  h->blocking = blocking;
+
+  return ERR_SUCCESS;
+}
+
+
+} // anonymous namespace
+
+
+error_t
+create_socket(int domain, int type, int proto, SOCKET & socket,
+    bool blocking)
+{
   SOCKET sock = WSASocket(domain, type, proto, NULL, 0, WSA_FLAG_OVERLAPPED);
   if (sock == INVALID_SOCKET) {
     ERRNO_LOG("create_socket socket failed!");
@@ -146,8 +160,8 @@ create_socket_handle(int domain, int type, int proto,
     if (ret == SOCKET_ERROR) {
       auto err = WSAGetLastError();
 
-      do_close(sock);
-      h = handle::INVALID_SYS_HANDLE;
+      close_socket(sock);
+      socket = INVALID_SOCKET;
 
       ERR_LOG("create_socket setsockopt failed!", err);
       return translate_system_error(err);
@@ -164,24 +178,53 @@ create_socket_handle(int domain, int type, int proto,
     if (ret == SOCKET_ERROR) {
       auto err = WSAGetLastError();
 
-      do_close(sock);
-      h = handle::INVALID_SYS_HANDLE;
+      close_socket(sock);
+      socket = INVALID_SOCKET;
 
       ERR_LOG("create_socket setsockopt failed!", err);
       return translate_system_error(err);
     }
   }
 
-  // Result
-  h = std::make_shared<handle::opaque_handle>(
-      reinterpret_cast<HANDLE>(sock));
-  h->blocking = blocking;
+  // Make non-blocking.
+  auto err = set_blocking(sock, blocking);
+  if (ERR_SUCCESS != err) {
+    close_socket(sock);
+    socket = INVALID_SOCKET;
+    return err;
+  }
 
+  // Result
+  socket = sock;
   return ERR_SUCCESS;
 }
 
 
-} // anonymous namespace
+
+error_t
+set_blocking(SOCKET sock, bool blocking)
+{
+  u_long block_mode = blocking ? 0 : 1; // yes, check the docks.
+  int ret = ::ioctlsocket(sock, FIONBIO, &block_mode);
+  if (ret == SOCKET_ERROR) {
+    auto err = WSAGetLastError();
+
+    ERR_LOG("create_socket ioctlsocket failed!", err);
+    return translate_system_error(err);
+  }
+  return ERR_SUCCESS;
+}
+
+
+
+void
+close_socket(SOCKET sock)
+{
+  shutdown(sock, SD_BOTH);
+  closesocket(sock);
+}
+
+
 
 
 
@@ -258,7 +301,7 @@ connector_socket::socket_connect(int domain, int type, int proto)
     }
 
     // Otherwise we have an error.
-    do_close(h->socket);
+    close_socket(h->socket);
 
     ERR_LOG("connector_socket connect failed!", err);
     return translate_system_error(err);
@@ -314,7 +357,7 @@ connector_socket::socket_bind(int domain, int type, int proto, handle::sys_handl
   if (ret == SOCKET_ERROR) {
     auto err = WSAGetLastError();
 
-    do_close(h->socket);
+    close_socket(h->socket);
     h = handle::INVALID_SYS_HANDLE;
 
     ERR_LOG("connector_socket bind failed; address is: "
@@ -336,7 +379,7 @@ connector_socket::socket_listen(handle::sys_handle_t h)
   int ret = ::listen(h->socket, PACKETEER_LISTEN_BACKLOG);
   if (ret == SOCKET_ERROR) {
     auto err = WSAGetLastError();
-    do_close(h->socket);
+    close_socket(h->socket);
     h = handle::INVALID_SYS_HANDLE;
 
     ERR_LOG("connector_socket listen failed!", err);
@@ -390,7 +433,7 @@ connector_socket::socket_close()
   // We ignore errors from close() here.
   // For local sockets, there is a problem with NFS as the man pages state, but
   // it's the price of the abstraction.
-  do_close(m_handle->socket);
+  close_socket(m_handle->socket);
 
   m_handle = handle::INVALID_SYS_HANDLE;
   m_server = false;

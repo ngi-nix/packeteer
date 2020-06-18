@@ -46,6 +46,11 @@ struct handle::opaque_handle
   opaque_handle(HANDLE h = INVALID_HANDLE_VALUE)
     : handle(h)
   {}
+
+  opaque_handle(SOCKET s)
+    : socket(s)
+  {
+  }
 };
 
 } // namespace packeteer

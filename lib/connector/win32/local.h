@@ -46,6 +46,12 @@ public:
 
   error_t listen();
 
+  bool listening() const;
+  bool connected() const;
+
+  handle get_read_handle() const;
+  handle get_write_handle() const;
+
   error_t connect();
 
   connector_interface * accept(net::socket_address & addr);
@@ -57,6 +63,8 @@ private:
 
   // File system entry owner.
   bool m_owner = false;
+
+  ::packeteer::handle::sys_handle_t m_other_handle = ::packeteer::handle::INVALID_SYS_HANDLE;
 };
 
 } // namespace packeteer::detail

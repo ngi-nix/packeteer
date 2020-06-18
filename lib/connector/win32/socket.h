@@ -35,6 +35,25 @@
 namespace packeteer::detail {
 
 /**
+ * Utility functions for connector_socket() and socketpair.h
+ */
+PACKETEER_PRIVATE
+error_t
+create_socket(int domain, int type, int proto, SOCKET & socket,
+    bool blocking);
+
+
+PACKETEER_PRIVATE
+void
+close_socket(SOCKET socket);
+
+
+PACKETEER_PRIVATE
+error_t
+set_blocking(SOCKET socket, bool blocking);
+
+
+/**
  * Base for socket-style I/O on Win32
  **/
 struct connector_socket : public connector_common
@@ -44,11 +63,11 @@ public:
       connector_options const & options);
 
   // Connector interface, partially implemented
-  bool listening() const;
-  bool connected() const;
+  virtual bool listening() const;
+  virtual bool connected() const;
 
-  handle get_read_handle() const;
-  handle get_write_handle() const;
+  virtual handle get_read_handle() const;
+  virtual handle get_write_handle() const;
 
   bool is_blocking() const;
 

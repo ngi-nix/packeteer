@@ -26,10 +26,13 @@
 
 #include "../../globals.h"
 #include "../../macros.h"
+#include "../../win32/sys_handle.h"
+#include "socketpair.h"
 
 namespace packeteer::detail {
 
 namespace {
+
 
 inline int
 sock_type(connector_options const & options)
@@ -39,6 +42,38 @@ sock_type(connector_options const & options)
   }
   return SOCK_STREAM;
 }
+
+
+
+inline error_t
+create_socketpair(
+    net::socket_address const & addr,
+    connector_options const & options,
+    handle::sys_handle_t & server,
+    handle::sys_handle_t & client,
+    bool & done)
+{
+  if (addr.type() != net::AT_UNSPEC) {
+    done = false;
+    return ERR_UNEXPECTED; // Doesn't matter
+  }
+
+  SOCKET sockets[2];
+  auto err = socketpair(AF_UNIX, sock_type(options), 0, sockets);
+  if (ERR_SUCCESS != err) {
+    done = false;
+    return err;
+  }
+
+  // Great, assign the sockets to the handles.
+  server = std::make_shared<handle::opaque_handle>(sockets[0]);
+  server->blocking = options & CO_BLOCKING;
+  client = std::make_shared<handle::opaque_handle>(sockets[1]);
+  client->blocking = options & CO_BLOCKING;
+  done = true;
+  return ERR_SUCCESS;
+}
+
 
 } // anonymous namespace
 
@@ -62,7 +97,66 @@ connector_local::~connector_local()
 error_t
 connector_local::connect()
 {
+  if (connected()) {
+    return ERR_INITIALIZATION;
+  }
+
+  // Deal with unnamed sockets
+  bool done = false;
+  auto err = create_socketpair(m_addr, m_options, m_handle, m_other_handle,
+      done);
+  if (done) {
+    m_server = true;
+    return err;
+  }
+
   return connector_socket::socket_connect(AF_UNIX, sock_type(m_options), 0);
+}
+
+
+
+bool
+connector_local::listening() const
+{
+  if (m_addr.type() == net::AT_UNSPEC) {
+    return m_handle != handle::INVALID_SYS_HANDLE &&
+      m_other_handle != handle::INVALID_SYS_HANDLE;
+  }
+  return connector_socket::listening();
+}
+
+
+
+bool
+connector_local::connected() const
+{
+  if (m_addr.type() == net::AT_UNSPEC) {
+    return m_handle != handle::INVALID_SYS_HANDLE &&
+      m_other_handle != handle::INVALID_SYS_HANDLE;
+
+  }
+  return connector_socket::connected();
+}
+
+
+
+handle
+connector_local::get_read_handle() const
+{
+  // Always return this as the read handle; this way, we only need to do
+  // anything special in the get_write_handle() function.
+  return m_handle;
+}
+
+
+
+handle
+connector_local::get_write_handle() const
+{
+  if (m_addr.type() == net::AT_UNSPEC) {
+    return m_other_handle;
+  }
+  return m_handle;
 }
 
 
@@ -70,9 +164,21 @@ connector_local::connect()
 error_t
 connector_local::listen()
 {
+  if (listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  // Deal with unnamed sockets
+  bool done = false;
+  auto err = create_socketpair(m_addr, m_options, m_handle, m_other_handle,
+      done);
+  if (done) {
+    return err;
+  }
+
   // Attempt to bind
   handle::sys_handle_t handle = handle::INVALID_SYS_HANDLE;
-  error_t err = connector_socket::socket_bind(AF_UNIX, sock_type(m_options),
+  err = connector_socket::socket_bind(AF_UNIX, sock_type(m_options),
       0, handle);
   if (ERR_SUCCESS != err) {
     return err;
@@ -104,6 +210,12 @@ connector_local::close()
     DLOG("Server closing; remove file system entry: " << m_addr.full_str());
     DeleteFile(util::from_utf8(m_addr.full_str().c_str()).c_str());
   }
+
+  if (m_other_handle != handle::INVALID_SYS_HANDLE) {
+    close_socket(m_other_handle->socket);
+    m_other_handle = handle::INVALID_SYS_HANDLE;
+  }
+
   return err;
 }
 
@@ -112,6 +224,15 @@ connector_local::close()
 connector_interface *
 connector_local::accept(net::socket_address & addr)
 {
+  if (!connected()) {
+    return nullptr;
+  }
+
+  if (m_other_handle != handle::INVALID_SYS_HANDLE) {
+    // No need for accept() if we're a socket pair
+    return this;
+  }
+
   handle::sys_handle_t handle = handle::INVALID_SYS_HANDLE;
   error_t err = connector_socket::socket_accept(handle, addr);
   if (ERR_SUCCESS != err) {
