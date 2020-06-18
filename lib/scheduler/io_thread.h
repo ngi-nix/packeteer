@@ -64,6 +64,13 @@ public:
       out_queue_t & out_queue,
       connector queue_interrupt);
 
+  ~io_thread();
+
+  /**
+   * Starts the thread.
+   */
+  error_t start();
+
   /**
    * Stops the thread, and waits for it to finish.
    */
@@ -73,6 +80,13 @@ public:
    * Return true if the thread is running, false otherwise.
    */
   bool is_running() const;
+
+  /**
+   * Return an error instance if the thread ended with error,
+   * or nullptr. Ownership goes to the caller, after which the
+   * thread no longer remembers the error.
+   */
+  std::unique_ptr<std::exception> error() const;
 
 
 private:
@@ -84,8 +98,9 @@ private:
   out_queue_t &       m_out_queue;
   connector           m_queue_interrupt;
 
-  volatile bool       m_running = true;
-  std::thread         m_thread;
+  volatile bool                     m_running = true;
+  std::thread                       m_thread;
+  volatile mutable std::exception * m_error = nullptr;
 };
 
 

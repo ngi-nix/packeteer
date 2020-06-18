@@ -51,9 +51,10 @@
 
 namespace p7r = packeteer;
 namespace pu = packeteer::util;
+namespace pd = packeteer::detail;
 namespace sc = std::chrono;
 
-using creator = std::function<packeteer::detail::io * (std::shared_ptr<packeteer::api> api)>;
+using creator = std::function<pd::io * (std::shared_ptr<p7r::api> api)>;
 
 struct test_data
 {
@@ -78,12 +79,12 @@ TEST_P(IOThread, simple_test)
   // Start queue interrupt connector
   p7r::connector queue_interrupt{test_env->api, "anon://"};
   auto err = queue_interrupt.connect();
-  EXPECT_EQ(p7r::ERR_SUCCESS, err);
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
 
   // Start IO interrupt connector
   p7r::connector io_interrupt{test_env->api, td.io_interrupt_name};
   err = io_interrupt.connect();
-  EXPECT_EQ(p7r::ERR_SUCCESS, err);
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
 
   // Start thread
   p7r::detail::out_queue_t results;
@@ -91,6 +92,8 @@ TEST_P(IOThread, simple_test)
     io_interrupt,
     results,
     queue_interrupt};
+  err = thread.start();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
 
   // Wait for the thread to start.
   while (!thread.is_running()) {
@@ -131,9 +134,9 @@ namespace {
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
     test_data{
       "posix_epoll",
-      [](std::shared_ptr<packeteer::api> api) -> packeteer::detail::io *
+      [](std::shared_ptr<p7r::api> api) -> pd::io *
       {
-        return new packeteer::detail::io_epoll{api};
+        return new pd::io_epoll{api};
       },
       "anon://",
     },
@@ -141,9 +144,9 @@ namespace {
 #if defined(PACKETEER_HAVE_KQUEUE)
     {
       "posix_kqueue",
-      [](std::shared_ptr<packeteer::api> api) -> packeteer::detail::io *
+      [](std::shared_ptr<p7r::api> api) -> pd::io *
       {
-        return new packeteer::detail::io_kqueue{api};
+        return new pd::io_kqueue{api};
       },
       "anon://",
     },
@@ -151,9 +154,9 @@ namespace {
 #if defined(PACKETEER_HAVE_POLL)
     {
       "posix_poll",
-      [](std::shared_ptr<packeteer::api> api) -> packeteer::detail::io *
+      [](std::shared_ptr<p7r::api> api) -> pd::io *
       {
-        return new packeteer::detail::io_poll{api};
+        return new pd::io_poll{api};
       },
       "anon://",
     },
@@ -161,9 +164,9 @@ namespace {
 #if defined(PACKETEER_HAVE_SELECT)
     {
       "posix_select",
-      [](std::shared_ptr<packeteer::api> api) -> packeteer::detail::io *
+      [](std::shared_ptr<p7r::api> api) -> pd::io *
       {
-        return new packeteer::detail::io_select{api};
+        return new pd::io_select{api};
       },
       "anon://",
     },
@@ -171,20 +174,19 @@ namespace {
 #if defined(PACKETEER_HAVE_IOCP)
     {
       "win32_iocp",
-      [](std::shared_ptr<packeteer::api> api) -> packeteer::detail::io *
+      [](std::shared_ptr<p7r::api> api) -> pd::io *
       {
-        return new packeteer::detail::io_iocp{api};
+        return new pd::io_iocp{api};
       },
       "anon://",
     },
     {
       "win32_select",
-      [](std::shared_ptr<packeteer::api> api) -> packeteer::detail::io *
+      [](std::shared_ptr<p7r::api> api) -> pd::io *
       {
-        // TODO return new packeteer::detail::io_select{api};
-        return nullptr;
+        return new pd::io_select{api};
       },
-      "local://" + pu::to_posix_path(pu::temp_name("win32-select-test")),
+      "local://",
     },
 #endif
   };
@@ -201,3 +203,53 @@ INSTANTIATE_TEST_SUITE_P(packeteer, IOThread,
     testing::ValuesIn(test_values),
     io_name);
 
+
+
+
+/**
+ * Miscellaneous tests
+ */
+TEST(IOThreadMisc, exception_in_io)
+{
+  struct test_io : public pd::io
+  {
+    test_io(std::shared_ptr<p7r::api> api)
+      : io(api)
+    {
+    }
+
+    void wait_for_events(std::vector<pd::event_data> & events, p7r::duration const & timeout)
+    {
+      throw std::runtime_error("Here's an error.");
+    }
+  };
+
+  auto io = std::unique_ptr<p7r::detail::io>(new test_io{test_env->api});
+
+  // Start queue interrupt connector
+  p7r::connector queue_interrupt{test_env->api, "anon://"};
+  auto err = queue_interrupt.connect();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+
+  // Start thread
+  p7r::detail::out_queue_t results;
+  p7r::detail::io_thread thread{std::move(io),
+    queue_interrupt,
+    results,
+    queue_interrupt};
+
+  err = thread.start();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+
+  // Wait for the thread to start.
+  while (!thread.is_running()) {
+    std::this_thread::sleep_for(sc::milliseconds(1));
+  }
+  std::this_thread::sleep_for(sc::milliseconds(50));
+
+  // It should be dead at this point...
+  ASSERT_FALSE(thread.is_running());
+  auto exc = thread.error();
+  ASSERT_NE(nullptr, exc);
+  ASSERT_EQ(std::string{exc->what()}, "Here's an error.");
+}
