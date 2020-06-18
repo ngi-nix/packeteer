@@ -197,7 +197,7 @@ std::string scheduler_name(testing::TestParamInfo<packeteer::scheduler::schedule
       return "select";
 
     case packeteer::scheduler::TYPE_WIN32:
-      return "iocp";
+      return "win32";
 
     default:
       ADD_FAILURE_AT(__FILE__, __LINE__) << "Test not defined for scheduler type " << info.param;
