@@ -227,7 +227,7 @@ io_iocp::unregister_connectors(connector const * conns, size_t size,
 
 
 void
-io_iocp::wait_for_events(std::vector<event_data> & events,
+io_iocp::wait_for_events(io_events & events,
       duration const & timeout)
 {
   DLOG("Wait for IOCP events.");

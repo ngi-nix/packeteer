@@ -114,13 +114,6 @@ struct callback_entry
   virtual ~callback_entry() {}
 };
 
-// Events are reported with this structure.
-struct event_data
-{
-  connector m_connector;
-  events_t  m_events;
-};
-
 }} // namespace packeteer::detail
 
 #include "callbacks/io.h"
@@ -208,7 +201,7 @@ private:
   inline void process_in_queue_user(action_type action,
       detail::user_callback_entry * entry, entry_list_t & triggered);
 
-  inline void dispatch_io_callbacks(std::vector<detail::event_data> const & events,
+  inline void dispatch_io_callbacks(detail::io_events const & events,
       entry_list_t & to_schedule);
   inline void dispatch_scheduled_callbacks(
       time_point const & now, entry_list_t & to_schedule);

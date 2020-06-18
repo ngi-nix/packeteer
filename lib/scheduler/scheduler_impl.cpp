@@ -443,20 +443,20 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
 void
 scheduler::scheduler_impl::dispatch_io_callbacks(
-    std::vector<detail::event_data> const & events,
+    detail::io_events const & events,
     entry_list_t & to_schedule)
 {
   // Process events, and try to find a callback for each of them.
   for (auto & event : events) {
-    if (m_main_loop_pipe == event.m_connector) {
+    if (m_main_loop_pipe == event.connector) {
       // We just got interrupted; clear the interrupt
       detail::clear_interrupt(m_main_loop_pipe);
       continue;
     }
 
     // Find callback(s).
-    auto callbacks = m_io_callbacks.copy_matching(event.m_connector,
-        event.m_events);
+    auto callbacks = m_io_callbacks.copy_matching(event.connector,
+        event.events);
     to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
   }
 }
@@ -614,7 +614,7 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
   }
 
   // Get I/O events from the subsystem.
-  std::vector<detail::event_data> events;
+  detail::io_events events;
   m_io->wait_for_events(events, selected_timeout);
   // for (auto & event : events) {
   //   DLOG("got events " << event.m_events << " for " << event.m_connector);

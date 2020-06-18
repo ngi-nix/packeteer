@@ -43,7 +43,7 @@ io_select::~io_select()
 
 
 void
-io_select::wait_for_events(std::vector<event_data> & events,
+io_select::wait_for_events(io_events & events,
       duration const & timeout)
 {
   // FD sets
@@ -119,7 +119,7 @@ io_select::wait_for_events(std::vector<event_data> & events,
     }
 
     if (mask) {
-      event_data ev = {
+      io_event ev = {
         m_connectors[entry.first],
         mask
       };

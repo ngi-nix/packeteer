@@ -113,7 +113,7 @@ TEST_P(IOThread, simple_test)
     ++items;
     ASSERT_GE(events.size(), 1);
     for (auto event : events) {
-      ASSERT_EQ(event.m_connector, io_interrupt);
+      ASSERT_EQ(event.connector, io_interrupt);
     }
   }
 
@@ -218,7 +218,7 @@ TEST(IOThreadMisc, exception_in_io)
     {
     }
 
-    void wait_for_events(std::vector<pd::event_data> & events, p7r::duration const & timeout)
+    void wait_for_events(pd::io_events & events, p7r::duration const & timeout)
     {
       throw std::runtime_error("Here's an error.");
     }

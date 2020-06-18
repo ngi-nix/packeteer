@@ -40,9 +40,15 @@
 namespace packeteer::detail {
 
 /**
- * Forward declaration
- **/
-struct event_data;
+ * Events are reported with this structure.
+ */
+struct io_event
+{
+  connector connector;
+  events_t  events;
+};
+
+using io_events = std::vector<io_event>;
 
 /**
  * Virtual base class for I/O subsystem. If you override the (un-)register*
@@ -110,7 +116,7 @@ public:
     }
   }
 
-  virtual void wait_for_events(std::vector<event_data> & events,
+  virtual void wait_for_events(io_events & events,
       packeteer::duration const & timeout) = 0;
 
 protected:
