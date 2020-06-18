@@ -412,6 +412,21 @@ if have_strerror_s
   conf_data.set('PACKETEER_HAVE_STRERROR_R', true)
 endif
 
+have_socketpair = compiler.compiles('''
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int main(int, char **)
+{
+  int fd[2];
+  int e = socketpair(AF_INET, SOCK_STREAM, 0, fd);
+}
+''', name: 'socketpair()')
+if have_socketpair
+  conf_data.set('PACKETEER_HAVE_SOCKETPAIR', true)
+endif
+
+
 
 ### Set values from options
 

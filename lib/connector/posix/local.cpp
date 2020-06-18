@@ -27,6 +27,7 @@
 
 #include "../../globals.h"
 #include "../../macros.h"
+#include "fd.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -50,6 +51,56 @@ sock_type(connector_options const & options)
   return SOCK_STREAM;
 }
 
+
+inline error_t
+create_socketpair(
+    net::socket_address const & addr,
+    connector_options const & options,
+    int & server,
+    int & client,
+    bool & done)
+{
+  if (addr.type() != net::AT_UNSPEC) {
+    done = false;
+    return ERR_UNEXPECTED; // Doesn't matter
+  }
+
+#if defined(PACKETEER_HAVE_SOCKETPAIR)
+
+  int sockets[2];
+  auto err = socketpair(AF_UNIX, sock_type(options), 0, sockets);
+  if (ERR_SUCCESS != err) {
+    done = false;
+    return err;
+  }
+
+  // Great, assign the sockets to the fds.
+  auto e = detail::set_blocking_mode(sockets[0], options & CO_BLOCKING);
+  if (ERR_SUCCESS != e) {
+    close(sockets[0]);
+    close(sockets[1]);
+    return e;
+  }
+  e = detail::set_blocking_mode(sockets[1], options & CO_BLOCKING);
+  if (ERR_SUCCESS != e) {
+    close(sockets[0]);
+    close(sockets[1]);
+    return e;
+  }
+
+  server = sockets[0];
+  client = sockets[1];
+
+  done = true;
+  return ERR_SUCCESS;
+#else
+  ELOG("No socketpair() implementation found.");
+  return ERR_INVALID_OPTION;
+#endif
+}
+
+
+
 } // anonymous namespace
 
 
@@ -69,9 +120,66 @@ connector_local::~connector_local()
 
 
 
+bool
+connector_local::listening() const
+{
+  if (m_addr.type() == net::AT_UNSPEC) {
+    return m_fd != -1 && m_other_fd != -1;
+  }
+  return connector_socket::listening();
+}
+
+
+
+bool
+connector_local::connected() const
+{
+  if (m_addr.type() == net::AT_UNSPEC) {
+    return m_fd != -1 && m_other_fd != -1;
+
+  }
+  return connector_socket::connected();
+}
+
+
+
+handle
+connector_local::get_read_handle() const
+{
+  // Always return this as the read handle; this way, we only need to do
+  // anything special in the get_write_handle() function.
+  return m_fd;
+}
+
+
+
+handle
+connector_local::get_write_handle() const
+{
+  if (m_addr.type() == net::AT_UNSPEC) {
+    return m_other_fd;
+  }
+  return m_fd;
+}
+
+
+
 error_t
 connector_local::connect()
 {
+  if (connected()) {
+    return ERR_INITIALIZATION;
+  }
+
+  // Deal with unnamed sockets
+  bool done = false;
+  auto err = create_socketpair(m_addr, m_options, m_fd, m_other_fd,
+      done);
+  if (done) {
+    m_server = true;
+    return err;
+  }
+
   return connector_socket::socket_connect(AF_LOCAL, sock_type(m_options));
 }
 
@@ -80,11 +188,25 @@ connector_local::connect()
 error_t
 connector_local::listen()
 {
+  if (listening()) {
+    return ERR_INITIALIZATION;
+  }
+
+  // Deal with unnamed sockets
+  bool done = false;
+  auto err = create_socketpair(m_addr, m_options, m_fd, m_other_fd,
+      done);
+  if (done) {
+    ERR_LOG("Created socketpair", err);
+    return err;
+  }
+
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::socket_bind(AF_LOCAL, sock_type(m_options),
+  err = connector_socket::socket_bind(AF_LOCAL, sock_type(m_options),
       fd);
   if (ERR_SUCCESS != err) {
+    ERR_LOG("Bind failed", err);
     return err;
   }
   m_owner = true;
@@ -93,6 +215,7 @@ connector_local::listen()
   if (m_options & CO_STREAM) {
     err = connector_socket::socket_listen(fd);
     if (ERR_SUCCESS != err) {
+      ERR_LOG("Listen failed", err);
       return err;
     }
   }
@@ -100,6 +223,7 @@ connector_local::listen()
   // Finally, set the fd
   m_fd = fd;
   m_server = true;
+  DLOG("Now listening.");
 
   return ERR_SUCCESS;
 }
@@ -121,6 +245,12 @@ connector_local::close()
       }
     }
   }
+
+  if (m_other_fd != -1) {
+    ::close(m_other_fd);
+    m_other_fd = -1;
+  }
+
   return err;
 }
 
@@ -129,6 +259,15 @@ connector_local::close()
 connector_interface *
 connector_local::accept(net::socket_address & addr)
 {
+  if (!listening()) {
+    return nullptr;
+  }
+
+  if (m_other_fd != -1) {
+    // No need for accept() if we're a socket pair
+    return this;
+  }
+
   int fd = -1;
   error_t err = connector_socket::socket_accept(fd, addr);
   if (ERR_SUCCESS != err) {

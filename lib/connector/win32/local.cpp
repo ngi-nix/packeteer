@@ -224,7 +224,7 @@ connector_local::close()
 connector_interface *
 connector_local::accept(net::socket_address & addr)
 {
-  if (!connected()) {
+  if (!listening()) {
     return nullptr;
   }
 

@@ -61,6 +61,8 @@
 #mesondefine PACKETEER_HAVE_STRERROR_S
 #mesondefine PACKETEER_HAVE_STRERROR_R
 
+#mesondefine PACKETEER_HAVE_SOCKETPAIR
+
 
 /*****************************************************************************
  * Platform checks

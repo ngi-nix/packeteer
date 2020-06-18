@@ -47,6 +47,12 @@ public:
 
   error_t listen();
 
+  bool listening() const;
+  bool connected() const;
+
+  handle get_read_handle() const;
+  handle get_write_handle() const;
+
   error_t connect();
 
   connector_interface * accept(net::socket_address & addr);
@@ -58,6 +64,8 @@ private:
 
   // File system entry owner.
   bool m_owner = false;
+
+  int m_other_fd = -1;
 };
 
 } // namespace packeteer::detail
