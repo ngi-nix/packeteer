@@ -126,6 +126,8 @@ io_select::wait_for_events(io_events & events,
       events.push_back(ev);
     }
   }
+
+  DLOG("WIN32 select got " << events.size() << " event entries to report.");
 }
 
 } // namespace packeteer::detail

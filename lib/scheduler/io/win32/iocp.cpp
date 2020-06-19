@@ -258,22 +258,6 @@ io_iocp::wait_for_events(io_events & events,
   // Temporary events container
   std::unordered_map<connector, events_t> tmp_events;
 
-  // Grab events from select loop. This may be over very soon, if there were no
-  // events detected there.
-#if 0
-  iocp_socket_select::result sock_events;
-  while (m_sock_select->collected_events.pop(sock_events)) {
-    // See if we can find a connector for the socket.
-    auto iter = m_connectors.find(sock_events.socket);
-    if (iter == m_connectors.end()) {
-      ELOG("Could not find connector for socket: " << sock_events.socket);
-      continue;
-    }
-    tmp_events[iter->second] = sock_events.events;
-  }
-#endif // FIXME
-  DLOG("Collected " << tmp_events.size() << " socket events.");
-
   // First, go through actually received events and add them to the temporary
   // map.
   for (size_t i = 0 ; i < read ; ++i) {
@@ -331,11 +315,11 @@ io_iocp::wait_for_events(io_events & events,
       }
 
 
-      // TODO maybe repoort PEV_IO_CLOSE if ctx->type was PEV_IO_READ and
+      // TODO maybe report PEV_IO_CLOSE if ctx->type was PEV_IO_READ and
       //      num_transferred is zero?
     }
 
-    DLOG("Events for connector " << conn << " are " << ev);
+    DLOG("RAW Events for connector " << conn << " are " << ev);
     tmp_events[conn] |= ev;
   }
 
