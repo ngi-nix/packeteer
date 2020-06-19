@@ -22,7 +22,6 @@
 #include <random>
 
 #include "pipe_operations.h"
-#include "overlapped.h"
 
 #include "../../util/string.h"
 #include "../../macros.h"
@@ -134,6 +133,7 @@ create_named_pipe(std::string const & name,
   handle::sys_handle_t res = std::make_shared<handle::opaque_handle>();
 
   std::string normalized = normalize_pipe_path(name);
+  // DLOG("Supposed to create pipe at: " << normalized);
 
   // Open mode. Always use overlapped I/O
   DWORD open_mode = 0;
@@ -190,48 +190,58 @@ error_t
 poll_for_connection(handle & handle)
 {
   if (!handle.valid()) {
-    DLOG("Invalid handle: need an overlapped manager");
+    DLOG("Invalid handle.");
     return ERR_INVALID_VALUE;
   }
 
   // Copy increments refcount
   auto sys_handle = handle.sys_handle();
+  auto & ctx = sys_handle->read_context;
 
-  auto err = sys_handle->overlapped_manager.schedule_overlapped(
-      sys_handle->handle, overlapped::CONNECT,
-      [](overlapped::io_action action, overlapped::io_context & ctx) -> error_t
-      {
-        BOOL res = FALSE;
+  // It would be weird if the read_context was anything other than idle, so
+  // assert that.
+  bool check_progress = false;
+  if (ctx.pending_io()) {
+    if (ctx.type != CONNECT) {
+      ELOG("Cannot poll for connection on a handle that's already reading.");
+      return ERR_UNEXPECTED;
+    }
+    check_progress = true;
+  }
 
-        if (overlapped::CHECK_PROGRESS == action) {
-          DWORD dummy;
-          res = GetOverlappedResult(ctx.handle, &ctx, &dummy,
-              FALSE);
-        }
-        else {
-          res = ConnectNamedPipe(ctx.handle, &ctx);
-        }
+  // Set the state
+  ctx.start_io(sys_handle->handle, CONNECT);
 
-        if (res) {
-          return ERR_SUCCESS;
-        }
+  // Perform the action
+  BOOL res = FALSE;
 
-        switch (WSAGetLastError()) {
-          case ERROR_IO_PENDING:
-          case ERROR_IO_INCOMPLETE: // GetOverlappedResult
-            return ERR_ASYNC;
+  if (check_progress) {
+    DWORD dummy;
+    res = GetOverlappedResult(sys_handle->handle, &ctx, &dummy, FALSE);
+  }
+  else {
+    res = ConnectNamedPipe(sys_handle->handle, &ctx);
+  }
 
-          case ERROR_PIPE_CONNECTED:
-            return ERR_SUCCESS;
+  if (res) {
+    ctx.finish_io();
+    return ERR_SUCCESS;
+  }
 
-          default:
-            ERRNO_LOG("Unexpected result of ConnectNamedPipe.");
-            return ERR_CONNECTION_ABORTED;
-        }
-      });
+  switch (WSAGetLastError()) {
+    case ERROR_IO_PENDING:
+    case ERROR_IO_INCOMPLETE: // GetOverlappedResult
+      return ERR_ASYNC;
 
-  // POSIX returns ERR_ASYNC, so we can do the same.
-  return err;
+    case ERROR_PIPE_CONNECTED:
+      ctx.finish_io();
+      return ERR_SUCCESS;
+
+    default:
+      ERRNO_LOG("Unexpected result of ConnectNamedPipe.");
+      ctx.finish_io();
+      return ERR_CONNECTION_ABORTED;
+  }
 }
 
 

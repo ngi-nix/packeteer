@@ -25,8 +25,6 @@
 
 namespace packeteer::detail::io {
 
-namespace o = ::packeteer::detail::overlapped;
-
 namespace {
 
 inline error_t
@@ -104,10 +102,14 @@ translate_error()
 
 error_t
 read_op(::packeteer::handle handle,
-    void * buf, size_t amount, ssize_t & read,
+    void * dest, size_t amount, ssize_t & read,
     net::socket_address * addr)
 {
   if (!handle.valid()) {
+    return ERR_INVALID_VALUE;
+  }
+
+  if (!dest) {
     return ERR_INVALID_VALUE;
   }
 
@@ -117,76 +119,98 @@ read_op(::packeteer::handle handle,
   // Copy increments refcount
   auto sys_handle = handle.sys_handle();
   const bool blocking = sys_handle->blocking;
+  auto & ctx = sys_handle->read_context;
 
-  auto callback = [&buf, &read, blocking, &addr](o::io_action action, o::io_context & ctx) -> error_t
-  {
+  // Check there is no other read scheduled.
+  bool check_progress = false;
+  if (ctx.pending_io()) {
+    if (ctx.type != READ) {
+      // Connect did not complete yet, try again later.
+      return ERR_REPEAT_ACTION;
+    }
+    check_progress = true;
+  }
+
+  // Set the state, etc. to PENDING
+  ctx.start_io(sys_handle->handle, READ);
+
+  // Perform the action
+  error_t err = ERR_SUCCESS;
+  do {
+    // Perform the action
     DWORD have_read = 0;
     BOOL res = FALSE;
-    if (overlapped::CHECK_PROGRESS == action) {
-      res = GetOverlappedResultEx(ctx.handle, &ctx, &have_read,
+    if (check_progress) {
+      res = GetOverlappedResultEx(sys_handle->handle, &ctx,
+          &have_read,
           blocking ? PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000 : 0,
           FALSE);
     }
     else {
-      if (ctx.datagram) {
+      // Prepare the context
+      ctx.allocate(amount);
+
+      // Schedule read
+      if (addr) {
         WSABUF buf;
         buf.buf = reinterpret_cast<CHAR *>(ctx.buf);
-        buf.len = ctx.buflen;
+        buf.len = ctx.schedlen;
         DWORD flags = 0;
         INT len = ctx.address.bufsize_available();
-        res = !WSARecvFrom(ctx.socket, &buf, 1,
+        res = !WSARecvFrom(sys_handle->socket, &buf, 1,
             &have_read, &flags,
             reinterpret_cast<sockaddr *>(ctx.address.buffer()),
             &len,
             &ctx, nullptr);
       }
       else {
-        res = ReadFile(ctx.handle, ctx.buf, ctx.buflen, &have_read, &ctx);
+        res = ReadFile(sys_handle->handle, ctx.buf, ctx.schedlen, &have_read, &ctx);
       }
+
+      // After the first iteration, check progress (if we iterate again).
+      check_progress = true;
     }
 
+    // Copy buffers and exit on success
     if (res) {
       // Success; copy buffer
       read = have_read;
       if (read > 0) {
-        ::memcpy(buf, ctx.buf, read);
+        ::memcpy(dest, ctx.buf, read);
       }
-      if (ctx.datagram) {
+      if (addr) {
         // Also store address
         *addr = ctx.address;
       }
+
+      ctx.finish_io();
       return ERR_SUCCESS;
     }
 
-    return translate_error();
-  };
-
-
-  // Loop to simulate blocking for blocking calls. This busy-loops, which is
-  // not ideal.
-  error_t err = ERR_UNEXPECTED;
-  do {
-    err = sys_handle->overlapped_manager.schedule_overlapped(
-        sys_handle->handle,
-        overlapped::READ,
-        callback, amount, nullptr,
-        addr);
+    err = translate_error();
   } while (blocking && ERR_ASYNC == err);
 
   if (ERR_ASYNC == err) {
-    err = ERR_REPEAT_ACTION;
+    // Operation is pending.
+    return ERR_REPEAT_ACTION;
   }
-  return err;
+
+  ctx.finish_io();
+  return translate_error();
 }
 
 
 
 error_t
 write_op(::packeteer::handle handle,
-    void const * buf, size_t amount, ssize_t & written,
+    void const * source, size_t amount, ssize_t & written,
     net::socket_address const * addr)
 {
   if (!handle.valid()) {
+    return ERR_INVALID_VALUE;
+  }
+
+  if (!source || !amount) {
     return ERR_INVALID_VALUE;
   }
 
@@ -196,56 +220,69 @@ write_op(::packeteer::handle handle,
   // Copy increments refcount
   auto sys_handle = handle.sys_handle();
   const bool blocking = sys_handle->blocking;
+  auto & ctx = sys_handle->write_context;
 
-  auto callback = [&buf, &written, blocking](o::io_action action, o::io_context & ctx) -> error_t
-  {
+  // Check there is no other read scheduled.
+  bool check_progress = false;
+  if (ctx.pending_io()) {
+    if (ctx.type != WRITE) {
+      PACKETEER_FLOW_CONTROL_GUARD;
+    }
+    check_progress = true;
+  }
+
+  // Set the state
+  ctx.start_io(sys_handle->handle, WRITE);
+
+  // Perform the action
+  error_t err = ERR_SUCCESS;
+  do {
     DWORD have_written = 0;
     BOOL res = FALSE;
-    if (overlapped::CHECK_PROGRESS == action) {
-      res = GetOverlappedResultEx(ctx.handle, &ctx, &have_written,
+    if (check_progress) {
+      res = GetOverlappedResultEx(sys_handle->handle, &ctx, &have_written,
           blocking ? PACKETEER_EVENT_WAIT_INTERVAL_USEC / 1000 : 0,
           FALSE);
     }
     else {
-      if (ctx.datagram) {
+      // Preapre the context
+      ctx.allocate(amount);
+      if (amount > 0) {
+        ::memcpy(ctx.buf, source, amount);
+      }
+
+      // Schedule write
+      if (addr) {
         WSABUF buf;
         buf.buf = reinterpret_cast<CHAR *>(ctx.buf);
-        buf.len = ctx.buflen;
-        res = !WSASendTo(ctx.socket, &buf, 1,
+        buf.len = ctx.schedlen;
+        res = !WSASendTo(sys_handle->socket, &buf, 1,
             &have_written, 0,
             reinterpret_cast<sockaddr const *>(ctx.address.buffer()),
             ctx.address.bufsize(),
             &ctx, nullptr);
       }
       else {
-        res = WriteFile(ctx.handle, ctx.buf, ctx.buflen, &have_written, &ctx);
+        res = WriteFile(sys_handle->handle, ctx.buf, ctx.schedlen, &have_written, &ctx);
       }
+
+      // After the first iteration, check progress (if we iterate again).
+      check_progress = true;
     }
 
+    // Exit on success
     if (res) {
       // Success!
       written = have_written;
+
+      ctx.finish_io();
       return ERR_SUCCESS;
     }
 
-    return translate_error();
-  };
-
-
-  // Loop to simulate blocking for blocking calls. This busy-loops, which is
-  // not ideal.
-  error_t err = ERR_UNEXPECTED;
-  do {
-    err = sys_handle->overlapped_manager.schedule_overlapped(
-        sys_handle->handle,
-        overlapped::WRITE,
-        callback, amount, const_cast<void *>(buf),
-        const_cast<net::socket_address *>(addr));
+    err = translate_error();
   } while (blocking && ERR_ASYNC == err);
 
-  if (ERR_ASYNC == err) {
-    err = ERR_REPEAT_ACTION;
-  }
+  ctx.finish_io();
   return err;
 }
 

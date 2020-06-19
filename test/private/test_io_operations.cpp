@@ -25,7 +25,6 @@
 #include "../test_name.h"
 
 #include "../../lib/connector/win32/pipe_operations.h"
-#include "../../lib/connector/win32/overlapped.h"
 
 #include <thread>
 #include <chrono>
@@ -76,7 +75,7 @@ struct pipe_context
 // Read on first handle, write on second.
 inline auto
 read_write_non_blocking(
-    p7r::handle & first, 
+    p7r::handle & first,
     p7r::handle & second
 )
 {
@@ -115,7 +114,7 @@ read_write_non_blocking(
 // Read on first handle, write on second.
 inline auto
 read_write_blocking(
-    p7r::handle & first, 
+    p7r::handle & first,
     p7r::handle & second
 )
 {

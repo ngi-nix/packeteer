@@ -32,7 +32,6 @@
 #include "../../../thread/chrono.h"
 
 #include "../../../win32/sys_handle.h"
-#include "../../../connector/win32/overlapped.h"
 
 #include <vector>
 
@@ -82,8 +81,7 @@ unregister_from_read_events(connector & conn)
   }
 
   DLOG("No longer interested when pipe-like handle is readable.");
-  auto & manager = conn.get_read_handle().sys_handle()->overlapped_manager;
-  manager.cancel_reads();
+  conn.get_read_handle().sys_handle()->read_context.cancel_io();
 }
 
 
@@ -98,7 +96,7 @@ register_for_read_events(connector & conn)
   // Every read handle should have a pending read on it, so the system
   // notifies us when something is actually written on the other end. We'll
   // ask the overlapped manager if there is anything pending.
-  bool schedule_read = conn.get_read_handle().sys_handle()->overlapped_manager.read_scheduled() < 0;
+  bool schedule_read = !conn.get_read_handle().sys_handle()->read_context.pending_io();
   if (schedule_read) {
     DLOG("Request notification when pipe-like handle becomes readable.");
     // Schedule a read of size 0 - this will result in win32 scheduling
@@ -280,9 +278,7 @@ io_iocp::wait_for_events(io_events & events,
   // map.
   for (size_t i = 0 ; i < read ; ++i) {
     // Our OVERLAPPED are always io_context
-    detail::overlapped::io_context * ctx = reinterpret_cast<
-        detail::overlapped::io_context *
-      >(entries[i].lpOverlapped);
+    auto ctx = reinterpret_cast<detail::io_context *>(entries[i].lpOverlapped);
 
     // Find the connector for the system handle stored in the context.
     connector conn;
@@ -293,9 +289,8 @@ io_iocp::wait_for_events(io_events & events,
       }
     }
     if (!conn) {
-      // FIXME I'm not sure why this happens. The event was handled successfully
-      //       in overlapped manager or its usage, but it seems to pop up here
-      //       anyway.
+      // XXX This seems to happen occasionally when an event completed, but
+      //     hasn't been handled yet?
       if (ctx->handle != INVALID_HANDLE_VALUE) {
         DLOG("Got event on a handle " << ctx->handle << " that is not related to a known connector!");
       }

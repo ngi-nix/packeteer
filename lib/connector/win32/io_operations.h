@@ -29,13 +29,12 @@
 #include <packeteer/handle.h>
 #include <packeteer/net/socket_address.h>
 
-#include "overlapped.h"
 
 namespace packeteer::detail::io {
 
 /**
  * Functions here simulate POSIX-style I/O functions, using an
- * OverlappedManager in the handle.
+ * overlapped contexts in the handle.
  *
  * The interface is different, returning an error_t and passing
  * the amount read/written/etc. as an out-parameter. But otherwise, they should
