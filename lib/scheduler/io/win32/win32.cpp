@@ -120,6 +120,7 @@ io_win32::register_connectors(connector const * conns, size_t size,
     DLOG("Registering connector " << conn << " for events " << events);
 
     if (handled_by_select(conn)) {
+      std::cout << "with select"<< std::endl;
       m_select_thread->get_io()->register_connector(conn, events);
       interrupt_select = true;
     }
@@ -177,33 +178,49 @@ void
 io_win32::wait_for_events(io_events & events,
       duration const & timeout)
 {
-  // Things are *fairly* simple here. Since we mainly use the IOCP loop and
-  // treat the select loop as supplemental, we wait in the IOCP loop.
-  m_iocp->wait_for_events(events, timeout);
+  // The main complication in this aggregated I/O subsystem is that if we
+  // got woken *without* events, which happens if there were only internal
+  // events, then we have to retry our sleep time.
+  auto before = clock::now();
+  auto cur_timeout = timeout;
 
-  // However, we need to process the events the IOCP loop produced. If there
-  // was a read event on our own queue_interrupt, we will likely have events
-  // from the select loop.
-  bool process_queue = false;
-  for (auto & ev : events) {
-    if (ev.connector == m_queue_interrupt) {
-      process_queue = true;
-      clear_interrupt(m_queue_interrupt);
-      break;
+  do {
+    // Things are *fairly* simple here. Since we mainly use the IOCP loop and
+    // treat the select loop as supplemental, we wait in the IOCP loop.
+    m_iocp->wait_for_events(events, timeout);
+    auto after = clock::now();
+    auto tdiff = after - before;
+    cur_timeout = timeout - tdiff;
+
+    // However, we need to process the events the IOCP loop produced. If there
+    // was a read event on our own queue_interrupt, we will likely have events
+    // from the select loop.
+    bool process_queue = false;
+    for (auto iter = events.begin() ; iter != events.end() ; ++iter) {
+      auto & ev = *iter;
+      if (ev.connector == m_queue_interrupt) {
+        process_queue = true;
+        clear_interrupt(m_queue_interrupt);
+        events.erase(iter); // Only do that because we exit the loop here.
+        break;
+      }
     }
-  }
 
-  if (process_queue) {
-    auto before = events.size();
-    io_events from_select;
-    while (m_queue.pop(from_select)) {
-      events.insert(std::end(events), std::begin(from_select),
-          std::end(from_select));
+    if (process_queue) {
+      auto before = events.size();
+      io_events from_select;
+      while (m_queue.pop(from_select)) {
+        events.insert(std::end(events), std::begin(from_select),
+            std::end(from_select));
+      }
+
+      auto diff = events.size() - before;
+      DLOG("Collected " << diff << " events from select loop.");
     }
 
-    auto diff = events.size() - before;
-    DLOG("Collected " << diff << " events from select loop.");
-  }
+  } while (events.empty() && cur_timeout > sc::milliseconds(1)); // IOCP resolution
+
+  DLOG("WIN32 combined got " << events.size() << " event entries to report.");
 }
 
 
