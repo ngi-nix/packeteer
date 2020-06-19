@@ -59,10 +59,14 @@ class PACKETEER_PRIVATE io_thread
 public:
   /**
    * Starts the thread with the given parameters.
+   *
+   * If report_self is true, then events on the io_interrupt are
+   * also reported.
    */
   io_thread(std::unique_ptr<io> io, connector io_interrupt,
       out_queue_t & out_queue,
-      connector queue_interrupt);
+      connector queue_interrupt,
+      bool report_self = false);
 
   ~io_thread();
 
@@ -106,6 +110,7 @@ private:
   connector           m_io_interrupt;
   out_queue_t &       m_out_queue;
   connector           m_queue_interrupt;
+  bool                m_report_self;
 
   volatile bool               m_running = true;
   std::thread                 m_thread;

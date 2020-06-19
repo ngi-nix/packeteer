@@ -92,7 +92,9 @@ TEST_P(IOThread, simple_test)
   p7r::detail::io_thread thread{std::move(io),
     io_interrupt,
     results,
-    queue_interrupt};
+    queue_interrupt,
+    true // report events on the I/O interrupt
+  };
   err = thread.start();
   ASSERT_EQ(p7r::ERR_SUCCESS, err);
 
@@ -103,8 +105,10 @@ TEST_P(IOThread, simple_test)
   std::this_thread::sleep_for(sc::milliseconds(50));
 
   // It's running... kill it.
+  std::cout << "about to stop" << std::endl;
   thread.stop();
   std::this_thread::sleep_for(sc::milliseconds(50));
+  std::cout << "stopped?" << std::endl;
 
   // After this, the results should contain exactly one read event for
   // our own dummy connector.

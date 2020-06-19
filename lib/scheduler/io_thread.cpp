@@ -30,11 +30,13 @@ namespace packeteer::detail {
 io_thread::io_thread(std::unique_ptr<io> io,
     connector io_interrupt,
     out_queue_t & out_queue,
-    connector queue_interrupt)
+    connector queue_interrupt,
+    bool report_self /* = false */)
   : m_io(std::move(io))
   , m_io_interrupt(io_interrupt)
   , m_out_queue(out_queue)
   , m_queue_interrupt(queue_interrupt)
+  , m_report_self(report_self)
 {
 }
 
@@ -141,12 +143,14 @@ io_thread::thread_loop()
       // it. Unfortunately, we should also *remove* it, which is a little
       // more awkward because it means copying memory in the vector. But
       // so be it for now.
-      for (auto iter = events.begin() ; iter != events.end() ; ++iter) {
-        auto & ev = *iter;
-        if (ev.connector == m_io_interrupt) {
-          clear_interrupt(m_io_interrupt);
-          events.erase(iter); // Only do that in the loop because we exit.
-          break;
+      if (!m_report_self) {
+        for (auto iter = events.begin() ; iter != events.end() ; ++iter) {
+          auto & ev = *iter;
+          if (ev.connector == m_io_interrupt) {
+            clear_interrupt(m_io_interrupt);
+            events.erase(iter); // Only do that in the loop because we exit.
+            break;
+          }
         }
       }
 
