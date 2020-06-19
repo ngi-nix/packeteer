@@ -113,16 +113,23 @@ void
 io_win32::register_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
+  bool interrupt_select = false;
+
   for (size_t i = 0 ; i < size ; ++i) {
     connector const & conn = conns[i];
     DLOG("Registering connector " << conn << " for events " << events);
 
     if (handled_by_select(conn)) {
       m_select_thread->get_io()->register_connector(conn, events);
+      interrupt_select = true;
     }
     else {
       m_iocp->register_connector(conn, events);
     }
+  }
+
+  if (interrupt_select) {
+    m_select_thread->wakeup();
   }
 }
 
@@ -143,16 +150,23 @@ void
 io_win32::unregister_connectors(connector const * conns, size_t size,
     events_t const & events)
 {
+  bool interrupt_select = false;
+
   for (size_t i = 0 ; i < size ; ++i) {
     connector const & conn = conns[i];
     DLOG("Unregistering connector " << conn << " from events " << events);
 
     if (handled_by_select(conn)) {
       m_select_thread->get_io()->unregister_connector(conn, events);
+      interrupt_select = true;
     }
     else {
       m_iocp->unregister_connector(conn, events);
     }
+  }
+
+  if (interrupt_select) {
+    m_select_thread->wakeup();
   }
 }
 
