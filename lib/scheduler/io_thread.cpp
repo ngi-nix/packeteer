@@ -154,10 +154,11 @@ io_thread::thread_loop()
         }
       }
 
-      DLOG("Got " << events.size() << " I/O events.");
-
-      m_out_queue.push(events);
-      interrupt(m_queue_interrupt);
+      if (!events.empty()) {
+        DLOG("Got " << events.size() << " I/O events.");
+        m_out_queue.push(events);
+        interrupt(m_queue_interrupt);
+      }
     }
 
     DLOG("I/O loop ended, closing interrupt.");
