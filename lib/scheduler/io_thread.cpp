@@ -76,6 +76,16 @@ io_thread::start()
 
 
 void
+io_thread::wakeup()
+{
+  if (m_running) {
+    interrupt(m_io_interrupt);
+  }
+}
+
+
+
+void
 io_thread::stop()
 {
   bool was_running = m_running;
@@ -125,6 +135,19 @@ io_thread::thread_loop()
 
       if (events.empty()) {
         continue;
+      }
+
+      // If one of the events was to wake up the I/O loop, we have to clear
+      // it. Unfortunately, we should also *remove* it, which is a little
+      // more awkward because it means copying memory in the vector. But
+      // so be it for now.
+      for (auto iter = events.begin() ; iter != events.end() ; ++iter) {
+        auto & ev = *iter;
+        if (ev.connector == m_io_interrupt) {
+          clear_interrupt(m_io_interrupt);
+          events.erase(iter); // Only do that in the loop because we exit.
+          break;
+        }
       }
 
       DLOG("Got " << events.size() << " I/O events.");

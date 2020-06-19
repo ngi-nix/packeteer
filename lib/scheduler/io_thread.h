@@ -72,6 +72,11 @@ public:
   error_t start();
 
   /**
+   * Wakes the thread up.
+   */
+  void wakeup();
+
+  /**
    * Stops the thread, and waits for it to finish.
    */
   void stop();
