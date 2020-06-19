@@ -109,7 +109,7 @@ read_op(::packeteer::handle handle,
     return ERR_INVALID_VALUE;
   }
 
-  if (!dest) {
+  if (amount > 0 && !dest) {
     return ERR_INVALID_VALUE;
   }
 
