@@ -379,7 +379,7 @@ TEST_P(Scheduler, delayed_repeat_callback)
 
   // If we process for < 50 msec, the callback should not be invoked.
   sched.process_events(sc::milliseconds(20));
-  ASSERT_EQ(0, source.m_called);
+  EXPECT_EQ(0, source.m_called) << "IOCP sometimes sleeps longer than specified.";
 
   // Now if we wait another 30 (left over delay) plus 20
   // msec, we should have a callbacks.
