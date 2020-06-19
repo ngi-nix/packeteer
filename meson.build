@@ -582,7 +582,6 @@ posixsrc = [
 winsrc = [
   'lib' / 'win32' / 'handle.cpp',
   'lib' / 'connector' / 'win32' / 'pipe_operations.cpp',
-  'lib' / 'connector' / 'win32' / 'overlapped.cpp',
   'lib' / 'connector' / 'win32' / 'socketpair.cpp',
   'lib' / 'connector' / 'win32' / 'io_operations.cpp',
   'lib' / 'connector' / 'win32' / 'common.cpp',
@@ -682,9 +681,8 @@ if not meson.is_subproject()
   if host_type == 'win32'
     private_test_src += [
       'test' / 'private' / 'test_pipe_operations.cpp',
-      'test' / 'private' / 'test_overlapped.cpp',
-      'test' / 'private' / 'test_socketpair.cpp',
       'test' / 'private' / 'test_io_operations.cpp',
+      'test' / 'private' / 'test_socketpair.cpp',
     ]
   endif
 
