@@ -30,7 +30,8 @@ namespace {
 inline error_t
 translate_error()
 {
-  switch (WSAGetLastError()) {
+  auto err = WSAGetLastError();
+  switch (err) {
     case ERROR_IO_PENDING:
     case ERROR_IO_INCOMPLETE: // GetOverlappedResultEx()
     // case WSA_IO_PENDING: == ERROR_IO_PENDING
@@ -41,45 +42,55 @@ translate_error()
 
     case ERROR_OPERATION_ABORTED:
     // case WSA_OPERATION_ABORTED: == ERROR_OPERATION_ABORTED
-      ERRNO_LOG("Operation aborted");
+      ERR_LOG("Operation aborted", err);
       return ERR_ABORTED;
 
     case WSAEACCES:
+      ERR_LOG("Access violation", err);
       return ERR_ACCESS_VIOLATION;
 
     case WSAEADDRNOTAVAIL:
+      ERR_LOG("Address not available", err);
       return ERR_ADDRESS_NOT_AVAILABLE;
 
     case WSAEAFNOSUPPORT:
+      ERR_LOG("Invalid option", err);
       return ERR_INVALID_OPTION;
 
     case WSAECONNRESET:
     case WSAEINTR:
+      ERR_LOG("Connection aborted", err);
       return ERR_CONNECTION_ABORTED;
 
     case WSAEDESTADDRREQ:
     case WSAEFAULT:
     case WSAEINVAL:
     case WSAEMSGSIZE:
+      ERR_LOG("Bad value", err);
       return ERR_INVALID_VALUE;
 
     case WSAENETRESET:
     case WSAEHOSTUNREACH:
     case WSAENETUNREACH:
+      ERR_LOG("Network unreachable", err);
       return ERR_NETWORK_UNREACHABLE;
 
     case WSAENOTCONN:
     case WSAENETDOWN:
     case WSAESHUTDOWN:
+      ERR_LOG("No connection", err);
       return ERR_NO_CONNECTION;
 
     case WSAENOTSOCK:
+      ERR_LOG("Unsupported action", err);
       return ERR_UNSUPPORTED_ACTION;
 
     case WSAEWOULDBLOCK:
+      ERR_LOG("Repeat action", err);
       return ERR_REPEAT_ACTION;
 
     case WSANOTINITIALISED:
+      ERR_LOG("Initialization error", err);
       return ERR_INITIALIZATION;
 
     case WSAENOBUFS:
@@ -87,13 +98,13 @@ translate_error()
     case ERROR_INVALID_USER_BUFFER:
     case ERROR_NOT_ENOUGH_QUOTA:
     case ERROR_INSUFFICIENT_BUFFER:
-      ERRNO_LOG("OOM");
+      ERR_LOG("OOM", err);
       return ERR_OUT_OF_MEMORY;
 
     case ERROR_BROKEN_PIPE:
     case ERROR_HANDLE_EOF: // XXX Maybe handle differently?
     default:
-      ERRNO_LOG("Unexpected error");
+      ERR_LOG("Unexpected error", err);
       return ERR_UNEXPECTED;
   }
 }
@@ -253,6 +264,7 @@ write_op(::packeteer::handle handle,
 
       // Schedule write
       if (addr) {
+        ctx.address = *addr;
         WSABUF buf;
         buf.buf = reinterpret_cast<CHAR *>(ctx.buf);
         buf.len = ctx.schedlen;
