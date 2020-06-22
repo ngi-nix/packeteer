@@ -83,14 +83,14 @@ read_write_non_blocking(
   ssize_t read = 0;
   auto err = io::read(first,
       buf, sizeof(buf), read);
-  ASSERT_EQ(p7r::ERR_REPEAT_ACTION, err);
+  ASSERT_EQ(p7r::ERR_ASYNC, err);
   ASSERT_EQ(-1, read);
 
   // A subsequent call should return the same.
   read = 0;
   err = io::read(first,
       buf, sizeof(buf), read);
-  ASSERT_EQ(p7r::ERR_REPEAT_ACTION, err);
+  ASSERT_EQ(p7r::ERR_ASYNC, err);
   ASSERT_EQ(-1, read);
 
   // If we write to the server end, the next read (probably!) should yield some

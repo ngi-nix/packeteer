@@ -203,7 +203,7 @@ read_op(::packeteer::handle handle,
 
   if (ERR_ASYNC == err) {
     // Operation is pending.
-    return ERR_REPEAT_ACTION;
+    return err;
   }
 
   ctx.finish_io();
