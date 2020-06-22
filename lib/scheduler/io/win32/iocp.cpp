@@ -305,15 +305,20 @@ io_iocp::wait_for_events(io_events & events,
       // The values of ctx->type have the same values as events_t
       ev |= ctx->type;
 
+      // If this was a read event for zero bytes, chances are that we just got
+      // the zero bytes we schedulde ourselves. Let's be sure of that, but if
+      // so, we don't want the next read to succesfully return zero bytes to
+      // the caller, so let's clear the context before sending the event.
+      if (ev & PEV_IO_READ && ctx->schedlen == 0) {
+        DLOG("Cancelling zero byte read scheduled internally.");
+        ctx->finish_io();
+      }
+
       // Since PEV_IO_OPEN is special to some platforms, automatically
       // mark every open connector as writable.
       if (ev & PEV_IO_OPEN && m_sys_handles[conn.get_write_handle().sys_handle()] & PEV_IO_WRITE) {
         ev |= PEV_IO_WRITE;
       }
-      if (ev & PEV_IO_OPEN && m_sys_handles[conn.get_write_handle().sys_handle()] & PEV_IO_READ) {
-        ev |= PEV_IO_READ;
-      }
-
 
       // TODO maybe report PEV_IO_CLOSE if ctx->type was PEV_IO_READ and
       //      num_transferred is zero?
@@ -351,7 +356,7 @@ io_iocp::wait_for_events(io_events & events,
     events.push_back({ conn, ev });
   }
 
-  DLOG("Got " << events.size() << " event entries to report.");
+  DLOG("WIN32 IOCP got " << events.size() << " event entries to report.");
 }
 
 
