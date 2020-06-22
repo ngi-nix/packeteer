@@ -90,6 +90,8 @@ struct PACKETEER_PRIVATE io_context : public OVERLAPPED
   ~io_context()
   {
     cancel_io();
+    state = UNUSED;
+    handle = INVALID_HANDLE_VALUE;
     delete [] buf;
   }
 
@@ -109,12 +111,13 @@ struct PACKETEER_PRIVATE io_context : public OVERLAPPED
     }
 
     if (handle == INVALID_HANDLE_VALUE) {
+      state = UNUSED;
       return;
     }
 
     auto ret = CancelIoEx(handle, this);
     if (!ret) {
-      ERRNO_LOG("Unexpected error cancelling I/O operations.");
+      ERRNO_LOG("Unexpected error cancelling I/O operations on " << handle);
     }
     state = UNUSED;
   }
