@@ -120,7 +120,6 @@ io_win32::register_connectors(connector const * conns, size_t size,
     DLOG("Registering connector " << conn << " for events " << events);
 
     if (handled_by_select(conn)) {
-      std::cout << "with select"<< std::endl;
       m_select_thread->get_io()->register_connector(conn, events);
       interrupt_select = true;
     }
