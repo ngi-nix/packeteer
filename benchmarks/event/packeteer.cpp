@@ -105,7 +105,10 @@ struct p7r_ops : public backend_ops
     size_t bytes_read = 0;
     peer_address sender;
     auto err = m_conns[from_idx].receive(buf, sizeof(buf), bytes_read, sender);
-    if (err != ERR_SUCCESS && err != ERR_ASYNC) {
+    if (err == ERR_ASYNC) {
+      return -2;
+    }
+    if (err != ERR_SUCCESS) {
       VERBOSE_ERR(m_opts, "Error in receive: " << error_name(err) << " / " << error_message(err));
       return -1;
     }
