@@ -77,7 +77,13 @@ options parse_cli(int argc, char **argv)
   auto cli = (
       opt_value("backend")
         .call([&](std::string const & value) {
-          opts.backend = select_backend(value);
+          try {
+            opts.backend = select_backend(value);
+          }
+          catch (std::runtime_error const& ex) {
+            std::cerr << "ERROR: " << ex.what() << std::endl;
+            help = true;
+          }
         })
         .doc("Select the backend to run the benchmark with. Possible values "
           "are: packeteer, libevent, TODO"
@@ -224,8 +230,17 @@ struct test_context
       VERBOSE_LOG(opts, "Received " << read << " Bytes on " << index << ".");
     }
     else {
-      ++recv_errors;
-      VERBOSE_LOG(opts, "Error on " << index);
+      if (read == -1) {
+        ++recv_errors;
+        VERBOSE_LOG(opts, "Error on " << index);
+      }
+      else if (read == -2) {
+        // ERR_ASYNC
+      }
+      else {
+        ++recv_errors;
+        VERBOSE_LOG(opts, "Internal error!");
+      }
     }
 
     // If we still have writes to perform, select a write index and write.
@@ -304,7 +319,6 @@ int main(int argc, char **argv)
 
   bool io_errors = false;
   bool duplication_errors = false;
-
 
   std::ofstream output_file;
   if (!opts.output_file.empty()) {
