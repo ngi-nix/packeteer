@@ -27,6 +27,10 @@
 
 #include "backends.h"
 
+#ifdef _WIN32
+#pragma comment(lib, "iphlpapi.lib")
+#endif
+
 struct libevent_ops;
 
 struct callback_context
@@ -106,7 +110,7 @@ struct libevent_ops : public backend_ops
     VERBOSE_LOG(m_opts, "Sending from " << from_idx << " to " << to_idx);
 
     auto & recipient = m_addrs[to_idx];
-    auto err = ::sendto(m_conns[from_idx], buf, buflen, 0,
+    auto err = ::sendto(m_conns[from_idx], (char const *) buf, buflen, 0,
         (sockaddr const *) recipient.buffer(), recipient.bufsize());
     if (err < 0) {
       VERBOSE_ERR(m_opts, "Error in sendto: " << strerror(errno));
