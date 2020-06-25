@@ -47,6 +47,7 @@ scheduler::scheduler(std::shared_ptr<api> api, ssize_t num_workers,
 
 scheduler::~scheduler()
 {
+  DLOG("Shutting down scheduler.");
   // Not default because of std::unique_ptr<> of an undeclared struct,
   // apparently.
 }
@@ -59,6 +60,7 @@ scheduler::register_connector(events_t const & events, connector const & conn,
 {
   auto entry = new detail::io_callback_entry(callback, conn, events);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -70,6 +72,7 @@ scheduler::unregister_connector(events_t const & events, connector const & conn,
 {
   auto entry = new detail::io_callback_entry(callback, conn, events);
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -80,8 +83,24 @@ scheduler::unregister_connector(events_t const & events, connector const & conn)
 {
   auto entry = new detail::io_callback_entry(nullptr, conn, events);
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
+
+
+
+error_t
+scheduler::unregister_connectors(events_t const & events, connector const * conns,
+    size_t amount)
+{
+  for (size_t i = 0 ; i < amount ; ++i) {
+    auto entry = new detail::io_callback_entry(nullptr, conns[i], events);
+    m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  }
+  m_impl->enqueue_commit();
+  return ERR_SUCCESS;
+}
+
 
 
 
@@ -90,6 +109,21 @@ scheduler::unregister_connector(connector const & conn)
 {
   auto entry = new detail::io_callback_entry(nullptr, conn, PEV_ALL_BUILTIN);
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  m_impl->enqueue_commit();
+  return ERR_SUCCESS;
+}
+
+
+
+
+error_t
+scheduler::unregister_connectors(connector const * conns, size_t amount)
+{
+  for (size_t i = 0 ; i < amount ; ++i) {
+    auto entry = new detail::io_callback_entry(nullptr, conns[i], PEV_ALL_BUILTIN);
+    m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+  }
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -102,7 +136,7 @@ scheduler::schedule_once(duration const & delay, callback const & callback)
   auto entry = new detail::scheduled_callback_entry(callback,
       clock::now() + delay);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -113,7 +147,7 @@ scheduler::schedule_at(time_point const & time, callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback, time);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -126,7 +160,7 @@ scheduler::schedule(time_point const & first, duration const & interval,
   auto entry = new detail::scheduled_callback_entry(callback, first, -1,
       interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -139,7 +173,7 @@ scheduler::schedule(time_point const & first, duration const & interval,
   auto entry = new detail::scheduled_callback_entry(callback, first, count,
       interval);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -151,7 +185,7 @@ scheduler::unschedule(callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback, time_point());
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -166,7 +200,7 @@ scheduler::register_event(events_t const & events, callback const & callback)
 
   auto entry = new detail::user_callback_entry(callback, events);
   m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -177,7 +211,7 @@ scheduler::unregister_event(events_t const & events, callback const & callback)
 {
   auto entry = new detail::user_callback_entry(callback, events);
   m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 
@@ -192,7 +226,7 @@ scheduler::fire_events(events_t const & events)
 
   auto entry = new detail::user_callback_entry(events);
   m_impl->enqueue(scheduler_impl::ACTION_TRIGGER, entry);
-
+  m_impl->enqueue_commit();
   return ERR_SUCCESS;
 }
 

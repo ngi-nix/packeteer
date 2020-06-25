@@ -130,11 +130,14 @@ public:
    * specifying a callback - any callbacks are removed.
    **/
   error_t unregister_connector(events_t const & events, connector const & conn);
+  error_t unregister_connectors(events_t const & events, connector const * conns,
+      size_t amount);
 
   /**
    * Stop listening to any events on the given connector.
    **/
   error_t unregister_connector(connector const & conn);
+  error_t unregister_connectors(connector const * conns, size_t amount);
 
 
   /**
