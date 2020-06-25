@@ -181,7 +181,9 @@ struct test_context
   size_t send_errors = 0;
   size_t recv_errors = 0;
   size_t bytes_received = 0;
-  size_t received = 0;
+
+  std::map<conn_index, size_t> sent;
+  std::map<conn_index, size_t> received;
 
   char send_buf[1] = { 'e' };
 
@@ -202,12 +204,14 @@ struct test_context
 
   bool send_and_count_errors(conn_index from_idx)
   {
-    auto success = backend.sendto(from_idx, send_index(from_idx), send_buf,
+    conn_index recipient = send_index(from_idx);
+    auto success = backend.sendto(from_idx, recipient, send_buf,
         sizeof(send_buf));
 
     if (!success) {
       ++send_errors;
     }
+    sent[recipient] += 1;
     return success;
   }
 
@@ -226,8 +230,14 @@ struct test_context
     auto read = the_backend.recv(index);
     if (read >= 0) {
       bytes_received += read;
-      ++received;
+      received[index] += 1;
       VERBOSE_LOG(opts, "Received " << read << " Bytes on " << index << ".");
+
+      // If we still have writes to perform, select a write index and write.
+      if (fired < opts.writes) {
+        send_and_count_errors(index);
+        ++fired;
+      }
     }
     else {
       if (read == -1) {
@@ -242,12 +252,6 @@ struct test_context
         VERBOSE_LOG(opts, "Internal error!");
       }
     }
-
-    // If we still have writes to perform, select a write index and write.
-    if (fired < opts.writes) {
-      send_and_count_errors(index);
-      ++fired;
-    }
   }
 };
 
@@ -255,11 +259,24 @@ struct test_context
 void output_console(int run, int usec, test_context const & ctx)
 {
   std::cout << "Run " << run << " completed in " << usec << " usec." << std::endl;
-  std::cout << "  Fired:        " << ctx.fired << std::endl;
-  std::cout << "  Received:     " << ctx.received << std::endl;
-  std::cout << "  Bytes:        " << ctx.bytes_received << std::endl;
-  std::cout << "  Send errors:  " << ctx.send_errors << std::endl;
-  std::cout << "  Recv errors:  " << ctx.recv_errors << std::endl;
+  std::cout << "  Fired:           " << ctx.fired << std::endl;
+  std::cout << "  Bytes:           " << ctx.bytes_received << std::endl;
+  std::cout << "  Send errors:     " << ctx.send_errors << std::endl;
+  std::cout << "  Recv errors:     " << ctx.recv_errors << std::endl;
+
+  size_t total_sent = 0;
+  for (auto & [idx, n] : ctx.sent) {
+    total_sent += n;
+  }
+  std::cout << "  Sent unique:     " << ctx.sent.size() << std::endl;
+  std::cout << "  Sent total:      " << total_sent << std::endl;
+
+  size_t total_received = 0;
+  for (auto & [idx, n] : ctx.received) {
+    total_received += n;
+  }
+  std::cout << "  Received unique: " << ctx.received.size() << std::endl;
+  std::cout << "  Received total:  " << total_received << std::endl;
 }
 
 
@@ -275,13 +292,25 @@ void output_csv(int run, int usec, test_context const & ctx, std::ofstream & fil
   file << usec << ",";
 
   file << ctx.fired << ",";
-  file << ctx.received << ",";
   file << ctx.bytes_received << ",";
   file << ctx.send_errors << ",";
   file << ctx.recv_errors << ",";
 
-  file << "\n";
+  size_t total_sent = 0;
+  for (auto & [idx, n] : ctx.sent) {
+    total_sent += n;
+  }
+  file << ctx.sent.size() << ",";
+  file << total_sent << ",";
 
+  size_t total_received = 0;
+  for (auto & [idx, n] : ctx.received) {
+    total_received += n;
+  }
+  file << ctx.received.size() << ",";
+  file << total_received << ",";
+
+  file << "\n";
 }
 
 
@@ -297,10 +326,15 @@ void output_csv_header(options const & opts, std::ofstream & file)
   file << "Time (usec),";
 
   file << "Fired,";
-  file << "Received,";
   file << "Bytes Received,";
   file << "Send Errors,";
   file << "Receive Errors,";
+
+  file << "Sent Unique,";
+  file << "Sent Total,";
+
+  file << "Received Unique,";
+  file << "Received Total,";
 
   file << "\n";
 }
@@ -309,71 +343,82 @@ void output_csv_header(options const & opts, std::ofstream & file)
 
 int main(int argc, char **argv)
 {
-  // Parse CLI
-  auto opts = parse_cli(argc, argv);
+  try {
+    // Parse CLI
+    auto opts = parse_cli(argc, argv);
 
-  auto & backend = REGISTERED_BACKENDS[opts.backend].second;
+    auto & backend = REGISTERED_BACKENDS[opts.backend].second;
 
-  backend->init(opts);
-  VERBOSE_LOG(opts, "Backend initialized.");
+    backend->init(opts);
+    VERBOSE_LOG(opts, "Backend initialized.");
 
-  bool io_errors = false;
-  bool duplication_errors = false;
+    bool io_errors = false;
+    bool duplication_errors = false;
 
-  std::ofstream output_file;
-  if (!opts.output_file.empty()) {
-    output_file.open(opts.output_file);
-    output_csv_header(opts, output_file);
-  }
+    std::ofstream output_file;
+    if (!opts.output_file.empty()) {
+      output_file.open(opts.output_file);
+      output_csv_header(opts, output_file);
+    }
 
-  for (size_t run = 0 ; run < opts.runs ; ++run) {
-    VERBOSE_LOG(opts, "=== Start of test run: " << run);
+    for (size_t run = 0 ; run < opts.runs ; ++run) {
+      VERBOSE_LOG(opts, "=== Start of test run: " << run);
 
-    test_context ctx{opts, *backend.get()};
-    using namespace std::placeholders;
-    auto func = std::bind(&test_context::read_callback_impl, &ctx, _1, _2);
-    backend->start_run(func);
+      test_context ctx{opts, *backend.get()};
+      using namespace std::placeholders;
+      auto func = std::bind(&test_context::read_callback_impl, &ctx, _1, _2);
 
-    ctx.fire_initial_events();
+      backend->start_run(func);
 
-    auto start_ts = std::chrono::steady_clock::now();
-    do {
-      backend->poll_events();
-    } while (ctx.fired > ctx.received);
-    auto end_ts = std::chrono::steady_clock::now();
+      ctx.fire_initial_events();
 
-    backend->end_run();
+      auto start_ts = std::chrono::steady_clock::now();
+      do {
+        backend->poll_events();
+      } while (ctx.fired > ctx.received.size());
+      auto end_ts = std::chrono::steady_clock::now();
 
-    auto diff = end_ts - start_ts;
-    auto usec = std::chrono::duration_cast<std::chrono::microseconds>(diff);
+      backend->end_run();
 
-    output_console(run, usec.count(), ctx);
+      auto diff = end_ts - start_ts;
+      auto usec = std::chrono::duration_cast<std::chrono::microseconds>(diff);
+
+      output_console(run, usec.count(), ctx);
+      if (output_file.is_open()) {
+        output_csv(run, usec.count(), ctx, output_file);
+      }
+
+      if (ctx.send_errors || ctx.recv_errors) {
+        io_errors = true;
+      }
+      if (ctx.bytes_received != ctx.received.size()) {
+        duplication_errors = true;
+      }
+
+      VERBOSE_LOG(opts, "=== End of test run: " << run);
+    }
+
     if (output_file.is_open()) {
-      output_csv(run, usec.count(), ctx, output_file);
+      output_file.close();
     }
 
-    if (ctx.send_errors || ctx.recv_errors) {
-      io_errors = true;
+    if (io_errors) {
+      std::cerr << "Benchmark failure due to I/O errors." << std::endl;
+      return -1;
     }
-    if (ctx.bytes_received != ctx.received) {
-      duplication_errors = true;
+    if (duplication_errors) {
+      std::cerr << "Benchmark failure due to message duplication errors." << std::endl;
+      return -2;
     }
-
-    VERBOSE_LOG(opts, "=== End of test run: " << run);
+    return 0;
+  } catch (packeteer::exception const & ex) {
+    std::cerr << ex.what() << std::endl;
+    return -3;
+  } catch (std::exception const & ex) {
+    std::cerr << ex.what() << std::endl;
+    return -4;
+  } catch (...) {
+    std::cerr << "Unknown exception caught, aborting." << std::endl;
+    return -5;
   }
-
-  if (output_file.is_open()) {
-    output_file.close();
-  }
-
-  if (io_errors) {
-    std::cout << "Benchmark failure due to I/O errors." << std::endl;
-  }
-  if (duplication_errors) {
-    std::cout << "Benchmark failure due to message duplication errors." << std::endl;
-  }
-  if (io_errors || duplication_errors) {
-    return -1;
-  }
-  return 0;
 }
