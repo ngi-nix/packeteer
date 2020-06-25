@@ -33,8 +33,9 @@ translate_error()
   auto err = WSAGetLastError();
   switch (err) {
     case ERROR_IO_PENDING:
-    case ERROR_IO_INCOMPLETE: // GetOverlappedResultEx()
+    case ERROR_IO_INCOMPLETE: // (WSA)GetOverlappedResult(Ex)
     // case WSA_IO_PENDING: == ERROR_IO_PENDING
+    // case WSA_IO_INCOMPLETE: == ERROR_IO_INCOMPLETE
     case WSAEINPROGRESS:
     case WAIT_TIMEOUT:
       // Perfectly fine, overlapped I/O.
@@ -194,8 +195,7 @@ read_op(::packeteer::handle handle,
         *addr = ctx.address;
       }
 
-      ctx.finish_io();
-      return ERR_SUCCESS;
+      return ctx.finish_io(ERR_SUCCESS);
     }
 
     err = translate_error();
@@ -206,8 +206,7 @@ read_op(::packeteer::handle handle,
     return err;
   }
 
-  ctx.finish_io();
-  return translate_error();
+  return ctx.finish_io(err);
 }
 
 
@@ -287,15 +286,18 @@ write_op(::packeteer::handle handle,
       // Success!
       written = have_written;
 
-      ctx.finish_io();
-      return ERR_SUCCESS;
+      return ctx.finish_io(ERR_SUCCESS);
     }
 
     err = translate_error();
   } while (blocking && ERR_ASYNC == err);
 
-  ctx.finish_io();
-  return err;
+  if (ERR_ASYNC == err) {
+    // Operation is pending.
+    return err;
+  }
+
+  return ctx.finish_io(err);
 }
 
 

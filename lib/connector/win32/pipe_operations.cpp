@@ -224,8 +224,7 @@ poll_for_connection(handle & handle)
   }
 
   if (res) {
-    ctx.finish_io();
-    return ERR_SUCCESS;
+    return ctx.finish_io(ERR_SUCCESS);
   }
 
   switch (WSAGetLastError()) {
@@ -234,12 +233,13 @@ poll_for_connection(handle & handle)
       return ERR_ASYNC;
 
     case ERROR_PIPE_CONNECTED:
-      ctx.finish_io();
-      return ERR_SUCCESS;
+      return ctx.finish_io(ERR_SUCCESS);
 
     default:
       ERRNO_LOG("Unexpected result of ConnectNamedPipe.");
-      ctx.finish_io();
+      // XXX finishing with success and returning an error is weird, but this
+      //     looks to be the only place doing it. Let's leave it for now.
+      ctx.finish_io(ERR_SUCCESS);
       return ERR_CONNECTION_ABORTED;
   }
 }
