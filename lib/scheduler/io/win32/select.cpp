@@ -46,6 +46,9 @@ void
 io_select::wait_for_events(io_events & events,
       duration const & timeout)
 {
+  auto before = clock::now();
+  auto cur_timeout = timeout;
+
   // FD sets
   FD_SET read_set;
   FD_SET write_set;
@@ -70,7 +73,10 @@ io_select::wait_for_events(io_events & events,
 
     // Wait for events
     ::timeval tv;
-    ::packeteer::thread::chrono::convert(timeout, tv);
+    ::packeteer::thread::chrono::convert(cur_timeout, tv);
+    DLOG("WIN32 select for "
+        << std::chrono::duration_cast<std::chrono::milliseconds>(cur_timeout).count()
+        << "ms.");
     auto total = ::select(0, &read_set, &write_set, &error_set, &tv);
 
     if (total != SOCKET_ERROR) {
@@ -85,6 +91,12 @@ io_select::wait_for_events(io_events & events,
 
       case WSAEINTR: // Probably similar to posix interrupts
       case WSAEINPROGRESS:
+        {
+          auto after = clock::now();
+          auto tdiff = after - before;
+          cur_timeout = timeout - tdiff;
+        }
+        DLOG("WIN32 select resuming.");
         continue;
 
       case WSAEFAULT:
@@ -106,6 +118,7 @@ io_select::wait_for_events(io_events & events,
   // Map events; we'll need to iterate over the available file descriptors again
   // (conceivably, we could just use the subset in the FD sets, but that uses
   // additional memory).
+  std::map<connector, events_t> tmp_events;
   for (auto entry : m_sys_handles) {
     events_t mask = 0;
     if (FD_ISSET(entry.first->socket, &read_set)) { //!OCLINT(in FD_ISSET)
@@ -119,12 +132,17 @@ io_select::wait_for_events(io_events & events,
     }
 
     if (mask) {
-      io_event ev = {
-        m_connectors[entry.first],
-        mask
-      };
-      events.push_back(ev);
+      auto & conn = m_connectors[entry.first];
+      if (!conn) {
+        ELOG("Got event for unregistered connector with handle: " << handle{entry.first});
+        continue;
+      }
+      tmp_events[conn] |= mask;
     }
+  }
+
+  for (auto & [conn, ev] : tmp_events) {
+    events.push_back({conn, ev});
   }
 
   DLOG("WIN32 select got " << events.size() << " event entries to report.");
