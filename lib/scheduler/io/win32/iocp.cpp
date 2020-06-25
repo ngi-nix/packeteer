@@ -178,12 +178,6 @@ io_iocp::register_connectors(connector const * conns, size_t size,
     // Either way, use the super class functionality to remember which events the
     // connector was registered for.
     io::register_connector(conn, events);
-
-    // Ensure we get READ events on the read handle, if that was requested.
-    if (m_sys_handles[conn.get_read_handle().sys_handle()] & PEV_IO_READ) {
-      auto cn = const_cast<connector *>(&conn);
-      register_for_read_events(*cn);
-    }
   }
 }
 
@@ -226,7 +220,26 @@ void
 io_iocp::wait_for_events(io_events & events,
       duration const & timeout)
 {
-  DLOG("Wait for IOCP events.");
+  auto wait_ms = std::chrono::ceil<std::chrono::milliseconds>(timeout).count();
+  DLOG("Wait for IOCP events: " << wait_ms << "ms");
+
+  // Before waiting, we want to be sure that every connector that is registered
+  // for read events actually has a read pending. If necessary, we schedule zero
+  // byte reads to get them there. We're not interested in the results, but we
+  // do want events from IOCP.
+  for (auto & [sys_handle, events] : m_sys_handles) {
+    if (!(events & PEV_IO_READ)) {
+      continue;
+    }
+
+
+    if (!sys_handle->read_context.pending_io()) {
+      DLOG("Request notification when pipe-like handle becomes readable.");
+      auto & conn = m_connectors[sys_handle];
+      size_t actually_read = 0;
+      conn.read(nullptr, 0, actually_read);
+    }
+  }
 
   // Wait for I/O completion.
   OVERLAPPED_ENTRY entries[PACKETEER_IOCP_MAXEVENTS] = {};
@@ -235,7 +248,7 @@ io_iocp::wait_for_events(io_events & events,
   BOOL ret = GetQueuedCompletionStatusEx(m_iocp, entries,
       PACKETEER_IOCP_MAXEVENTS,
       &read,
-      std::chrono::ceil<std::chrono::milliseconds>(timeout).count(),
+      wait_ms,
       TRUE);
 
   if (!ret) {
@@ -295,6 +308,11 @@ io_iocp::wait_for_events(io_events & events,
           // otherwise.
           break;
 
+        case ERROR_IO_INCOMPLETE:
+        case ERROR_IO_PENDING:
+          // Just not done yet, no error.
+          break;
+
         default:
           ERRNO_LOG("IOCP reports error for operation: " << static_cast<int>(ctx->type));
           ev |= PEV_IO_ERROR;
@@ -304,15 +322,6 @@ io_iocp::wait_for_events(io_events & events,
     else {
       // The values of ctx->type have the same values as events_t
       ev |= ctx->type;
-
-      // If this was a read event for zero bytes, chances are that we just got
-      // the zero bytes we schedulde ourselves. Let's be sure of that, but if
-      // so, we don't want the next read to succesfully return zero bytes to
-      // the caller, so let's clear the context before sending the event.
-      if (ev & PEV_IO_READ && ctx->schedlen == 0) {
-        DLOG("Cancelling zero byte read scheduled internally.");
-        ctx->finish_io();
-      }
 
       // Since PEV_IO_OPEN is special to some platforms, automatically
       // mark every open connector as writable.
@@ -341,19 +350,15 @@ io_iocp::wait_for_events(io_events & events,
       continue;
     }
 
-    auto iter = tmp_events.find(conn);
-    if (iter == tmp_events.end()) {
-      tmp_events[conn] = PEV_IO_WRITE;
-    }
-    else if (!(iter->second & PEV_IO_ERROR)) {
-      iter->second |= PEV_IO_WRITE;
-    }
+    tmp_events[conn] |= PEV_IO_WRITE;
   }
 
   // Add all temporarily collected events to the out queue.
   for (auto & [conn, ev] : tmp_events) {
-    DLOG("Final events for connector " << conn << " are " << ev);
-    events.push_back({ conn, ev });
+    if (ev) {
+      DLOG("Final events for connector " << conn << " are " << ev);
+      events.push_back({ conn, ev });
+    }
   }
 
   DLOG("WIN32 IOCP got " << events.size() << " event entries to report.");
