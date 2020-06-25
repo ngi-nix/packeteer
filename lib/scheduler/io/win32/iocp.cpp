@@ -32,6 +32,7 @@
 #include "../../../thread/chrono.h"
 
 #include "../../../win32/sys_handle.h"
+#include "../../../connector/win32/io_operations.h"
 
 #include <vector>
 
@@ -80,31 +81,21 @@ unregister_from_read_events(connector & conn)
     return;
   }
 
+  if (!conn.get_read_handle().sys_handle()->read_context.pending_io()) {
+    return;
+  }
+
+  if (conn.get_read_handle().sys_handle()->read_context.schedlen > 0) {
+    return;
+  }
+
   DLOG("No longer interested when pipe-like handle is readable.");
   conn.get_read_handle().sys_handle()->read_context.cancel_io();
 }
 
 
 
-inline void
-register_for_read_events(connector & conn)
-{
-  if (conn.type() != CT_PIPE && conn.type() != CT_ANON) {
-    return;
-  }
 
-  // Every read handle should have a pending read on it, so the system
-  // notifies us when something is actually written on the other end. We'll
-  // ask the overlapped manager if there is anything pending.
-  bool schedule_read = !conn.get_read_handle().sys_handle()->read_context.pending_io();
-  if (schedule_read) {
-    DLOG("Request notification when pipe-like handle becomes readable.");
-    // Schedule a read of size 0 - this will result in win32 scheduling
-    // overlapped I/O, but we never expect results.
-    size_t actually_read = 0;
-    conn.read(nullptr, 0, actually_read);
-  }
-}
 
 } // anonymous namespace
 
@@ -236,8 +227,7 @@ io_iocp::wait_for_events(io_events & events,
     if (!sys_handle->read_context.pending_io()) {
       DLOG("Request notification when pipe-like handle becomes readable.");
       auto & conn = m_connectors[sys_handle];
-      size_t actually_read = 0;
-      conn.read(nullptr, 0, actually_read);
+      zero_byte_read(conn.get_read_handle());
     }
   }
 
