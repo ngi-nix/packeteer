@@ -58,6 +58,23 @@ class PACKETEER_PRIVATE io_thread
 {
 public:
   /**
+   * Type(s) for the internal connector registration/deregistration queue.
+   */
+  enum register_action : uint8_t
+  {
+    REGISTER = 0,
+    UNREGISTER = 1,
+  };
+
+  struct register_item
+  {
+    register_action action;
+    connector       conn;
+    events_t        events;
+  };
+
+
+  /**
    * Starts the thread with the given parameters.
    *
    * If report_self is true, then events on the io_interrupt are
@@ -97,10 +114,13 @@ public:
   std::exception_ptr error() const;
 
   /**
-   * Access the underlying I/O object
+   * Register/unregister connector(s) for events.
    */
-  io * get_io();
+  void register_connector(connector const & conn, events_t events);
+  void register_connectors(connector const * conns, size_t amount, events_t events);
 
+  void unregister_connector(connector const & conn, events_t events);
+  void unregister_connectors(connector const * conns, size_t amount, events_t events);
 
 private:
 
@@ -111,6 +131,8 @@ private:
   out_queue_t &       m_out_queue;
   connector           m_queue_interrupt;
   bool                m_report_self;
+
+  concurrent_queue<register_item> m_registration_queue;
 
   volatile bool               m_running = true;
   std::thread                 m_thread;

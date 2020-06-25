@@ -112,10 +112,42 @@ io_thread::error() const
 
 
 
-io *
-io_thread::get_io()
+void
+io_thread::register_connector(connector const & conn, events_t events)
 {
-  return m_io.get();
+  register_connectors(&conn, 1, events);
+}
+
+
+
+void
+io_thread::register_connectors(connector const * conns, size_t amount,
+    events_t events)
+{
+  for (size_t i = 0 ; i < amount ; ++i) {
+    m_registration_queue.push({ REGISTER, conns[i], events});
+  }
+  wakeup();
+}
+
+
+
+void
+io_thread::unregister_connector(connector const & conn, events_t events)
+{
+  unregister_connectors(&conn, 1, events);
+}
+
+
+
+void
+io_thread::unregister_connectors(connector const * conns, size_t amount,
+    events_t events)
+{
+  for (size_t i = 0 ; i < amount ; ++i) {
+    m_registration_queue.push({ UNREGISTER, conns[i], events});
+  }
+  wakeup();
 }
 
 
@@ -130,6 +162,22 @@ io_thread::thread_loop()
     DLOG("I/O loop started: " << m_running);
 
     while (m_running) {
+      // Before we wait for events, we need to process the registration queue.
+      // For the sake of predictability, we do them in strict order, even if
+      // that may not be very efficient.
+      register_item item;
+      while (m_registration_queue.pop(item)) {
+        if (item.action == REGISTER) {
+          m_io->register_connector(item.conn, item.events);
+        }
+        else if (item.action == UNREGISTER) {
+          m_io->unregister_connector(item.conn, item.events);
+        }
+        else {
+          PACKETEER_FLOW_CONTROL_GUARD;
+        }
+      }
+
       // Wait for events. We want to wait forever until an event, aka a really
       // long time. But the I/O subsystem needs to be able to handle this.
       io_events events;

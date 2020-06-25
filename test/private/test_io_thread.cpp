@@ -134,6 +134,86 @@ TEST_P(IOThread, simple_test)
 }
 
 
+
+TEST_P(IOThread, with_connector)
+{
+  auto td = GetParam();
+
+  // Create I/O subsystem
+  auto io = std::unique_ptr<p7r::detail::io>(td.creator(test_env->api));
+
+  // Start queue interrupt connector
+  p7r::connector queue_interrupt{test_env->api, "anon://"};
+  auto err = queue_interrupt.connect();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+
+  // Start IO interrupt connector
+  p7r::connector io_interrupt{test_env->api, td.io_interrupt_name};
+  err = io_interrupt.connect();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+
+  // Start a new connector - it's using the same name as the io_interrupt,
+  // because we can.
+  p7r::connector test_conn{test_env->api, td.io_interrupt_name};
+  err = test_conn.connect();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+
+  // Start thread
+  p7r::detail::out_queue_t results;
+  p7r::detail::io_thread thread{std::move(io),
+    io_interrupt,
+    results,
+    queue_interrupt,
+    false // do not report events on the I/O interrupt
+  };
+  err = thread.start();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+
+  // Wait for the thread to start.
+  while (!thread.is_running()) {
+    std::this_thread::sleep_for(sc::milliseconds(1));
+  }
+
+  // OK, so here's the important part:
+  // 1) We want to register the test connector
+  thread.register_connector(test_conn, p7r::PEV_IO_READ);
+  std::this_thread::sleep_for(sc::milliseconds(10));
+
+  // 2) We want to write something on the connector.
+  char buf[] = { 42 };
+  size_t written = 0;
+  err = test_conn.write(buf, sizeof(buf), written);
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+  ASSERT_EQ(written, sizeof(buf));
+
+  // 3) we let the I/O thread sleep a tiny bit...
+  std::this_thread::sleep_for(sc::milliseconds(10));
+
+  // 4) we kill the I/O thread.
+
+  // It's running... kill it.
+  std::cout << "about to stop" << std::endl;
+  thread.stop();
+  std::this_thread::sleep_for(sc::milliseconds(50));
+  std::cout << "stopped?" << std::endl;
+
+  // After this, the results should contain a read event for our test
+  // connector.
+  p7r::detail::io_events events;
+  size_t items = 0;
+  while (results.pop(events)) {
+    ++items;
+    ASSERT_GE(events.size(), 1);
+    for (auto event : events) {
+      ASSERT_EQ(event.connector, test_conn);
+    }
+  }
+
+  ASSERT_GE(items, 1);
+}
+
+
+
 namespace {
   test_data test_values[] = {
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
