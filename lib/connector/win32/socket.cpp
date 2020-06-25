@@ -510,7 +510,7 @@ connector_socket::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
   ssize_t read = -1;
   net::socket_address addr;
-  auto err = detail::io::receive(get_read_handle(), buf, bufsize, read, addr);
+  auto err = detail::receive(get_read_handle(), buf, bufsize, read, addr);
   if (ERR_SUCCESS == err) {
     bytes_read = read;
     sender = addr;
@@ -529,7 +529,7 @@ connector_socket::send(void const * buf, size_t bufsize, size_t & bytes_written,
   }
 
   ssize_t written = -1;
-  auto err = detail::io::send(get_write_handle(), buf, bufsize, written,
+  auto err = detail::send(get_write_handle(), buf, bufsize, written,
       recipient);
   if (ERR_SUCCESS == err) {
     bytes_written = written;
@@ -542,7 +542,7 @@ connector_socket::send(void const * buf, size_t bufsize, size_t & bytes_written,
 size_t
 connector_socket::peek() const
 {
-  return detail::io::socket_peek(get_read_handle());
+  return detail::socket_peek(get_read_handle());
 }
 
 

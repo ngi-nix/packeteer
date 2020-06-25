@@ -221,7 +221,7 @@ connector_anon::receive(void * buf, size_t bufsize, size_t & bytes_read,
   }
 
   ssize_t read = -1;
-  auto err = detail::io::read(get_read_handle(), buf, bufsize, read);
+  auto err = detail::read(get_read_handle(), buf, bufsize, read);
   if (ERR_SUCCESS == err) {
     bytes_read = read;
     sender = net::socket_address{m_addr};
@@ -244,7 +244,7 @@ connector_anon::send(void const * buf, size_t bufsize, size_t & bytes_written,
 size_t
 connector_anon::peek() const
 {
-  return detail::io::pipe_peek(get_read_handle());
+  return detail::pipe_peek(get_read_handle());
 }
 
 

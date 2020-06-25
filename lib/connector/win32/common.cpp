@@ -49,7 +49,7 @@ connector_common::read(void * buf, size_t bufsize, size_t & bytes_read)
   }
 
   ssize_t read = -1;
-  auto err = detail::io::read(get_read_handle(), buf, bufsize, read);
+  auto err = detail::read(get_read_handle(), buf, bufsize, read);
   if (ERR_SUCCESS == err) {
     bytes_read = read;
   }
@@ -66,7 +66,7 @@ connector_common::write(void const * buf, size_t bufsize, size_t & bytes_written
   }
 
   ssize_t written = -1;
-  auto err = detail::io::write(get_write_handle(), buf, bufsize, written);
+  auto err = detail::write(get_write_handle(), buf, bufsize, written);
   if (ERR_SUCCESS == err) {
     bytes_written = written;
   }
