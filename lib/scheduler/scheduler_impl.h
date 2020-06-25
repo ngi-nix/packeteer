@@ -159,6 +159,7 @@ struct scheduler::scheduler_impl
    * caller, and the parameters must be set by the caller.
    **/
   void enqueue(action_type action, detail::callback_entry * entry);
+  void enqueue_commit();
 
 
   /**

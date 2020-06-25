@@ -182,6 +182,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 
 scheduler::scheduler_impl::~scheduler_impl()
 {
+  DLOG("Scheduler implementation destructor.");
   adjust_workers(0);
   stop_main_loop();
 
@@ -206,6 +207,13 @@ scheduler::scheduler_impl::enqueue(action_type action,
     pdt::callback_entry * entry)
 {
   m_in_queue.push(std::make_pair(action, entry));
+}
+
+
+
+void
+scheduler::scheduler_impl::enqueue_commit()
+{
   detail::interrupt(m_main_loop_pipe);
 }
 
@@ -233,6 +241,8 @@ scheduler::scheduler_impl::start_main_loop()
 void
 scheduler::scheduler_impl::stop_main_loop()
 {
+  DLOG("Stopping main I/O loop.");
+
   m_main_loop_continue = false;
 
   detail::interrupt(m_main_loop_pipe);
