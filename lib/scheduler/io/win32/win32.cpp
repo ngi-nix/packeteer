@@ -24,6 +24,7 @@
 #include "select.h"
 
 #include "../../scheduler_impl.h"
+#include "../../../win32/sys_handle.h"
 
 namespace sc = std::chrono;
 
@@ -96,6 +97,8 @@ io_win32::io_win32(std::shared_ptr<api> const & api)
 
 io_win32::~io_win32()
 {
+  DLOG("Shutting down WIN32 I/O.");
+  m_select_thread->stop();
 }
 
 
@@ -110,27 +113,35 @@ io_win32::register_connector(connector const & conn, events_t const & events)
 
 
 void
-io_win32::register_connectors(connector const * conns, size_t size,
+io_win32::register_connectors(connector const * conns, size_t amount,
     events_t const & events)
 {
-  bool interrupt_select = false;
-
-  for (size_t i = 0 ; i < size ; ++i) {
+  std::vector<connector> iocp_conns;
+  std::vector<connector> select_conns;
+  for (size_t i = 0 ; i < amount ; ++i) {
     connector const & conn = conns[i];
     DLOG("Registering connector " << conn << " for events " << events);
 
     if (handled_by_select(conn)) {
-      m_select_thread->get_io()->register_connector(conn, events);
-      interrupt_select = true;
+      select_conns.push_back(conn);
     }
     else {
-      m_iocp->register_connector(conn, events);
+      iocp_conns.push_back(conn);
     }
   }
 
-  if (interrupt_select) {
-    m_select_thread->wakeup();
+  if (!iocp_conns.empty()) {
+    DLOG("Registering " << iocp_conns.size() << " IOCP connectors.");
+    m_iocp->register_connectors(&iocp_conns[0], iocp_conns.size(), events);
   }
+
+  if (!select_conns.empty()) {
+    DLOG("Registering " << select_conns.size() << " select connectors.");
+    m_select_thread->register_connectors(&select_conns[0], select_conns.size(),
+        events);
+  }
+
+  io::register_connectors(conns, amount, events);
 }
 
 
@@ -147,29 +158,36 @@ io_win32::unregister_connector(connector const & conn, events_t const & events)
 
 
 void
-io_win32::unregister_connectors(connector const * conns, size_t size,
+io_win32::unregister_connectors(connector const * conns, size_t amount,
     events_t const & events)
 {
-  bool interrupt_select = false;
-
-  for (size_t i = 0 ; i < size ; ++i) {
+  std::vector<connector> iocp_conns;
+  std::vector<connector> select_conns;
+  for (size_t i = 0 ; i < amount ; ++i) {
     connector const & conn = conns[i];
     DLOG("Unregistering connector " << conn << " from events " << events);
 
     if (handled_by_select(conn)) {
-      m_select_thread->get_io()->unregister_connector(conn, events);
-      interrupt_select = true;
+      select_conns.push_back(conn);
     }
     else {
-      m_iocp->unregister_connector(conn, events);
+      iocp_conns.push_back(conn);
     }
   }
 
-  if (interrupt_select) {
-    m_select_thread->wakeup();
+  if (!iocp_conns.empty()) {
+    DLOG("Unregistering " << iocp_conns.size() << " IOCP connectors.");
+    m_iocp->unregister_connectors(&iocp_conns[0], iocp_conns.size(), events);
   }
-}
 
+  if (!select_conns.empty()) {
+    DLOG("Unregistering " << select_conns.size() << " select connectors.");
+    m_select_thread->unregister_connectors(&select_conns[0], select_conns.size(),
+        events);
+  }
+
+  io::unregister_connectors(conns, amount, events);
+}
 
 
 
@@ -183,10 +201,11 @@ io_win32::wait_for_events(io_events & events,
   auto before = clock::now();
   auto cur_timeout = timeout;
 
+  bool process_queue = false;
   do {
     // Things are *fairly* simple here. Since we mainly use the IOCP loop and
     // treat the select loop as supplemental, we wait in the IOCP loop.
-    m_iocp->wait_for_events(events, timeout);
+    m_iocp->wait_for_events(events, cur_timeout);
     auto after = clock::now();
     auto tdiff = after - before;
     cur_timeout = timeout - tdiff;
@@ -194,7 +213,7 @@ io_win32::wait_for_events(io_events & events,
     // However, we need to process the events the IOCP loop produced. If there
     // was a read event on our own queue_interrupt, we will likely have events
     // from the select loop.
-    bool process_queue = false;
+    process_queue = false;
     for (auto iter = events.begin() ; iter != events.end() ; ++iter) {
       auto & ev = *iter;
       if (ev.connector == m_queue_interrupt) {
@@ -211,13 +230,44 @@ io_win32::wait_for_events(io_events & events,
       while (m_queue.pop(from_select)) {
         events.insert(std::end(events), std::begin(from_select),
             std::end(from_select));
+
+        // If any of the handles we got from select have pending reads, we can
+        // move them from select to IOCP. The reason we use select in the first
+        // place is that unlike with Windows pipes, sockets cannot have pending
+        // read before being connected somehow. So we wait for select to signal
+        // the connector as readable, at which point IOCP can take over. But
+        // IOCP can only take over if there's a read pending, so we wait for that
+        // situation.
+        // Note: removing and re-adding these connectors will put them into the
+        // select loop again; there is no logic to prevent that at this point.
+        // It *is* possible, though, because pending reads can happen even
+        // before being added to the scheduler.
+        // Track changes in https://gitlab.com/interpeer/packeteer/-/issues/20
+        std::vector<connector> conns;
+        for (auto & [conn, ev] : from_select) {
+          if (conn.get_read_handle().sys_handle()->read_context.pending_io()) {
+            conns.push_back(conn);
+          }
+        }
+        if (!conns.empty()) {
+          DLOG("Select connetors with pending reads:" << conns.size());
+
+          m_select_thread->unregister_connectors(&conns[0], conns.size(),
+              PEV_IO_READ|PEV_IO_WRITE);
+
+          for (auto & conn : conns) {
+            events_t ev = m_sys_handles[conn.get_read_handle().sys_handle()];
+            ev |= m_sys_handles[conn.get_write_handle().sys_handle()];
+            m_iocp->register_connector(conn, ev);
+          }
+        }
       }
 
       auto diff = events.size() - before;
       DLOG("Collected " << diff << " events from select loop.");
     }
 
-  } while (events.empty() && cur_timeout > sc::milliseconds(1)); // IOCP resolution
+  } while (events.empty() && !process_queue && cur_timeout > sc::milliseconds(1)); // IOCP resolution
 
   DLOG("WIN32 combined got " << events.size() << " event entries to report.");
 }
