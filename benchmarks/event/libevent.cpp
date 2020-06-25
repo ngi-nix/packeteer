@@ -101,6 +101,7 @@ struct libevent_ops : public backend_ops
       event_set(&m_events[i], m_conns[i], EV_READ | EV_PERSIST, read_cb_bridge, (void *) &m_contexts[i]);
       event_add(&m_events[i], NULL);
     }
+    event_loop(EVLOOP_ONCE | EVLOOP_NONBLOCK);
   }
 
 
@@ -148,6 +149,7 @@ struct libevent_ops : public backend_ops
         event_del(&m_events[i]);
       }
     }
+    event_loop(EVLOOP_ONCE | EVLOOP_NONBLOCK);
 
     m_contexts.clear();
   }

@@ -42,6 +42,7 @@ struct p7r_ops : public backend_ops
 
   virtual ~p7r_ops()
   {
+    VERBOSE_LOG(m_opts, "Shutting down packeteer backend and closing connectors.");
     for (conn_index i = 0 ; i < m_conns.size() ; ++i) {
       m_conns[i].close();
     }
@@ -77,6 +78,9 @@ struct p7r_ops : public backend_ops
           }
       );
     }
+
+    using namespace std::literals::chrono_literals;
+    m_sched.process_events(1ms);
   }
 
 
@@ -127,9 +131,10 @@ struct p7r_ops : public backend_ops
 
   virtual void end_run()
   {
-    for (conn_index i = 0 ; i < m_opts.conns; ++i) {
-      m_sched.unregister_connector(m_conns[i]);
-    }
+    m_sched.unregister_connectors(&m_conns[0], m_conns.size());
+
+    using namespace std::literals::chrono_literals;
+    m_sched.process_events(1ms);
   }
 
   options                 m_opts;
