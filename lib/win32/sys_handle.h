@@ -142,9 +142,15 @@ struct PACKETEER_PRIVATE io_context : public OVERLAPPED
 
 
 
-  inline void finish_io()
+  inline error_t finish_io(error_t err)
   {
-    state = UNUSED;
+    if (ERR_SUCCESS == err) {
+      state = UNUSED;
+    }
+    else {
+      PACKETEER_FLOW_CONTROL_GUARD;
+    }
+    return err;
   }
 
 
