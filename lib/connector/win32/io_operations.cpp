@@ -23,7 +23,7 @@
 #include "../../macros.h"
 #include "../../win32/sys_handle.h"
 
-namespace packeteer::detail::io {
+namespace packeteer::detail {
 
 namespace {
 
@@ -140,7 +140,23 @@ read_op(::packeteer::handle handle,
       // Connect did not complete yet, try again later.
       return ERR_REPEAT_ACTION;
     }
-    check_progress = true;
+
+    // If the length of the pending I/O is zero, and our amount is non-zero,
+    // then we can cancel the zero read. It's not going to produce any useful
+    // data.
+    if (ctx.schedlen == 0) {
+      if (amount > 0) {
+        ctx.cancel_io();
+      }
+      else {
+        // There is already a zero-byte read pending.
+        return ERR_ASYNC;
+      }
+    }
+    else {
+      // Otherwise, check progress.
+      check_progress = true;
+    }
   }
 
   // Set the state, etc. to PENDING
@@ -308,6 +324,9 @@ error_t
 read(::packeteer::handle handle,
     void * buf, size_t amount, ssize_t & read)
 {
+  if (!buf || !amount) {
+    return ERR_INVALID_VALUE;
+  }
   return read_op(handle, buf, amount, read, nullptr);
 }
 
@@ -374,4 +393,12 @@ socket_peek(::packeteer::handle handle)
 }
 
 
-} // namespace packeteer::detail::io
+
+error_t
+zero_byte_read(::packeteer::handle handle)
+{
+  ssize_t dummy = 0;
+  return read_op(handle, nullptr, 0, dummy, nullptr);
+}
+
+} // namespace packeteer::detail

@@ -31,7 +31,6 @@
 
 namespace p7r = packeteer;
 namespace pd = p7r::detail;
-namespace io = p7r::detail::io;
 namespace sc = std::chrono;
 
 namespace {
@@ -81,14 +80,14 @@ read_write_non_blocking(
 {
   char buf[200] = { 0 };
   ssize_t read = 0;
-  auto err = io::read(first,
+  auto err = pd::read(first,
       buf, sizeof(buf), read);
   ASSERT_EQ(p7r::ERR_ASYNC, err);
   ASSERT_EQ(-1, read);
 
   // A subsequent call should return the same.
   read = 0;
-  err = io::read(first,
+  err = pd::read(first,
       buf, sizeof(buf), read);
   ASSERT_EQ(p7r::ERR_ASYNC, err);
   ASSERT_EQ(-1, read);
@@ -97,14 +96,14 @@ read_write_non_blocking(
   // results.
   std::string msg = "Hello, world!";
   ssize_t written = -1;
-  err = io::write(second,
+  err = pd::write(second,
       msg.c_str(), msg.length(), written);
   ASSERT_EQ(p7r::ERR_SUCCESS, err);
   ASSERT_EQ(msg.length(), written);
 
   // If it's written, we should be able to read it.
   read = 0;
-  err = io::read(first,
+  err = pd::read(first,
       buf, sizeof(buf), read);
   ASSERT_EQ(p7r::ERR_SUCCESS, err);
   ASSERT_EQ(msg.length(), read);
@@ -128,7 +127,7 @@ read_write_blocking(
   {
     char buf[200] = { 0 };
     ssize_t read = 0;
-    auto err = io::read(first,
+    auto err = pd::read(first,
         buf, sizeof(buf), read);
     ASSERT_EQ(p7r::ERR_SUCCESS, err);
     ASSERT_EQ(msg.length(), read);
@@ -144,7 +143,7 @@ read_write_blocking(
   std::thread writer([msg, &second]() 
   {
     ssize_t written = -1;
-    auto err = io::write(second,
+    auto err = pd::write(second,
         msg.c_str(), msg.length(), written);
     ASSERT_EQ(p7r::ERR_SUCCESS, err);
     ASSERT_EQ(msg.length(), written);

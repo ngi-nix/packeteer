@@ -30,7 +30,7 @@
 #include <packeteer/net/socket_address.h>
 
 
-namespace packeteer::detail::io {
+namespace packeteer::detail {
 
 /**
  * Functions here simulate POSIX-style I/O functions, using an
@@ -75,6 +75,14 @@ size_t pipe_peek(::packeteer::handle handle);
 PACKETEER_PRIVATE
 size_t socket_peek(::packeteer::handle handle);
 
-} // namespace packeteer::detail::io
+
+/**
+ * The zero-byte read is a special opreation that should not be used by
+ * connectors. It is of use to the I/O subsystem implementation.
+ */
+PACKETEER_PRIVATE
+error_t zero_byte_read(::packeteer::handle handle);
+
+} // namespace packeteer::detail
 
 #endif // guard
