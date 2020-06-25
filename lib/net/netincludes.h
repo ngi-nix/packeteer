@@ -48,6 +48,7 @@
 #endif
 
 #if defined(PACKETEER_HAVE_WINSOCK2_H)
+#  define FD_SETSIZE 32767
 #  include <winsock2.h>
 #  pragma comment(lib, "Ws2_32.lib")
 #endif
