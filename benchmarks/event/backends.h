@@ -57,7 +57,12 @@ struct options
   size_t      active = 1;
   size_t      writes = 100;
   uint16_t    port_range_start = 2000;
+#if defined _WIN32
+  // FIXME: see https://gitlab.com/interpeer/packeteer/-/issues/21
+  size_t      runs = 1;
+#else
   size_t      runs = 25;
+#endif
   bool        verbose = false;
   std::string output_file;
 };
