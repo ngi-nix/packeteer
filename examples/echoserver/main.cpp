@@ -31,7 +31,7 @@ namespace p7r = packeteer;
 
 
 p7r::error_t
-echo_callback_stream(p7r::time_point const &, p7r::events_t mask, p7r::error_t, p7r::connector * conn, void *)
+echo_callback_stream(p7r::time_point const &, p7r::events_t mask, p7r::connector * conn)
 {
   if (!(mask & p7r::PEV_IO_READ)) {
     return p7r::ERR_SUCCESS;
@@ -61,7 +61,7 @@ echo_callback_stream(p7r::time_point const &, p7r::events_t mask, p7r::error_t, 
 
 
 p7r::error_t
-echo_callback_dgram(p7r::time_point const &, p7r::events_t mask, p7r::error_t, p7r::connector * conn, void *)
+echo_callback_dgram(p7r::time_point const &, p7r::events_t mask, p7r::connector * conn)
 {
   if (!(mask & p7r::PEV_IO_READ)) {
     return p7r::ERR_SUCCESS;
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
     // Register a connect callback. When a connection comes in, we can accept()
     // it if it's stream-based. If it's datagram-based, we just echo immediately.
     scheduler.register_connector(p7r::PEV_IO_READ, server,
-        [&scheduler](p7r::time_point const & now, p7r::events_t mask, p7r::error_t error, p7r::connector * conn, void * baton) -> p7r::error_t
+        [&scheduler](p7r::time_point const & now, p7r::events_t mask, p7r::connector * conn) -> p7r::error_t
         {
           if (!(mask & p7r::PEV_IO_READ)) {
             return p7r::ERR_SUCCESS;
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
           }
 
           // Otherwise call the echo callback.
-          return echo_callback_dgram(now, mask, error, conn, baton);
+          return echo_callback_dgram(now, mask, conn);
         }
     );
 

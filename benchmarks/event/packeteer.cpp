@@ -71,7 +71,7 @@ struct p7r_ops : public backend_ops
   {
     for (conn_index i = 0 ; i < m_opts.conns; ++i) {
       m_sched.register_connector(PEV_IO_READ, m_conns[i],
-          [this, callback, i](time_point const &, events_t, packeteer::error_t, connector *, void *) -> packeteer::error_t
+          [this, callback, i](time_point const &, events_t, connector *) -> packeteer::error_t
           {
             callback(*this, i);
             return ERR_SUCCESS;

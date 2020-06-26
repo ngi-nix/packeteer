@@ -34,8 +34,7 @@ namespace p7r = packeteer;
 namespace {
 
 p7r::error_t
-free_func1(p7r::time_point const &, p7r::events_t events,
-    p7r::error_t, p7r::connector *, void *)
+free_func1(p7r::time_point const &, p7r::events_t events, p7r::connector *)
 {
   EXPECT_EQ(42, events);
   return p7r::error_t(1);
@@ -43,8 +42,7 @@ free_func1(p7r::time_point const &, p7r::events_t events,
 
 
 p7r::error_t
-free_func2(p7r::time_point const &, p7r::events_t events,
-    p7r::error_t, p7r::connector *, void *)
+free_func2(p7r::time_point const &, p7r::events_t events, p7r::connector *)
 {
   EXPECT_EQ(666, events);
   return p7r::error_t(2);
@@ -55,8 +53,7 @@ free_func2(p7r::time_point const &, p7r::events_t events,
 struct functor_member
 {
   p7r::error_t
-  member_func(p7r::time_point const &, p7r::events_t events,
-      p7r::error_t, p7r::connector *, void *)
+  member_func(p7r::time_point const &, p7r::events_t events, p7r::connector *)
   {
     EXPECT_EQ(1234, events);
     return p7r::error_t(3);
@@ -68,8 +65,7 @@ struct functor_member
 struct true_functor
 {
   p7r::error_t
-  operator()(p7r::time_point const &, p7r::events_t events,
-      p7r::error_t, p7r::connector *, void *)
+  operator()(p7r::time_point const &, p7r::events_t events, p7r::connector *)
   {
     EXPECT_EQ(0xdeadbeef, events);
     return p7r::error_t(4);
@@ -162,16 +158,16 @@ struct lambda_no_capture_ctx : public test_data_base
       p7r::error_t res)
     : test_data_base(n, ev, res)
   {
-    cb1 = [](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
-        p7r::connector *, void *) -> p7r::error_t
+    cb1 = [](p7r::time_point const &, p7r::events_t events_in,
+        p7r::connector *) -> p7r::error_t
     {
       EXPECT_EQ(71, events_in);
       return 5;
     };
 
     // Same definition, but different lambda
-    cb2 = [](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
-        p7r::connector *, void *) -> p7r::error_t
+    cb2 = [](p7r::time_point const &, p7r::events_t events_in,
+        p7r::connector *) -> p7r::error_t
     {
       EXPECT_EQ(71, events_in);
       return 5;
@@ -191,8 +187,8 @@ struct lambda_with_capture_ctx : public test_data_base
     int & capture = the_capture;
 
     if (by_reference) {
-      cb1 = [&capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
-          p7r::connector *, void *) -> p7r::error_t
+      cb1 = [&capture](p7r::time_point const &, p7r::events_t events_in,
+          p7r::connector *) -> p7r::error_t
       {
         EXPECT_EQ(73, events_in);
         EXPECT_EQ(42, capture);
@@ -200,8 +196,8 @@ struct lambda_with_capture_ctx : public test_data_base
       };
 
       // Same definition, but different lambda
-      cb2 = [&capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
-          p7r::connector *, void *) -> p7r::error_t
+      cb2 = [&capture](p7r::time_point const &, p7r::events_t events_in,
+          p7r::connector *) -> p7r::error_t
       {
         EXPECT_EQ(73, events_in);
         EXPECT_EQ(42, capture);
@@ -209,8 +205,8 @@ struct lambda_with_capture_ctx : public test_data_base
       };
     }
     else {
-      cb1 = [capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
-          p7r::connector *, void *) -> p7r::error_t
+      cb1 = [capture](p7r::time_point const &, p7r::events_t events_in,
+          p7r::connector *) -> p7r::error_t
       {
         EXPECT_EQ(79, events_in);
         EXPECT_EQ(42, capture);
@@ -218,8 +214,8 @@ struct lambda_with_capture_ctx : public test_data_base
       };
 
       // Same definition, but different lambda
-      cb2 = [capture](p7r::time_point const &, p7r::events_t events_in, p7r::error_t,
-          p7r::connector *, void *) -> p7r::error_t
+      cb2 = [capture](p7r::time_point const &, p7r::events_t events_in,
+          p7r::connector *) -> p7r::error_t
       {
         EXPECT_EQ(79, events_in);
         EXPECT_EQ(42, capture);
@@ -321,7 +317,7 @@ TEST_P(Callback, invoke)
   auto cb = td->cb1;
 
   auto now = p7r::clock::now();
-  auto res = cb(now, td->events, p7r::error_t(0), nullptr, nullptr);
+  auto res = cb(now, td->events, nullptr);
   ASSERT_EQ(td->result, res);
 }
 
@@ -354,7 +350,7 @@ TEST(CallbackMisc, empty)
   ASSERT_EQ(true, cb.empty());
   ASSERT_FALSE(cb);
 
-  ASSERT_THROW(cb(now, 0, p7r::error_t(1), nullptr, nullptr),
+  ASSERT_THROW(cb(now, 0, nullptr),
       p7r::exception);
 
   p7r::callback cb2 = &free_func1;

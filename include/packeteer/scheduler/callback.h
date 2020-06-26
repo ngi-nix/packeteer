@@ -54,8 +54,7 @@ namespace detail {
 struct callback_helper_base
 {
   virtual ~callback_helper_base() {}
-  virtual error_t invoke(time_point const &, events_t const &, error_t,
-      connector *, void *) = 0;
+  virtual error_t invoke(time_point const &, events_t const &, connector *) = 0;
   virtual size_t hash() const = 0;
   virtual callback_helper_base * clone() const = 0;
 };
@@ -120,7 +119,7 @@ template <typename T>
 struct callback_helper_member : public callback_helper_base
 {
   typedef error_t (T::*member_function_type)(time_point const &, events_t,
-      error_t, connector *, void *);
+      connector *);
 
   holder<T> *           m_holder;
   member_function_type  m_function;
@@ -155,14 +154,14 @@ struct callback_helper_member : public callback_helper_base
 
 
   virtual error_t invoke(time_point const & now, events_t const & events,
-      error_t error, connector * conn, void * baton)
+      connector * conn)
   {
     // Here lies the trick of this construct: if a member function was given,
     // the implication is that it has an address (is not inline), so we invoke
     // it.
     // If one was given, we invoke operator(), which may or may not be declared
     // inline, as in e.g. the case of a lambda with capture.
-    return (m_holder->m_object->*m_function)(now, events, error, conn, baton);
+    return (m_holder->m_object->*m_function)(now, events, conn);
   }
 
 
@@ -239,9 +238,9 @@ struct callback_helper_operator : public callback_helper_base
 
 
   virtual error_t invoke(time_point const & now, events_t const & events,
-      error_t error, connector * conn, void * baton)
+      connector * conn)
   {
-    return m_holder->m_object->operator()(now, events, error, conn, baton);
+    return m_holder->m_object->operator()(now, events, conn);
   }
 
 
@@ -329,7 +328,7 @@ public:
    **/
   // Typedef for free functions.
   using free_function_type = std::add_pointer<
-      error_t (time_point const &, events_t, error_t, connector *, void *)
+      error_t (time_point const &, events_t, connector *)
   >::type;
 
   /*****************************************************************************
@@ -512,14 +511,13 @@ public:
    **/
   inline
   error_t
-  operator()(time_point const & now, events_t events, error_t error,
-      connector * conn, void * baton)
+  operator()(time_point const & now, events_t events, connector * conn)
   {
     if (nullptr != m_free_function) {
-      return (*m_free_function)(now, events, error, conn, baton);
+      return (*m_free_function)(now, events, conn);
     }
     else if (nullptr != m_object_helper) {
-      return m_object_helper->invoke(now, events, error, conn, baton);
+      return m_object_helper->invoke(now, events, conn);
     }
     else {
       throw exception(ERR_EMPTY_CALLBACK);

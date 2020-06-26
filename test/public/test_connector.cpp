@@ -453,8 +453,7 @@ void send_message_streaming_async(p7r::connector & sender, p7r::connector & rece
   auto lambda =
    [&result](p7r::time_point const & now [[maybe_unused]],
       p7r::events_t mask [[maybe_unused]],
-      p7r::error_t error [[maybe_unused]],
-      p7r::connector * conn, void *) -> p7r::error_t
+      p7r::connector * conn) -> p7r::error_t
   {
     EXPECT_EQ(mask, p7r::PEV_IO_READ);
     EXPECT_NE(conn, nullptr);
@@ -513,8 +512,7 @@ void setup_message_streaming_async(int index,
   auto lambda = [msg, index, broadcast, &result](
       p7r::time_point const & now [[maybe_unused]],
       p7r::events_t mask [[maybe_unused]],
-      p7r::error_t error [[maybe_unused]],
-      p7r::connector * conn, void *) -> p7r::error_t
+      p7r::connector * conn) -> p7r::error_t
   {
     EXPECT_EQ(mask, p7r::PEV_IO_READ);
     EXPECT_NE(conn, nullptr);
@@ -567,11 +565,10 @@ struct server_connect_callback
   p7r::error_t
   func(p7r::time_point const & now [[maybe_unused]],
       p7r::events_t mask [[maybe_unused]],
-      p7r::error_t error [[maybe_unused]],
-      p7r::connector * conn [[maybe_unused]], void *)
+      p7r::connector * conn [[maybe_unused]])
   {
     if (!m_conn) {
-      DLOG(" ***** INCOMING " << mask << ":" << error << ":" << *conn);
+      DLOG(" ***** INCOMING " << mask << ":" << *conn);
       // The accept() function clears the event.
       EXPECT_NO_THROW(m_conn = m_server.accept());
       EXPECT_TRUE(m_conn);
@@ -588,12 +585,11 @@ struct client_post_connect_callback
   p7r::error_t
   func(p7r::time_point const & now [[maybe_unused]],
       p7r::events_t mask [[maybe_unused]],
-      p7r::error_t error [[maybe_unused]],
-      p7r::connector * conn [[maybe_unused]], void *)
+      p7r::connector * conn [[maybe_unused]])
   {
     if (!m_connected) {
       m_connected = true;
-      DLOG(" ***** CONNECTED! " << mask << ":" << error << ":" << *conn);
+      DLOG(" ***** CONNECTED! " << mask << ":" << *conn);
     }
 
     return p7r::ERR_SUCCESS;
@@ -1056,8 +1052,7 @@ void send_message_dgram_async(int index,
   auto lambda = [sender, &result](
       p7r::time_point const & now [[maybe_unused]],
       p7r::events_t mask [[maybe_unused]],
-      p7r::error_t error [[maybe_unused]],
-      p7r::connector * conn, void *) -> p7r::error_t
+      p7r::connector * conn) -> p7r::error_t
   {
     EXPECT_EQ(mask, p7r::PEV_IO_READ);
     EXPECT_NE(conn, nullptr);
