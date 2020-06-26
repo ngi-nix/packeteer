@@ -1,4 +1,5 @@
-= Benchmarks =
+Benchmarks
+==========
 
 Benchmarks are not guaranteed to build on any platform, or build free of
 warnings. They're deliberately kept simple.
@@ -14,3 +15,8 @@ algorithm, and backend-specific implementation files.
   - When a byte is received, a byte is written to the next socket in line.
   - When all sockets have been exercised in this way, the test terminates and
     wall time used is output.
+
+  The overall effect is to measure *wall* time for this cascade to complete.
+  As responsiveness to I/O events is a major contributing factor to this,
+  it indirectly measures responsiveness.
+1. See https://gitlab.com/interpeer/packeteer/-/issues/23
