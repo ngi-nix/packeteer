@@ -288,13 +288,16 @@ void
 io_epoll::wait_for_events(io_events & events,
       duration const & timeout)
 {
+  auto before = clock::now();
+  auto cur_timeout = timeout;
+
   // Wait for events
   ::epoll_event epoll_events[PACKETEER_EPOLL_MAXEVENTS];
   int ready = -1;
 
-  while (true) {
+  while (cur_timeout.count() > 0) {
     ready = ::epoll_pwait(m_epoll_fd, epoll_events, PACKETEER_EPOLL_MAXEVENTS,
-        sc::ceil<sc::milliseconds>(timeout).count(), nullptr);
+        sc::ceil<sc::milliseconds>(cur_timeout).count(), nullptr);
     if (-1 != ready) {
       break;
     }
@@ -302,6 +305,11 @@ io_epoll::wait_for_events(io_events & events,
     // Error handling
     switch (errno) {
       case EINTR: // signal interrupt handling
+        {
+          auto after = clock::now();
+          auto tdiff = after - before;
+          cur_timeout = timeout - tdiff;
+        }
         continue;
 
       case EBADF:

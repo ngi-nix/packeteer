@@ -117,6 +117,9 @@ void
 io_poll::wait_for_events(io_events & events,
       duration const & timeout)
 {
+  auto before = clock::now();
+  auto cur_timeout = timeout;
+
   // Prepare FD set
   size_t size = m_sys_handles.size();
   std::vector<::pollfd> fds;
@@ -131,15 +134,15 @@ io_poll::wait_for_events(io_events & events,
   }
 
   // Wait for events
-  while (true) {
+  while (cur_timeout.count() > 0) {
 #if defined(PACKETEER_HAVE_PPOLL)
     ::timespec ts;
-    ::packeteer::thread::chrono::convert(timeout, ts);
+    ::packeteer::thread::chrono::convert(cur_timeout, ts);
 
     int ret = ::ppoll(&fds[0], size, &ts, nullptr);
 #else
     int ret = ::poll(&fds[0], size,
-        sc::ceil<sc::milliseconds>(timeout).count());
+        sc::ceil<sc::milliseconds>(cur_timeout).count());
 #endif
 
     if (ret >= 0) {
@@ -149,6 +152,11 @@ io_poll::wait_for_events(io_events & events,
     // Error handling
     switch (errno) {
       case EINTR: // signal interrupt handling
+        {
+          auto after = clock::now();
+          auto tdiff = after - before;
+          cur_timeout = timeout - tdiff;
+        }
         continue;
 
       case EFAULT:

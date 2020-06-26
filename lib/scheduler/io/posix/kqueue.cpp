@@ -319,14 +319,18 @@ void
 io_kqueue::wait_for_events(io_events & events,
       duration const & timeout)
 {
+  auto before = clock::now();
+  auto cur_timeout = timeout;
+
   // The entire event queue is already in the kernel, all we need to do is check
   // if events have occurred.
-  ::timespec ts;
-  ::packeteer::thread::chrono::convert(timeout, ts);
-
   struct kevent kqueue_events[PACKETEER_KQUEUE_MAXEVENTS];
   int ret = -1;
-  while (true) {
+  while (cur_timeout.count() > 0) {
+
+    ::timespec ts;
+    ::packeteer::thread::chrono::convert(cur_timeout, ts);
+
     ret = kevent(m_kqueue_fd, nullptr, 0, kqueue_events,
         PACKETEER_KQUEUE_MAXEVENTS, &ts);
     if (ret >= 0) {
@@ -336,6 +340,11 @@ io_kqueue::wait_for_events(io_events & events,
     // Error handling
     switch (errno) {
       case EINTR: // signal interrupt handling
+        {
+          auto after = clock::now();
+          auto tdiff = after - before;
+          cur_timeout = timeout - tdiff;
+        }
         continue;
 
       case EACCES:

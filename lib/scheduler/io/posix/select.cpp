@@ -55,6 +55,7 @@ io_select::io_select(std::shared_ptr<api> const & api)
 
 io_select::~io_select()
 {
+  DLOG("I/O select subsystem shutting down.");
 }
 
 
@@ -65,12 +66,15 @@ io_select::wait_for_events(io_events & events,
   OCLINT_SUPPRESS("high cyclomatic complexity")
   OCLINT_SUPPRESS("long method")
 {
+  auto before = clock::now();
+  auto cur_timeout = timeout;
+
   // FD sets
   ::fd_set read_fds;
   ::fd_set write_fds;
   ::fd_set err_fds;
 
-  while (true) {
+  while (cur_timeout.count() > 0) {
     // Prepare FD sets.
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
@@ -95,13 +99,13 @@ io_select::wait_for_events(io_events & events,
     // Wait for events
 #if defined(PACKETEER_HAVE_PSELECT)
     ::timespec ts;
-    ::packeteer::thread::chrono::convert(timeout, ts);
+    ::packeteer::thread::chrono::convert(cur_timeout, ts);
 
     int ret = ::pselect(max_fd + 1, &read_fds, &write_fds, &err_fds, &ts,
         nullptr);
 #else
     ::timeval tv;
-    ::packeteer::thread::chrono::convert(timeout, tv);
+    ::packeteer::thread::chrono::convert(cur_timeout, tv);
 
     int ret = ::select(max_fd + 1, &read_fds, &write_fds, &err_fds, &tv);
 #endif
@@ -113,6 +117,12 @@ io_select::wait_for_events(io_events & events,
     // Error handling
     switch (errno) {
       case EINTR: // signal interrupt handling
+        {
+          auto after = clock::now();
+          auto tdiff = after - before;
+          cur_timeout = timeout - tdiff;
+        }
+        DLOG("select resuming.");
         continue;
 
       case EBADF:
@@ -131,6 +141,7 @@ io_select::wait_for_events(io_events & events,
   // Map events; we'll need to iterate over the available file descriptors again
   // (conceivably, we could just use the subset in the FD sets, but that uses
   // additional memory).
+  std::map<connector, events_t> tmp_events;
   for (auto entry : m_sys_handles) {
     events_t mask = 0;
     if (FD_ISSET(entry.first, &read_fds)) { //!OCLINT(in FD_ISSET)
@@ -144,13 +155,20 @@ io_select::wait_for_events(io_events & events,
     }
 
     if (mask) {
-      io_event ev = {
-        m_connectors[entry.first],
-        mask
-      };
-      events.push_back(ev);
+      auto & conn = m_connectors[entry.first];
+      if (!conn) {
+        ELOG("Got event for unregistered connector with handle: " << handle{entry.first});
+        continue;
+      }
+      tmp_events[conn] |= mask;
     }
   }
+
+  for (auto & [conn, ev] : tmp_events) {
+    events.push_back({conn, ev});
+  }
+
+  DLOG("select got " << events.size() << " event entries to report.");
 }
 
 

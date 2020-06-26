@@ -54,7 +54,7 @@ io_select::wait_for_events(io_events & events,
   FD_SET write_set;
   FD_SET error_set;
 
-  while (true)  {
+  while (cur_timeout.count() > 0) {
     // Prepare FD sets
     FD_ZERO(&read_set);
     FD_ZERO(&write_set);
