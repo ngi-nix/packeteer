@@ -50,6 +50,14 @@ free_func2(p7r::time_point const &, p7r::events_t events, p7r::connector *)
 
 
 
+p7r::error_t
+too_long_func(p7r::time_point const &, p7r::events_t, p7r::connector *, int some_flag)
+{
+  return p7r::error_t(some_flag);
+}
+
+
+
 struct functor_member
 {
   p7r::error_t
@@ -106,6 +114,35 @@ struct free_function_ctx : public test_data_base
   {
     cb1 = free_func1;
     cb2 = free_func2;
+  }
+};
+
+
+struct bound_function_ctx : public test_data_base
+{
+  bound_function_ctx(std::string const & n, p7r::events_t ev,
+      p7r::error_t res)
+    : test_data_base(n, ev, res)
+  {
+    using namespace std::placeholders;
+    cb1 = std::bind(too_long_func, _1, _2, _3, 42);
+    cb2 = std::bind(too_long_func, _1, _2, _3, 11);
+  }
+};
+
+
+struct bound_member_function_ctx : public test_data_base
+{
+  functor_member fm1;
+  functor_member fm2;
+
+  bound_member_function_ctx(std::string const & n, p7r::events_t ev,
+      p7r::error_t res)
+    : test_data_base(n, ev, res)
+  {
+    using namespace std::placeholders;
+    cb1 = std::bind(&functor_member::member_func, &fm1, _1, _2, _3);
+    cb1 = std::bind(&functor_member::member_func, &fm2, _1, _2, _3);
   }
 };
 
@@ -257,6 +294,12 @@ std::shared_ptr<test_data_base> test_data[] = {
   std::make_shared<lambda_with_capture_ctx>(
     "lambda with copy capture", 79, 7,
     false
+  ),
+  std::make_shared<bound_function_ctx>(
+    "partially bound function", 83, 42
+  ),
+  std::make_shared<bound_member_function_ctx>(
+    "bound member function", 1234, 3
   ),
 };
 

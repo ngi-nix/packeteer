@@ -76,8 +76,9 @@ struct holder
   bool const        m_owned = false;
   std::atomic<int>  m_refcount = 1;
 
-  inline holder(T * obj)
+  inline holder(T * obj, bool owned = false)
     : m_object(obj)
+    , m_owned(owned)
   {
   }
 
@@ -211,8 +212,8 @@ struct callback_helper_operator : public callback_helper_base
   holder<T> * m_holder;
   size_t      m_hash;
 
-  inline callback_helper_operator(T * obj)
-    : m_holder(new holder<T>{obj})
+  inline callback_helper_operator(T * obj, bool owned = false)
+    : m_holder(new holder<T>{obj, owned})
     , m_hash(hash_of(obj))
   {
   }
@@ -287,7 +288,7 @@ private:
  * Part of the simplification means that callback objects don't hold any type
  * of function, only those conforming to the following prototype:
  *
- *  error_t <name>(time_point, events_t, error_t, connector *, void *)
+ *  error_t <name>(time_point, events_t, connector *)
  *
  * Much like std::function, however, callback classes can hold pointers to
  * free functions as well as pointers to object functions. Note that for the
@@ -376,10 +377,25 @@ public:
     typename T,
     typename std::enable_if_t<!std::is_pointer<T>::value>* = nullptr,
     typename std::enable_if_t<!std::is_same<T, callback>::value>* = nullptr,
-    typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr
+    typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr,
+    typename std::enable_if_t<!std::is_bind_expression<T>::value>* = nullptr
   >
   inline callback(T const & object)
     : m_object_helper(new detail::callback_helper_operator<T>{object})
+  {
+  }
+
+
+  // Construct from the result of std::bind()
+  template <
+    typename T,
+    typename std::enable_if_t<!std::is_pointer<T>::value>* = nullptr,
+    typename std::enable_if_t<!std::is_same<T, callback>::value>* = nullptr,
+    typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr,
+    typename std::enable_if_t<std::is_bind_expression<T>::value>* = nullptr
+  >
+  inline callback(T const & object)
+    : m_object_helper(new detail::callback_helper_operator<T>{new T{object}, true})
   {
   }
 
