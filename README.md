@@ -13,6 +13,25 @@ Packeteer achieves this aim by:
 The project was started a long time ago, but was not public until recently.
 Some of the code has been extensively used in commercial products.
 
+
+# Design Goals #
+
+1. Cross platform (highest priority)
+1. Low usage complexity
+1. Stable API/ABI
+1. Packet oriented I/O friendly
+1. Scalable
+1. Efficient
+1. Extensible (lowest priority)
+
+The ordering of the goals is somewhat important. If you're just looking for
+fast event notification, there are better projects out there. If you're just
+looking for TCP streams, there are better projects, etc.
+
+The overarching goal is to have very little effort in developing client and
+server implementations for new low-level protocols.
+
+
 # Quick Start #
 
 You can browse the `examples` folder for an echo server and client
@@ -71,6 +90,7 @@ implementation, each in ~100 lines of code. The gist, however, is this:
 
 If you're running a recent-ish UNIX-derivative, it's probably best to just
 download packeteer and try to compile it.
+
 
 # License #
 
