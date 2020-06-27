@@ -1,35 +1,65 @@
 # Overview #
-Packeteer provides a simplified, asynchronous, event-based socket API.
 
-By itself, it is not a full-featured networking library, but implements common
-boilerplate for high-performance networking. In particular, it provides the
-following:
+Packeteer provides a cross-platform socket API in C++.
 
-- A simple server abstraction for listening on a particular type of socket.
-- A simple client (or rather connection) abstraction for connecting to a server.
-- A dumb-as-it-can-get non-blocking write function for connections. Write data
-  to it, and the backend takes care of sending it over the connection as soon
-  as it can.
-- A primitive thread pool that schedules event callbacks (such as events for
-  the fact that data has been read on a connection) across as many or as few
-  threads as you want.
-  There is very deliberately no logic to automagically shrink or grow the thread
-  pool, but there is functionality that would allow you to implement such thread
-  pool management on top of packeteer.
-- A highly performant main loop for all of this logic, running in a scheduler
-  thread. There is a choice of implementations for this, based on epoll, kqueue
-  or select. It is expected that the choice of implementations will expand
-  in future to I/O completion ports on Windows systems.
+The aim of the project is to get high performance, asynchronous inter-process
+I/O into any project without the need for a ton of external libraries, or for
+writing cross-platform boilerplate.
 
-What packeteer is not, amongst other things, is a message queue system. For
-one thing, there is no concept of messages and all that implies. For another,
-there is not much queueing going on.
+Packeteer achieves this aim by:
+- Picking the best available event notification for the target system.
+- and providing a socket-like API for supported IPC.
 
-It just flings raw data packets. Fast.
+The project was started a long time ago, but was not public until recently.
+Some of the code has been extensively used in commercial products.
 
-# License #
+# Quick Start #
 
-See the COPYING file.
+You can browse the `examples` folder for an echo server and client
+implementation, each in ~100 lines of code. The gist, however, is this:
+
+1. Create a `connector`, which provides the socket-like API:
+   ```c++
+   auto conn = packeteer::connector{api, "tcp://192.168.0.1:4321"};
+   auto err = conn.connect();
+   ```
+1. If a server was listening on the given address and port, you can
+   now start with I/O:
+   ```c++
+   size_t transferred = 0;
+   err = conn.write(buf, buflen, transferred);
+   err = conn.read(buf, buflen, transferred);
+   ```
+   This, of course, can fail if there is no data to transfer.
+1. Asynchronous I/O is achieved by registering callbacks for I/O events
+   with a scheduler object.
+   ```c++
+   using namespace packeteer;
+   auto sched = scheduler{api};
+   sched.register_connector(PEV_IO_READ, conn,
+       [*](time_point const & now, events_t events, connector * the_conn) -> error_t
+       {
+          // Is notified when the given connector is readable.
+          the_conn->read(buf, buflen, transferred);
+       }
+    );
+   ```
+1. The rest of the echoserver and echoclient implementations are taken up
+   by asynchronously accepting connections and error handling.
+
+
+# Supported Connectors #
+
+- TCP/IP via the "tcp", "tcp4" and "tcp6" schemes.
+- UDP/IP via the "udp", "udp4" and "udp6" schemes.
+- `AF_LOCAL/AF_UNIX` via the "local" scheme. Note that unnamed local sockets are
+  emulated on Windows, and abstract local names are not supported on all
+  platforms.
+- Windows named pipes via the "pipe" scheme.
+- POSIX named pipes via the "fifo" scheme.
+- The "anon" scheme maps to POSIX anonymous pipes, or Windows named pipes
+  with a generated name, and is usable for IPC within a process.
+
 
 # Requirements #
 
@@ -42,6 +72,6 @@ See the COPYING file.
 If you're running a recent-ish UNIX-derivative, it's probably best to just
 download packeteer and try to compile it.
 
-# Tests #
+# License #
 
-tbd
+See the COPYING file.
