@@ -18,7 +18,7 @@ cache:
       ninja-build python3 python3-pip clang gcc gcc-multilib g++-multilib
       gcovr lcov
       git
-    - pip3 install meson pipenv
+    - pip3 install meson
 
 .dep-linux: &dep-linux
   <<: *dep-linux-deps
@@ -65,6 +65,8 @@ build:gcc-i386:
   <<: *dep-android
   stage: build
   script:
+    - pip3 install pipenv
+    - pipenv install
     - pipenv run ./android.py ${androidabi}
     - mkdir build
     - cd build
