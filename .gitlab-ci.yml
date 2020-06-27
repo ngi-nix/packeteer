@@ -18,7 +18,7 @@ cache:
       ninja-build python3 python3-pip clang gcc gcc-multilib g++-multilib
       gcovr lcov
       git
-    - pip3 install meson
+    - pip3 install meson pipenv
 
 .dep-linux: &dep-linux
   <<: *dep-linux-deps
