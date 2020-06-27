@@ -65,9 +65,8 @@ build:gcc-i386:
   <<: *dep-android
   stage: build
   script:
-    # This is an ugly hack for not wanting to find the latest NDK version.
-    # But at least it should work.
-    - ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;21.3.6528147"
+    # Install ndk-bundle; our android.py supports that.
+    - ${ANDROID_HOME}/tools/bin/sdkmanager --install ndk-bundle >/dev/null
     - pip3 install pipenv
     - pipenv install
     - pipenv run ./android.py ${androidabi}
