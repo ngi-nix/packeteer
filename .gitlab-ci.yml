@@ -86,10 +86,23 @@ build:android-arm64-v8a:
   variables:
     androidabi: arm64-v8a
 
-  #	android-arm64-v8a.txt
-  #	android-armeabi-v7a.txt
-  #	android-x86.txt
-  #	android-x86_64.txt
+build:android-armeabi-v7a:
+  <<: *build-android
+  stage: build
+  variables:
+    androidabi: armeabi-v7a
+
+build:android-x86:
+  <<: *build-android
+  stage: build
+  variables:
+    androidabi: x86
+
+build:android-x86_64:
+  <<: *build-android
+  stage: build
+  variables:
+    androidabi: x86_64
 
 ### test
 
