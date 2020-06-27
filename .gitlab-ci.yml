@@ -65,14 +65,27 @@ build:gcc-i386:
   <<: *dep-android
   stage: build
   script:
-    - echo $ANDROID_HOME
-    - echo $ANDROID_SDK_ROOT
-    - echo $foo
+    - pipenv run android.py ${androidabi}
+    - mkdir build
+    - cd build
+    - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} --cross-file ../android-${androidabi}.txt ..
+    - ninja
+  artifacts:
+    name: build
+    expire_in: 1 week
+    paths:
+      - build/
 
-build:android-test:
+build:android-arm64-v8a:
   <<: *build-android
+  stage: build
   variables:
-    foo: bar
+    androidabi: arm64-v8a
+
+  #	android-arm64-v8a.txt
+  #	android-armeabi-v7a.txt
+  #	android-x86.txt
+  #	android-x86_64.txt
 
 ### test
 
