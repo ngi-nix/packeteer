@@ -172,6 +172,6 @@ read_cb_bridge(evutil_socket_t fd, short which, void *arg)
 
 
 
-static const int __unused = (register_backend(backends::LIBEVENT,
+static const int _unused = (register_backend(backends::LIBEVENT,
       "libevent", {"event", "libevent"},
       new libevent_ops{}), 0);

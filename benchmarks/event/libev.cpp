@@ -183,6 +183,6 @@ read_cb_bridge(EV_P_ ev_io * w, int revents)
 
 
 
-static const int __unused = (register_backend(backends::LIBEV,
+static const int _unused = (register_backend(backends::LIBEV,
       "libev", {"ev", "libev"},
       new libev_ops{}), 0);

@@ -144,6 +144,6 @@ struct p7r_ops : public backend_ops
 };
 
 
-static const int __unused = (register_backend(backends::PACKETEER,
+static const int _unused = (register_backend(backends::PACKETEER,
       "packeteer", {"packeteer", "p7r"},
       new p7r_ops{}), 0);
