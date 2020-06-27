@@ -618,6 +618,7 @@ lib = library('packeteer', libsrc,
 packeteer_dep = declare_dependency(
     include_directories: [includes],
     link_with: [lib],
+    link_args: link_args,
     version: LIB_VERSION,
 )
 

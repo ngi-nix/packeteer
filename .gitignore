@@ -3,3 +3,7 @@
 
 # Build directories
 build*/
+
+# Android
+Pipfile.lock
+android-*.txt
