@@ -311,6 +311,10 @@ connector_socket::socket_bind(int domain, int type, int & fd)
     case ENOENT:
     case ENOTDIR:
     case EROFS:
+      // If this is due to an abstract address, return a different error.
+      if (m_addr.full_str()[0] == '\0') {
+        return ERR_INVALID_OPTION;
+      }
       return ERR_FS_ERROR;
 
     case EFAULT:
