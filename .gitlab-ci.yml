@@ -8,8 +8,7 @@ cache:
   - apt-cache/
 
 ### build & test dependencies
-.dep-linux: &dep-linux
-  image: debian
+.dep-linux-deps: &dep-linux-deps
   tags:
     - linux
   before_script:
@@ -21,6 +20,13 @@ cache:
       git
     - pip3 install meson
 
+.dep-linux: &dep-linux
+  <<: *dep-linux-deps
+  image: debian
+
+.dep-android: &dep-android
+  <<: *dep-linux-deps
+  image: bitriseio/android-ndk
 
 ### build
 
@@ -54,6 +60,19 @@ build:gcc-i386:
   variables:
     compiler: g++
     ci_cxx_flags: -m32
+
+.build-android: &build-android
+  <<: *dep-android
+  stage: build
+  script:
+    - echo $ANDROID_HOME
+    - echo $ANDROID_SDK_ROOT
+    - echo $foo
+
+build:android-test:
+  <<: *build-android
+  variables:
+    foo: bar
 
 ### test
 
