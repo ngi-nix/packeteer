@@ -611,7 +611,11 @@ setup_stream_connection_async(p7r::scheduler & sched, p7r::connector_type type,
   EXPECT_FALSE(server.connected());
   EXPECT_FALSE(server.communicating());
 
-  EXPECT_EQ(p7r::ERR_SUCCESS, server.listen());
+  auto err = server.listen();
+  if (err == p7r::ERR_INVALID_OPTION) {
+    return {};
+  }
+  EXPECT_EQ(p7r::ERR_SUCCESS, err);
 
   EXPECT_TRUE(server.listening());
   EXPECT_FALSE(server.connected());
@@ -706,7 +710,11 @@ setup_stream_connection(p7r::connector_type type, p7r::util::url const & url,
   EXPECT_FALSE(server.connected());
   EXPECT_FALSE(server.communicating());
 
-  EXPECT_EQ(p7r::ERR_SUCCESS, server.listen());
+  auto err = server.listen();
+  if (err == p7r::ERR_INVALID_OPTION) {
+    return {};
+  }
+  EXPECT_EQ(p7r::ERR_SUCCESS, err);
 
   EXPECT_TRUE(server.listening());
   EXPECT_FALSE(server.connected());
@@ -781,6 +789,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   url.query["behaviour"] = "stream";
 
   auto res = setup_stream_connection(td.type, url);
+  if (res.empty()) GTEST_SKIP();
 
   auto client = res[0].first;
   auto server = res[0].second;
@@ -804,6 +813,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
 
   p7r::scheduler sched(test_env->api, 0);
   auto res = setup_stream_connection_async(sched, td.type, url);
+  if (res.empty()) GTEST_SKIP();
 
   auto client = res[0].first;
   auto server = res[0].second;
@@ -826,6 +836,7 @@ TEST_P(ConnectorStream, asynchronous_messaging)
 
   p7r::scheduler sched(test_env->api, 0);
   auto res = setup_stream_connection_async(sched, td.type, url);
+  if (res.empty()) GTEST_SKIP();
 
   auto client = res[0].first;
   auto server = res[0].second;
@@ -847,6 +858,7 @@ TEST_P(ConnectorStream, multiple_clients_blocking)
   url.query["behaviour"] = "stream";
 
   auto res = setup_stream_connection(td.type, url, 2);
+  if (res.empty()) GTEST_SKIP();
 
   auto client1 = res[0].first;
   auto server1 = res[0].second;
@@ -876,6 +888,7 @@ TEST_P(ConnectorStream, multiple_clients_async)
 
   p7r::scheduler sched(test_env->api, 0);
   auto res = setup_stream_connection_async(sched, td.type, url, 2);
+  if (res.empty()) GTEST_SKIP();
 
   auto client1 = res[0].first;
   auto server1 = res[0].second;
@@ -954,6 +967,7 @@ TEST_P(ConnectorStream, peek_from_write)
 
   p7r::scheduler sched(test_env->api, 0);
   auto res = setup_stream_connection_async(sched, td.type, url);
+  if (res.empty()) GTEST_SKIP();
 
   auto client = res[0].first;
   auto server = res[0].second;
@@ -1131,7 +1145,11 @@ setup_dgram_connection(p7r::connector_type type, p7r::util::url const & server_u
   EXPECT_FALSE(server.connected());
   EXPECT_FALSE(server.communicating());
 
-  EXPECT_EQ(p7r::ERR_SUCCESS, server.listen());
+  auto err = server.listen();
+  if (err == p7r::ERR_INVALID_OPTION) {
+    return {};
+  }
+  EXPECT_EQ(p7r::ERR_SUCCESS, err);
 
   EXPECT_TRUE(server.listening());
   EXPECT_FALSE(server.connected());
@@ -1200,6 +1218,7 @@ TEST_P(ConnectorDGram, messaging)
   curl.query["behaviour"] = "datagram";
 
   auto res = setup_dgram_connection(td.type, surl, {curl});
+  if (!res.first) GTEST_SKIP();
 
   auto server = res.first;
   auto client = res.second[0];
@@ -1223,6 +1242,7 @@ TEST_P(ConnectorDGram, peek_from_send)
   curl.query["behaviour"] = "datagram";
 
   auto res = setup_dgram_connection(td.type, surl, {curl});
+  if (!res.first) GTEST_SKIP();
 
   auto server = res.first;
   auto client = res.second[0];
@@ -1248,6 +1268,7 @@ TEST_P(ConnectorDGram, multiple_clients_blocking)
   curl2.query["behaviour"] = "datagram";
 
   auto res = setup_dgram_connection(td.type, surl, {curl1, curl2});
+  if (!res.first) GTEST_SKIP();
 
   auto server = res.first;
   auto client1 = res.second[0];
@@ -1281,6 +1302,7 @@ TEST_P(ConnectorDGram, multiple_clients_async)
   curl2.query["blocking"] = "0";
 
   auto res = setup_dgram_connection(td.type, surl, {curl1, curl2}, true);
+  if (!res.first) GTEST_SKIP();
 
   auto server = res.first;
   auto client1 = res.second[0];
