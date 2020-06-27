@@ -1,4 +1,5 @@
-# Overview #
+Overview
+========
 
 Packeteer provides a cross-platform socket API in C++.
 
@@ -14,25 +15,8 @@ The project was started a long time ago, but was not public until recently.
 Some of the code has been extensively used in commercial products.
 
 
-# Design Goals #
-
-1. Cross platform (highest priority)
-1. Low usage complexity
-1. Stable API/ABI
-1. Packet oriented I/O friendly
-1. Scalable
-1. Efficient
-1. Extensible (lowest priority)
-
-The ordering of the goals is somewhat important. If you're just looking for
-fast event notification, there are better projects out there. If you're just
-looking for TCP streams, there are better projects, etc.
-
-The overarching goal is to have very little effort in developing client and
-server implementations for new low-level protocols.
-
-
-# Quick Start #
+Quick Start
+===========
 
 You can browse the `examples` folder for an echo server and client
 implementation, each in ~100 lines of code. The gist, however, is this:
@@ -67,7 +51,72 @@ implementation, each in ~100 lines of code. The gist, however, is this:
    by asynchronously accepting connections and error handling.
 
 
-# Supported Connectors #
+Building
+========
+
+Requirements
+------------
+
+- [meson](https://mesonbuild.com/) for the build system. Meson is most
+  easily installed via [python](https://www.python.org/)'s `pip` tool.
+  Installing Python als means you can use the `android.py` script for Android
+  builds.
+- [ninja](https://ninja-build.org/) or platform-specific tools for build
+  execution.
+- Packeteer is implemented in C++, and requires some compiler support for
+  the C++17 standard.
+- Depending on which scheduler implementation you want to use, packeteer may
+  require specific OS and kernel versions, e.g. Linux 2.6.9+ for the epoll
+  scheduler, etc.
+
+If you're running a recent-ish UNIX-derivative, it's probably best to just
+download packeteer and try to compile it.
+
+Instructions
+------------
+
+1. `pip install meson`
+1. `mkdir build && cd build`
+1. `meson ..`
+1. `ninja`
+
+Instructions (Android)
+----------------------
+
+1. `pip install meson pipenv`
+1. `pipenv install`
+1. `pipenv run ./android.py`
+1. `mkdir build && cd build`
+1. `meson --cross-file ../android-<target>.txt ..`
+1. `ninja`
+
+Replace `<target>` with the specific Android target you wish to build for.
+
+Scope
+=====
+
+Design Goals
+------------
+
+1. Cross platform (highest priority)
+1. Low usage complexity
+1. Stable API/ABI
+1. Packet oriented I/O friendly
+1. Scalable
+1. Efficient
+1. Extensible (lowest priority)
+
+The ordering of the goals is somewhat important. If you're just looking for
+fast event notification, there are better projects out there. If you're just
+looking for TCP streams, there are better projects, etc.
+
+The overarching goal is to have very little effort in developing client and
+server implementations for new low-level protocols.
+
+
+Supported Connectors
+--------------------
+
 
 - TCP/IP via the "tcp", "tcp4" and "tcp6" schemes.
 - UDP/IP via the "udp", "udp4" and "udp6" schemes.
@@ -80,18 +129,7 @@ implementation, each in ~100 lines of code. The gist, however, is this:
   with a generated name, and is usable for IPC within a process.
 
 
-# Requirements #
-
-- Packeteer is implemented in C++, and requires some compiler support for
-  the C++17 standard.
-- Depending on which scheduler implementation you want to use, packeteer may
-  require specific OS and kernel versions, e.g. Linux 2.6.9+ for the epoll
-  scheduler, etc.
-
-If you're running a recent-ish UNIX-derivative, it's probably best to just
-download packeteer and try to compile it.
-
-
-# License #
+License
+=======
 
 See the COPYING file.
