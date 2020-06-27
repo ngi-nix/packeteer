@@ -65,7 +65,7 @@ build:gcc-i386:
   <<: *dep-android
   stage: build
   script:
-    - pipenv run android.py ${androidabi}
+    - pipenv run ./android.py ${androidabi}
     - mkdir build
     - cd build
     - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} --cross-file ../android-${androidabi}.txt ..
