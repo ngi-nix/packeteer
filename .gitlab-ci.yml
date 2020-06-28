@@ -26,7 +26,7 @@ cache:
 
 .dep-android: &dep-android
   <<: *dep-linux-deps
-  image: jangrewe/gitlab-ci-android
+  image: jfinkhaeuser/gitlab-ci-android-ndk
 
 ### build
 
@@ -65,8 +65,6 @@ build:gcc-i386:
   <<: *dep-android
   stage: build
   script:
-    # Install ndk-bundle; our android.py supports that.
-    - ${ANDROID_HOME}/tools/bin/sdkmanager --install ndk-bundle >/dev/null
     - pip3 install pipenv
     - pipenv install
     - pipenv run ./android.py ${androidabi}
