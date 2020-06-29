@@ -722,10 +722,11 @@ if cppcheck.found()
     '--cppcheck-build-dir=@0@/cppcheck'.format(meson.current_build_dir()),
     '--enable=all', '-v',
     '--suppress=missingIncludeSystem',
+    '--inline-suppr',
     '-I', '@0@/include'.format(meson.current_source_dir()),
     '-I', '@0@/lib'.format(meson.current_source_dir()),
     '-I', meson.current_build_dir(),
-    '--std=c++14', # FIXME best we have
+    '--std=c++17',
     cpp_lib_is_building,
     '--quiet',
     '@0@/lib'.format(meson.current_source_dir()),
