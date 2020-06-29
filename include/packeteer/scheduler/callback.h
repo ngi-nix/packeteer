@@ -380,6 +380,7 @@ public:
     typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr,
     typename std::enable_if_t<!std::is_bind_expression<T>::value>* = nullptr
   >
+  // cppcheck-suppress noExplicitConstructor
   inline callback(T const & object)
     : m_object_helper(new detail::callback_helper_operator<T>{object})
   {
@@ -394,6 +395,7 @@ public:
     typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr,
     typename std::enable_if_t<std::is_bind_expression<T>::value>* = nullptr
   >
+  // cppcheck-suppress noExplicitConstructor
   inline callback(T const & object)
     : m_object_helper(new detail::callback_helper_operator<T>{new T{object}, true})
   {
@@ -407,6 +409,7 @@ public:
     typename std::enable_if_t<std::is_pointer<T>::value>* = nullptr,
     typename std::enable_if_t<!std::is_convertible<T, free_function_type>::value>* = nullptr
   >
+  // cppcheck-suppress noExplicitConstructor
   inline callback(T object_ptr)
     : m_object_helper(new detail::callback_helper_operator<
         typename std::remove_pointer<T>::type
@@ -418,6 +421,7 @@ public:
 
   // Construct from a free function. This will be used by lambdas without
   // capture.
+  // cppcheck-suppress noExplicitConstructor
   inline callback(free_function_type free_func)
     : m_free_function(free_func)
   {
@@ -497,6 +501,10 @@ public:
 
   inline callback & operator=(callback const & other)
   {
+    if (this == &other) {
+      return *this;
+    }
+
     delete m_object_helper;
     m_object_helper = nullptr;
 

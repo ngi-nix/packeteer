@@ -104,7 +104,7 @@ connector_pipe::connector_pipe(net::socket_address const & addr,
 
 connector_pipe::~connector_pipe()
 {
-  close();
+  connector_pipe::close();
 }
 
 
@@ -285,10 +285,10 @@ connector_pipe::receive(void * buf, size_t bufsize, size_t & bytes_read,
     return ERR_INITIALIZATION;
   }
 
-  ssize_t read = -1;
-  auto err = detail::read(get_read_handle(), buf, bufsize, read);
+  ssize_t have_read = -1;
+  auto err = detail::read(get_read_handle(), buf, bufsize, have_read);
   if (ERR_SUCCESS == err) {
-    bytes_read = read;
+    bytes_read = have_read;
     sender = net::socket_address{m_addr};
   }
   return err;

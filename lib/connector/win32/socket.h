@@ -63,19 +63,19 @@ public:
       connector_options const & options);
 
   // Connector interface, partially implemented
-  virtual bool listening() const;
-  virtual bool connected() const;
+  virtual bool listening() const override;
+  virtual bool connected() const override;
 
-  virtual handle get_read_handle() const;
-  virtual handle get_write_handle() const;
+  virtual handle get_read_handle() const override;
+  virtual handle get_write_handle() const override;
 
-  bool is_blocking() const;
+  bool is_blocking() const override;
 
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender);
+      ::packeteer::net::socket_address & sender) override;
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient);
-  size_t peek() const;
+      ::packeteer::net::socket_address const & recipient) override;
+  size_t peek() const override;
 
   // Socket-specific versions of connect() and accept()
   error_t socket_create(int domain, int type, int proto,
@@ -88,7 +88,7 @@ public:
   error_t socket_close();
 
 protected:
-  connector_socket(connector_options const & options);
+  explicit connector_socket(connector_options const & options);
 
   ::packeteer::net::socket_address  m_addr = {};
   bool                              m_server = false;

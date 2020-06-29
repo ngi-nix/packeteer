@@ -42,10 +42,10 @@ namespace packeteer::detail {
 struct io_poll : public io
 {
 public:
-  io_poll(std::shared_ptr<api> api);
+  explicit io_poll(std::shared_ptr<api> api);
   ~io_poll();
 
-  virtual void wait_for_events(io_events & events, duration const & timeout);
+  virtual void wait_for_events(io_events & events, duration const & timeout) override;
 };
 
 

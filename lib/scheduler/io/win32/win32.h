@@ -44,28 +44,25 @@ namespace packeteer::detail {
 struct PACKETEER_PRIVATE io_win32 : public io
 {
 public:
-  io_win32(std::shared_ptr<api> const & api);
+  explicit io_win32(std::shared_ptr<api> const & api);
   ~io_win32();
 
-  void init();
-  void deinit();
-
   virtual void
-  register_connector(connector const & conn, events_t const & events);
+  register_connector(connector const & conn, events_t const & events) override;
 
   virtual void
   register_connectors(connector const * conns, size_t size,
-      events_t const & events);
+      events_t const & events) override;
 
   virtual void
   unregister_connector(connector const & conn, events_t const & events);
 
   virtual void
   unregister_connectors(connector const * conns, size_t size,
-      events_t const & events);
+      events_t const & events) override;
 
   virtual void wait_for_events(io_events & events,
-      duration const & timeout);
+      duration const & timeout) override;
 
 private:
   /***************************************************************************

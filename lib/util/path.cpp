@@ -160,6 +160,7 @@ to_win32_path(std::string const & other)
 
   // Any tokens that contain a "\\" must now have that quoted
   for (auto & tok : tokens) {
+    // cppcheck-suppress useStlAlgorithm
     tok = replace(tok, "\\", "\\\\");
   }
 

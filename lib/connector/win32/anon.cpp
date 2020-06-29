@@ -42,7 +42,7 @@ connector_anon::connector_anon(connector_options const & options)
 
 connector_anon::~connector_anon()
 {
-  close();
+  connector_anon::close();
 }
 
 
@@ -220,10 +220,10 @@ connector_anon::receive(void * buf, size_t bufsize, size_t & bytes_read,
     return ERR_INITIALIZATION;
   }
 
-  ssize_t read = -1;
-  auto err = detail::read(get_read_handle(), buf, bufsize, read);
+  ssize_t have_read = -1;
+  auto err = detail::read(get_read_handle(), buf, bufsize, have_read);
   if (ERR_SUCCESS == err) {
-    bytes_read = read;
+    bytes_read = have_read;
     sender = net::socket_address{m_addr};
   }
   return err;

@@ -42,11 +42,11 @@ class PACKETEER_PRIVATE io_select : public io
 {
 public:
 
-  io_select(std::shared_ptr<api> const & api);
+  explicit io_select(std::shared_ptr<api> const & api);
   ~io_select();
 
   virtual void wait_for_events(io_events & events,
-      duration const & timeout);
+      duration const & timeout) override;
 };
 
 

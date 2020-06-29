@@ -79,6 +79,7 @@ struct PACKETEER_PRIVATE io_context : public OVERLAPPED
   net::socket_address address = {}; // For datagram operations.
 
 
+  // cppcheck-suppress noExplicitConstructor
   inline io_context(HANDLE h)
     : OVERLAPPED()
     , handle(h)
@@ -201,6 +202,7 @@ struct handle::opaque_handle
   detail::io_context  read_context;
 
 
+  // cppcheck-suppress noExplicitConstructor
   inline opaque_handle(HANDLE h = INVALID_HANDLE_VALUE)
     : handle(h)
     , write_context(handle)
@@ -210,6 +212,7 @@ struct handle::opaque_handle
 
 
 
+  // cppcheck-suppress noExplicitConstructor
   inline opaque_handle(SOCKET s)
     : socket(s)
     , write_context(handle)

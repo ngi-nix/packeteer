@@ -74,6 +74,7 @@ public:
   {
   }
 
+  // cppcheck-suppress noExplicitConstructor
   handle(sys_handle_t const & orig)
     : m_handle{orig}
   {

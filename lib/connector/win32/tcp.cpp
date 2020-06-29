@@ -52,7 +52,7 @@ connector_tcp::connector_tcp(net::socket_address const & addr,
 
 connector_tcp::~connector_tcp()
 {
-  close();
+  connector_tcp::close();
 }
 
 

@@ -270,7 +270,7 @@ connector_socket::socket_connect(int domain, int type, int proto)
     int ret = ::connect(h->socket,
         reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
         m_addr.bufsize());
-    auto err = WSAGetLastError();
+    auto wsaerr = WSAGetLastError();
 
     if (ret != SOCKET_ERROR) {
       // Finally, set the handle
@@ -288,7 +288,7 @@ connector_socket::socket_connect(int domain, int type, int proto)
 
     // We have a non-blocking socket, and connection will take a while to
     // complete. We'll treat this as success, but have to return ERR_ASYNC.
-    if (err == WSAEINPROGRESS || err == WSAEALREADY) {
+    if (wsaerr == WSAEINPROGRESS || wsaerr == WSAEALREADY) {
       m_handle = h;
       m_server = false;
       m_connected = true;
@@ -296,15 +296,15 @@ connector_socket::socket_connect(int domain, int type, int proto)
     }
 
     // Singal interrupt, try again.
-    if (err == WSAEINTR) {
+    if (wsaerr == WSAEINTR) {
       continue;
     }
 
     // Otherwise we have an error.
     close_socket(h->socket);
 
-    ERR_LOG("connector_socket connect failed!", err);
-    return translate_system_error(err);
+    ERR_LOG("connector_socket connect failed!", wsaerr);
+    return translate_system_error(wsaerr);
   }
   PACKETEER_FLOW_CONTROL_GUARD;
 }
@@ -355,14 +355,14 @@ connector_socket::socket_bind(int domain, int type, int proto, handle::sys_handl
       reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
       m_addr.bufsize());
   if (ret == SOCKET_ERROR) {
-    auto err = WSAGetLastError();
+    auto wsaerr = WSAGetLastError();
 
     close_socket(h->socket);
     h = handle::INVALID_SYS_HANDLE;
 
     ERR_LOG("connector_socket bind failed; address is: "
-        << m_addr.full_str(), err);
-    return translate_system_error(err);
+        << m_addr.full_str(), wsaerr);
+    return translate_system_error(wsaerr);
   }
   return ERR_SUCCESS;
 }
@@ -380,7 +380,6 @@ connector_socket::socket_listen(handle::sys_handle_t h)
   if (ret == SOCKET_ERROR) {
     auto err = WSAGetLastError();
     close_socket(h->socket);
-    h = handle::INVALID_SYS_HANDLE;
 
     ERR_LOG("connector_socket listen failed!", err);
     return translate_system_error(err);
@@ -508,11 +507,11 @@ connector_socket::receive(void * buf, size_t bufsize, size_t & bytes_read,
     return ERR_INITIALIZATION;
   }
 
-  ssize_t read = -1;
+  ssize_t have_read = -1;
   net::socket_address addr;
-  auto err = detail::receive(get_read_handle(), buf, bufsize, read, addr);
+  auto err = detail::receive(get_read_handle(), buf, bufsize, have_read, addr);
   if (ERR_SUCCESS == err) {
-    bytes_read = read;
+    bytes_read = have_read;
     sender = addr;
   }
   return err;

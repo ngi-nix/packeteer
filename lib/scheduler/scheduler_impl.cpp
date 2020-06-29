@@ -124,6 +124,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "select() is not supported on this "
           "platform.");
 #else
+      // cppcheck-suppress noCopyConstructor
+      // cppcheck-suppress noOperatorEq
       m_io = new detail::io_select{m_api};
 #endif
       break;
@@ -134,6 +136,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "epoll() is not supported on this "
           "platform.");
 #else
+      // cppcheck-suppress noCopyConstructor
+      // cppcheck-suppress noOperatorEq
       m_io = new detail::io_epoll{m_api};
 #endif
       break;
@@ -144,6 +148,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "poll() is not supported on this "
           "platform.");
 #else
+      // cppcheck-suppress noCopyConstructor
+      // cppcheck-suppress noOperatorEq
       m_io = new detail::io_poll{m_api};
 #endif
       break;
@@ -154,6 +160,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "kqueue() is not supported on this "
           "platform.");
 #else
+      // cppcheck-suppress noCopyConstructor
+      // cppcheck-suppress noOperatorEq
       m_io = new detail::io_kqueue{m_api};
 #endif
       break;
@@ -164,6 +172,8 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "I/O completion ports are not "
           "supported on this platform.");
 #else
+      // cppcheck-suppress noCopyConstructor
+      // cppcheck-suppress noOperatorEq
       m_io = new detail::io_win32{m_api};
 #endif
       break;

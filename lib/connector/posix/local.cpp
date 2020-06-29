@@ -115,7 +115,7 @@ connector_local::connector_local(net::socket_address const & addr,
 
 connector_local::~connector_local()
 {
-  close();
+  connector_local::close();
 }
 
 

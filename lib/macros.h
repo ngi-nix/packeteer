@@ -101,8 +101,8 @@
  * line all by itself.
  **/
 #define PACKETEER_SIZED_PAD(size) \
-  char PACKETEER_TOKEN_CAT(pad, __LINE__)[size] // no semicolon,
-                                                // leave to the caller
+  char PACKETEER_TOKEN_CAT(pad, __LINE__)[size] = {}  // no semicolon,
+                                                      // leave to the caller
 
 #define PACKETEER_CACHE_LINE_PAD \
   PACKETEER_SIZED_PAD(PACKETEER_CACHE_LINE_SIZE)

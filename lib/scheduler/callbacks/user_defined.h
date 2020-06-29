@@ -59,7 +59,7 @@ struct user_callback_entry : public callback_entry
   {
   }
 
-  user_callback_entry(events_t const & events)
+  explicit user_callback_entry(events_t const & events)
     : callback_entry(CB_ENTRY_USER)
     , m_events(events)
   {

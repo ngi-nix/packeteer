@@ -99,7 +99,7 @@ public:
    *
    * If you don't want that, use the condition object you're passing directly.
    **/
-  tasklet(function const & func, void * baton = nullptr, bool start_now = false);
+  explicit tasklet(function const & func, void * baton = nullptr, bool start_now = false);
   tasklet(std::condition_variable_any * condition, std::recursive_mutex * mutex,
       function const & func, void * baton = nullptr, bool start_now = false);
 
@@ -163,6 +163,10 @@ public:
   struct tasklet_info;
 
 private:
+  tasklet(tasklet const &) = delete;
+  tasklet(tasklet &&) = delete;
+  tasklet & operator=(tasklet const &) = delete;
+
   /***************************************************************************
    * Make stuff private that was public in thread
    **/

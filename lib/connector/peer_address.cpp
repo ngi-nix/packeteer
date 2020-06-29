@@ -84,6 +84,7 @@ best_match(connector_type const & ct_type,
       if (net::AT_INET4 == sa_type) {
         return CT_UDP4;
       }
+      // cppcheck-suppress knownConditionTrueFalse
       else if (net::AT_INET6 == sa_type) {
         return CT_UDP6;
       }
@@ -150,6 +151,7 @@ initialize(util::url const & url, net::socket_address & sockaddr,
 {
   ctype = CT_UNSPEC;
   for (auto entry : sc_schemes) {
+    // cppcheck-suppress useStlAlgorithm ; would be more verbose
     if (entry.second == url.scheme) {
       ctype = entry.first;
       break;

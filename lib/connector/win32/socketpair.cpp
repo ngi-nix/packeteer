@@ -126,13 +126,13 @@ error_t socketpair(int domain, int type, int protocol, SOCKET sockets[2])
       break;
     }
 
-    auto err = WSAGetLastError();
+    auto wsaerr = WSAGetLastError();
 
-    if (err == WSAEINTR || err == WSAEWOULDBLOCK) {
+    if (wsaerr == WSAEINTR || wsaerr == WSAEWOULDBLOCK) {
       continue;
     }
 
-    ERR_LOG("Accept failed.", err);
+    ERR_LOG("Accept failed.", wsaerr);
     close_socket(server_sock);
     close_socket(client_sock);
     return ERR_UNEXPECTED;

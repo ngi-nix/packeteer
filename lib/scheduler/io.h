@@ -58,7 +58,7 @@ using io_events = std::vector<io_event>;
 struct io
 {
 public:
-  io(std::shared_ptr<api> const & api)
+  explicit io(std::shared_ptr<api> const & api)
     : m_api(api)
   {
   }

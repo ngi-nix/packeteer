@@ -102,6 +102,7 @@ public:
    *
    * Producers and consumers do not contend with each other, however.
    **/
+  // cppcheck-suppress constParameter
   inline void push(valueT const & value)
   {
     node * tmp = new node(new valueT(value));
@@ -195,7 +196,7 @@ private:
    **/
   struct node
   {
-    node(valueT * value)
+    explicit node(valueT * value)
       : m_value(value)
       , m_next(nullptr)
     {

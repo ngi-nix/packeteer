@@ -96,7 +96,7 @@ struct callback_entry
   time_point      m_timestamp;
 
 
-  callback_entry(callback_type type)
+  explicit callback_entry(callback_type type)
     : m_type{type}
     , m_callback{}
     , m_timestamp{}

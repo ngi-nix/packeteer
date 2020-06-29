@@ -42,13 +42,13 @@ public:
       connector_options const & options);
 
   // Connector interface, partially implemented
-  bool listening() const;
-  bool connected() const;
+  bool listening() const override;
+  bool connected() const override;
 
-  handle get_read_handle() const;
-  handle get_write_handle() const;
+  handle get_read_handle() const override;
+  handle get_write_handle() const override;
 
-  bool is_blocking() const;
+  bool is_blocking() const override;
 
   // Socket-specific versions of connect() and accept()
   error_t socket_create(int domain, int type, int & fd);
@@ -59,7 +59,7 @@ public:
   error_t socket_close();
 
 protected:
-  connector_socket(connector_options const & options);
+  explicit connector_socket(connector_options const & options);
 
   ::packeteer::net::socket_address  m_addr = {};
   bool                              m_server = false;

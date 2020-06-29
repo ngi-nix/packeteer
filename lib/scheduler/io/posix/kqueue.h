@@ -42,22 +42,19 @@ namespace packeteer::detail {
 struct io_kqueue : public io
 {
 public:
-  io_kqueue(std::shared_ptr<api> api);
+  explicit io_kqueue(std::shared_ptr<api> api);
   ~io_kqueue();
 
-  void init();
-  void deinit();
-
-  virtual void register_connector(connector const & conn, events_t const & events);
+  virtual void register_connector(connector const & conn, events_t const & events) override;
   virtual void register_connectors(connector const * conns, size_t amount,
-      events_t const & events);
+      events_t const & events) override;
 
-  virtual void unregister_connector(connector const & conn, events_t const & events);
+  virtual void unregister_connector(connector const & conn, events_t const & events) override;
   virtual void unregister_connectors(connector const * conns, size_t amount,
-      events_t const & events);
+      events_t const & events) override;
 
   virtual void wait_for_events(io_events & events,
-      packeteer::duration const & timeout);
+      packeteer::duration const & timeout) override;
 
 private:
   /***************************************************************************

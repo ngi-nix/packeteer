@@ -42,17 +42,17 @@ namespace packeteer::detail {
 struct io_epoll : public io
 {
 public:
-  io_epoll(std::shared_ptr<api> api);
+  explicit io_epoll(std::shared_ptr<api> api);
   ~io_epoll();
 
-  void register_connector(connector const & conn, events_t const & events);
-  void register_connectors(connector const * conns, size_t amount, events_t const & events);
+  void register_connector(connector const & conn, events_t const & events) override;
+  void register_connectors(connector const * conns, size_t amount, events_t const & events) override;
 
-  void unregister_connector(connector const & conn, events_t const & events);
-  void unregister_connectors(connector const * conns, size_t amount, events_t const & events);
+  void unregister_connector(connector const & conn, events_t const & events) override;
+  void unregister_connectors(connector const * conns, size_t amount, events_t const & events) override;
 
   virtual void wait_for_events(io_events & events,
-      duration const & timeout);
+      duration const & timeout) override;
 
 private:
   /***************************************************************************

@@ -44,19 +44,19 @@ public:
       connector_options const & options);
   virtual ~connector_local();
 
-  error_t listen();
+  error_t listen() override;
 
-  bool listening() const;
-  bool connected() const;
+  bool listening() const override;
+  bool connected() const override;
 
-  handle get_read_handle() const;
-  handle get_write_handle() const;
+  handle get_read_handle() const override;
+  handle get_write_handle() const override;
 
-  error_t connect();
+  error_t connect() override;
 
-  connector_interface * accept(net::socket_address & addr);
+  connector_interface * accept(net::socket_address & addr) override;
 
-  error_t close();
+  error_t close() override;
 
 private:
   connector_local();

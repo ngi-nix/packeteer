@@ -44,13 +44,13 @@ public:
       connector_options const & options);
   ~connector_tcp();
 
-  error_t listen();
+  error_t listen() override;
 
-  error_t connect();
+  error_t connect() override;
 
-  connector_interface * accept(net::socket_address & addr);
+  connector_interface * accept(net::socket_address & addr) override;
 
-  error_t close();
+  error_t close() override;
 
 private:
   connector_tcp();

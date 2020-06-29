@@ -503,8 +503,8 @@ socket_address::hash() const
 
 
 
-void
-socket_address::swap(socket_address & other)
+// cppcheck-suppress constParameter
+void socket_address::swap(socket_address & other)
 {
   void * buf1 = &(data.sa_storage);
   void * buf2 = &(other.data.sa_storage);

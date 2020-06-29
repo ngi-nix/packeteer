@@ -181,7 +181,7 @@ connector_fifo::connector_fifo(net::socket_address const & addr,
 
 connector_fifo::~connector_fifo()
 {
-  close();
+  connector_fifo::close();
 }
 
 

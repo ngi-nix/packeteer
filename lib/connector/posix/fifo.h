@@ -45,20 +45,20 @@ public:
       connector_options const & options);
   ~connector_fifo();
 
-  error_t listen();
-  bool listening() const;
+  error_t listen() override;
+  bool listening() const override;
 
-  error_t connect();
-  bool connected() const;
+  error_t connect() override;
+  bool connected() const override;
 
-  connector_interface * accept(net::socket_address & addr);
+  connector_interface * accept(net::socket_address & addr) override;
 
-  handle get_read_handle() const;
-  handle get_write_handle() const;
+  handle get_read_handle() const override;
+  handle get_write_handle() const override;
 
-  error_t close();
+  error_t close() override;
 
-  bool is_blocking() const;
+  bool is_blocking() const override;
 
 private:
   connector_fifo();

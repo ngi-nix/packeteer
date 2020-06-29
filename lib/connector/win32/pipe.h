@@ -45,26 +45,26 @@ public:
       connector_options const & options);
   ~connector_pipe();
 
-  error_t listen();
-  bool listening() const;
+  error_t listen() override;
+  bool listening() const override;
 
-  error_t connect();
-  bool connected() const;
+  error_t connect() override;
+  bool connected() const override;
 
-  connector_interface * accept(net::socket_address & addr);
+  connector_interface * accept(net::socket_address & addr) override;
 
-  handle get_read_handle() const;
-  handle get_write_handle() const;
+  handle get_read_handle() const override;
+  handle get_write_handle() const override;
 
-  error_t close();
+  error_t close() override;
 
-  bool is_blocking() const;
+  bool is_blocking() const override;
 
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender);
+      ::packeteer::net::socket_address & sender) override;
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient);
-  size_t peek() const;
+      ::packeteer::net::socket_address const & recipient) override;
+  size_t peek() const override;
 
 
 private:

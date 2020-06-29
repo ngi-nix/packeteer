@@ -234,6 +234,7 @@ url::str() const
   if (!query.empty()) {
     ret += "?";
     for (auto elem : query) {
+      // cppcheck-suppress useStlAlgorithm
       ret += urlencode(elem.first) + "=" + urlencode(elem.second) + "&";
     }
     ret.resize(ret.length() - 1);

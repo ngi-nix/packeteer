@@ -91,7 +91,7 @@ public:
    * May throw if the specified type is not supported. Best leave it at
    * TYPE_AUTOMATIC.
    **/
-  scheduler(std::shared_ptr<api> api, ssize_t num_workers = -1,
+  explicit scheduler(std::shared_ptr<api> api, ssize_t num_workers = -1,
       scheduler_type type = TYPE_AUTOMATIC);
 
   ~scheduler();

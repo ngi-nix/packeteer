@@ -65,7 +65,7 @@ connector_udp::connector_udp(net::socket_address const & addr,
 
 connector_udp::~connector_udp()
 {
-  close();
+  connector_udp::close();
 }
 
 

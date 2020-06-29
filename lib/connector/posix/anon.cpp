@@ -43,7 +43,7 @@ connector_anon::connector_anon(connector_options const & options)
 
 connector_anon::~connector_anon()
 {
-  close();
+  connector_anon::close();
 }
 
 
