@@ -105,10 +105,8 @@ TEST_P(IOThread, simple_test)
   std::this_thread::sleep_for(sc::milliseconds(50));
 
   // It's running... kill it.
-  std::cout << "about to stop" << std::endl;
   thread.stop();
   std::this_thread::sleep_for(sc::milliseconds(50));
-  std::cout << "stopped?" << std::endl;
 
   // After this, the results should contain exactly one read event for
   // our own dummy connector.
@@ -192,10 +190,8 @@ TEST_P(IOThread, with_connector)
   // 4) we kill the I/O thread.
 
   // It's running... kill it.
-  std::cout << "about to stop" << std::endl;
   thread.stop();
   std::this_thread::sleep_for(sc::milliseconds(50));
-  std::cout << "stopped?" << std::endl;
 
   // After this, the results should contain a read event for our test
   // connector.
