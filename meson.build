@@ -151,7 +151,7 @@ conf_data.set_quoted('PACKETEER_ABI_VERSION', ABI_VERSION)
 conf_data.set_quoted('PACKETEER_LIB_VERSION', LIB_VERSION)
 
 conf_data.set_quoted('PACKETEER_PACKAGE_NAME', meson.project_name())
-conf_data.set_quoted('PACKETEER_PACKAGE_URL', 'https://gitlab.com/jfinkhaeuser/packeteer')
+conf_data.set_quoted('PACKETEER_PACKAGE_URL', 'https://gitlab.com/interpeer/packeteer')
 
 ### Host platform details
 conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
