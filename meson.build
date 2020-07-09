@@ -71,7 +71,7 @@ cpp_args = []
 posix_common_args = [
   '-Wall', '-Wextra', '-Wpedantic', '-Wshadow', '-Wstrict-aliasing',
   '-Wstrict-overflow=5', '-Wcast-align',
-  '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast', '-Wabi',
+  '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast',
 ]
 if compiler_id == 'clang'
   cpp_args += posix_common_args + [
