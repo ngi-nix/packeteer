@@ -118,7 +118,7 @@ struct test_connector : packeteer::connector_interface
   virtual bool connected() const { return false; }
 
   virtual packeteer::connector_interface *
-  accept(packeteer::net::socket_address &)
+  accept(liberate::net::socket_address &)
   {
     return nullptr;
   }
@@ -138,9 +138,9 @@ struct test_connector : packeteer::connector_interface
   virtual packeteer::connector_options get_options() const { return packeteer::CO_DEFAULT; }
 
   virtual packeteer::error_t receive(void *, size_t, size_t &,
-      ::packeteer::net::socket_address &) { return packeteer::ERR_SUCCESS; }
+      ::liberate::net::socket_address &) { return packeteer::ERR_SUCCESS; }
   virtual packeteer::error_t send(void const *, size_t, size_t &,
-      ::packeteer::net::socket_address const &) { return packeteer::ERR_SUCCESS; }
+      ::liberate::net::socket_address const &) { return packeteer::ERR_SUCCESS; }
   virtual size_t peek() const { return 0; }
 
   virtual packeteer::error_t read(void *, size_t, size_t &) { return packeteer::ERR_SUCCESS; }
@@ -167,7 +167,7 @@ TEST(Registry, scheme_empty_name)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -185,7 +185,7 @@ TEST(Registry, scheme_bad_type)
 
   auto info = registry::connector_info{CT_UNSPEC, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -218,7 +218,7 @@ TEST(Registry, scheme_register_success)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -236,7 +236,7 @@ TEST(Registry, scheme_fail_instantiation)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -259,7 +259,7 @@ TEST(Registry, scheme_instantiation)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (util::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return new test_connector{};
     }

@@ -26,7 +26,7 @@
 
 #include <packeteer.h>
 
-#include <packeteer/net/socket_address.h>
+#include <liberate/net/socket_address.h>
 
 #include "common.h"
 
@@ -59,7 +59,7 @@ set_blocking(SOCKET socket, bool blocking);
 struct connector_socket : public connector_common
 {
 public:
-  connector_socket(::packeteer::net::socket_address const & addr,
+  connector_socket(::liberate::net::socket_address const & addr,
       connector_options const & options);
 
   // Connector interface, partially implemented
@@ -72,9 +72,9 @@ public:
   bool is_blocking() const override;
 
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender) override;
+      ::liberate::net::socket_address & sender) override;
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient) override;
+      ::liberate::net::socket_address const & recipient) override;
   size_t peek() const override;
 
   // Socket-specific versions of connect() and accept()
@@ -84,13 +84,13 @@ public:
       handle::sys_handle_t & h);
   error_t socket_listen(handle::sys_handle_t h);
   error_t socket_connect(int domain, int type, int proto);
-  error_t socket_accept(handle::sys_handle_t & new_handle, net::socket_address & addr);
+  error_t socket_accept(handle::sys_handle_t & new_handle, liberate::net::socket_address & addr);
   error_t socket_close();
 
 protected:
   explicit connector_socket(connector_options const & options);
 
-  ::packeteer::net::socket_address  m_addr = {};
+  ::liberate::net::socket_address   m_addr = {};
   bool                              m_server = false;
   bool                              m_connected = false;
   ::packeteer::handle::sys_handle_t m_handle = ::packeteer::handle::INVALID_SYS_HANDLE;

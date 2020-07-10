@@ -26,8 +26,6 @@
 
 #include <packeteer.h>
 
-#include <packeteer/net/socket_address.h>
-
 #include "common.h"
 
 namespace packeteer::detail {
@@ -38,7 +36,7 @@ namespace packeteer::detail {
 struct connector_socket : public ::packeteer::detail::connector_common
 {
 public:
-  connector_socket(::packeteer::net::socket_address const & addr,
+  connector_socket(::liberate::net::socket_address const & addr,
       connector_options const & options);
 
   // Connector interface, partially implemented
@@ -55,13 +53,13 @@ public:
   error_t socket_bind(int domain, int type, int & fd);
   error_t socket_listen(int fd);
   error_t socket_connect(int domain, int type);
-  error_t socket_accept(int & new_fd, net::socket_address & addr);
+  error_t socket_accept(int & new_fd, liberate::net::socket_address & addr);
   error_t socket_close();
 
 protected:
   explicit connector_socket(connector_options const & options);
 
-  ::packeteer::net::socket_address  m_addr = {};
+  ::liberate::net::socket_address   m_addr = {};
   bool                              m_server = false;
   bool                              m_connected = false;
   int                               m_fd = -1;

@@ -19,10 +19,11 @@
  **/
 #include <packeteer/registry.h>
 
+#include <liberate/string/util.h>
+
 #include <packeteer/connector/peer_address.h>
 
 #include "macros.h"
-#include "util/string.h"
 #include "connector/connectors.h"
 #include "connector/util.h"
 
@@ -40,7 +41,7 @@ namespace packeteer {
 namespace {
 
 connector_interface *
-inet_creator(util::url const & url, connector_type const & ctype,
+inet_creator(liberate::net::url const & url, connector_type const & ctype,
     connector_options const & options, registry::connector_info const * info)
   OCLINT_SUPPRESS("high cyclomatic complexity")
   OCLINT_SUPPRESS("long method")
@@ -50,10 +51,10 @@ inet_creator(util::url const & url, connector_type const & ctype,
   }
 
   // Parse socket address.
-  auto addr = net::socket_address{url.authority};
+  auto addr = liberate::net::socket_address{url.authority};
 
   // Make sure the parsed address type matches the protocol.
-  if (net::AT_INET4 == addr.type()) {
+  if (liberate::net::AT_INET4 == addr.type()) {
     if (CT_TCP4 != ctype
         && CT_TCP != ctype
         && CT_UDP4 != ctype
@@ -62,7 +63,7 @@ inet_creator(util::url const & url, connector_type const & ctype,
       throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
     }
   }
-  else if (net::AT_INET6 == addr.type()) {
+  else if (liberate::net::AT_INET6 == addr.type()) {
     if (CT_TCP6 != ctype
         && CT_TCP != ctype
         && CT_UDP6 != ctype
@@ -165,7 +166,7 @@ struct registry::registry_impl
       return ERR_EMPTY_CALLBACK;
     }
 
-    auto normalized = util::to_lower(parameter);
+    auto normalized = liberate::string::to_lower(parameter);
 
     auto option = option_mappers.find(normalized);
     if (option != option_mappers.end()) {
@@ -255,7 +256,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("anon", connector_info{CT_ANON,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -276,7 +277,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("pipe", connector_info{CT_PIPE,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -297,7 +298,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("fifo", connector_info{CT_FIFO,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -318,7 +319,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -358,7 +359,7 @@ struct registry::registry_impl
       return ERR_EMPTY_CALLBACK;
     }
 
-    auto normalized = util::to_lower(scheme);
+    auto normalized = liberate::string::to_lower(scheme);
 
     auto scheme_info = scheme_map.find(normalized);
     if (scheme_info != scheme_map.end()) {
@@ -376,7 +377,7 @@ struct registry::registry_impl
   connector_info
   info_for_scheme(std::string const & scheme)
   {
-    auto normalized = util::to_lower(scheme);
+    auto normalized = liberate::string::to_lower(scheme);
 
     auto scheme_info = scheme_map.find(normalized);
     if (scheme_info == scheme_map.end()) {

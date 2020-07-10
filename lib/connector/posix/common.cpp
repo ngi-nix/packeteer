@@ -25,6 +25,7 @@
 #include "common.h"
 
 #include "../../macros.h"
+#include "../../net/netincludes.h"
 
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -98,7 +99,7 @@ connector_common::~connector_common()
 
 error_t
 connector_common::receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender)
+      liberate::net::socket_address & sender)
 {
   socklen_t socklen = sender.bufsize_available();
   ssize_t amount = ::recvfrom(get_read_handle().sys_handle(), buf, bufsize,
@@ -130,7 +131,7 @@ connector_common::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
 error_t
 connector_common::send(void const * buf, size_t bufsize,
-    size_t & bytes_written, ::packeteer::net::socket_address const & recipient)
+    size_t & bytes_written, liberate::net::socket_address const & recipient)
 {
   ssize_t amount = ::sendto(get_write_handle().sys_handle(),
       buf, bufsize, MSG_DONTWAIT,

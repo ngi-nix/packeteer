@@ -20,11 +20,13 @@
 #include <iostream>
 #include <cstring>
 
+#include <liberate/net/url.h>
+#include <liberate/net/socket_address.h>
+
 #include <packeteer.h>
 #include <packeteer/error.h>
 #include <packeteer/connector.h>
 #include <packeteer/scheduler.h>
-#include <packeteer/net/socket_address.h>
 
 #include "backends.h"
 
@@ -57,8 +59,8 @@ struct p7r_ops : public backend_ops
 
     uint16_t port = opts.port_range_start;
     for (conn_index i = 0 ; i < opts.conns ; ++i, ++port) {
-      net::socket_address addr{"127.0.0.1", port};
-      auto url = util::url::parse("udp://" + addr.full_str());
+      liberate::net::socket_address addr{"127.0.0.1", port};
+      auto url = liberate::net::url::parse("udp://" + addr.full_str());
       auto conn = connector(m_api, url);
 
       conn.listen();

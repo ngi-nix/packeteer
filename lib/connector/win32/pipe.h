@@ -28,8 +28,6 @@
 
 #include <packeteer/handle.h>
 
-#include <packeteer/net/socket_address.h>
-
 #include "common.h"
 
 namespace packeteer::detail {
@@ -41,7 +39,7 @@ struct connector_pipe : public connector_common
 {
 public:
   connector_pipe(std::string const & path, connector_options const & options);
-  connector_pipe(::packeteer::net::socket_address const & addr,
+  connector_pipe(::liberate::net::socket_address const & addr,
       connector_options const & options);
   ~connector_pipe();
 
@@ -51,7 +49,7 @@ public:
   error_t connect() override;
   bool connected() const override;
 
-  connector_interface * accept(net::socket_address & addr) override;
+  connector_interface * accept(liberate::net::socket_address & addr) override;
 
   handle get_read_handle() const override;
   handle get_write_handle() const override;
@@ -61,16 +59,16 @@ public:
   bool is_blocking() const override;
 
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender) override;
+      ::liberate::net::socket_address & sender) override;
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient) override;
+      ::liberate::net::socket_address const & recipient) override;
   size_t peek() const override;
 
 
 private:
   connector_pipe();
 
-  ::packeteer::net::socket_address  m_addr = {};
+  ::liberate::net::socket_address   m_addr = {};
   bool                              m_server = false;
   bool                              m_owner = false;
   bool                              m_connected = false;

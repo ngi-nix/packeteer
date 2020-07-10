@@ -31,7 +31,7 @@ namespace packeteer::detail {
 namespace {
 
 inline int
-select_domain(::packeteer::net::socket_address const & addr)
+select_domain(liberate::net::socket_address const & addr)
 {
   switch (addr.type()) {
     case ::packeteer::net::AT_INET4:

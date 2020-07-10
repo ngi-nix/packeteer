@@ -29,10 +29,10 @@
 #include <functional>
 #include <map>
 
+#include <liberate/net/url.h>
+
 #include <packeteer/connector/types.h>
 #include <packeteer/connector/interface.h>
-
-#include <packeteer/util/url.h>
 
 namespace packeteer {
 
@@ -121,7 +121,7 @@ public:
 
   using scheme_creator = std::function<
     ::packeteer::connector_interface * (
-        util::url const &,
+        liberate::net::url const &,
         connector_type const & type,
         connector_options const &,
         connector_info const * info

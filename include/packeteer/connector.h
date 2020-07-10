@@ -32,16 +32,16 @@
 #include <functional>
 #include <iostream>
 
+#include <liberate/cpp/operators.h>
+#include <liberate/net/url.h>
+#include <liberate/net/socket_address.h>
+
 #include <packeteer/handle.h>
 
 #include <packeteer/connector/types.h>
 #include <packeteer/connector/interface.h>
 #include <packeteer/connector/peer_address.h>
 
-#include <packeteer/util/operators.h>
-#include <packeteer/util/url.h>
-
-#include <packeteer/net/socket_address.h>
 
 namespace packeteer {
 
@@ -61,7 +61,7 @@ namespace packeteer {
  * via connector's static registry functions.
  **/
 class PACKETEER_API connector
-  : public ::packeteer::util::operators<connector>
+  : public ::liberate::cpp::operators<connector>
 {
 public:
   /***************************************************************************
@@ -122,7 +122,7 @@ public:
    * place of a connector pointer.
    **/
   connector(std::shared_ptr<api> api, std::string const & connect_url);
-  connector(std::shared_ptr<api> api, util::url const & connect_url);
+  connector(std::shared_ptr<api> api, liberate::net::url const & connect_url);
   connector() = default;
   ~connector() = default;
 
@@ -134,8 +134,8 @@ public:
   /**
    * Returns the connector's address.
    **/
-  util::url connect_url() const;
-  net::socket_address socket_address() const;
+  liberate::net::url connect_url() const;
+  liberate::net::socket_address socket_address() const;
   peer_address peer_addr() const;
 
   /**
@@ -230,9 +230,9 @@ public:
    * Note that receive() and send() are best used for CO_DATAGRAM connectors.
    **/
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender);
+      ::liberate::net::socket_address & sender);
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient);
+      ::liberate::net::socket_address const & recipient);
 
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
       peer_address & sender);

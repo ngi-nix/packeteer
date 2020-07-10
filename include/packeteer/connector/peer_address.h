@@ -28,21 +28,21 @@
 
 #include <packeteer/connector/types.h>
 
-#include <packeteer/net/socket_address.h>
+#include <liberate/cpp/operators.h>
 
-#include <packeteer/util/url.h>
-#include <packeteer/util/operators.h>
+#include <liberate/net/socket_address.h>
+#include <liberate/net/url.h>
 
 namespace packeteer {
 
 /**
- * The peer_address extends net::socket_address with a connector type. In
- * this way, we can distinguish e.g. UDP and TCP peers with the same IP and
+ * The peer_address extends liberate::net::socket_address with a connector type.
+ * In this way, we can distinguish e.g. UDP and TCP peers with the same IP and
  * port.
  **/
 
 class PACKETEER_API peer_address
-  : public ::packeteer::util::operators<peer_address>
+  : public ::liberate::cpp::operators<peer_address>
 {
 public:
   /**
@@ -73,7 +73,7 @@ public:
   peer_address(connector_type const & type, char const * address,
       uint16_t port = 0);
   peer_address(connector_type const & type,
-      ::packeteer::net::socket_address const & address);
+      ::liberate::net::socket_address const & address);
 
 
   /**
@@ -82,7 +82,7 @@ public:
    * of the string format.
    **/
   explicit peer_address(std::string const & address);
-  explicit peer_address(::packeteer::util::url const & url);
+  explicit peer_address(::liberate::net::url const & url);
 
 
   /**
@@ -108,8 +108,8 @@ public:
   /**
    * Expose the socket address, too.
    **/
-  net::socket_address & socket_address();
-  net::socket_address const & socket_address() const;
+  liberate::net::socket_address & socket_address();
+  liberate::net::socket_address const & socket_address() const;
 
   /**
    * Behave like a value type.
@@ -122,15 +122,15 @@ public:
   size_t hash() const;
 
   /**
-   * Used by util::operators
+   * Used by liberate::cpp::operators
    **/
 
   bool is_equal_to(peer_address const & other) const;
   bool is_less_than(peer_address const & other) const;
 
 private:
-  net::socket_address m_sockaddr;
-  connector_type      m_connector_type;
+  liberate::net::socket_address m_sockaddr;
+  connector_type                m_connector_type;
 
   friend PACKETEER_API_FRIEND std::ostream & operator<<(std::ostream & os, peer_address const & addr);
 };

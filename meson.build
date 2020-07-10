@@ -175,6 +175,7 @@ endif
 if compiler.has_header('poll.h')
   conf_data.set('PACKETEER_HAVE_POLL_H', true)
 endif
+# FIXME
 if compiler.has_header('arpa' / 'inet.h')
   conf_data.set('PACKETEER_HAVE_ARPA_INET_H', true)
 endif
@@ -475,6 +476,13 @@ configure_file(
 thread = dependency('threads', required: true)
 
 ##############################################################################
+# Meson Wrap Dependencies
+liberate = subproject('liberate')
+gtest = subproject('gtest')
+clipp = subproject('muellan-clipp')
+
+
+##############################################################################
 # Library
 
 includes = include_directories(
@@ -504,24 +512,6 @@ install_headers(
   subdir: 'packeteer',
 )
 
-install_headers(
-  'include' / 'packeteer' / 'net' / 'socket_address.h',
-  'include' / 'packeteer' / 'net' / 'network.h',
-
-  subdir: 'packeteer' / 'net',
-)
-
-install_headers(
-  'include' / 'packeteer' / 'util' / 'operators.h',
-  'include' / 'packeteer' / 'util' / 'hash.h',
-  'include' / 'packeteer' / 'util' / 'url.h',
-  'include' / 'packeteer' / 'util' / 'tmp.h',
-  'include' / 'packeteer' / 'util' / 'path.h',
-
-  subdir: 'packeteer' / 'util',
-)
-
-
 libsrc = [
   'lib' / 'version.cpp',
   'lib' / 'error.cpp',
@@ -533,14 +523,7 @@ libsrc = [
   'lib' / 'scheduler' / 'worker.cpp',
   'lib' / 'scheduler' / 'scheduler_impl.cpp',
   'lib' / 'scheduler' / 'io_thread.cpp',
-  'lib' / 'net' / 'socket_address.cpp',
-  'lib' / 'net' / 'network.cpp',
-  'lib' / 'net' / 'cidr.cpp',
   'lib' / 'thread' / 'tasklet.cpp',
-  'lib' / 'util' / 'url.cpp',
-  'lib' / 'util' / 'string.cpp',
-  'lib' / 'util' / 'tmp.cpp',
-  'lib' / 'util' / 'path.cpp',
 ]
 
 
@@ -608,7 +591,10 @@ endif
 
 lib = library('packeteer', libsrc,
     include_directories: [includes, libincludes],
-    dependencies: [thread],
+    dependencies: [
+      thread,
+      liberate.get_variable('liberate_dep'),
+    ],
     link_args: link_args,
     cpp_args: cpp_lib_is_building,
     version: LIB_VERSION,
@@ -617,16 +603,14 @@ lib = library('packeteer', libsrc,
 
 packeteer_dep = declare_dependency(
     include_directories: [includes],
+    dependencies: [
+      liberate.get_variable('liberate_dep'),
+    ],
     link_with: [lib],
     link_args: link_args,
     version: LIB_VERSION,
 )
 
-##############################################################################
-# Meson Wrap Dependencies
-liberate = subproject('liberate')
-gtest = subproject('gtest')
-clipp = subproject('muellan-clipp')
 
 ##############################################################################
 # Tests
@@ -656,11 +640,6 @@ if not meson.is_subproject()
     'test' / 'public' / 'test_registry.cpp',
     'test' / 'public' / 'test_error.cpp',
     'test' / 'public' / 'test_handle.cpp',
-    'test' / 'public' / 'test_util_url.cpp',
-    'test' / 'public' / 'test_util_tmp.cpp',
-    'test' / 'public' / 'test_util_path.cpp',
-    'test' / 'public' / 'test_net_network.cpp',
-    'test' / 'public' / 'test_net_socket_address.cpp',
     'test' / 'public' / 'test_scheduler_callback.cpp',
     'test' / 'public' / 'test_scheduler.cpp',
     'test' / 'public' / 'test_connector_peer_address.cpp',
@@ -672,8 +651,6 @@ if not meson.is_subproject()
     'test' / 'private' / 'test_concurrent_queue.cpp',
     'test' / 'private' / 'test_connector_util.cpp',
     'test' / 'private' / 'test_scheduler_containers.cpp',
-    'test' / 'private' / 'test_net_cidr.cpp',
-    'test' / 'private' / 'test_util_string.cpp',
     'test' / 'private' / 'test_thread_binder.cpp',
     'test' / 'private' / 'test_thread_tasklet.cpp',
     'test' / 'private' / 'test_io_thread.cpp',

@@ -25,9 +25,9 @@
 
 #include <stdlib.h>
 
-#include <packeteer/registry.h>
-
 #include "net/netincludes.h"
+
+#include <packeteer/registry.h>
 
 #include "macros.h"
 

@@ -345,7 +345,7 @@ write(::packeteer::handle handle,
 error_t
 receive(::packeteer::handle handle,
     void * buf, size_t amount, ssize_t & read,
-    ::packeteer::net::socket_address & sender)
+    liberate::net::socket_address & sender)
 {
   return read_op(handle, buf, amount, read, &sender);
 }
@@ -355,7 +355,7 @@ receive(::packeteer::handle handle,
 error_t
 send(::packeteer::handle handle,
     void const * buf, size_t amount, ssize_t & written,
-    ::packeteer::net::socket_address const & recipient)
+    liberate::net::socket_address const & recipient)
 {
   return write_op(handle, buf, amount, written, &recipient);
 }

@@ -25,7 +25,7 @@
 
 #include <cstring>
 
-#include "util/string.h"
+#include <liberate/string/utf8.h>
 
 namespace packeteer {
 
@@ -114,7 +114,7 @@ combine_error(std::string & result, error_t code, int errnum,
           sizeof(buf) / sizeof(TCHAR), nullptr);
 
       result += " // ";
-      result += util::to_utf8(buf);
+      result += liberate::string::to_utf8(buf);
 
       // Remove newline from FormatMessage
       result.resize(result.length() - 3);

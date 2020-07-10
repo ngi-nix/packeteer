@@ -26,6 +26,8 @@
 #error You are trying to include a C++ only header file
 #endif
 
+#include <memory>
+
 /**
  * Which platform are we on?
  **/

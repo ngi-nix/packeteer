@@ -501,7 +501,7 @@ connector_socket::is_blocking() const
 
 error_t
 connector_socket::receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender)
+      liberate::net::socket_address & sender)
 {
   if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
@@ -521,7 +521,7 @@ connector_socket::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
 error_t
 connector_socket::send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient)
+      liberate::net::socket_address const & recipient)
 {
   if (!connected() && !listening()) {
     return ERR_INITIALIZATION;
