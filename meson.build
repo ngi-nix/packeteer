@@ -624,6 +624,7 @@ packeteer_dep = declare_dependency(
 
 ##############################################################################
 # Meson Wrap Dependencies
+liberate = subproject('liberate')
 gtest = subproject('gtest')
 clipp = subproject('muellan-clipp')
 
