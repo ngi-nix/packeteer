@@ -2,3 +2,8 @@ googletest-*/
 clipp-*/
 liberate*/
 packagecache/
+
+# From liberate
+spdlog*
+loguru*
+plog*
