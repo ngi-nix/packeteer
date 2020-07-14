@@ -41,6 +41,7 @@ build_script:
 
 test_script:
 - cmd: |
+    set PATH="%CD%\\subprojects\\liberate;%PATH%"
     public_tests "--gtest_output=xml:public-test-results.xml"
     private_tests "--gtest_output=xml:private-test-results.xml"
 
