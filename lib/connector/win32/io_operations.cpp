@@ -115,7 +115,7 @@ translate_error()
 error_t
 read_op(::packeteer::handle handle,
     void * dest, size_t amount, ssize_t & read,
-    net::socket_address * addr)
+    liberate::net::socket_address * addr)
 {
   if (!handle.valid()) {
     return ERR_INVALID_VALUE;
@@ -230,7 +230,7 @@ read_op(::packeteer::handle handle,
 error_t
 write_op(::packeteer::handle handle,
     void const * source, size_t amount, ssize_t & written,
-    net::socket_address const * addr)
+    liberate::net::socket_address const * addr)
 {
   if (!handle.valid()) {
     return ERR_INVALID_VALUE;

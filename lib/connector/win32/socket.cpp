@@ -21,7 +21,6 @@
 
 #include "socket.h"
 
-#include <packeteer/net/socket_address.h>
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
 
@@ -228,7 +227,7 @@ close_socket(SOCKET sock)
 
 
 
-connector_socket::connector_socket(net::socket_address const & addr,
+connector_socket::connector_socket(liberate::net::socket_address const & addr,
     connector_options const & options)
   : connector_common(options)
   , m_addr(addr)
@@ -252,7 +251,7 @@ connector_socket::socket_connect(int domain, int type, int proto)
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -337,7 +336,7 @@ connector_socket::socket_bind(int domain, int type, int proto, handle::sys_handl
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -444,7 +443,7 @@ connector_socket::socket_close()
 
 
 error_t
-connector_socket::socket_accept(handle::sys_handle_t & new_handle, net::socket_address & addr)
+connector_socket::socket_accept(handle::sys_handle_t & new_handle, liberate::net::socket_address & addr)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!listening()) {
@@ -453,12 +452,12 @@ connector_socket::socket_accept(handle::sys_handle_t & new_handle, net::socket_a
 
   // Accept connection
   new_handle = handle::INVALID_SYS_HANDLE;
-  net::detail::address_data buf;
+  liberate::net::detail::address_data buf;
   ::socklen_t len = sizeof(buf);
 
   SOCKET sock = INVALID_SOCKET;
   while (true) {
-    sock = ::accept(m_handle->socket, &buf.sa, &len);
+    sock = ::accept(m_handle->socket, reinterpret_cast<sockaddr *>(&buf), &len);
     if (sock != INVALID_SOCKET) {
       break;
     }
@@ -485,7 +484,7 @@ connector_socket::socket_accept(handle::sys_handle_t & new_handle, net::socket_a
   new_handle->blocking = m_options & CO_BLOCKING;
 
   // Keep address and return success.
-  addr = net::socket_address(&buf, len);
+  addr = liberate::net::socket_address(&buf, len);
   return ERR_SUCCESS;
 }
 
@@ -508,7 +507,7 @@ connector_socket::receive(void * buf, size_t bufsize, size_t & bytes_read,
   }
 
   ssize_t have_read = -1;
-  net::socket_address addr;
+  liberate::net::socket_address addr;
   auto err = detail::receive(get_read_handle(), buf, bufsize, have_read, addr);
   if (ERR_SUCCESS == err) {
     bytes_read = have_read;

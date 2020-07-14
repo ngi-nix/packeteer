@@ -159,7 +159,7 @@ connector_anon::connected() const
 
 
 connector_interface *
-connector_anon::accept(net::socket_address & /* unused */)
+connector_anon::accept(liberate::net::socket_address & /* unused */)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!connected()) {
@@ -224,7 +224,7 @@ connector_anon::receive(void * buf, size_t bufsize, size_t & bytes_read,
   auto err = detail::read(get_read_handle(), buf, bufsize, have_read);
   if (ERR_SUCCESS == err) {
     bytes_read = have_read;
-    sender = net::socket_address{m_addr};
+    sender = liberate::net::socket_address{m_addr};
   }
   return err;
 }

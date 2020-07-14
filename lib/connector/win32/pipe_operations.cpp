@@ -19,11 +19,12 @@
  **/
 #include <build-config.h>
 
-#include <random>
-
 #include "pipe_operations.h"
 
-#include "../../util/string.h"
+#include <random>
+
+#include <liberate/string/util.h>
+
 #include "../../macros.h"
 #include "../../win32/sys_handle.h"
 
@@ -92,7 +93,7 @@ normalize_pipe_path(std::string const & original)
   static const size_t prefix_len = pipe_prefix.length();
 
   auto tmp = std::string{&buffer[0], &buffer[0] + copylen};
-  auto prefix_offset = ::packeteer::util::ifind(tmp, pipe_prefix);
+  auto prefix_offset = ::liberate::string::ifind(tmp, pipe_prefix);
   size_t name_offset = 0;
   if (prefix_offset == 0) {
     name_offset = prefix_len;

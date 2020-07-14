@@ -24,8 +24,6 @@
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
 
-#include <packeteer/net/socket_address.h>
-
 #include "../../globals.h"
 #include "../../macros.h"
 #include "../../win32/sys_handle.h"
@@ -93,7 +91,7 @@ connector_pipe::connector_pipe(std::string const & path,
 
 
 
-connector_pipe::connector_pipe(net::socket_address const & addr,
+connector_pipe::connector_pipe(liberate::net::socket_address const & addr,
     connector_options const & options)
   : connector_common((options | CO_STREAM) & ~CO_DATAGRAM)
   , m_addr{addr}
@@ -174,7 +172,7 @@ connector_pipe::connected() const
 
 
 connector_interface *
-connector_pipe::accept(net::socket_address & /* unused */)
+connector_pipe::accept(liberate::net::socket_address & /* unused */)
 {
   // There is no need for accept(); we've already got the connection established.
   if (!listening()) {
@@ -289,7 +287,7 @@ connector_pipe::receive(void * buf, size_t bufsize, size_t & bytes_read,
   auto err = detail::read(get_read_handle(), buf, bufsize, have_read);
   if (ERR_SUCCESS == err) {
     bytes_read = have_read;
-    sender = net::socket_address{m_addr};
+    sender = liberate::net::socket_address{m_addr};
   }
   return err;
 }

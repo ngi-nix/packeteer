@@ -669,6 +669,7 @@ if not meson.is_subproject()
       dependencies: [
         packeteer_dep,
         gtest.get_variable('gtest_dep'),
+        liberate.get_variable('liberate_dep'),
       ],
       cpp_args: test_args,
   )
@@ -681,6 +682,7 @@ if not meson.is_subproject()
         dependencies: [
           packeteer_dep,
           gtest.get_variable('gtest_dep'),
+          liberate.get_variable('liberate_dep'),
         ],
         cpp_args: test_args,
     )

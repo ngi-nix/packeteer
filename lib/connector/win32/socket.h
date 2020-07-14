@@ -26,8 +26,6 @@
 
 #include <packeteer.h>
 
-#include <liberate/net/socket_address.h>
-
 #include "common.h"
 
 #include "../../net/netincludes.h"
