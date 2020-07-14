@@ -8,13 +8,7 @@ if not meson.is_subproject()
   # Detect 3rdparty libraries
 
   libevent_dep = compiler.find_library('event',
-      required: true,
-      dirs: [
-        'C:\\Users\\jens\\source\\repos\\inst\\lib',
-      ],
-      header_args: [
-        '-IC:\\Users\\jens\\source\\repos\\inst\\include',
-      ],
+      required: false,
       has_headers: ['event2' / 'event.h']
   )
   summary('libevent', libevent_dep.found(), bool_yn: true, section: 'Competitors')
@@ -65,12 +59,6 @@ if not meson.is_subproject()
       dependencies: [
         event_deps,
         clipp.get_variable('clipp_dep'),
-      ],
-      link_args: [
-        '/NODEFAULTLIB:library',
-      ],
-      include_directories: [
-        'C:\\Users\\jens\\source\\repos\\inst\\include',
       ],
   )
 
