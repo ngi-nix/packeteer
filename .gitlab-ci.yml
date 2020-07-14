@@ -53,7 +53,7 @@ build:gcc:
   <<: *build-linux
   variables:
     compiler: g++
-    coverage: "true"
+    # FIXME coverage: "true"
 
 build:gcc-i386:
   <<: *build-linux
@@ -142,9 +142,10 @@ test:gcc:
   stage: test
   needs:
     - build:gcc
-  variables:
-    coverage: "true"
-  coverage: /^TOTAL.*\s+(\d+\%)$/
+  # FIXME
+  # variables:
+  #   coverage: "true"
+  # coverage: /^TOTAL.*\s+(\d+\%)$/
 
 test:gcc-i386:
   <<: *test-linux
