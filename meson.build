@@ -3,7 +3,7 @@
 project('packeteer', 'cpp',
   version: '0.1.0',
   license: 'GPLv3',
-  meson_version: '>=0.55.0',
+  meson_version: '>=0.53.0',
   default_options: [
     'cpp_std=c++17',
     'default_library=both',
