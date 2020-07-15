@@ -57,12 +57,9 @@ build:gcc-i386:
   <<: *dep-android
   stage: build
   script:
-    - pip3 install pipenv
-    - pipenv install
-    - pipenv run ./android.py ${androidabi}
     - mkdir build
     - cd build
-    - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} --cross-file ../android-${androidabi}.txt ..
+    - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} --cross-file /meson/cross-files/android-${androidabi}.txt ..
     - ninja
   artifacts:
     name: build
