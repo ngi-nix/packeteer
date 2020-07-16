@@ -25,6 +25,8 @@
 
 #include <clipp.h>
 
+#include <packeteer/error.h>
+
 #include "backends.h"
 
 

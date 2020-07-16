@@ -28,7 +28,6 @@
 
 #include <packeteer.h>
 
-#include <packeteer/types.h>
 #include <packeteer/scheduler/types.h>
 
 #include <map>

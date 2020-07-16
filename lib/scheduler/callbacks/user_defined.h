@@ -28,8 +28,6 @@
 
 #include <packeteer.h>
 
-#include <packeteer/types.h>
-
 
 namespace packeteer::detail {
 

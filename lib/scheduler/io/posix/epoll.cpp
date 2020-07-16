@@ -34,7 +34,6 @@
 #include <chrono>
 
 #include <packeteer/error.h>
-#include <packeteer/types.h>
 #include <packeteer/connector.h>
 
 namespace sc = std::chrono;

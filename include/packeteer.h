@@ -40,11 +40,11 @@
 #  define PACKETEER_PLATFORM_DEFINED
 #endif
 
+// We want standard int types across the board.
+#include <liberate/types.h>
+
 // Visibility macros are used by all, so they must come first.
 #include <packeteer/visibility.h>
-
-// We want standard int types across the board.
-#include <packeteer/types.h>
 
 // Not all, but the very basic headers are always included.
 #include <packeteer/error.h>

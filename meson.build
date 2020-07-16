@@ -498,7 +498,6 @@ install_headers(
   'include' / 'packeteer.h',
   'include' / 'packeteer' / 'version.h',
   'include' / 'packeteer' / 'error.h',
-  'include' / 'packeteer' / 'types.h',
   'include' / 'packeteer' / 'scheduler.h',
   'include' / 'packeteer' / 'scheduler' / 'types.h',
   'include' / 'packeteer' / 'scheduler' / 'callback.h',

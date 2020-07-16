@@ -32,7 +32,6 @@
 #include <chrono>
 #include <unordered_map>
 
-#include <packeteer/types.h>
 #include <packeteer/connector.h>
 #include <packeteer/scheduler/types.h>
 #include <packeteer/scheduler/events.h>

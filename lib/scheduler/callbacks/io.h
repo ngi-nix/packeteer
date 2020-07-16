@@ -28,7 +28,6 @@
 
 #include <packeteer.h>
 
-#include <packeteer/types.h>
 #include <packeteer/connector.h>
 
 #include <unordered_map>
