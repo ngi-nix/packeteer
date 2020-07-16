@@ -23,8 +23,9 @@
 
 #include <unordered_set>
 
+#include <liberate/types.h>
+
 #include <packeteer/error.h>
-#include <packeteer/types.h>
 #include <packeteer/scheduler/events.h>
 
 #include "../../../globals.h"
