@@ -19,6 +19,8 @@
  **/
 #include <packeteer/registry.h>
 
+#include <unordered_map>
+
 #include <liberate/string/util.h>
 
 #include <packeteer/connector/peer_address.h>
