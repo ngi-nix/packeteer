@@ -20,26 +20,27 @@
 #ifndef PACKETEER_VISIBILITY_H
 #define PACKETEER_VISIBILITY_H
 
-/**
- * Use liberate's macros. To define them right, set LIBERATE_IS_BUILDING to
- * the value we've got from our own meson.build before including its
- * visibility header. Then restore the previous definition again, just in
- * case.
- */
-#define _LIBERATE_IS_BUILDING LIBERATE_IS_BUILDING
-#define LIBERATE_IS_BUILDING PACKETEER_IS_BUILDING
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+  #ifdef PACKETEER_IS_BUILDING
+    #define PACKETEER_API __declspec(dllexport)
+  #else
+    #define PACKETEER_API __declspec(dllimport)
+  #endif
+  #define PACKETEER_API_FRIEND PACKETEER_API
+#else // Windows
+  #if __GNUC__ >= 4
+    #define PACKETEER_API  [[gnu::visibility("default")]]
+  #else
+    #define PACKETEER_API
+  #endif // GNU C
+  #define PACKETEER_API_FRIEND
+#endif // POSIX
 
-#include <liberate/visibility.h>
-
-#undef LIBERATE_IS_BUILDING
-#define LIBERATE_IS_BUILDING _LIBERATE_IS_BUILDING
-
-/**
- * TODO: we can replace the PACKETEER_* macros across the library at some point,
- *       or leave these aliases.
- */
-#define PACKETEER_API LIBERATE_API
-#define PACKETEER_API_FRIEND LIBERATE_API_FRIEND
-#define PACKETEER_PRIVATE LIBERATE_PRIVATE
+// Private symbols may be exported in debug builds for testing purposes.
+#if defined(DEBUG)
+  #define PACKETEER_PRIVATE PACKETEER_API
+#else
+  #define PACKETEER_PRIVATE
+#endif
 
 #endif // guard
