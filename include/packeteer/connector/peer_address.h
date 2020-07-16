@@ -28,7 +28,7 @@
 
 #include <packeteer/connector/types.h>
 
-#include <liberate/cpp/operators.h>
+#include <liberate/cpp/operators/comparison.h>
 
 #include <liberate/net/socket_address.h>
 #include <liberate/net/url.h>
@@ -42,7 +42,7 @@ namespace packeteer {
  **/
 
 class PACKETEER_API peer_address
-  : public ::liberate::cpp::operators<peer_address>
+  : public ::liberate::cpp::comparison_operators<peer_address>
 {
 public:
   /**
@@ -122,7 +122,7 @@ public:
   size_t hash() const;
 
   /**
-   * Used by liberate::cpp::operators
+   * Used by liberate::cpp::comparison_operators
    **/
 
   bool is_equal_to(peer_address const & other) const;

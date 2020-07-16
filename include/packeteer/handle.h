@@ -34,7 +34,7 @@
 #include <memory>
 
 #include <liberate/cpp/hash.h>
-#include <liberate/cpp/operators.h>
+#include <liberate/cpp/operators/comparison.h>
 
 
 namespace packeteer {
@@ -42,7 +42,7 @@ namespace packeteer {
 /**
  * The handle class wraps I/O handles in a platform-independent fashion.
  **/
-struct PACKETEER_API handle : public ::liberate::cpp::operators<handle>
+struct PACKETEER_API handle : public ::liberate::cpp::comparison_operators<handle>
 {
 #if defined(PACKETEER_WIN32)
   // The WIN32 definition of sys_handle_t is an opaque, reference counted
@@ -158,7 +158,7 @@ public:
   friend std::ostream & operator<<(std::ostream & os, handle const & h);
 
 private:
-  friend struct ::liberate::cpp::operators<handle>;
+  friend struct ::liberate::cpp::comparison_operators<handle>;
 
   inline bool is_equal_to(handle const & other) const
   {

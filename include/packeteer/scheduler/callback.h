@@ -34,7 +34,7 @@
 #include <atomic>
 
 #include <liberate/cpp/hash.h>
-#include <liberate/cpp/operators.h>
+#include <liberate/cpp/operators/comparison.h>
 
 #include <packeteer/connector.h>
 
@@ -321,7 +321,7 @@ private:
  * with the copy managed by callback.
  **/
 class callback
-  : public ::liberate::cpp::operators<callback>
+  : public ::liberate::cpp::comparison_operators<callback>
 {
 public:
   /*****************************************************************************
@@ -565,7 +565,7 @@ public:
   }
 
 private:
-  friend struct ::liberate::cpp::operators<callback>;
+  friend struct ::liberate::cpp::comparison_operators<callback>;
 
   inline bool is_equal_to(callback const & other) const
   {

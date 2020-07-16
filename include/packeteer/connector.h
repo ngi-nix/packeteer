@@ -32,7 +32,7 @@
 #include <functional>
 #include <iostream>
 
-#include <liberate/cpp/operators.h>
+#include <liberate/cpp/operators/comparison.h>
 #include <liberate/net/url.h>
 #include <liberate/net/socket_address.h>
 
@@ -61,7 +61,7 @@ namespace packeteer {
  * via connector's static registry functions.
  **/
 class PACKETEER_API connector
-  : public ::liberate::cpp::operators<connector>
+  : public ::liberate::cpp::comparison_operators<connector>
 {
 public:
   /***************************************************************************
