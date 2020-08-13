@@ -611,6 +611,42 @@ packeteer_dep = declare_dependency(
 )
 
 
+extsrc = []
+extincludes = []
+
+if host_type == 'posix' or host_type == 'android'
+  extsrc += [
+    'ext' / 'connector' / 'posix' / 'filedesc.cpp',
+  ]
+endif
+
+if extsrc.length() > 0
+
+  lib_ext = library('packeteer_ext', extsrc,
+      include_directories: [includes, extincludes],
+      dependencies: [
+        packeteer_dep,
+      ],
+      link_args: link_args,
+      link_with: [lib],
+      cpp_args: cpp_lib_is_building,
+      version: LIB_VERSION,
+      soversion: ABI_VERSION,
+      install: true)
+
+  packeteer_ext_dep = declare_dependency(
+      include_directories: [includes],
+      dependencies: [
+        packeteer_dep,
+      ],
+      link_with: [lib_ext],
+      link_args: link_args,
+      version: LIB_VERSION,
+  )
+endif
+
+
+
 ##############################################################################
 # Tests
 
@@ -664,6 +700,11 @@ if not meson.is_subproject()
     ]
   endif
 
+  ext_test_src = [
+    'test' / 'ext' / 'test_connector_filedesc.cpp',
+    'test' / 'runner.cpp',
+  ]
+
   public_tests = executable('public_tests', public_test_src,
       dependencies: [
         packeteer_dep,
@@ -686,6 +727,18 @@ if not meson.is_subproject()
         cpp_args: test_args,
     )
     test('private_tests', private_tests)
+  endif
+
+  if extsrc.length() > 0
+    ext_tests = executable('ext_tests', ext_test_src,
+        dependencies: [
+          packeteer_ext_dep,
+          gtest.get_variable('gtest_dep'),
+          liberate.get_variable('liberate_dep'),
+        ],
+        cpp_args: test_args,
+    )
+    test('ext_tests', ext_tests)
   endif
 
 endif
