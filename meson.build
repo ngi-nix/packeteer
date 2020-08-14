@@ -616,6 +616,10 @@ extincludes = []
 
 if host_type == 'posix' or host_type == 'android'
   extsrc += [
+    # Duplicated, because we're re-using it.
+    'lib' / 'connector' / 'posix' / 'common.cpp',
+    'lib' / 'connector' / 'posix' / 'fd.cpp',
+    # Extension functionality
     'ext' / 'connector' / 'posix' / 'filedesc.cpp',
   ]
 endif
