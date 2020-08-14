@@ -70,7 +70,7 @@ public:
     return true;
   }
 
-  virtual connector_interface * accept(liberate::net::socket_address & addr)
+  virtual connector_interface * accept(liberate::net::socket_address &)
   {
     return this;
   }
@@ -112,7 +112,7 @@ namespace {
 
 packeteer::connector_interface *
 filedesc_creator(liberate::net::url const & url,
-    packeteer::connector_type const & type,
+    packeteer::connector_type const &,
     packeteer::connector_options const & options,
     packeteer::registry::connector_info const * info)
 {
