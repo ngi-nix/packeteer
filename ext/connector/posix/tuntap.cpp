@@ -110,59 +110,80 @@ struct tuntap : public tuntap_options
 #if defined(PACKETEER_HAVE_LINUX_IF_TUN_H)
 
 inline error_t
-set_mtu_and_txqueuelen(int dev, int socktype, int mtu, int txqueuelen, ifreq * ifr)
+configure_tuntap(tuntap_options & dev)
 {
-  if (mtu <= 0 && txqueuelen <= 0) {
-    return ERR_SUCCESS;
-  }
-
   // Create socket; need this for setting values
-  int sock = ::socket(AF_INET, socktype, 0);
+  int sock = ::socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
-    ERRNO_LOG("Can't create socket for setting MTU.");
+    ERRNO_LOG("Can't create socket for ioctl().");
     return ERR_ABORTED;
   }
 
-  // Try setting MTU
-  if (mtu > 0) {
-    int err = ::ioctl(sock, SIOCGIFMTU, ifr);
+  int err = 0;
+
+  // Try setting/getting MTU
+  {
+    ifreq ifr = { 0 };
+    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
+
+    if (dev.mtu > 0) {
+      ifr.ifr_mtu = dev.mtu;
+      err = ::ioctl(sock, SIOCSIFMTU, &ifr);
+      if (err < 0) {
+        ERRNO_LOG("Cannot set MTU on interface.");
+        close(sock);
+        return ERR_ABORTED;
+      }
+    }
+    err = ::ioctl(sock, SIOCGIFMTU, &ifr);
     if (err < 0) {
       ERRNO_LOG("Cannot get MTU on interface.");
       close(sock);
       return ERR_ABORTED;
     }
-
-    ifr->ifr_mtu = mtu;
-
-    err = ::ioctl(sock, SIOCSIFMTU, ifr);
-    if (err < 0) {
-      ERRNO_LOG("Cannot set MTU on interface.");
-      close(sock);
-      return ERR_ABORTED;
-    }
+    dev.mtu = ifr.ifr_mtu;
   }
 
   // Try setting TX queue length
 #if defined(SIOCSIFTXQLEN) && defined(SIOCGIFTXQLEN)
-  if (txqueuelen > 0) {
-    int err = ::ioctl(sock, SIOCGIFTXQLEN, ifr);
+  {
+    ifreq ifr = { 0 };
+    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
+
+    if (dev.txqueuelen > 0) {
+      ifr.ifr_qlen = dev.txqueuelen;
+      err = ::ioctl(sock, SIOCSIFTXQLEN, &ifr);
+      if (err < 0) {
+        ERRNO_LOG("Cannot set TX queue length.");
+        close(sock);
+        return ERR_ABORTED;
+      }
+    }
+    err = ::ioctl(sock, SIOCGIFTXQLEN, &ifr);
     if (err < 0) {
       ERRNO_LOG("Cannot get TX queue length.");
       close(sock);
       return ERR_ABORTED;
     }
+    dev.txqueuelen = ifr.ifr_qlen;
+  }
+#endif // SIOCSIFTXQLEN
 
-    ifr->ifr_qlen = txqueuelen;
+  // Also bring the device up, while we're here.
+  {
+    ifreq ifr = { 0 };
+    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
 
-    err = ::ioctl(sock, SIOCSIFTXQLEN, ifr);
+    ifr.ifr_flags |= IFF_UP;
+    err = ::ioctl(sock, SIOCSIFFLAGS, &ifr);
     if (err < 0) {
-      ERRNO_LOG("Cannot set TX queue length.");
+      ERRNO_LOG("Cannot bring interface up!");
       close(sock);
       return ERR_ABORTED;
     }
   }
-#endif // SIOCSIFTXQLEN
 
+  // All good
   close(sock);
   return ERR_SUCCESS;
 }
@@ -250,13 +271,9 @@ create_tuntap_device(tuntap & dev)
   }
   std::string name = ifr->ifr_name;
 
-  // Try setting MTU & TX queue len
-  auto e = set_mtu_and_txqueuelen(fd, SOCK_DGRAM, dev.mtu, dev.txqueuelen, ifr);
-  if (e != ERR_SUCCESS) {
-    close(fd);
-    return e;
-  }
-  e = set_mtu_and_txqueuelen(fd, SOCK_STREAM, dev.mtu, dev.txqueuelen, ifr);
+  // Try configuring the device
+  dev.name = name;
+  auto e = configure_tuntap(dev);
   if (e != ERR_SUCCESS) {
     close(fd);
     return e;
@@ -264,9 +281,7 @@ create_tuntap_device(tuntap & dev)
 
   // All good
   dev.fd = fd;
-  dev.name = name;
-  dev.mtu = ifr->ifr_mtu;
-  dev.txqueuelen = ifr->ifr_qlen;
+
   return ERR_SUCCESS;
 }
 
@@ -306,6 +321,10 @@ public:
     m_tuntap.mtu = dev.mtu;
     m_tuntap.txqueuelen = dev.txqueuelen;
     m_fd = dev.fd;
+
+    ELOG("TUN/TAP device: " << (m_tuntap.type == DEVICE_TUN ? "TUN" : "TAP")
+        << " " << m_tuntap.name << " mtu " << m_tuntap.mtu
+        << " qlen " << m_tuntap.txqueuelen);
 
     return ERR_SUCCESS;
   }
