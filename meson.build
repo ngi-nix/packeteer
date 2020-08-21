@@ -173,8 +173,6 @@ conf_data.set('PACKETEER_HAVE_ARPA_INET_H',
   compiler.has_header('arpa' / 'inet.h'))
 conf_data.set('PACKETEER_HAVE_NETINET_IN_H',
   compiler.has_header('netinet' / 'in.h'))
-conf_data.set('PACKETEER_HAVE_LINUX_UN_H',
-  compiler.has_header('linux' / 'un.h'))
 conf_data.set('PACKETEER_HAVE_SYS_UN_H',
   compiler.has_header('sys' / 'un.h'))
 conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H',
@@ -185,8 +183,12 @@ conf_data.set('PACKETEER_HAVE_WS2TCPIP_H',
   compiler.has_header('ws2tcpip.h'))
 have_afunix = compiler.has_header('afunix.h')
 conf_data.set('PACKETEER_HAVE_AFUNIX_H', have_afunix)
+conf_data.set('PACKETEER_HAVE_LINUX_UN_H',
+  compiler.has_header('linux' / 'un.h'))
 conf_data.set('PACKETEER_HAVE_LINUX_IF_TUN_H',
   compiler.has_header('linux' / 'if_tun.h'))
+conf_data.set('PACKETEER_HAVE_LINUX_SOCKIOS_H',
+  compiler.has_header('linux' / 'sockios.h'))
 
 
 ### Types
