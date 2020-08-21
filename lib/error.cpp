@@ -129,6 +129,8 @@ combine_error(std::string & result, error_t code, int errnum,
         result += buf;
       }
 #elif defined(PACKETEER_HAVE_STRERROR_R)
+#  if (_POSIX_C_SOURCE >= 200112L) && !  _GNU_SOURCE
+      // XSI compliant
       static char buf[1024] = { 0 };
       int e = ::strerror_r(errnum, buf, sizeof(buf));
       if (e) {
@@ -138,6 +140,18 @@ combine_error(std::string & result, error_t code, int errnum,
         result += " // ";
         result += buf;
       }
+#  else
+      // GNU-specific
+      static char buf[1024] = { 0 };
+      char * e = ::strerror_r(errnum, buf, sizeof(buf));
+      if (!e) {
+        result += " // Error copying error message.";
+      }
+      else {
+        result += " // ";
+        result += e;
+      }
+#  endif
 #else
       // Fall back to plain strerror
       result += " // ";

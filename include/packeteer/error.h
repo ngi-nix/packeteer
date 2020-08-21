@@ -56,97 +56,107 @@
  **/
 PACKETEER_START_ERRORS
 
+// Basic error codes
 PACKETEER_ERRDEF(ERR_SUCCESS,
     0,
     "No error")
 
-PACKETEER_ERRDEF(ERR_UNEXPECTED,
+PACKETEER_ERRDEF(ERR_NOT_IMPLEMENTED,
     1,
-    "Nobody expects the Spanish Inquisition!")
-
-PACKETEER_ERRDEF(ERR_OUT_OF_MEMORY,
-    2,
-    "Out of memory.")
-
-PACKETEER_ERRDEF(ERR_ABORTED,
-    3,
-    "An operation was aborted due to unrecoverable errors.")
-
-PACKETEER_ERRDEF(ERR_FORMAT,
-    4,
-    "Invalid or unknown format specified.")
-
-PACKETEER_ERRDEF(ERR_INVALID_VALUE,
-    5,
-    "An invalid parameter value was specified.")
-
-PACKETEER_ERRDEF(ERR_NUM_FILES,
-    6,
-    "The system or per-user limit for open file descriptors was exceeded.")
-
-PACKETEER_ERRDEF(ERR_EMPTY_CALLBACK,
-    7,
-    "Tried to invoke an empty callback object.")
-
-PACKETEER_ERRDEF(ERR_INVALID_OPTION,
-    8,
-    "Invalid option specified.")
-
-PACKETEER_ERRDEF(ERR_NUM_ITEMS,
-    9,
-    "Too many items.")
+    "An operation was attempted that is not implemented on this platform.")
 
 PACKETEER_ERRDEF(ERR_INITIALIZATION,
-    10,
+    2,
     "An operation was attempted on an improperly initialized object.")
 
-PACKETEER_ERRDEF(ERR_ACCESS_VIOLATION,
-    11,
-    "An operation was attempted that was not permitted.")
+PACKETEER_ERRDEF(ERR_UNEXPECTED,
+    3,
+    "Nobody expects the Spanish Inquisition!")
 
-PACKETEER_ERRDEF(ERR_CONNECTION_REFUSED,
-    12,
-    "A connection was attempted but refused.")
+PACKETEER_ERRDEF(ERR_ABORTED,
+    4,
+    "An operation was aborted due to unrecoverable errors.")
 
-PACKETEER_ERRDEF(ERR_CONNECTION_ABORTED,
-    13,
-    "A connection was aborted.")
-
-PACKETEER_ERRDEF(ERR_NO_CONNECTION,
-    14,
-    "An operation was attempted that requires a connection, but no connection is established.")
-
-PACKETEER_ERRDEF(ERR_NETWORK_UNREACHABLE,
-    15,
-    "Network is unreachable.")
-
-PACKETEER_ERRDEF(ERR_TIMEOUT,
-    16,
-    "A timeout occurred.")
-
-PACKETEER_ERRDEF(ERR_ADDRESS_IN_USE,
-    17,
-    "Address is already in use.")
-
-PACKETEER_ERRDEF(ERR_ADDRESS_NOT_AVAILABLE,
-    18,
-    "A nonexistent interface was requested or the requested address was not local.")
-
-PACKETEER_ERRDEF(ERR_FS_ERROR,
-    19,
-    "File system error; this could be a nonexistent file name or a read only file system.")
-
+// Logic errors of some kind
 PACKETEER_ERRDEF(ERR_UNSUPPORTED_ACTION,
-    20,
+    10,
     "The requested action was not supported for the object type.")
 
+PACKETEER_ERRDEF(ERR_FORMAT,
+    11,
+    "Invalid or unknown format specified.")
+
+PACKETEER_ERRDEF(ERR_INVALID_OPTION,
+    12,
+    "Invalid option specified.")
+
+PACKETEER_ERRDEF(ERR_INVALID_VALUE,
+    13,
+    "An invalid parameter value was specified.")
+
+// Asynchronous activity
 PACKETEER_ERRDEF(ERR_REPEAT_ACTION,
-    21,
+    20,
     "The requested action would block or was interrupted and should be attempted again.")
 
 PACKETEER_ERRDEF(ERR_ASYNC,
-    22,
+    21,
     "The requested action is being performed asynchronously.")
+
+PACKETEER_ERRDEF(ERR_TIMEOUT,
+    22,
+    "A timeout occurred.")
+
+// Internal errors
+PACKETEER_ERRDEF(ERR_EMPTY_CALLBACK,
+    30,
+    "Tried to invoke an empty callback object.")
+
+// Generic system errors
+PACKETEER_ERRDEF(ERR_OUT_OF_MEMORY,
+    40,
+    "Out of memory.")
+
+PACKETEER_ERRDEF(ERR_FS_ERROR,
+    41,
+    "File system error; this could be a nonexistent file name or a read only file system.")
+
+PACKETEER_ERRDEF(ERR_NUM_FILES,
+    42,
+    "The system or per-user limit for open file descriptors was exceeded.")
+
+PACKETEER_ERRDEF(ERR_NUM_ITEMS,
+    43,
+    "Too many items.")
+
+PACKETEER_ERRDEF(ERR_ACCESS_VIOLATION,
+    44,
+    "An operation was attempted that was not permitted.")
+
+// Networking errors
+PACKETEER_ERRDEF(ERR_CONNECTION_REFUSED,
+    50,
+    "A connection was attempted but refused.")
+
+PACKETEER_ERRDEF(ERR_CONNECTION_ABORTED,
+    51,
+    "A connection was aborted.")
+
+PACKETEER_ERRDEF(ERR_NO_CONNECTION,
+    52,
+    "An operation was attempted that requires a connection, but no connection is established.")
+
+PACKETEER_ERRDEF(ERR_NETWORK_UNREACHABLE,
+    53,
+    "Network is unreachable.")
+
+PACKETEER_ERRDEF(ERR_ADDRESS_IN_USE,
+    54,
+    "Address is already in use.")
+
+PACKETEER_ERRDEF(ERR_ADDRESS_NOT_AVAILABLE,
+    55,
+    "A nonexistent interface was requested or the requested address was not local.")
 
 PACKETEER_END_ERRORS
 
