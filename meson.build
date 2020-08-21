@@ -159,30 +159,46 @@ conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
 ### Headers
 conf_data.set('PACKETEER_HAVE_UNISTD_H',
   compiler.has_header('unistd.h'))
-conf_data.set('PACKETEER_HAVE_SYS_SELECT_H',
-  compiler.has_header('sys' / 'select.h'))
-conf_data.set('PACKETEER_HAVE_SYS_TIME_H',
-  compiler.has_header('sys' / 'time.h'))
-conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H',
-  compiler.has_header('sys' / 'epoll.h'))
 conf_data.set('PACKETEER_HAVE_TIME_H',
   compiler.has_header('time.h'))
 conf_data.set('PACKETEER_HAVE_POLL_H',
   compiler.has_header('poll.h'))
-conf_data.set('PACKETEER_HAVE_ARPA_INET_H',
-  compiler.has_header('arpa' / 'inet.h'))
-conf_data.set('PACKETEER_HAVE_NETINET_IN_H',
-  compiler.has_header('netinet' / 'in.h'))
+conf_data.set('PACKETEER_HAVE_FCNTL_H',
+  compiler.has_header('fcntl.h'))
+
+conf_data.set('PACKETEER_HAVE_SYS_TYPES_H',
+  compiler.has_header('sys' / 'types.h'))
+conf_data.set('PACKETEER_HAVE_SYS_SELECT_H',
+  compiler.has_header('sys' / 'select.h'))
+conf_data.set('PACKETEER_HAVE_SYS_STAT_H',
+  compiler.has_header('sys' / 'stat.h'))
+conf_data.set('PACKETEER_HAVE_SYS_TIME_H',
+  compiler.has_header('sys' / 'time.h'))
+conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H',
+  compiler.has_header('sys' / 'epoll.h'))
 conf_data.set('PACKETEER_HAVE_SYS_UN_H',
   compiler.has_header('sys' / 'un.h'))
 conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H',
   compiler.has_header('sys' / 'socket.h'))
+conf_data.set('PACKETEER_HAVE_SYS_IOCTL_H',
+  compiler.has_header('sys' / 'ioctl.h'))
+
+conf_data.set('PACKETEER_HAVE_ARPA_INET_H',
+  compiler.has_header('arpa' / 'inet.h'))
+
+conf_data.set('PACKETEER_HAVE_NET_IF_H',
+  compiler.has_header('net' / 'if.h'))
+
+conf_data.set('PACKETEER_HAVE_NETINET_IN_H',
+  compiler.has_header('netinet' / 'in.h'))
+
 conf_data.set('PACKETEER_HAVE_WINSOCK2_H',
   compiler.has_header('winsock2.h'))
 conf_data.set('PACKETEER_HAVE_WS2TCPIP_H',
   compiler.has_header('ws2tcpip.h'))
 have_afunix = compiler.has_header('afunix.h')
 conf_data.set('PACKETEER_HAVE_AFUNIX_H', have_afunix)
+
 conf_data.set('PACKETEER_HAVE_LINUX_UN_H',
   compiler.has_header('linux' / 'un.h'))
 conf_data.set('PACKETEER_HAVE_LINUX_IF_TUN_H',
