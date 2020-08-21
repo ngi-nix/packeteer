@@ -322,7 +322,7 @@ public:
     m_tuntap.txqueuelen = dev.txqueuelen;
     m_fd = dev.fd;
 
-    ELOG("TUN/TAP device: " << (m_tuntap.type == DEVICE_TUN ? "TUN" : "TAP")
+    DLOG("TUN/TAP device: " << (m_tuntap.type == DEVICE_TUN ? "TUN" : "TAP")
         << " " << m_tuntap.name << " mtu " << m_tuntap.mtu
         << " qlen " << m_tuntap.txqueuelen);
 
