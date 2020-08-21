@@ -157,51 +157,36 @@ conf_data.set_quoted('PACKETEER_PACKAGE_URL', 'https://gitlab.com/interpeer/pack
 conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
 
 ### Headers
-if compiler.has_header('unistd.h')
-  conf_data.set('PACKETEER_HAVE_UNISTD_H', true)
-endif
-if compiler.has_header('sys' / 'select.h')
-  conf_data.set('PACKETEER_HAVE_SYS_SELECT_H', true)
-endif
-if compiler.has_header('sys' / 'time.h')
-  conf_data.set('PACKETEER_HAVE_SYS_TIME_H', true)
-endif
-if compiler.has_header('sys' / 'epoll.h')
-  conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H', true)
-endif
-if compiler.has_header('time.h')
-  conf_data.set('PACKETEER_HAVE_TIME_H', true)
-endif
-if compiler.has_header('poll.h')
-  conf_data.set('PACKETEER_HAVE_POLL_H', true)
-endif
-# FIXME
-if compiler.has_header('arpa' / 'inet.h')
-  conf_data.set('PACKETEER_HAVE_ARPA_INET_H', true)
-endif
-if compiler.has_header('netinet' / 'in.h')
-  conf_data.set('PACKETEER_HAVE_NETINET_IN_H', true)
-endif
-if compiler.has_header('linux' / 'un.h')
-  conf_data.set('PACKETEER_HAVE_LINUX_UN_H', true)
-endif
-if compiler.has_header('sys' / 'un.h')
-  conf_data.set('PACKETEER_HAVE_SYS_UN_H', true)
-endif
-if compiler.has_header('sys' / 'socket.h')
-  conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H', true)
-endif
-if compiler.has_header('winsock2.h')
-  conf_data.set('PACKETEER_HAVE_WINSOCK2_H', true)
-endif
-if compiler.has_header('ws2tcpip.h')
-  conf_data.set('PACKETEER_HAVE_WS2TCPIP_H', true)
-endif
-have_afunix = false
-if compiler.has_header('afunix.h')
-  conf_data.set('PACKETEER_HAVE_AFUNIX_H', true)
-  have_afunix = true
-endif
+conf_data.set('PACKETEER_HAVE_UNISTD_H',
+  compiler.has_header('unistd.h'))
+conf_data.set('PACKETEER_HAVE_SYS_SELECT_H',
+  compiler.has_header('sys' / 'select.h'))
+conf_data.set('PACKETEER_HAVE_SYS_TIME_H',
+  compiler.has_header('sys' / 'time.h'))
+conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H',
+  compiler.has_header('sys' / 'epoll.h'))
+conf_data.set('PACKETEER_HAVE_TIME_H',
+  compiler.has_header('time.h'))
+conf_data.set('PACKETEER_HAVE_POLL_H',
+  compiler.has_header('poll.h'))
+conf_data.set('PACKETEER_HAVE_ARPA_INET_H',
+  compiler.has_header('arpa' / 'inet.h'))
+conf_data.set('PACKETEER_HAVE_NETINET_IN_H',
+  compiler.has_header('netinet' / 'in.h'))
+conf_data.set('PACKETEER_HAVE_LINUX_UN_H',
+  compiler.has_header('linux' / 'un.h'))
+conf_data.set('PACKETEER_HAVE_SYS_UN_H',
+  compiler.has_header('sys' / 'un.h'))
+conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H',
+  compiler.has_header('sys' / 'socket.h'))
+conf_data.set('PACKETEER_HAVE_WINSOCK2_H',
+  compiler.has_header('winsock2.h'))
+conf_data.set('PACKETEER_HAVE_WS2TCPIP_H',
+  compiler.has_header('ws2tcpip.h'))
+have_afunix = compiler.has_header('afunix.h')
+conf_data.set('PACKETEER_HAVE_AFUNIX_H', have_afunix)
+conf_data.set('PACKETEER_HAVE_LINUX_IF_TUN_H',
+  compiler.has_header('linux' / 'if_tun.h'))
 
 
 ### Types
@@ -222,9 +207,7 @@ int main(int, char**)
   int foo = epoll_create1(EPOLL_CLOEXEC);
 }
 ''', name: 'epoll_create1()')
-if have_epoll_create
-  conf_data.set('PACKETEER_HAVE_EPOLL_CREATE1', true)
-endif
+conf_data.set('PACKETEER_HAVE_EPOLL_CREATE1', have_epoll_create)
 summary('epoll', have_epoll_create, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -237,9 +220,7 @@ int main(int, char**)
   int ret = select(0, NULL, NULL, NULL, NULL);
 }
 ''', name: 'select()')
-if have_select
-  conf_data.set('PACKETEER_HAVE_SELECT', true)
-endif
+conf_data.set('PACKETEER_HAVE_SELECT', have_select)
 summary('select', have_select, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -252,9 +233,7 @@ int main(int, char**)
   int ret = pselect(0, NULL, NULL, NULL, NULL, NULL);
 }
 ''', name: 'pselect()')
-if have_pselect
-  conf_data.set('PACKETEER_HAVE_PSELECT', true)
-endif
+conf_data.set('PACKETEER_HAVE_PSELECT', have_pselect)
 summary('pselect', have_pselect, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -267,9 +246,7 @@ int main(int, char**)
   int foo = poll(NULL, 0, 0);
 }
 ''', name: 'poll()')
-if have_poll
-  conf_data.set('PACKETEER_HAVE_POLL', true)
-endif
+conf_data.set('PACKETEER_HAVE_POLL', have_poll)
 summary('poll', have_poll, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -282,9 +259,7 @@ int main(int, char**)
   int foo = ppoll(NULL, 0, 0, NULL);
 }
 ''', name: 'ppoll()')
-if have_ppoll
-  conf_data.set('PACKETEER_HAVE_PPOLL', true)
-endif
+conf_data.set('PACKETEER_HAVE_PPOLL', have_ppoll)
 summary('ppoll', have_ppoll, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -297,9 +272,7 @@ int main(int, char**)
   int foo = POLLRDHUP;
 }
 ''', name: 'pollrdhup()')
-if have_pollrdhup
-  conf_data.set('PACKETEER_HAVE_POLLRDHUP', true)
-endif
+conf_data.set('PACKETEER_HAVE_POLLRDHUP', have_pollrdhup)
 
 
 have_pollhup = compiler.compiles('''
@@ -311,9 +284,7 @@ int main(int, char**)
   int foo = POLLHUP;
 }
 ''', name: 'pollhup()')
-if have_pollhup
-  conf_data.set('PACKETEER_HAVE_POLLHUP', true)
-endif
+conf_data.set('PACKETEER_HAVE_POLLHUP', have_pollhup)
 
 
 have_kqueue = compiler.compiles('''
@@ -326,9 +297,7 @@ int main(int, char **)
   int foo = kqueue();
 }
 ''', name: 'kqueue()')
-if have_kqueue
-  conf_data.set('PACKETEER_HAVE_KQUEUE', true)
-endif
+conf_data.set('PACKETEER_HAVE_KQUEUE', have_kqueue)
 summary('kqueue', have_kqueue, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -345,9 +314,7 @@ int main(int, char **)
   HANDLE iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 3);
 }
 ''', name: 'I/O completion ports')
-if have_iocp
-  conf_data.set('PACKETEER_HAVE_IOCP', true)
-endif
+conf_data.set('PACKETEER_HAVE_IOCP', have_iocp)
 summary('iocp', have_iocp, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -362,9 +329,7 @@ int main(int, char**)
   mknod("foo", S_IFIFO, S_IRUSR);
 }
 ''', name: 'mknod()')
-if have_mknod
-  conf_data.set('PACKETEER_HAVE_MKNOD', true)
-endif
+conf_data.set('PACKETEER_HAVE_MKNOD', have_mknod)
 
 
 have_mkfifo = compiler.compiles('''
@@ -378,9 +343,7 @@ int main(int, char**)
   mkfifo("foo", S_IRUSR);
 }
 ''', name: 'mkfifo()')
-if have_mkfifo
-  conf_data.set('PACKETEER_HAVE_MKFIFO', true)
-endif
+conf_data.set('PACKETEER_HAVE_MKFIFO', have_mkfifo)
 
 
 have_strerror_s = compiler.compiles('''
@@ -392,9 +355,7 @@ int main(int, char**)
   auto e = strerror_s(buf, sizeof(buf), 0);
 }
 ''', name: 'strerror_s()')
-if have_strerror_s
-  conf_data.set('PACKETEER_HAVE_STRERROR_S', true)
-endif
+conf_data.set('PACKETEER_HAVE_STRERROR_S', have_strerror_s)
 
 have_strerror_r = compiler.compiles('''
 #include <string.h>
@@ -409,9 +370,7 @@ int main(int, char**)
   int e = strerror_r(0, buf, sizeof(buf));
 }
 ''', name: 'strerror_r()')
-if have_strerror_s
-  conf_data.set('PACKETEER_HAVE_STRERROR_R', true)
-endif
+conf_data.set('PACKETEER_HAVE_STRERROR_R', have_strerror_r)
 
 have_socketpair = compiler.compiles('''
 #include <sys/types.h>
@@ -423,9 +382,7 @@ int main(int, char **)
   int e = socketpair(AF_INET, SOCK_STREAM, 0, fd);
 }
 ''', name: 'socketpair()')
-if have_socketpair
-  conf_data.set('PACKETEER_HAVE_SOCKETPAIR', true)
-endif
+conf_data.set('PACKETEER_HAVE_SOCKETPAIR', have_socketpair)
 
 
 
@@ -496,20 +453,43 @@ libincludes = include_directories(
 
 install_headers(
   'include' / 'packeteer.h',
+)
+
+install_headers(
   'include' / 'packeteer' / 'version.h',
   'include' / 'packeteer' / 'error.h',
   'include' / 'packeteer' / 'scheduler.h',
-  'include' / 'packeteer' / 'scheduler' / 'types.h',
-  'include' / 'packeteer' / 'scheduler' / 'callback.h',
-  'include' / 'packeteer' / 'scheduler' / 'events.h',
-  'include' / 'packeteer' / 'handle.h',
+  'include' / 'packeteer' / 'registry.h',
   'include' / 'packeteer' / 'connector.h',
+  'include' / 'packeteer' / 'handle.h',
+  'include' / 'packeteer' / 'visibility.h',
+
+  subdir: 'packeteer',
+)
+
+install_headers(
   'include' / 'packeteer' / 'connector' / 'types.h',
   'include' / 'packeteer' / 'connector' / 'interface.h',
   'include' / 'packeteer' / 'connector' / 'peer_address.h',
 
-  subdir: 'packeteer',
+  subdir: 'packeteer' / 'connector',
 )
+
+install_headers(
+  'include' / 'packeteer' / 'scheduler' / 'events.h',
+  'include' / 'packeteer' / 'scheduler' / 'types.h',
+  'include' / 'packeteer' / 'scheduler' / 'callback.h',
+
+  subdir: 'packeteer' / 'scheduler',
+)
+
+install_headers(
+  'include' / 'packeteer' / 'ext' / 'connector' / 'filedesc.h',
+  'include' / 'packeteer' / 'ext' / 'connector' / 'tuntap.h',
+
+  subdir: 'packeteer' / 'ext' / 'connector',
+)
+
 
 libsrc = [
   'lib' / 'version.cpp',
@@ -621,6 +601,7 @@ if host_type == 'posix' or host_type == 'android'
     'lib' / 'connector' / 'posix' / 'fd.cpp',
     # Extension functionality
     'ext' / 'connector' / 'posix' / 'filedesc.cpp',
+    'ext' / 'connector' / 'posix' / 'tuntap.cpp',
   ]
 endif
 
@@ -706,6 +687,7 @@ if not meson.is_subproject()
 
   ext_test_src = [
     'test' / 'ext' / 'test_connector_filedesc.cpp',
+    'test' / 'ext' / 'test_connector_tuntap.cpp',
     'test' / 'runner.cpp',
   ]
 
