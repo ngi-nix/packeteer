@@ -100,7 +100,7 @@ struct tuntap_options
  */
 struct tuntap : public tuntap_options
 {
-  int fd;
+  int fd = -1;
 };
 
 
@@ -123,7 +123,7 @@ configure_tuntap(tuntap_options & dev)
 
   // Try setting/getting MTU
   {
-    ifreq ifr = { 0 };
+    ifreq ifr = {};
     ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
 
     if (dev.mtu > 0) {
@@ -147,7 +147,7 @@ configure_tuntap(tuntap_options & dev)
   // Try setting TX queue length
 #if defined(SIOCSIFTXQLEN) && defined(SIOCGIFTXQLEN)
   {
-    ifreq ifr = { 0 };
+    ifreq ifr = {};
     ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
 
     if (dev.txqueuelen > 0) {
@@ -171,7 +171,7 @@ configure_tuntap(tuntap_options & dev)
 
   // Also bring the device up, while we're here.
   {
-    ifreq ifr = { 0 };
+    ifreq ifr = {};
     ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
 
     ifr.ifr_flags |= IFF_UP;
@@ -367,6 +367,7 @@ public:
       ::close(m_fd);
       m_fd = -1;
     }
+    return ERR_SUCCESS;
   }
 
   /***************************************************************************
@@ -440,7 +441,7 @@ packeteer::connector_interface *
 tun_creator(liberate::net::url const & url,
     packeteer::connector_type const &,
     packeteer::connector_options const & options,
-    packeteer::registry::connector_info const * info)
+    packeteer::registry::connector_info const *)
 {
   tuntap_options opts;
   auto err = parse_tuntap_options(opts, DEVICE_TUN, url);
@@ -457,7 +458,7 @@ packeteer::connector_interface *
 tap_creator(liberate::net::url const & url,
     packeteer::connector_type const &,
     packeteer::connector_options const & options,
-    packeteer::registry::connector_info const * info)
+    packeteer::registry::connector_info const *)
 {
   tuntap_options opts;
   auto err = parse_tuntap_options(opts, DEVICE_TAP, url);
