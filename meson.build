@@ -441,8 +441,12 @@ conf_data.set('PACKETEER_IO_OVERLAPPED_GROW_BY', io_overlapped_grow_by)
 configure_file(
   input: 'build-config.h.in',
   output: 'build-config.h',
-  configuration: conf_data)
+  configuration: conf_data
+)
 
+main_build_dir = declare_dependency(
+  include_directories: include_directories('.')
+)
 
 
 ##############################################################################
@@ -453,7 +457,6 @@ thread = dependency('threads', required: true)
 ##############################################################################
 # Meson Wrap Dependencies
 liberate = subproject('liberate')
-gtest = subproject('gtest')
 clipp = subproject('muellan-clipp')
 
 
@@ -649,105 +652,6 @@ if extsrc.length() > 0
 endif
 
 
-
-##############################################################################
-# Tests
-
-# Tests in a subproject are complicicated. You need all the compile and
-# link flags from the enclosing project, etc.
-if not meson.is_subproject()
-
-  # See https://github.com/google/googletest/issues/813
-  test_args = []
-  if host_machine.system() == 'cygwin'
-    test_args += ['-D_POSIX_C_SOURCE=200809L']
-  endif
-
-  # Google test issues this warning; disable it in *test* code only.
-  if compiler_id == 'msvc'
-    test_args = [
-      '/wd4389',
-    ]
-  endif
-
-  # We're building two tests:
-  # - public_tests include *only* public headers
-  # - private_tests include private headers
-
-  public_test_src = [
-    'test' / 'public' / 'test_registry.cpp',
-    'test' / 'public' / 'test_error.cpp',
-    'test' / 'public' / 'test_handle.cpp',
-    'test' / 'public' / 'test_scheduler_callback.cpp',
-    'test' / 'public' / 'test_scheduler.cpp',
-    'test' / 'public' / 'test_connector_peer_address.cpp',
-    'test' / 'public' / 'test_connector.cpp',
-    'test' / 'runner.cpp',
-  ]
-
-  private_test_src = [
-    'test' / 'private' / 'test_concurrent_queue.cpp',
-    'test' / 'private' / 'test_connector_util.cpp',
-    'test' / 'private' / 'test_scheduler_containers.cpp',
-    'test' / 'private' / 'test_thread_binder.cpp',
-    'test' / 'private' / 'test_thread_tasklet.cpp',
-    'test' / 'private' / 'test_io_thread.cpp',
-    'test' / 'runner.cpp',
-  ]
-
-  if host_type == 'win32'
-    private_test_src += [
-      'test' / 'private' / 'test_pipe_operations.cpp',
-      'test' / 'private' / 'test_io_operations.cpp',
-      'test' / 'private' / 'test_socketpair.cpp',
-    ]
-  endif
-
-  ext_test_src = [
-    'test' / 'ext' / 'test_connector_filedesc.cpp',
-    'test' / 'ext' / 'test_connector_tuntap.cpp',
-    'test' / 'runner.cpp',
-  ]
-
-  public_tests = executable('public_tests', public_test_src,
-      dependencies: [
-        packeteer_dep,
-        gtest.get_variable('gtest_dep'),
-        liberate.get_variable('liberate_dep'),
-      ],
-      cpp_args: test_args,
-  )
-  test('public_tests', public_tests)
-
-  # Due to symbol visibility, private tests won't link for non-debug builds
-  if bt in ['debug', 'debugoptimized']
-    private_tests = executable('private_tests', private_test_src,
-        include_directories: [libincludes],  # Also private headers
-        dependencies: [
-          packeteer_dep,
-          gtest.get_variable('gtest_dep'),
-          liberate.get_variable('liberate_dep'),
-        ],
-        cpp_args: test_args,
-    )
-    test('private_tests', private_tests)
-  endif
-
-  if extsrc.length() > 0
-    ext_tests = executable('ext_tests', ext_test_src,
-        dependencies: [
-          packeteer_ext_dep,
-          gtest.get_variable('gtest_dep'),
-          liberate.get_variable('liberate_dep'),
-        ],
-        cpp_args: test_args,
-    )
-    test('ext_tests', ext_tests)
-  endif
-
-endif
-
-
 ##############################################################################
 # Linter, etc.
 cppcheck = find_program('cppcheck', required: false)
@@ -799,5 +703,6 @@ endif
 
 ##############################################################################
 # Subdirectories
+subdir('test')
 subdir('examples')
 subdir('benchmarks')
