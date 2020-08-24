@@ -32,8 +32,6 @@
 
 #include <packeteer/scheduler.h>
 
-#include "../lib/macros.h"
-
 #include "../value_tests.h"
 #include "../test_name.h"
 
@@ -439,7 +437,7 @@ void send_message_streaming(p7r::connector & sender, p7r::connector & receiver,
   result.resize(amount);
 
   std::string received{result.begin(), result.end()};
-  DLOG("Sent '" << msg << "' and received '" << received << "'");
+  // std::cout << "Sent '" << msg << "' and received '" << received << "'" << std::endl;
   ASSERT_EQ(msg, received);
 }
 
@@ -490,7 +488,7 @@ void send_message_streaming_async(p7r::connector & sender, p7r::connector & rece
   ASSERT_EQ(msg.size(), result.size());
 
   std::string received{result.begin(), result.end()};
-  DLOG("Sent '" << msg << "' and received '" << received << "'");
+  // std::cout << "Sent '" << msg << "' and received '" << received << "'" << std::endl;
   ASSERT_EQ(msg, received);
 }
 
@@ -568,7 +566,7 @@ struct server_connect_callback
       p7r::connector * conn [[maybe_unused]])
   {
     if (!m_conn) {
-      DLOG(" ***** INCOMING " << mask << ":" << *conn);
+      // std::cout << " ***** INCOMING " << mask << ":" << *conn << std::endl;
       // The accept() function clears the event.
       EXPECT_NO_THROW(m_conn = m_server.accept());
       EXPECT_TRUE(m_conn);
@@ -589,7 +587,7 @@ struct client_post_connect_callback
   {
     if (!m_connected) {
       m_connected = true;
-      DLOG(" ***** CONNECTED! " << mask << ":" << *conn);
+      // std::cout << " ***** CONNECTED! " << mask << ":" << *conn << std::endl;
     }
 
     return p7r::ERR_SUCCESS;
@@ -1047,7 +1045,7 @@ void send_message_dgram(p7r::connector & sender, p7r::connector & receiver,
   result.resize(amount);
 
   std::string received{result.begin(), result.end()};
-  DLOG("Sent '" << msg << "' and received '" << received << "'");
+  // std::cout << "Sent '" << msg << "' and received '" << received << "'" << std::endl;
   ASSERT_EQ(msg, received);
 }
 

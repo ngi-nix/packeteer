@@ -24,8 +24,6 @@
 #include <packeteer/scheduler.h>
 #include <packeteer/connector.h>
 
-#include "../lib/macros.h"
-
 #include <utility>
 #include <atomic>
 
@@ -66,7 +64,7 @@ struct test_callback
     if (conn) {
       connid = std::to_string(*conn);
     }
-    DLOG("callback called: " << connid << " - " << mask << " [called: " << m_called << "]");
+    // std::cout << "callback called: " << connid << " - " << mask << " [called: " << m_called << "]" << std::endl;
 
     return p7r::error_t(0);
   }
@@ -111,9 +109,9 @@ struct thread_id_callback
   {
     m_tid = std::this_thread::get_id();
 
-    DLOG("callback started");
+    // std::cout << "callback started" << std::endl;
     std::this_thread::sleep_for(TEST_SLEEP_TIME);
-    DLOG("callback ended");
+    // std::cout << "callback ended" << std::endl;;
 
     return p7r::error_t(0);
   }
