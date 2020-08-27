@@ -85,7 +85,11 @@ public:
    *  - Other error_t for resolution specific errors.
    */
   using resolution_function = std::function<
-    error_t (std::set<liberate::net::url> &, liberate::net::url const &)
+    error_t (
+        api * api,
+        std::set<liberate::net::url> &,
+        liberate::net::url const &
+    )
   >;
 
   error_t register_resolution_function(std::string const & scheme,
@@ -109,7 +113,7 @@ public:
       liberate::net::url const & query);
 
 private:
-  resolver();
+  resolver(api * api);
   friend class api;
 
   struct resolver_impl;

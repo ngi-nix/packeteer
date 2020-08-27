@@ -56,7 +56,8 @@ inet_copy_url_with_type(liberate::net::address_type type,
 
 
 error_t
-inet_resolver(std::set<liberate::net::url> & result,
+inet_resolver(api * api,
+    std::set<liberate::net::url> & result,
     liberate::net::url const & query)
 {
   // First step: decide which IPs to query for, AT_INET4 or AT_INET6 or
@@ -110,13 +111,10 @@ inet_resolver(std::set<liberate::net::url> & result,
     hostname = hostname.substr(0, colon);
   }
 
-  // FIXME
-  liberate::api api;
-
   // With this host, we can now use liberate to resolve it to IP addresses.
   std::set<liberate::net::socket_address> addresses;
   try {
-    addresses = liberate::net::resolve(api, query_type, hostname);
+    addresses = liberate::net::resolve(api->liberate(), query_type, hostname);
   } catch (std::exception const & ex) {
     EXC_LOG("Error resolving host name", ex);
     return ERR_ADDRESS_NOT_AVAILABLE;
@@ -147,10 +145,13 @@ inet_resolver(std::set<liberate::net::url> & result,
 
 struct resolver::resolver_impl
 {
-  resolver_impl()
+  resolver_impl(api * api)
+    : m_api(api)
   {
     init_resolution_funcs();
   }
+
+  resolver_impl() = delete;
 
   /***************************************************************************
    * Resolution mapping
@@ -222,17 +223,25 @@ struct resolver::resolver_impl
       return ERR_INVALID_VALUE;
     }
 
-    liberate::net::url query_copy{query};
-    query_copy.scheme = normalized;
-    return func_iter->second(result, query_copy);
+    // Create temporary shared_ptr for API, then call function with that.
+    try {
+      liberate::net::url query_copy{query};
+      query_copy.scheme = normalized;
+      return func_iter->second(m_api, result, query_copy);
+    } catch (std::bad_weak_ptr const & ex) {
+      ELOG("API is already being destroyed.");
+      return ERR_UNEXPECTED;
+    }
   }
+
+  api * m_api;
 };
 
 
 
 
-resolver::resolver()
-  : m_impl{std::make_unique<resolver_impl>()}
+resolver::resolver(api * api)
+  : m_impl{std::make_unique<resolver_impl>(api)}
 {
 }
 

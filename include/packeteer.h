@@ -41,6 +41,7 @@
 #endif
 
 // We want standard int types across the board.
+#include <liberate.h>
 #include <liberate/types.h>
 
 // Visibility macros are used by all, so they must come first.
@@ -113,6 +114,8 @@ public:
 
   ::packeteer::resolver & res();
   ::packeteer::resolver & resolver();
+
+  ::liberate::api & liberate();
 
 private:
   api();

@@ -36,14 +36,20 @@ namespace packeteer {
 
 struct api::api_impl
 {
-  ::packeteer::registry reg;
+  api_impl(api * api)
+    : res{api}
+  {
+  }
+
+  ::liberate::api       liberate = {};
+  ::packeteer::registry reg = {};
   ::packeteer::resolver res;
 };
 
 
 
 api::api()
-  : m_impl{std::make_unique<api_impl>()}
+  : m_impl{std::make_unique<api_impl>(this)}
 {
 #if defined(PACKETEER_WIN32)
   WSADATA data;
@@ -103,6 +109,15 @@ api::resolver()
 {
   return m_impl->res;
 }
+
+
+
+::liberate::api &
+api::liberate()
+{
+  return m_impl->liberate;
+}
+
 
 
 } // namespace packeteer
