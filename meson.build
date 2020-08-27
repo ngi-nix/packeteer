@@ -364,32 +364,6 @@ int main(int, char**)
 conf_data.set('PACKETEER_HAVE_MKFIFO', have_mkfifo)
 
 
-have_strerror_s = compiler.compiles('''
-#include <string.h>
-
-int main(int, char**)
-{
-  char buf[1];
-  auto e = strerror_s(buf, sizeof(buf), 0);
-}
-''', name: 'strerror_s()')
-conf_data.set('PACKETEER_HAVE_STRERROR_S', have_strerror_s)
-
-have_strerror_r = compiler.compiles('''
-#include <string.h>
-
-#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE
-#  error "No XSI compliant version!"
-#endif
-
-int main(int, char**)
-{
-  char buf[1];
-  int e = strerror_r(0, buf, sizeof(buf));
-}
-''', name: 'strerror_r()')
-conf_data.set('PACKETEER_HAVE_STRERROR_R', have_strerror_r)
-
 have_socketpair = compiler.compiles('''
 #include <sys/types.h>
 #include <sys/socket.h>
