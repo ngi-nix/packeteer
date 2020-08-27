@@ -25,8 +25,6 @@
 
 #include <stdlib.h>
 
-#include "net/netincludes.h"
-
 #include <packeteer/registry.h>
 #include <packeteer/resolver.h>
 
@@ -51,18 +49,6 @@ struct api::api_impl
 api::api()
   : m_impl{std::make_unique<api_impl>(this)}
 {
-#if defined(PACKETEER_WIN32)
-  WSADATA data;
-  // Request Winsock 2.2
-  int res = WSAStartup(MAKEWORD(2, 2), &data);
-  DLOG("WSA Description: " << data.szDescription);
-  if (res != 0) {
-    DLOG("WSA System Status: " << data.szSystemStatus);
-    throw exception(ERR_INITIALIZATION, WSAGetLastError(),
-        "WSAStartup failed!");
-  }
-#endif // win32
-
   // Initialize random seed used in connector construction.
   auto now = std::chrono::steady_clock::now().time_since_epoch();
   srand(now.count());
@@ -72,10 +58,6 @@ api::api()
 
 api::~api()
 {
-#if defined(PACKETEER_WIN32)
-  WSACleanup();
-  DLOG("WSA cleanup finished.");
-#endif // win32
 }
 
 
