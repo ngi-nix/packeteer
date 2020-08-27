@@ -97,8 +97,8 @@ build:android-x86_64:
   <<: *dep-linux
   script:
     - cd build
-    - ./private_tests --gtest_output=xml:private_tests-log.xml 2>private_tests-debug.log
-    - ./public_tests --gtest_output=xml:public_tests-log.xml 2>public_tests-debug.log
+    - ./test/private_tests --gtest_output=xml:test/private_tests-log.xml 2>test/private_tests-debug.log
+    - ./test/public_tests --gtest_output=xml:test/public_tests-log.xml 2>test/public_tests-debug.log
     - if test "${coverage:=false}" == true ; then ninja coverage && cat meson-logs/coverage.txt ; fi
   artifacts:
     name: lib_test_and_logs
@@ -106,17 +106,17 @@ build:android-x86_64:
     when: always
     paths:
       - build/libpacketeer.*
-      - build/private_tests
-      - build/private_tests-debug.log
-      - build/private_tests-log.xml
-      - build/public_tests
-      - build/public_tests-debug.log
-      - build/public_tests-log.xml
+      - build/test/private_tests
+      - build/test/private_tests-debug.log
+      - build/test/private_tests-log.xml
+      - build/test/public_tests
+      - build/test/public_tests-debug.log
+      - build/test/public_tests-log.xml
       - build/meson-logs/coverage*
     reports:
       junit:
-        - build/private_tests-log.xml
-        - build/public_tests-log.xml
+        - build/test/private_tests-log.xml
+        - build/test/public_tests-log.xml
 
 test:clang:
   <<: *test-linux

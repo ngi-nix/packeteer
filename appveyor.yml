@@ -42,14 +42,14 @@ build_script:
 test_script:
 - cmd: |
     copy subprojects\\liberate\\erate-0.dll .
-    public_tests "--gtest_output=xml:public-test-results.xml"
-    private_tests "--gtest_output=xml:private-test-results.xml"
+    test\\public_tests "--gtest_output=xml:test\\public-test-results.xml"
+    test\\private_tests "--gtest_output=xml:test\\private-test-results.xml"
 
 on_finish:
 - ps: |
-    If (Test-Path .\public-test-results.xml) {
-      (New-Object System.Net.WebClient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\public-test-results.xml))
+    If (Test-Path test\\public-test-results.xml) {
+      (New-Object System.Net.WebClient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path test\\public-test-results.xml))
     }
-    If (Test-Path .\private-test-results.xml) {
-      (New-Object System.Net.WebClient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\private-test-results.xml))
+    If (Test-Path test\\private-test-results.xml) {
+      (New-Object System.Net.WebClient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path test\\private-test-results.xml))
     }
