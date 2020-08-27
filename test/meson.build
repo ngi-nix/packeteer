@@ -25,6 +25,8 @@ if not meson.is_subproject()
 
   public_test_src = [
     'public' / 'test_registry.cpp',
+    'public' / 'test_resolver.cpp',
+    'public' / 'test_error.cpp',
     'public' / 'test_error.cpp',
     'public' / 'test_handle.cpp',
     'public' / 'test_scheduler_callback.cpp',

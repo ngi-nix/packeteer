@@ -80,6 +80,7 @@ namespace packeteer {
  * Forward
  */
 class PACKETEER_API registry;
+class PACKETEER_API resolver;
 
 
 /**
@@ -105,9 +106,13 @@ public:
   api & operator=(api const &) = delete;
 
   /**
-   * Access the registry interface.
+   * Access internal interfaces
    */
-  registry & reg();
+  ::packeteer::registry & reg();
+  ::packeteer::registry & registry();
+
+  ::packeteer::resolver & res();
+  ::packeteer::resolver & resolver();
 
 private:
   api();

@@ -28,6 +28,7 @@
 #include "net/netincludes.h"
 
 #include <packeteer/registry.h>
+#include <packeteer/resolver.h>
 
 #include "macros.h"
 
@@ -35,7 +36,8 @@ namespace packeteer {
 
 struct api::api_impl
 {
-  registry reg;
+  ::packeteer::registry reg;
+  ::packeteer::resolver res;
 };
 
 
@@ -72,10 +74,35 @@ api::~api()
 
 
 
-registry &
+::packeteer::registry &
 api::reg()
 {
   return m_impl->reg;
 }
+
+
+
+::packeteer::registry &
+api::registry()
+{
+  return m_impl->reg;
+}
+
+
+
+::packeteer::resolver &
+api::res()
+{
+  return m_impl->res;
+}
+
+
+
+::packeteer::resolver &
+api::resolver()
+{
+  return m_impl->res;
+}
+
 
 } // namespace packeteer

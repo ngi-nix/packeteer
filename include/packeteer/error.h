@@ -156,7 +156,7 @@ PACKETEER_ERRDEF(ERR_ADDRESS_IN_USE,
 
 PACKETEER_ERRDEF(ERR_ADDRESS_NOT_AVAILABLE,
     55,
-    "A nonexistent interface was requested or the requested address was not local.")
+    "A nonexistent interface was requested or the requested address was not found.")
 
 PACKETEER_END_ERRORS
 
