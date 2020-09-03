@@ -30,7 +30,8 @@
 
 #include <thread>
 
-#include "../concurrent_queue.h"
+#include <liberate/concurrency/concurrent_queue.h>
+
 #include "../thread/tasklet.h"
 #include "scheduler_impl.h"
 
@@ -51,7 +52,7 @@ public:
    * up to check the work queue for work to execute.
    **/
   worker(std::condition_variable_any & condition, std::recursive_mutex & mutex,
-      concurrent_queue<detail::callback_entry *> & work_queue);
+      work_queue_t & work_queue);
   ~worker();
 
 
@@ -61,7 +62,7 @@ private:
    **/
   void worker_loop(packeteer::thread::tasklet & tasklet, void * /* unused */);
 
-  concurrent_queue<detail::callback_entry *> &  m_work_queue;
+  work_queue_t &  m_work_queue;
 };
 
 } // namespace packeteer::detail

@@ -739,7 +739,7 @@ handle_entry(detail::callback_entry * entry)
 
 
 error_t
-drain_work_queue(concurrent_queue<detail::callback_entry *> & work_queue,
+drain_work_queue(work_queue_t & work_queue,
     bool exit_on_failure)
 {
   DLOG("Starting drain.");

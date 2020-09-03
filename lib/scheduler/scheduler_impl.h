@@ -35,11 +35,12 @@
 #include <mutex>
 #include <thread>
 
+#include <liberate/concurrency/concurrent_queue.h>
+
 #include <packeteer/scheduler/types.h>
 #include <packeteer/connector.h>
 #include <packeteer/handle.h>
 
-#include "../concurrent_queue.h"
 #include "io.h"
 
 namespace packeteer {
@@ -126,6 +127,9 @@ namespace packeteer {
  **/
 // Type for temporary entry containers.
 using entry_list_t = std::vector<detail::callback_entry *>;
+using work_queue_t = liberate::concurrency::concurrent_queue<
+  detail::callback_entry *
+>;
 
 
 /*****************************************************************************
@@ -179,6 +183,7 @@ private:
    **/
   // Entries for the in-queue
   using in_queue_entry_t = std::pair<action_type, detail::callback_entry *>;
+  using in_queue_t = liberate::concurrency::concurrent_queue<in_queue_entry_t>;
 
   /***************************************************************************
    * Generic private functions
@@ -250,15 +255,15 @@ private:
   // Any process putting an entry into either queue relinquishes ownership over
   // the entry. Any process taking an entry out of either queue takes ownership
   // over the entry.
-  concurrent_queue<in_queue_entry_t>          m_in_queue;
-  concurrent_queue<detail::callback_entry *>  m_out_queue;
+  in_queue_t                      m_in_queue;
+  work_queue_t                    m_out_queue;
 
-  detail::io_callbacks_t                      m_io_callbacks;
-  detail::scheduled_callbacks_t               m_scheduled_callbacks;
-  detail::user_callbacks_t                    m_user_callbacks;
+  detail::io_callbacks_t          m_io_callbacks;
+  detail::scheduled_callbacks_t   m_scheduled_callbacks;
+  detail::user_callbacks_t        m_user_callbacks;
 
   // IO subsystem
-  detail::io *                                m_io;
+  detail::io *                    m_io;
 };
 
 
@@ -276,7 +281,7 @@ error_t execute_callback(detail::callback_entry * entry);
  * Drain a work queue, invoking execute_callback for each entry.
  **/
 error_t drain_work_queue(
-    concurrent_queue<detail::callback_entry *> & work_queue,
+    work_queue_t & work_queue,
     bool exit_on_failure);
 
 error_t drain_work_queue(entry_list_t & work_queue, bool exit_on_failure);

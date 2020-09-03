@@ -42,7 +42,7 @@ namespace packeteer::detail {
 
 worker::worker(std::condition_variable_any & condition,
     std::recursive_mutex & mutex,
-    concurrent_queue<detail::callback_entry *> & work_queue)
+    work_queue_t & work_queue)
   : packeteer::thread::tasklet(&condition, &mutex,
       packeteer::thread::binder(this, &worker::worker_loop))
   , m_work_queue(work_queue)

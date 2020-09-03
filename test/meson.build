@@ -37,7 +37,6 @@ if not meson.is_subproject()
   ]
 
   private_test_src = [
-    'private' / 'test_concurrent_queue.cpp',
     'private' / 'test_connector_util.cpp',
     'private' / 'test_scheduler_containers.cpp',
     'private' / 'test_thread_binder.cpp',

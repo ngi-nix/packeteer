@@ -32,6 +32,8 @@
 
 #include <unordered_map>
 
+#include "../../macros.h"
+
 namespace packeteer::detail {
 
 // 1. I/O callbacks:
