@@ -36,7 +36,7 @@
 #endif
 
 #ifdef PACKETEER_WIN32
-#include "../net/netincludes.h"
+#include "net/netincludes.h"
 #define timeval TIMEVAL
 #endif
 
