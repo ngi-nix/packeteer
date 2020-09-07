@@ -22,7 +22,7 @@
 #include "select.h"
 
 #include "../../../macros.h"
-#include "../../../thread/chrono.h"
+#include "../../../chrono.h"
 #include "../../../win32/sys_handle.h"
 
 namespace packeteer::detail {

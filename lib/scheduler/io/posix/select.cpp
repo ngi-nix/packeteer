@@ -26,7 +26,7 @@
 #include <packeteer/error.h>
 
 #include "../../scheduler_impl.h"
-#include "../../../thread/chrono.h"
+#include "../../../chrono.h"
 
 // Posix
 #include <sys/select.h>

@@ -30,7 +30,7 @@
 
 #include "../../../globals.h"
 #include "../../scheduler_impl.h"
-#include "../../../thread/chrono.h"
+#include "../../../chrono.h"
 
 #include "../../../win32/sys_handle.h"
 #include "../../../connector/win32/io_operations.h"

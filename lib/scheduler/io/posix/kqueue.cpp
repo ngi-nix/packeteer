@@ -29,7 +29,7 @@
 
 #include "../../../globals.h"
 #include "../../scheduler_impl.h"
-#include "../../../thread/chrono.h"
+#include "../../../chrono.h"
 
 
 // Posix
