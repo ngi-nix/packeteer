@@ -499,7 +499,6 @@ libsrc = [
   'lib' / 'scheduler' / 'worker.cpp',
   'lib' / 'scheduler' / 'scheduler_impl.cpp',
   'lib' / 'scheduler' / 'io_thread.cpp',
-  'lib' / 'thread' / 'tasklet.cpp',
 ]
 
 
