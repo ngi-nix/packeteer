@@ -36,6 +36,7 @@
 #include <thread>
 
 #include <liberate/concurrency/concurrent_queue.h>
+#include <liberate/concurrency/tasklet.h>
 
 #include <packeteer/scheduler/types.h>
 #include <packeteer/connector.h>
@@ -230,8 +231,8 @@ private:
   // Workers
   std::atomic<ssize_t>            m_num_workers;
   std::vector<detail::worker *>   m_workers;
-  std::condition_variable_any     m_worker_condition;
-  std::recursive_mutex            m_worker_mutex;
+
+  liberate::concurrency::tasklet::sleep_condition m_worker_condition;
 
   // Main loop state.
   std::atomic<bool>               m_main_loop_continue;

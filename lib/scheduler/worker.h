@@ -31,8 +31,8 @@
 #include <thread>
 
 #include <liberate/concurrency/concurrent_queue.h>
+#include <liberate/concurrency/tasklet.h>
 
-#include "../thread/tasklet.h"
 #include "scheduler_impl.h"
 
 namespace packeteer::detail {
@@ -41,7 +41,7 @@ namespace packeteer::detail {
  * Implements a worker thread for the scheduler implementation.
  **/
 class worker
-  : public packeteer::thread::tasklet
+  : public liberate::concurrency::tasklet
 {
 public:
   /*****************************************************************************
@@ -51,7 +51,8 @@ public:
    * The worker thread sleeps waiting for an event on the condition, and wakes
    * up to check the work queue for work to execute.
    **/
-  worker(std::condition_variable_any & condition, std::recursive_mutex & mutex,
+  worker(
+      liberate::concurrency::tasklet::sleep_condition * condition,
       work_queue_t & work_queue);
   ~worker();
 
@@ -60,7 +61,7 @@ private:
   /**
    * Sleep()s, runs drain_work_queue() and sleeps again.
    **/
-  void worker_loop(packeteer::thread::tasklet & tasklet, void * /* unused */);
+  void worker_loop(liberate::concurrency::tasklet::context & ctx);
 
   work_queue_t &  m_work_queue;
 };

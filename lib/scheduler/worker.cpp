@@ -40,11 +40,15 @@
 
 namespace packeteer::detail {
 
-worker::worker(std::condition_variable_any & condition,
-    std::recursive_mutex & mutex,
+using namespace std::placeholders;
+
+worker::worker(
+    liberate::concurrency::tasklet::sleep_condition * condition,
     work_queue_t & work_queue)
-  : packeteer::thread::tasklet(&condition, &mutex,
-      packeteer::thread::binder(this, &worker::worker_loop))
+  : liberate::concurrency::tasklet{
+      std::bind(&worker::worker_loop, this, _1),
+      condition
+    }
   , m_work_queue(work_queue)
 {
 }
@@ -53,22 +57,19 @@ worker::worker(std::condition_variable_any & condition,
 
 worker::~worker()
 {
-  stop();
 }
 
 
 
 void
-worker::worker_loop(
-    packeteer::thread::tasklet & __1 [[maybe_unused]],
-    void * __2 [[maybe_unused]])
+worker::worker_loop(liberate::concurrency::tasklet::context & ctx)
 {
   DLOG("Worker " << std::this_thread::get_id() << " started");
   do {
     DLOG("Worker " << std::this_thread::get_id() << " woke up");
     drain_work_queue(m_work_queue, false);
     DLOG("Worker " << std::this_thread::get_id() << " going to sleep");
-  } while (packeteer::thread::tasklet::sleep());
+  } while (ctx.sleep());
   DLOG("Worker " << std::this_thread::get_id() << " stopped");
 }
 

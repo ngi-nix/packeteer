@@ -92,7 +92,6 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
   , m_num_workers{num_workers}
   , m_workers{}
   , m_worker_condition{}
-  , m_worker_mutex{}
   , m_main_loop_continue{true}
   , m_main_loop_thread{}
   , m_main_loop_pipe{m_api, "anon://"}
@@ -304,7 +303,7 @@ scheduler::scheduler_impl::adjust_workers(ssize_t num_workers)
     DLOG("Increasing worker count from " << have << " to "
         << num_workers << ".");
     for (ssize_t i = have ; i < num_workers ; ++i) {
-      auto worker = new pdt::worker(m_worker_condition, m_worker_mutex,
+      auto worker = new pdt::worker(&m_worker_condition,
           m_out_queue);
       worker->start();
       m_workers.push_back(worker);
@@ -584,11 +583,14 @@ scheduler::scheduler_impl::main_scheduler_loop()
         // up multiple workers. But we don't want to interrupt the pipe more
         // than there are workers or jobs, either, to avoid needless lock
         // contention.
-        std::lock_guard<std::recursive_mutex> lock(m_worker_mutex);
-        size_t interrupts = std::min(to_schedule.size(), m_workers.size());
+        size_t interrupts = 0;
+        {
+          std::unique_lock<std::mutex> lock(m_worker_condition.mutex);
+          interrupts = std::min(to_schedule.size(), m_workers.size());
+        }
         while (interrupts--) {
           DLOG("Interrupting worker pipe");
-          m_worker_condition.notify_one();
+          m_worker_condition.condition.notify_one();
         }
       }
     }
