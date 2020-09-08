@@ -233,6 +233,27 @@ scheduler::fire_events(events_t const & events)
 
 
 error_t
+scheduler::commit_callbacks()
+{
+  // Since we can't process the in queue without collecting triggered events,
+  // but we don't want to schedule anything here, we'll just re-push the
+  // triggered events back onto the queue. It may cause some delay if the queue
+  // is full, but let's take it for now.
+  entry_list_t triggered;
+  m_impl->process_in_queue(triggered);
+
+  for (auto entry : triggered) {
+    m_impl->enqueue(scheduler_impl::ACTION_TRIGGER, entry);
+  }
+  m_impl->enqueue_commit();
+
+  // Not much else to do?
+  return ERR_SUCCESS;
+}
+
+
+
+error_t
 scheduler::process_events(duration const & timeout,
     bool soft_timeout /* = false */,
     bool exit_on_failure /* = false */)
@@ -240,12 +261,12 @@ scheduler::process_events(duration const & timeout,
   // First, get events to schedule to workers.
   entry_list_t to_schedule;
   m_impl->wait_for_events(timeout, soft_timeout, to_schedule);
-  DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
   if (to_schedule.empty()) {
     // No events
     return ERR_TIMEOUT;
   }
+  DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
   // Then handle these events on the worker's main function.
   return drain_work_queue(to_schedule, exit_on_failure);

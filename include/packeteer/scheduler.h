@@ -248,6 +248,14 @@ public:
 
 
   /**
+   * Commits schedule/unschedule requests. This is useful for the worker-thread
+   * mode of operation, when you want to ensure that in your current thread, a
+   * callback has been set or unset at any given time.
+   */
+  error_t commit_callbacks();
+
+
+  /**
    * Process events; waits for events until the timeout elapses, then calls any
    * registered callbacks for events that were triggered. Use this in your own
    * main loop without any worker threads.
