@@ -118,10 +118,13 @@ public:
   virtual void wait_for_events(io_events & events,
       packeteer::duration const & timeout) = 0;
 
+
+  typedef std::unordered_map<handle::sys_handle_t, events_t> sys_events_map;
+
 protected:
   std::shared_ptr<api> m_api;
 
-  std::unordered_map<handle::sys_handle_t, events_t>  m_sys_handles;
+  sys_events_map                                      m_sys_handles;
   std::unordered_map<handle::sys_handle_t, connector> m_connectors;
 
 private:
