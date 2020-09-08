@@ -262,7 +262,8 @@ public:
    *
    * Returns ERR_TIMEOUT if no events occurred within the timeout value.
    * Otherwise returns ERR_SUCCESS if all callbacks finished running
-   * successfully.
+   * successfully. Returns ERR_UNSUPPORTED_ACTION if the scheduler has worker
+   * threads running.
    *
    * If callbacks fail, you have two options. If exit_on_failure is true, the
    * result of the first failing callback is returned. All subsequent callbacks
@@ -291,6 +292,14 @@ public:
    * Return the current number of worker threads.
    **/
   size_t num_workers() const;
+
+
+  /**
+   * Adjust the current number of worker threads. This is equivalent to the
+   * parameter given in the constructor, and can be used to switch to/from
+   * worker thread mode.
+   */
+  void set_num_workers(ssize_t num_workers);
 
 private:
   // pimpl

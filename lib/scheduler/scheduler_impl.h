@@ -179,6 +179,11 @@ struct scheduler::scheduler_impl
   size_t num_workers() const;
 
   /**
+   * See scheduler::set_num_workers()
+   */
+  void set_num_workers(ssize_t num_workers);
+
+  /**
    * Process the current in queue.
    */
   void process_in_queue(entry_list_t & triggered);

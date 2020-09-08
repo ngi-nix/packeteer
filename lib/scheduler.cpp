@@ -258,6 +258,10 @@ scheduler::process_events(duration const & timeout,
     bool soft_timeout /* = false */,
     bool exit_on_failure /* = false */)
 {
+  if (m_impl->num_workers() > 0) {
+    return ERR_UNSUPPORTED_ACTION;
+  }
+
   // First, get events to schedule to workers.
   entry_list_t to_schedule;
   m_impl->wait_for_events(timeout, soft_timeout, to_schedule);
@@ -278,6 +282,14 @@ size_t
 scheduler::num_workers() const
 {
   return m_impl->num_workers();
+}
+
+
+
+void
+scheduler::set_num_workers(ssize_t num_workers)
+{
+  m_impl->set_num_workers(num_workers);
 }
 
 

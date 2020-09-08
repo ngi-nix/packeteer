@@ -181,10 +181,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "unsupported scheduler type.");
   }
 
-  if (m_num_workers != 0) {
-    start_main_loop();
-    adjust_workers(m_num_workers);
-  }
+  set_num_workers(num_workers);
 }
 
 
@@ -192,8 +189,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 scheduler::scheduler_impl::~scheduler_impl()
 {
   DLOG("Scheduler implementation destructor.");
-  adjust_workers(0);
-  stop_main_loop();
+  set_num_workers(0);
 
   delete m_io;
 
@@ -317,6 +313,22 @@ size_t
 scheduler::scheduler_impl::num_workers() const
 {
   return m_workers.size();
+}
+
+
+
+void
+scheduler::scheduler_impl::set_num_workers(ssize_t num_workers)
+{
+  m_num_workers = num_workers;
+  if (num_workers == 0) {
+    stop_main_loop();
+  }
+  else {
+    start_main_loop();
+  }
+
+  adjust_workers(m_num_workers);
 }
 
 
