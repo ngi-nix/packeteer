@@ -124,7 +124,7 @@ configure_tuntap(tuntap_options & dev)
   // Try setting/getting MTU
   {
     ifreq ifr = {};
-    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
+    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ - 1);
 
     if (dev.mtu > 0) {
       ifr.ifr_mtu = dev.mtu;
@@ -148,7 +148,7 @@ configure_tuntap(tuntap_options & dev)
 #if defined(SIOCSIFTXQLEN) && defined(SIOCGIFTXQLEN)
   {
     ifreq ifr = {};
-    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
+    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ - 1);
 
     if (dev.txqueuelen > 0) {
       ifr.ifr_qlen = dev.txqueuelen;
@@ -172,7 +172,7 @@ configure_tuntap(tuntap_options & dev)
   // Also bring the device up, while we're here.
   {
     ifreq ifr = {};
-    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ);
+    ::strncpy(ifr.ifr_name, dev.name.c_str(), IFNAMSIZ - 1);
 
     ifr.ifr_flags |= IFF_UP;
     err = ::ioctl(sock, SIOCSIFFLAGS, &ifr);
@@ -250,7 +250,7 @@ create_tuntap_device(tuntap & dev)
   ifr->ifr_flags = IFF_NO_PI | (DEVICE_TUN == dev.type ? IFF_TUN : IFF_TAP);
 
   if (!dev.name.empty()) {
-    ::strncpy(ifr->ifr_name, dev.name.c_str(), IFNAMSIZ);
+    ::strncpy(ifr->ifr_name, dev.name.c_str(), IFNAMSIZ - 1);
   }
 
   int err = ::ioctl(fd, TUNSETIFF, ifr);
