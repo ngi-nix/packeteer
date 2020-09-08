@@ -19,6 +19,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#include <build-config.h>
+
 #include "../env.h"
 
 #include <packeteer/scheduler.h>

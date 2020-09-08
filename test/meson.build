@@ -59,6 +59,7 @@ if not meson.is_subproject()
 
   public_tests = executable('public_tests', public_test_src,
       dependencies: [
+        main_build_dir, # XXX private headers include the build config
         packeteer_dep,
         gtest.get_variable('gtest_dep'),
         liberate.get_variable('liberate_dep'),
