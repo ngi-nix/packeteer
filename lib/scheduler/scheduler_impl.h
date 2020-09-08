@@ -178,6 +178,11 @@ struct scheduler::scheduler_impl
    **/
   size_t num_workers() const;
 
+  /**
+   * Process the current in queue.
+   */
+  void process_in_queue(entry_list_t & triggered);
+
 private:
   /***************************************************************************
    * Types
@@ -199,7 +204,6 @@ private:
   // Main loop
   void main_scheduler_loop();
 
-  inline void process_in_queue(entry_list_t & triggered);
   inline void process_in_queue_io(action_type action,
       detail::io_callback_entry * entry);
   inline void process_in_queue_scheduled(action_type action,
