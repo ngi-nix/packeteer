@@ -431,7 +431,6 @@ thread = dependency('threads', required: true)
 ##############################################################################
 # Meson Wrap Dependencies
 liberate = subproject('liberate')
-clipp = subproject('muellan-clipp')
 
 
 ##############################################################################
