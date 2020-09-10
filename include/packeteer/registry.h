@@ -96,7 +96,7 @@ public:
    * key/values provided.
    */
   connector_options options_from_query(
-      std::map<std::string, std::string> const & query);
+      std::map<std::string, std::string> const & query) const;
 
   /***************************************************************************
    * Scheme interface.
@@ -137,6 +137,7 @@ public:
     connector_options default_options;
     connector_options possible_options;
     scheme_creator    creator;
+    std::string       scheme = {};
   };
 
   /**
@@ -161,7 +162,8 @@ public:
   /**
    * Return stored scheme information.
    */
-  connector_info info_for_scheme(std::string const & scheme);
+  connector_info info_for_scheme(std::string const & scheme) const;
+  connector_info info_for_type(connector_type type) const;
 
 private:
   registry();

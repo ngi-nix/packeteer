@@ -156,6 +156,7 @@ TEST(Registry, scheme_missing)
   auto api = api::create();
 
   ASSERT_THROW(api->reg().info_for_scheme("test"), exception);
+  ASSERT_THROW(api->reg().info_for_type(1234), exception);
 }
 
 

@@ -185,7 +185,7 @@ struct registry::registry_impl
 
 
   connector_options
-  options_from_query(std::map<std::string, std::string> const & query)
+  options_from_query(std::map<std::string, std::string> const & query) const
   {
     connector_options result = CO_DEFAULT;
     for (auto param : option_mappers) {
@@ -370,14 +370,16 @@ struct registry::registry_impl
     }
 
     // All good, keep this.
-    scheme_map[normalized] = info;
+    auto clone = info;
+    clone.scheme = normalized;
+    scheme_map[normalized] = clone;
     return ERR_SUCCESS;
   }
 
 
 
   connector_info
-  info_for_scheme(std::string const & scheme)
+  info_for_scheme(std::string const & scheme) const
   {
     auto normalized = liberate::string::to_lower(scheme);
 
@@ -386,6 +388,19 @@ struct registry::registry_impl
       throw exception(ERR_INVALID_VALUE, "Unknown scheme: " + scheme);
     }
     return scheme_info->second;
+  }
+
+
+
+  connector_info
+  info_for_type(connector_type type) const
+  {
+    for (auto const & entry : scheme_map) {
+      if (entry.second.type == type) {
+        return entry.second;
+      }
+    }
+    throw exception(ERR_INVALID_VALUE, "Unknown connector type: " + type);
   }
 };
 
@@ -415,7 +430,7 @@ registry::add_parameter(std::string const & parameter,
 
 connector_options
 registry::options_from_query(
-      std::map<std::string, std::string> const & query)
+      std::map<std::string, std::string> const & query) const
 {
   return m_impl->options_from_query(query);
 }
@@ -431,10 +446,17 @@ registry::add_scheme(std::string const & scheme, connector_info const & info)
 
 
 registry::connector_info
-registry::info_for_scheme(std::string const & scheme)
+registry::info_for_scheme(std::string const & scheme) const
 {
   return m_impl->info_for_scheme(scheme);
 }
 
+
+
+registry::connector_info
+registry::info_for_type(connector_type type) const
+{
+  return m_impl->info_for_type(type);
+}
 
 } // namespace packeteer
