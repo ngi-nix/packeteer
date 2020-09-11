@@ -229,7 +229,7 @@ struct resolver::resolver_impl
     try {
       liberate::net::url query_copy{query};
       query_copy.scheme = normalized;
-      return func_iter->second(m_api.lock(), result, query_copy);
+      return func_iter->second(std::shared_ptr<api>{m_api}, result, query_copy);
     } catch (std::bad_weak_ptr const & ex) {
       ELOG("API is already being destroyed.");
       return ERR_UNEXPECTED;

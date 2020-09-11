@@ -231,6 +231,8 @@ struct registry::registry_impl
       return;
     }
 
+    std::weak_ptr<api> wapi{m_api};
+
   // Register TCP and UDP schemes.
   FAIL_FAST(add_scheme("tcp4", connector_info{CT_TCP4,
       CO_STREAM|CO_NON_BLOCKING,
@@ -325,7 +327,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [this] (liberate::net::url const & url, connector_type const &,
+      [wapi] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -333,8 +335,13 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        auto addr = peer_address{m_api.lock(), url};
-        return new detail::connector_local{addr.socket_address(), opts};
+        try {
+          peer_address addr{std::shared_ptr<api>{wapi}, url};
+          return new detail::connector_local{addr.socket_address(), opts};
+        } catch(std::bad_weak_ptr const & ex) {
+          ELOG("API is already being destroyed.");
+          return nullptr;
+        }
       }}));
 #endif
   }
