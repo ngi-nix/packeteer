@@ -20,6 +20,7 @@
 #include <build-config.h>
 
 #include <packeteer/connector/peer_address.h>
+#include <packeteer/registry.h>
 
 #include <unordered_map>
 #include <algorithm>
@@ -31,23 +32,6 @@
 namespace packeteer {
 
 namespace {
-
-using schemes_map_t = std::unordered_map<connector_type, std::string>;
-static const schemes_map_t sc_schemes =
-{
-  { CT_UNSPEC, "" },
-  { CT_TCP4,  "tcp4" },
-  { CT_TCP6,  "tcp6" },
-  { CT_TCP,   "tcp" },
-  { CT_UDP4,  "udp4" },
-  { CT_UDP6,  "udp6" },
-  { CT_UDP,   "udp" },
-  { CT_LOCAL, "local" },
-  { CT_PIPE,  "pipe" },
-  { CT_ANON,  "anon" },
-};
-
-
 
 inline connector_type
 best_match(connector_type const & ct_type,
@@ -127,7 +111,9 @@ best_match(connector_type const & ct_type,
       break;
 
     default:
-      PACKETEER_FLOW_CONTROL_GUARD;
+      // If we don't know what the best content type is, we just return the
+      // given content type. This is used by extended schemes.
+      return ct_type;
   }
   return CT_UNSPEC;
 }
@@ -146,18 +132,11 @@ verify_best(connector_type const & ct_type,
 
 
 inline void
-initialize(liberate::net::url const & url, liberate::net::socket_address & sockaddr,
+initialize_from_url(
+    liberate::net::url const & url,
+    liberate::net::socket_address & sockaddr,
     connector_type & ctype)
 {
-  ctype = CT_UNSPEC;
-  for (auto entry : sc_schemes) {
-    // cppcheck-suppress useStlAlgorithm ; would be more verbose
-    if (entry.second == url.scheme) {
-      ctype = entry.first;
-      break;
-    }
-  }
-
   // Assign address
   switch (ctype) {
     case CT_TCP4:
@@ -197,70 +176,44 @@ initialize(liberate::net::url const & url, liberate::net::socket_address & socka
 
 } // anonymous namespace
 
-peer_address::peer_address(
-    connector_type const & type /* = CT_UNSPEC */)
+peer_address::peer_address()
   : m_sockaddr()
-  , m_connector_type(type)
+  , m_connector_type(CT_UNSPEC)
+  , m_scheme()
 {
-  m_connector_type = verify_best(type, m_sockaddr.type());
 }
 
 
 
-peer_address::peer_address(connector_type const & type,
-    void const * buf, size_t len)
-  : m_sockaddr(buf, len)
-  , m_connector_type(type)
-{
-  m_connector_type = verify_best(type, m_sockaddr.type());
-}
-
-
-
-peer_address::peer_address(connector_type const & type,
-    std::string const & address, uint16_t port /* = 0 */)
-  : m_sockaddr(address, port)
-  , m_connector_type(type)
-{
-  m_connector_type = verify_best(type, m_sockaddr.type());
-}
-
-
-
-peer_address::peer_address(connector_type const & type,
-    char const * address, uint16_t port /* = 0 */)
-  : m_sockaddr(address, port)
-  , m_connector_type(type)
-{
-  m_connector_type = verify_best(type, m_sockaddr.type());
-}
-
-
-
-peer_address::peer_address(connector_type const & type,
-      liberate::net::socket_address const & address)
-  : m_sockaddr(address)
-  , m_connector_type(type)
-{
-  m_connector_type = verify_best(type, m_sockaddr.type());
-}
-
-
-
-peer_address::peer_address(std::string const & address)
+peer_address::peer_address(std::shared_ptr<api> api, std::string const & address)
   : m_sockaddr()
   , m_connector_type(CT_UNSPEC)
 {
+  // Try to get the best content type from the scheme, and how the address parses
   auto url = liberate::net::url::parse(address);
-  initialize(url, m_sockaddr, m_connector_type);
+  auto info = api->reg().info_for_scheme(url.scheme);
+  m_connector_type = info.type;
+  initialize_from_url(url, m_sockaddr, m_connector_type);
+
+  // Try again, this time with the determined content type
+  info = api->reg().info_for_type(m_connector_type);
+  m_scheme = info.scheme;
 }
 
 
-peer_address::peer_address(liberate::net::url const & url)
+
+peer_address::peer_address(std::shared_ptr<api> api, liberate::net::url const & url)
   : m_sockaddr()
   , m_connector_type(CT_UNSPEC)
 {
-  initialize(url, m_sockaddr, m_connector_type);
+  // Try to get the best content type from the scheme, and how the address parses
+  auto info = api->reg().info_for_scheme(url.scheme);
+  m_connector_type = info.type;
+  initialize_from_url(url, m_sockaddr, m_connector_type);
+
+  // Try again, this time with the determined content type
+  info = api->reg().info_for_type(m_connector_type);
+  m_scheme = info.scheme;
 }
 
 
@@ -284,11 +237,7 @@ peer_address::conn_type() const
 std::string
 peer_address::scheme() const
 {
-  auto iter = sc_schemes.find(m_connector_type);
-  if (iter == sc_schemes.end()) {
-    return "";
-  }
-  return iter->second;
+  return m_scheme;
 }
 
 
@@ -296,12 +245,6 @@ peer_address::scheme() const
 std::string
 peer_address::str() const
 {
-  // Scheme
-  auto iter = sc_schemes.find(m_connector_type);
-  if (iter == sc_schemes.end()) {
-    return "";
-  }
-
   auto str = m_sockaddr.full_str();
   if (m_sockaddr.type() == liberate::net::AT_LOCAL) {
     if (str[0] == '\0') {
@@ -309,7 +252,7 @@ peer_address::str() const
       str = tmp + (str.c_str() + 1);
     }
   }
-  return iter->second + "://" + str;
+  return m_scheme + "://" + str;
 }
 
 

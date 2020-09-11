@@ -56,7 +56,7 @@ inet_copy_url_with_type(liberate::net::address_type type,
 
 
 error_t
-inet_resolver(api * api,
+inet_resolver(std::shared_ptr<api> api,
     std::set<liberate::net::url> & result,
     liberate::net::url const & query)
 {
@@ -145,11 +145,13 @@ inet_resolver(api * api,
 
 struct resolver::resolver_impl
 {
-  resolver_impl(api * api)
+  resolver_impl(std::weak_ptr<api> api)
     : m_api(api)
   {
     init_resolution_funcs();
   }
+
+  std::weak_ptr<api> m_api;
 
   resolver_impl() = delete;
 
@@ -227,20 +229,18 @@ struct resolver::resolver_impl
     try {
       liberate::net::url query_copy{query};
       query_copy.scheme = normalized;
-      return func_iter->second(m_api, result, query_copy);
+      return func_iter->second(m_api.lock(), result, query_copy);
     } catch (std::bad_weak_ptr const & ex) {
       ELOG("API is already being destroyed.");
       return ERR_UNEXPECTED;
     }
   }
-
-  api * m_api;
 };
 
 
 
 
-resolver::resolver(api * api)
+resolver::resolver(std::weak_ptr<api> api)
   : m_impl{std::make_unique<resolver_impl>(api)}
 {
 }

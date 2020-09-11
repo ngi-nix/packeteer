@@ -108,11 +108,15 @@ inet_creator(liberate::net::url const & url, connector_type const & ctype,
 
 struct registry::registry_impl
 {
-  registry_impl()
+  registry_impl(std::weak_ptr<api> api)
+    : m_api(api)
   {
     init_params();
     init_schemes();
   }
+
+  std::weak_ptr<api> m_api;
+
 
   /***************************************************************************
    * Query parameter registry
@@ -321,7 +325,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (liberate::net::url const & url, connector_type const &,
+      [this] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -329,7 +333,7 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        auto addr = peer_address{url};
+        auto addr = peer_address{m_api.lock(), url};
         return new detail::connector_local{addr.socket_address(), opts};
       }}));
 #endif
@@ -406,8 +410,8 @@ struct registry::registry_impl
 
 
 
-registry::registry()
-  : m_impl{std::make_unique<registry_impl>()}
+registry::registry(std::weak_ptr<api> api)
+  : m_impl{std::make_unique<registry_impl>(api)}
 {
 }
 

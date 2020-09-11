@@ -72,7 +72,7 @@ struct connector::connector_impl
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
-    , m_address(m_url)
+    , m_address(api, m_url)
     , m_iconn(iconn)
   {
     // We don't really need to validate the address here any further, because
@@ -95,7 +95,7 @@ struct connector::connector_impl
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
-    , m_address(m_url)
+    , m_address(api, m_url)
     , m_iconn(nullptr)
   {
     // Find the scheme spec

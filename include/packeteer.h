@@ -93,10 +93,7 @@ public:
   /**
    * Create a new API instance.
    */
-  static std::shared_ptr<api> create()
-  {
-    return std::shared_ptr<api>(new api());
-  }
+  static std::shared_ptr<api> create();
   ~api();
 
   /**
@@ -119,6 +116,7 @@ public:
 
 private:
   api();
+  void init(std::weak_ptr<api> self);
 
   struct api_impl;
   std::unique_ptr<api_impl> m_impl;

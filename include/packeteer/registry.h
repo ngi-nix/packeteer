@@ -166,8 +166,8 @@ public:
   connector_info info_for_type(connector_type type) const;
 
 private:
-  registry();
   friend class api;
+  registry(std::weak_ptr<api> api);
 
   struct registry_impl;
   std::unique_ptr<registry_impl> m_impl;

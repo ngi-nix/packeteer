@@ -34,21 +34,40 @@ namespace packeteer {
 
 struct api::api_impl
 {
-  api_impl(api * api)
-    : res{api}
+  api_impl(std::weak_ptr<api> api)
+    : reg{api}
+    , res{api}
   {
   }
 
   ::liberate::api       liberate = {};
-  ::packeteer::registry reg = {};
+  ::packeteer::registry reg;
   ::packeteer::resolver res;
 };
 
 
 
-api::api()
-  : m_impl{std::make_unique<api_impl>(this)}
+std::shared_ptr<api>
+api::create()
 {
+  auto ret = std::shared_ptr<api>(new api());
+  ret->init(ret);
+  return ret;
+}
+
+
+
+api::api()
+{
+}
+
+
+
+void
+api::init(std::weak_ptr<api> self)
+{
+  m_impl = std::make_unique<api_impl>(self);
+
   // Initialize random seed used in connector construction.
   auto now = std::chrono::steady_clock::now().time_since_epoch();
   srand(now.count());

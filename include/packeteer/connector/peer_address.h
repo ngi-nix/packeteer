@@ -48,41 +48,24 @@ public:
   /**
    * Default constructor. The resulting socket address does not point anywhere.
    **/
-  peer_address(connector_type const & type = CT_UNSPEC);
+  peer_address();
 
   /**
    * Destructor
    **/
   virtual ~peer_address() = default;
 
-  /**
-   * Constructor. The 'buf' parameter is expected to be a struct sockaddr of
-   * the given length.
-   **/
-  peer_address(connector_type const & type, void const * buf, size_t len);
-
-
-  /**
-   * Alternative constructor. The string is expected to be a network address
-   * in CIDR notation (without the netmask).
-   *
-   * Throws exception if parsing fails.
-   **/
-  peer_address(connector_type const & type, std::string const & address,
-      uint16_t port = 0);
-  peer_address(connector_type const & type, char const * address,
-      uint16_t port = 0);
-  peer_address(connector_type const & type,
-      ::liberate::net::socket_address const & address);
-
 
   /**
    * Constructor from connection string or url; no separate type or port is
    * necessary as both are included. See the connector class for a description
    * of the string format.
+   *
+   * Because this constructor requires knowledge of registered URL schemes, it
+   * must be passed an API instance.
    **/
-  explicit peer_address(std::string const & address);
-  explicit peer_address(::liberate::net::url const & url);
+  peer_address(std::shared_ptr<api> api, std::string const & address);
+  peer_address(std::shared_ptr<api> api, ::liberate::net::url const & url);
 
 
   /**
@@ -131,6 +114,7 @@ public:
 private:
   liberate::net::socket_address m_sockaddr;
   connector_type                m_connector_type;
+  std::string                   m_scheme;
 
   friend PACKETEER_API_FRIEND std::ostream & operator<<(std::ostream & os, peer_address const & addr);
 };

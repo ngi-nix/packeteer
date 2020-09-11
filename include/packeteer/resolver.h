@@ -86,7 +86,7 @@ public:
    */
   using resolution_function = std::function<
     error_t (
-        api * api,
+        std::shared_ptr<api> api,
         std::set<liberate::net::url> &,
         liberate::net::url const &
     )
@@ -113,8 +113,8 @@ public:
       liberate::net::url const & query);
 
 private:
-  resolver(api * api);
   friend class api;
+  resolver(std::weak_ptr<api> api);
 
   struct resolver_impl;
   std::unique_ptr<resolver_impl> m_impl;
