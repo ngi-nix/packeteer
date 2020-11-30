@@ -29,6 +29,8 @@
 
 #include "worker.h"
 
+#include "../interrupt.h"
+
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
 #include "io/posix/epoll.h"
 #endif
@@ -53,33 +55,6 @@ namespace pdt = packeteer::detail;
 namespace sc = std::chrono;
 
 namespace packeteer {
-
-/*****************************************************************************
- * Free detail functions
- **/
-namespace detail {
-
-void interrupt(connector & pipe)
-{
-  char buf[1] = { '\0' };
-  size_t amount = 0;
-  pipe.write(buf, sizeof(buf), amount);
-}
-
-
-
-void clear_interrupt(connector & pipe)
-{
-  char buf[1] = { '\0' };
-  size_t amount = 0;
-  pipe.read(buf, sizeof(buf), amount);
-}
-
-} // namespace detail
-
-
-
-
 
 
 /*****************************************************************************
@@ -219,7 +194,7 @@ scheduler::scheduler_impl::enqueue(action_type action,
 void
 scheduler::scheduler_impl::enqueue_commit()
 {
-  detail::interrupt(m_main_loop_pipe);
+  detail::set_interrupt(m_main_loop_pipe);
 }
 
 
@@ -250,7 +225,7 @@ scheduler::scheduler_impl::stop_main_loop()
 
   m_main_loop_continue = false;
 
-  detail::interrupt(m_main_loop_pipe);
+  detail::set_interrupt(m_main_loop_pipe);
   if (m_main_loop_thread.joinable()) {
     m_main_loop_thread.join();
   }
@@ -386,7 +361,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
 
     case ACTION_REMOVE:
       {
-        // Add the callback from the event mask
+        // Remove the callback from the event mask
         auto updated = m_io_callbacks.remove(io);
         m_io->unregister_connector(updated->m_connector, updated->m_events);
         delete io;
@@ -489,6 +464,10 @@ scheduler::scheduler_impl::dispatch_io_callbacks(
     auto callbacks = m_io_callbacks.copy_matching(event.connector,
         event.events);
     to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
+
+    // If any of the callbacks have IO_FLAGS_ONESHOT set, remove them from the
+    // I/O subsystem now.
+    // TODO
   }
 }
 
@@ -662,6 +641,8 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
   // vector to workers.
   time_point now = clock::now();
 
+  // TODO get items to unprocess from dispatch_io_callbacks(), add them to the
+  // "in queue", effectively.
   dispatch_io_callbacks(events, result);
   dispatch_scheduled_callbacks(now, result);
   dispatch_user_callbacks(triggered, result);
@@ -683,9 +664,10 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
  * Free functions
  **/
 
+namespace {
 
-error_t
-execute_callback(detail::callback_entry * entry)
+inline error_t
+run_callback_type(detail::callback_entry * entry)
 {
   error_t err = ERR_SUCCESS;
 
@@ -719,16 +701,15 @@ execute_callback(detail::callback_entry * entry)
   return err;
 }
 
-namespace {
 
 inline error_t
-handle_entry(detail::callback_entry * entry)
+execute_callback(detail::callback_entry * entry)
 {
   DLOG("Thread " << std::this_thread::get_id() << " picked up entry of type: "
       << static_cast<int>(entry->m_type));
   error_t err = ERR_SUCCESS;
   try {
-    err = execute_callback(entry);
+    err = run_callback_type(entry);
     if (ERR_SUCCESS != err) {
       ET_LOG("Error in callback", err);
     }
@@ -763,10 +744,20 @@ drain_work_queue(work_queue_t & work_queue,
   while (work_queue.pop(entry)) {
     if (process) {
       // Process the entry (it gets freed)
-      err = handle_entry(entry);
+      err = execute_callback(entry);
     }
 
+    // TODO:
+    // - pass in_queue_t directly
+    // - add to in_queue_t
+    // - commit at queue end
+    //  -> make in_queue and its pipe a type, I guess, so that we can
+    //     re-use it more effectively?
+
     // Always delete entry
+    // TODO - but re-schedule if IO_FLAGS_ONESHOT is
+    // *not* set, effectively?
+    // - actually if "REPEAT_ON_SUCCESS or some such is set.
     delete entry;
 
     // Maybe exit
@@ -789,10 +780,13 @@ drain_work_queue(entry_list_t & work_queue, bool exit_on_failure)
   bool process = true;
   for (auto & entry : work_queue) {
     if (process) {
-      err = handle_entry(entry);
+      err = execute_callback(entry);
     }
 
     // Always delete entry
+    // TODO - but re-schedule if IO_FLAGS_ONESHOT is
+    // *not* set, effectively?
+    // - actually if "REPEAT_ON_SUCCESS or some such is set.
     delete entry;
 
     // Maybe exit

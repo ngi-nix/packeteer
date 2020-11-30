@@ -55,17 +55,6 @@ class worker;
 
 
 /*****************************************************************************
- * Free (detail) functions
- **/
-namespace detail {
-
-void interrupt(connector & pipe);
-void clear_interrupt(connector & pipe);
-
-} // namespace detail
-
-
-/*****************************************************************************
  * Types
  **/
 namespace detail {
@@ -282,20 +271,15 @@ private:
  **/
 
 /**
- * Execute a single callback entry.
- **/
-error_t execute_callback(detail::callback_entry * entry);
-
-
-/**
- * Drain a work queue, invoking execute_callback for each entry.
+ * Drain a work queue, executing each entry callback.
  **/
 error_t drain_work_queue(
     work_queue_t & work_queue,
     bool exit_on_failure);
 
-error_t drain_work_queue(entry_list_t & work_queue, bool exit_on_failure);
-
+error_t drain_work_queue(
+    entry_list_t & work_queue,
+    bool exit_on_failure);
 
 
 } // namespace packeteer

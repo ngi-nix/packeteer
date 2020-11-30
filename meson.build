@@ -494,6 +494,7 @@ libsrc = [
   'lib' / 'resolver.cpp',
   'lib' / 'scheduler.cpp',
   'lib' / 'connector.cpp',
+  'lib' / 'interrupt.cpp',
   'lib' / 'connector' / 'peer_address.cpp',
   'lib' / 'scheduler' / 'worker.cpp',
   'lib' / 'scheduler' / 'scheduler_impl.cpp',

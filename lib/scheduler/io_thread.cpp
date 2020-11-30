@@ -23,6 +23,8 @@
 
 #include "scheduler_impl.h"
 
+#include "../interrupt.h"
+
 
 namespace packeteer::detail {
 
@@ -81,7 +83,7 @@ void
 io_thread::wakeup()
 {
   if (m_running) {
-    interrupt(m_io_interrupt);
+    set_interrupt(m_io_interrupt);
   }
 }
 
@@ -94,7 +96,7 @@ io_thread::stop()
   m_running = false;
 
   if (was_running) {
-    interrupt(m_io_interrupt);
+    set_interrupt(m_io_interrupt);
   }
 
   if (m_thread.joinable()) {
@@ -205,7 +207,7 @@ io_thread::thread_loop()
       if (!events.empty()) {
         DLOG("Got " << events.size() << " I/O events.");
         m_out_queue.push(events);
-        interrupt(m_queue_interrupt);
+        set_interrupt(m_queue_interrupt);
       }
     }
 
