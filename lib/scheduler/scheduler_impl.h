@@ -154,13 +154,10 @@ struct scheduler::scheduler_impl
       scheduler_type type);
   ~scheduler_impl();
 
-
   /**
-   * Enqueue a callback_entry. The specific type must be determined by the
-   * caller, and the parameters must be set by the caller.
+   * Expose command queue for the scheduler implementation.
    **/
-  void enqueue(action_type action, detail::callback_entry * entry);
-  void enqueue_commit();
+  in_queue_t & commands();
 
 
   /**

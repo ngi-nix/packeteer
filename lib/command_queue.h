@@ -58,6 +58,11 @@ public:
     m_queue.push(std::forward_as_tuple(command, args...));
   }
 
+  inline void enqueue(commandT const & command, argsT const &... args)
+  {
+    m_queue.push(std::forward_as_tuple(command, args...));
+  }
+
   inline bool dequeue(commandT & command, argsT &... args)
   {
     value_type entry;

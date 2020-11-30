@@ -183,19 +183,10 @@ scheduler::scheduler_impl::~scheduler_impl()
 
 
 
-void
-scheduler::scheduler_impl::enqueue(action_type action,
-    pdt::callback_entry * entry)
+scheduler::scheduler_impl::in_queue_t &
+scheduler::scheduler_impl::commands()
 {
-  m_in_queue.enqueue(action, std::move(entry));
-}
-
-
-
-void
-scheduler::scheduler_impl::enqueue_commit()
-{
-  m_in_queue.commit();
+  return m_in_queue;
 }
 
 
