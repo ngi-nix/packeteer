@@ -70,7 +70,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
   , m_main_loop_continue{true}
   , m_main_loop_thread{}
   , m_main_loop_pipe{m_api, "anon://"}
-  , m_in_queue{}
+  , m_in_queue{m_main_loop_pipe}
   , m_out_queue{}
   , m_scheduled_callbacks{}
   , m_io{nullptr}
@@ -169,12 +169,13 @@ scheduler::scheduler_impl::~scheduler_impl()
   delete m_io;
 
   // There might be a bunch of items still in the in- and out queues.
-  in_queue_entry_t item;
-  while (m_in_queue.pop(item)) {
-    delete item.second;
+  action_type action;
+  detail::callback_entry * entry = nullptr;
+  while (m_in_queue.dequeue(action, entry)) {
+    delete entry;
   }
 
-  pdt::callback_entry * entry = nullptr;
+  entry = nullptr;
   while (m_out_queue.pop(entry)) {
     delete entry;
   }
@@ -186,7 +187,7 @@ void
 scheduler::scheduler_impl::enqueue(action_type action,
     pdt::callback_entry * entry)
 {
-  m_in_queue.push(std::make_pair(action, entry));
+  m_in_queue.enqueue(action, std::move(entry));
 }
 
 
@@ -194,7 +195,7 @@ scheduler::scheduler_impl::enqueue(action_type action,
 void
 scheduler::scheduler_impl::enqueue_commit()
 {
-  detail::set_interrupt(m_main_loop_pipe);
+  m_in_queue.commit();
 }
 
 
@@ -311,32 +312,34 @@ scheduler::scheduler_impl::set_num_workers(ssize_t num_workers)
 void
 scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 {
-  in_queue_entry_t item;
-  while (m_in_queue.pop(item)) {
+  action_type action;
+  detail::callback_entry * entry = nullptr;
+
+  while (m_in_queue.dequeue(action, entry)) {
     // No callback means nothing to do.
-    if (nullptr == item.second) {
+    if (nullptr == entry) {
       continue;
     }
 
-    switch (item.second->m_type) {
+    switch (entry->m_type) {
       case pdt::CB_ENTRY_IO:
-        process_in_queue_io(item.first,
-            reinterpret_cast<pdt::io_callback_entry *>(item.second));
+        process_in_queue_io(action,
+            reinterpret_cast<pdt::io_callback_entry *>(entry));
         break;
 
       case pdt::CB_ENTRY_SCHEDULED:
-        process_in_queue_scheduled(item.first,
-            reinterpret_cast<pdt::scheduled_callback_entry *>(item.second));
+        process_in_queue_scheduled(action,
+            reinterpret_cast<pdt::scheduled_callback_entry *>(entry));
         break;
 
       case pdt::CB_ENTRY_USER:
-        process_in_queue_user(item.first,
-            reinterpret_cast<pdt::user_callback_entry *>(item.second),
+        process_in_queue_user(action,
+            reinterpret_cast<pdt::user_callback_entry *>(entry),
             triggered);
         break;
 
       default:
-        delete item.second;
+        delete entry;
         PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad callback entry type");
         break;
     }

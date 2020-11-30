@@ -412,7 +412,7 @@ TEST_P(Scheduler, parallel_callback_with_threads)
   sched.schedule_once(TEST_SLEEP_TIME, cb1);
   sched.schedule_once(TEST_SLEEP_TIME, cb2);
 
-  std::this_thread::sleep_for(sc::milliseconds(150));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME * 2);
 
   std::thread::id id1 = source1.m_tid;
   std::thread::id id2 = source2.m_tid;

@@ -42,6 +42,8 @@
 #include <packeteer/connector.h>
 #include <packeteer/handle.h>
 
+#include "../command_queue.h"
+
 #include "io.h"
 
 namespace packeteer {
@@ -138,6 +140,12 @@ struct scheduler::scheduler_impl
     ACTION_TRIGGER  = 2,
   };
 
+  // The in queue is a command queue with associated signal
+  using in_queue_t = detail::command_queue_with_signal<
+    action_type,
+    detail::callback_entry *
+  >;
+
 
   /***************************************************************************
    * Interface
@@ -178,13 +186,6 @@ struct scheduler::scheduler_impl
   void process_in_queue(entry_list_t & triggered);
 
 private:
-  /***************************************************************************
-   * Types
-   **/
-  // Entries for the in-queue
-  using in_queue_entry_t = std::pair<action_type, detail::callback_entry *>;
-  using in_queue_t = liberate::concurrency::concurrent_queue<in_queue_entry_t>;
-
   /***************************************************************************
    * Generic private functions
    **/
