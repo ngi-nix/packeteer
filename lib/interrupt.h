@@ -33,9 +33,11 @@ namespace packeteer::detail {
 /**
  * Treat a connector as a signal, setting and clearing an interrupt by writing
  * to and reading from the connector.
+ *
+ * clear_interrupt() returns true if an interrupt was issued, false otherwise.
  **/
 void set_interrupt(connector & signal);
-void clear_interrupt(connector & signal);
+bool clear_interrupt(connector & signal);
 
 } // namespace packeteer::detail
 

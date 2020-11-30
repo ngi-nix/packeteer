@@ -33,11 +33,12 @@ void set_interrupt(connector & signal)
 
 
 
-void clear_interrupt(connector & signal)
+bool clear_interrupt(connector & signal)
 {
   char buf[1] = { '\0' };
   size_t amount = 0;
   signal.read(buf, sizeof(buf), amount);
+  return (amount > 0);
 }
 
 
