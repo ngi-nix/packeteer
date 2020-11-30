@@ -169,9 +169,9 @@ scheduler::scheduler_impl::~scheduler_impl()
   delete m_io;
 
   // There might be a bunch of items still in the in- and out queues.
-  action_type action;
+  command_type command;
   detail::callback_entry * entry = nullptr;
-  while (m_in_queue.dequeue(action, entry)) {
+  while (m_in_queue.dequeue(command, entry)) {
     delete entry;
   }
 
@@ -183,7 +183,7 @@ scheduler::scheduler_impl::~scheduler_impl()
 
 
 
-scheduler::scheduler_impl::in_queue_t &
+scheduler_command_queue_t &
 scheduler::scheduler_impl::commands()
 {
   return m_in_queue;
@@ -303,10 +303,10 @@ scheduler::scheduler_impl::set_num_workers(ssize_t num_workers)
 void
 scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 {
-  action_type action;
+  command_type command;
   detail::callback_entry * entry = nullptr;
 
-  while (m_in_queue.dequeue(action, entry)) {
+  while (m_in_queue.dequeue(command, entry)) {
     // No callback means nothing to do.
     if (nullptr == entry) {
       continue;
@@ -314,17 +314,17 @@ scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 
     switch (entry->m_type) {
       case pdt::CB_ENTRY_IO:
-        process_in_queue_io(action,
+        process_in_queue_io(command,
             reinterpret_cast<pdt::io_callback_entry *>(entry));
         break;
 
       case pdt::CB_ENTRY_SCHEDULED:
-        process_in_queue_scheduled(action,
+        process_in_queue_scheduled(command,
             reinterpret_cast<pdt::scheduled_callback_entry *>(entry));
         break;
 
       case pdt::CB_ENTRY_USER:
-        process_in_queue_user(action,
+        process_in_queue_user(command,
             reinterpret_cast<pdt::user_callback_entry *>(entry),
             triggered);
         break;
@@ -340,11 +340,11 @@ scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 
 
 void
-scheduler::scheduler_impl::process_in_queue_io(action_type action,
+scheduler::scheduler_impl::process_in_queue_io(command_type command,
     pdt::io_callback_entry * io)
 {
-  switch (action) {
-    case ACTION_ADD:
+  switch (command) {
+    case CMD_ADD:
       {
         // Add the callback for the event mask
         auto updated = m_io_callbacks.add(io);
@@ -353,7 +353,7 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       break;
 
 
-    case ACTION_REMOVE:
+    case CMD_REMOVE:
       {
         // Remove the callback from the event mask
         auto updated = m_io_callbacks.remove(io);
@@ -363,10 +363,10 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       break;
 
 
-    case ACTION_TRIGGER:
+    case CMD_TRIGGER:
     default:
       delete io;
-      DLOG("Ignoring invalid TRIGGER action for I/O callback.");
+      DLOG("Ignoring invalid TRIGGER command for I/O callback.");
       break;
   }
 }
@@ -374,11 +374,11 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
 
 
 void
-scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
+scheduler::scheduler_impl::process_in_queue_scheduled(command_type command,
     pdt::scheduled_callback_entry * scheduled)
 {
-  switch (action) {
-    case ACTION_ADD:
+  switch (command) {
+    case CMD_ADD:
       {
         // When adding, we simply add scheduled entries. It's entirely
         // possible that the same (callback, timeout) combination is added
@@ -388,7 +388,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
       break;
 
 
-    case ACTION_REMOVE:
+    case CMD_REMOVE:
       {
         // When deleting, we need to delete *all* (callback, timeout)
         // combinations that match. That might not be what the caller
@@ -399,10 +399,10 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
       break;
 
 
-    case ACTION_TRIGGER:
+    case CMD_TRIGGER:
     default:
       delete scheduled;
-      DLOG("Ignoring invalid TRIGGER action for scheduled callback.");
+      DLOG("Ignoring invalid TRIGGER command for scheduled callback.");
       break;
   }
 }
@@ -410,24 +410,24 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
 
 
 void
-scheduler::scheduler_impl::process_in_queue_user(action_type action,
+scheduler::scheduler_impl::process_in_queue_user(command_type command,
     pdt::user_callback_entry * entry, entry_list_t & triggered)
 {
-  switch (action) {
-    case ACTION_ADD:
+  switch (command) {
+    case CMD_ADD:
       // Add the callback/entry mask; container takes ownership
       m_user_callbacks.add(entry);
       break;
 
 
-    case ACTION_REMOVE:
+    case CMD_REMOVE:
       // Remove the callback/entry mask
       m_user_callbacks.remove(entry);
       delete entry;
       break;
 
 
-    case ACTION_TRIGGER:
+    case CMD_TRIGGER:
       // Remember it for a later processing stage; triggered takes ownership
       triggered.push_back(entry);
       break;
@@ -435,7 +435,7 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
     default:
       delete entry;
-      PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad action for user callback");
+      PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad command for user callback");
   }
 }
 

@@ -123,6 +123,21 @@ using work_queue_t = liberate::concurrency::concurrent_queue<
   detail::callback_entry *
 >;
 
+// Type of command for the scheduler implementation
+enum command_type : int8_t
+{
+  CMD_ADD      = 0,
+  CMD_REMOVE   = 1,
+  CMD_TRIGGER  = 2,
+};
+
+// The in queue is a command queue with associated signal
+using scheduler_command_queue_t = detail::command_queue_with_signal<
+  command_type,
+  detail::callback_entry *
+>;
+
+
 
 /*****************************************************************************
  * Nested class scheduler::scheduler_impl.
@@ -132,20 +147,6 @@ using work_queue_t = liberate::concurrency::concurrent_queue<
  **/
 struct scheduler::scheduler_impl
 {
-  // Type of action to take on an item in the in-queue
-  enum action_type : int8_t
-  {
-    ACTION_ADD      = 0,
-    ACTION_REMOVE   = 1,
-    ACTION_TRIGGER  = 2,
-  };
-
-  // The in queue is a command queue with associated signal
-  using in_queue_t = detail::command_queue_with_signal<
-    action_type,
-    detail::callback_entry *
-  >;
-
 
   /***************************************************************************
    * Interface
@@ -157,7 +158,7 @@ struct scheduler::scheduler_impl
   /**
    * Expose command queue for the scheduler implementation.
    **/
-  in_queue_t & commands();
+  scheduler_command_queue_t & commands();
 
 
   /**
@@ -196,11 +197,11 @@ private:
   // Main loop
   void main_scheduler_loop();
 
-  inline void process_in_queue_io(action_type action,
+  inline void process_in_queue_io(command_type command,
       detail::io_callback_entry * entry);
-  inline void process_in_queue_scheduled(action_type action,
+  inline void process_in_queue_scheduled(command_type command,
       detail::scheduled_callback_entry * entry);
-  inline void process_in_queue_user(action_type action,
+  inline void process_in_queue_user(command_type command,
       detail::user_callback_entry * entry, entry_list_t & triggered);
 
   inline void dispatch_io_callbacks(detail::io_events const & events,
@@ -252,7 +253,7 @@ private:
   // Any process putting an entry into either queue relinquishes ownership over
   // the entry. Any process taking an entry out of either queue takes ownership
   // over the entry.
-  in_queue_t                      m_in_queue;
+  scheduler_command_queue_t       m_in_queue;
   work_queue_t                    m_out_queue;
 
   detail::io_callbacks_t          m_io_callbacks;
