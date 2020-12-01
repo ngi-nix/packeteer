@@ -53,7 +53,8 @@ public:
    **/
   worker(
       liberate::concurrency::tasklet::sleep_condition * condition,
-      work_queue_t & work_queue);
+      work_queue_t & work_queue,
+      scheduler_command_queue_t & command_queue);
   ~worker();
 
 
@@ -63,7 +64,8 @@ private:
    **/
   void worker_loop(liberate::concurrency::tasklet::context & ctx);
 
-  work_queue_t &  m_work_queue;
+  work_queue_t &              m_work_queue;
+  scheduler_command_queue_t & m_command_queue;
 };
 
 } // namespace packeteer::detail

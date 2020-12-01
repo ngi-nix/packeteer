@@ -50,12 +50,14 @@ struct io_callback_entry : public callback_entry
 {
   connector     m_connector;
   events_t      m_events;
+  io_flags_t    m_flags;
 
   io_callback_entry(callback const & cb, connector const & conn,
-      events_t const & events)
+      events_t const & events, io_flags_t flags = IO_FLAGS_NONE)
     : callback_entry(CB_ENTRY_IO, cb)
     , m_connector(conn)
     , m_events(events)
+    , m_flags(flags)
   {
   }
 

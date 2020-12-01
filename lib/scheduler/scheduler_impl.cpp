@@ -267,7 +267,7 @@ scheduler::scheduler_impl::adjust_workers(ssize_t num_workers)
         << num_workers << ".");
     for (ssize_t i = have ; i < num_workers ; ++i) {
       auto worker = new pdt::worker(&m_worker_condition,
-          m_out_queue);
+          m_out_queue, m_in_queue);
       worker->start();
       m_workers.push_back(worker);
     }
@@ -459,9 +459,17 @@ scheduler::scheduler_impl::dispatch_io_callbacks(
         event.events);
     to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
 
-    // If any of the callbacks have IO_FLAGS_ONESHOT set, remove them from the
-    // I/O subsystem now.
-    // TODO
+    // If any of the callbacks have IO_FLAGS_ONESHOT or IO_FLAGS_REPEAT set,
+    // remove them from the I/O subsystem now. We just insert the approriate
+    // entry into the command queue here, and the next iteration waiting for
+    // events will pick the change up.
+    for (auto & entry : callbacks) {
+      if ((entry->m_flags & IO_FLAGS_ONESHOT)
+          || (entry->m_flags & IO_FLAGS_REPEAT))
+      {
+        m_in_queue.enqueue(CMD_REMOVE, new detail::io_callback_entry{*entry});
+      }
+    }
   }
 }
 
@@ -635,8 +643,6 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
   // vector to workers.
   time_point now = clock::now();
 
-  // TODO get items to unprocess from dispatch_io_callbacks(), add them to the
-  // "in queue", effectively.
   dispatch_io_callbacks(events, result);
   dispatch_scheduled_callbacks(now, result);
   dispatch_user_callbacks(triggered, result);
@@ -724,40 +730,58 @@ execute_callback(detail::callback_entry * entry)
   return err;
 }
 
+
+inline void
+drain_work_queue_loop(
+    // Function parameters
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue,
+    // Loop variables
+    error_t & err,
+    detail::callback_entry * entry,
+    bool & process)
+{
+  if (process) {
+    // Process the entry (it gets freed)
+    err = execute_callback(entry);
+  }
+
+  // We may want to re-add this entry to the scheduler, but only under
+  // specific circumstances.
+  if ((ERR_REPEAT_ACTION == err)
+      && (detail::CB_ENTRY_IO == entry->m_type)
+      && (reinterpret_cast<detail::io_callback_entry *>(entry)->m_flags & IO_FLAGS_REPEAT))
+  {
+    // Re-add this entry. No need to create a copy, this goes straight into
+    // the command queue.
+    command_queue.enqueue(CMD_ADD, entry);
+  }
+  else {
+    // We're done with this entry, delete it.
+    delete entry;
+  }
+
+  // Maybe exit
+  if (ERR_SUCCESS != err && exit_on_failure) {
+    process = false;
+  }
+}
+
 } // anonymous namespace
 
 
 error_t
 drain_work_queue(work_queue_t & work_queue,
-    bool exit_on_failure)
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue)
 {
   DLOG("Starting drain.");
   detail::callback_entry * entry = nullptr;
   error_t err = ERR_SUCCESS;
   bool process = true;
   while (work_queue.pop(entry)) {
-    if (process) {
-      // Process the entry (it gets freed)
-      err = execute_callback(entry);
-    }
-
-    // TODO:
-    // - pass in_queue_t directly
-    // - add to in_queue_t
-    // - commit at queue end
-    //  -> make in_queue and its pipe a type, I guess, so that we can
-    //     re-use it more effectively?
-
-    // Always delete entry
-    // TODO - but re-schedule if IO_FLAGS_ONESHOT is
-    // *not* set, effectively?
-    // - actually if "REPEAT_ON_SUCCESS or some such is set.
-    delete entry;
-
-    // Maybe exit
-    if (ERR_SUCCESS != err && exit_on_failure) {
-      process = false;
-    }
+    drain_work_queue_loop(exit_on_failure, command_queue,
+        err, entry, process);
   }
 
   DLOG("Finished drain.");
@@ -767,26 +791,15 @@ drain_work_queue(work_queue_t & work_queue,
 
 
 error_t
-drain_work_queue(entry_list_t & work_queue, bool exit_on_failure)
+drain_work_queue(entry_list_t & work_queue, bool exit_on_failure,
+    scheduler_command_queue_t & command_queue)
 {
   DLOG("Starting drain.");
   error_t err = ERR_SUCCESS;
   bool process = true;
   for (auto & entry : work_queue) {
-    if (process) {
-      err = execute_callback(entry);
-    }
-
-    // Always delete entry
-    // TODO - but re-schedule if IO_FLAGS_ONESHOT is
-    // *not* set, effectively?
-    // - actually if "REPEAT_ON_SUCCESS or some such is set.
-    delete entry;
-
-    // Maybe exit
-    if (ERR_SUCCESS != err && exit_on_failure) {
-      process = false;
-    }
+    drain_work_queue_loop(exit_on_failure, command_queue,
+        err, entry, process);
   }
 
   work_queue.clear();

@@ -117,6 +117,7 @@ namespace packeteer {
 /*****************************************************************************
  * Types
  **/
+// TODO detail
 // Type for temporary entry containers.
 using entry_list_t = std::vector<detail::callback_entry *>;
 using work_queue_t = liberate::concurrency::concurrent_queue<
@@ -274,11 +275,13 @@ private:
  **/
 error_t drain_work_queue(
     work_queue_t & work_queue,
-    bool exit_on_failure);
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue);
 
 error_t drain_work_queue(
     entry_list_t & work_queue,
-    bool exit_on_failure);
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue);
 
 
 } // namespace packeteer

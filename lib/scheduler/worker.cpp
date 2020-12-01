@@ -44,12 +44,14 @@ using namespace std::placeholders;
 
 worker::worker(
     liberate::concurrency::tasklet::sleep_condition * condition,
-    work_queue_t & work_queue)
+    work_queue_t & work_queue,
+    scheduler_command_queue_t & command_queue)
   : liberate::concurrency::tasklet{
       std::bind(&worker::worker_loop, this, _1),
       condition
     }
   , m_work_queue(work_queue)
+  , m_command_queue(command_queue)
 {
 }
 
@@ -67,7 +69,7 @@ worker::worker_loop(liberate::concurrency::tasklet::context & ctx)
   DLOG("Worker " << std::this_thread::get_id() << " started");
   do {
     DLOG("Worker " << std::this_thread::get_id() << " woke up");
-    drain_work_queue(m_work_queue, false);
+    drain_work_queue(m_work_queue, false, m_command_queue);
     DLOG("Worker " << std::this_thread::get_id() << " going to sleep");
   } while (ctx.sleep());
   DLOG("Worker " << std::this_thread::get_id() << " stopped");

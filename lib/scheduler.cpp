@@ -56,9 +56,9 @@ scheduler::~scheduler()
 
 error_t
 scheduler::register_connector(events_t const & events, connector const & conn,
-    callback const & callback)
+    callback const & callback, io_flags_t const & flags /* = IO_FLAG_NONE */)
 {
-  auto entry = new detail::io_callback_entry(callback, conn, events);
+  auto entry = new detail::io_callback_entry(callback, conn, events, flags);
   m_impl->commands().enqueue(CMD_ADD, entry);
   m_impl->commands().commit();
   return ERR_SUCCESS;
@@ -273,7 +273,7 @@ scheduler::process_events(duration const & timeout,
   DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
   // Then handle these events on the worker's main function.
-  return drain_work_queue(to_schedule, exit_on_failure);
+  return drain_work_queue(to_schedule, exit_on_failure, m_impl->commands());
 }
 
 

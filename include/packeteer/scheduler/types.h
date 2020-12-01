@@ -41,6 +41,21 @@ using clock_time_point = std::chrono::time_point<clock, durationT>;
 
 using time_point = clock_time_point<duration>;
 
+/**
+ * I/O callbacks can have option flags associated with them.
+ */
+using io_flags_t = uint8_t;
+
+enum io_flags : io_flags_t
+{
+  IO_FLAGS_NONE     = 0,
+  IO_FLAGS_ONESHOT  = (1 << 0),   //! Unschedule after triggered once
+  IO_FLAGS_REPEAT   = (1 << 1),   //! Reschedule if callback returns
+                                  //! ERR_REPEAT_ACTION. Implies unscheduling
+                                  //! otherwise.
+};
+
+
 
 } // namespace packeteer
 
