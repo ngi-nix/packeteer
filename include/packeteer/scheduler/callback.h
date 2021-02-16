@@ -33,13 +33,13 @@
 #include <type_traits>
 #include <atomic>
 
+#include <liberate/cpp/hash.h>
+#include <liberate/cpp/operators/comparison.h>
+
 #include <packeteer/connector.h>
 
 #include <packeteer/scheduler/events.h>
 #include <packeteer/scheduler/types.h>
-
-#include <packeteer/util/hash.h>
-#include <packeteer/util/operators.h>
 
 namespace packeteer {
 
@@ -191,7 +191,7 @@ private:
 
   inline size_t hash_of(T const * obj)
   {
-    return packeteer::util::multi_hash(
+    return liberate::cpp::multi_hash(
         reinterpret_cast<size_t>(obj),
         reinterpret_cast<size_t>(&typeid(member_function_type)),
         reinterpret_cast<size_t>(&typeid(T)));
@@ -269,7 +269,7 @@ private:
 
   inline size_t hash_of(T const * obj)
   {
-    return packeteer::util::multi_hash(
+    return liberate::cpp::multi_hash(
         reinterpret_cast<size_t>(obj),
         reinterpret_cast<size_t>(&typeid(T)));
   }
@@ -321,7 +321,7 @@ private:
  * with the copy managed by callback.
  **/
 class callback
-  : public ::packeteer::util::operators<callback>
+  : public ::liberate::cpp::comparison_operators<callback>
 {
 public:
   /*****************************************************************************
@@ -565,7 +565,7 @@ public:
   }
 
 private:
-  friend struct ::packeteer::util::operators<callback>;
+  friend struct ::liberate::cpp::comparison_operators<callback>;
 
   inline bool is_equal_to(callback const & other) const
   {

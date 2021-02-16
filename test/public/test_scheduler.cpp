@@ -19,12 +19,12 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#include <build-config.h>
+
 #include "../env.h"
 
 #include <packeteer/scheduler.h>
 #include <packeteer/connector.h>
-
-#include "../lib/macros.h"
 
 #include <utility>
 #include <atomic>
@@ -66,7 +66,7 @@ struct test_callback
     if (conn) {
       connid = std::to_string(*conn);
     }
-    DLOG("callback called: " << connid << " - " << mask << " [called: " << m_called << "]");
+    // std::cout << "callback called: " << connid << " - " << mask << " [called: " << m_called << "]" << std::endl;
 
     return p7r::error_t(0);
   }
@@ -77,6 +77,12 @@ struct counting_callback
 {
   std::atomic<int> m_read_called = 0;
   std::atomic<int> m_write_called = 0;
+  p7r::error_t m_custom_error;
+
+  counting_callback(p7r::error_t custom_error = 0)
+    : m_custom_error(custom_error)
+  {
+  }
 
   p7r::error_t
   func(p7r::time_point const & now [[maybe_unused]], p7r::events_t mask,
@@ -88,7 +94,7 @@ struct counting_callback
     if (mask & p7r::PEV_IO_WRITE) {
       ++m_write_called;
     }
-    return p7r::error_t(0);
+    return m_custom_error;
   }
 
 };
@@ -111,9 +117,9 @@ struct thread_id_callback
   {
     m_tid = std::this_thread::get_id();
 
-    DLOG("callback started");
+    // std::cout << "callback started" << std::endl;
     std::this_thread::sleep_for(TEST_SLEEP_TIME);
-    DLOG("callback ended");
+    // std::cout << "callback ended" << std::endl;;
 
     return p7r::error_t(0);
   }
@@ -412,7 +418,7 @@ TEST_P(Scheduler, parallel_callback_with_threads)
   sched.schedule_once(TEST_SLEEP_TIME, cb1);
   sched.schedule_once(TEST_SLEEP_TIME, cb2);
 
-  std::this_thread::sleep_for(sc::milliseconds(150));
+  std::this_thread::sleep_for(TEST_SLEEP_TIME * 2);
 
   std::thread::id id1 = source1.m_tid;
   std::thread::id id2 = source2.m_tid;
@@ -708,6 +714,103 @@ TEST_P(Scheduler, io_callback_registration_simultaneous)
 
   // After writing, there must be a callback
   ASSERT_GT(source.m_read_called, 0);
+}
+
+
+
+TEST_P(Scheduler, io_callback_oneshot)
+{
+  // The ONESHOT testcase is fairly simple: as PEV_IO_WRITE should be triggered
+  // on every connected, non-blocking connector, we would normally expect a
+  // large number of callbacks. With IO_FLAGS_ONESHOT, that should be limited
+  // to a single one.
+  auto td = GetParam();
+
+  // Check behaviour without IO_FLAGS_ONESHOT
+  {
+    p7r::connector pipe{test_env->api, "anon://"};
+    pipe.connect();
+
+    p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
+
+    counting_callback source;
+    p7r::callback cb{&source, &counting_callback::func};
+    sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb);
+
+    // Process twice to give the events a chance to trigger
+    sched.process_events(TEST_SLEEP_TIME);
+    sched.process_events(TEST_SLEEP_TIME);
+
+    // Multiple callbacks
+    ASSERT_GT(source.m_write_called, 1);
+  }
+
+  // Now with IO_FLAGS_ONESHOT
+  {
+    p7r::connector pipe{test_env->api, "anon://"};
+    pipe.connect();
+
+    p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
+
+    counting_callback source;
+    p7r::callback cb{&source, &counting_callback::func};
+    sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb, p7r::IO_FLAGS_ONESHOT);
+
+    // Process twice to give the events a chance to trigger
+    sched.process_events(TEST_SLEEP_TIME);
+    sched.process_events(TEST_SLEEP_TIME);
+
+    // Single callback!
+    ASSERT_EQ(source.m_write_called, 1);
+  }
+}
+
+
+
+TEST_P(Scheduler, io_callback_repeat)
+{
+  // The test case is to use a counting callback that either returns
+  // ERR_REPEAT_ACTION or not. If it does, we expect that IO_FLAGS_REPEAT will
+  // yield multiple invocations.
+  auto td = GetParam();
+
+  // Behaviour without ERR_REPEAT_ACTION
+  {
+    p7r::connector pipe{test_env->api, "anon://"};
+    pipe.connect();
+
+    p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
+
+    counting_callback source;
+    p7r::callback cb{&source, &counting_callback::func};
+    sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb, p7r::IO_FLAGS_REPEAT);
+
+    // Process twice to give the events a chance to trigger
+    sched.process_events(TEST_SLEEP_TIME);
+    sched.process_events(TEST_SLEEP_TIME);
+
+    // Single callback
+    ASSERT_EQ(source.m_write_called, 1);
+  }
+
+  // Behaviour with ERR_REPEAT_ACTION
+  {
+    p7r::connector pipe{test_env->api, "anon://"};
+    pipe.connect();
+
+    p7r::scheduler sched(test_env->api, 0, static_cast<p7r::scheduler::scheduler_type>(td));
+
+    counting_callback source{p7r::ERR_REPEAT_ACTION};
+    p7r::callback cb{&source, &counting_callback::func};
+    sched.register_connector(p7r::PEV_IO_WRITE, pipe, cb, p7r::IO_FLAGS_REPEAT);
+
+    // Process twice to give the events a chance to trigger
+    sched.process_events(TEST_SLEEP_TIME);
+    sched.process_events(TEST_SLEEP_TIME);
+
+    // Multiple callbacks
+    ASSERT_GT(source.m_write_called, 1);
+  }
 }
 
 

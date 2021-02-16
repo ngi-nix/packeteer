@@ -44,49 +44,16 @@
  *       which results in us getting the GNU version of the function rather
  *       than the POSIX version.
  **/
-#if defined(DEBUG) && !defined(NDEBUG)
-#include <iostream>
-#include <string.h>
-#define _LOG_BASE(severity, msg) { \
-  std::stringstream sstream; \
-  sstream << "[" << __FILE__ << ":" \
-  << __LINE__ << "] " << severity << ": " << msg << std::endl; \
-  std::cerr << sstream.str(); \
-}
-#define DLOG(msg) _LOG_BASE("DEBUG", msg)
-#define ELOG(msg) _LOG_BASE("ERROR", msg)
-#else // DEBUG
-#define DLOG(msg)
-#define ELOG(msg)
-#endif // DEBUG
+#include <liberate/logging.h>
+#define DLOG(msg) LIBLOG_DEBUG(msg)
+#define ELOG(msg) LIBLOG_ERROR(msg)
 
-// Specific log macros - error codes and system errors
-#if defined(PACKETEER_WIN32)
-#include "util/string.h"
-#include "net/netincludes.h"
-
-#define ERR_LOG(msg, code) do { \
-    TCHAR * errmsg = NULL; \
-    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS, \
-        NULL, code, \
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), \
-        (LPWSTR) &errmsg, 0, NULL); \
-    ELOG(msg \
-      << " // [0x" << std::hex << code << std::dec << " (" << code << ")] " \
-      << ::packeteer::util::to_utf8(errmsg)); \
-    LocalFree(errmsg); \
-  } while (false);
-#define ERRNO_LOG(msg) ERR_LOG(msg, WSAGetLastError())
-#else // PACKETEER_WIN32
-#define ERR_LOG(msg, code) ELOG(msg << " // " << ::strerror(code))
-#define ERRNO_LOG(msg) ERR_LOG(msg, errno)
-#endif // PACKETEER_WIN32
-
-// Exception logging
-#define EXC_LOG(msg, exc) ELOG(msg << " // " << exc.what())
+#define EXC_LOG(msg, exc) LIBLOG_EXC(exc, msg)
+#define ERR_LOG(msg, code) LIBLOG_ERR(code, msg)
+#define ERRNO_LOG(msg) LIBLOG_ERRNO(msg)
 
 // error_t logging
-#define ET_LOG(msg, code) ELOG(msg << " // " << error_name(code) << ": " \
+#define ET_LOG(msg, code) LIBLOG_ERROR(msg << " // " << error_name(code) << ": " \
     << error_message(code));
 
 /**

@@ -55,11 +55,13 @@ if not meson.is_subproject()
 
   # TODO add other third-party
 
+  clipp = subproject('muellan-clipp')
+
   executable('bench_event', event_src,
       dependencies: [
         event_deps,
         clipp.get_variable('clipp_dep'),
-      ]
+      ],
   )
 
 endif

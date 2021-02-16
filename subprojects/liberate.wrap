@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://gitlab.com/interpeer/liberate.git
+# FIXME release tag or branch prior to release of channeler
+revision = master

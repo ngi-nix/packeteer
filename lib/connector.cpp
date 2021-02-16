@@ -34,16 +34,15 @@
 
 #include <stdlib.h>
 
+#include <liberate/cpp/hash.h>
+#include <liberate/net/address_type.h>
+#include <liberate/net/socket_address.h>
+#include <liberate/string/util.h>
+
 #include <packeteer/error.h>
 #include <packeteer/registry.h>
 
-#include <packeteer/util/hash.h>
-
-#include <packeteer/net/address_type.h>
-#include <packeteer/net/socket_address.h>
-
 #include "macros.h"
-#include "util/string.h"
 
 namespace packeteer {
 
@@ -59,21 +58,21 @@ struct connector::connector_impl
   connector_options         m_possible_options;
   registry::scheme_creator  m_creator;
 
-  util::url                 m_url;
+  liberate::net::url        m_url;
   peer_address              m_address;
   connector_interface *     m_iconn;
 
   size_t                    m_hash_seed = rand();
   size_t                    m_hash_cache = 0;
 
-  connector_impl(std::shared_ptr<api> api, util::url const & connect_url,
+  connector_impl(std::shared_ptr<api> api, liberate::net::url const & connect_url,
       connector_interface * iconn)
     : m_api(api)
     , m_type(CT_UNSPEC)
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
-    , m_address(m_url)
+    , m_address(api, m_url)
     , m_iconn(iconn)
   {
     // We don't really need to validate the address here any further, because
@@ -90,13 +89,13 @@ struct connector::connector_impl
 
 
 
-  connector_impl(std::shared_ptr<api> api, util::url const & connect_url)
+  connector_impl(std::shared_ptr<api> api, liberate::net::url const & connect_url)
     : m_api(api)
     , m_type(CT_UNSPEC)
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
-    , m_address(m_url)
+    , m_address(api, m_url)
     , m_iconn(nullptr)
   {
     // Find the scheme spec
@@ -179,7 +178,7 @@ struct connector::connector_impl
 
   void update_hash()
   {
-    size_t value = packeteer::util::multi_hash(
+    size_t value = liberate::cpp::multi_hash(
         m_hash_seed,
         static_cast<int>(m_type),
         m_url);
@@ -192,13 +191,19 @@ struct connector::connector_impl
  * Implementation
  **/
 connector::connector(std::shared_ptr<api> api, std::string const & connect_url)
-  : m_impl{std::make_shared<connector_impl>(api, util::url::parse(connect_url))}
 {
+  liberate::net::url url;
+  try {
+    url = liberate::net::url::parse(connect_url);
+  } catch (std::invalid_argument const & ex) {
+    throw exception(ERR_FORMAT, ex.what());
+  }
+  m_impl = std::make_shared<connector_impl>(api, url);
 }
 
 
 
-connector::connector(std::shared_ptr<api> api, util::url const & connect_url)
+connector::connector(std::shared_ptr<api> api, liberate::net::url const & connect_url)
   : m_impl{std::make_shared<connector_impl>(api, connect_url)}
 {
 }
@@ -215,7 +220,7 @@ connector::type() const
 
 
 
-util::url
+liberate::net::url
 connector::connect_url() const
 {
   if (!m_impl) {
@@ -226,7 +231,7 @@ connector::connect_url() const
 
 
 
-net::socket_address
+liberate::net::socket_address
 connector::socket_address() const
 {
   if (!m_impl) {
@@ -324,7 +329,7 @@ connector::accept() const
         "connector!");
   }
 
-  net::socket_address peer;
+  liberate::net::socket_address peer;
   connector_interface * iconn = (*m_impl)->accept(peer);
 
   // 1. If we have a socket address in the result, that'll be the best choice
@@ -334,7 +339,7 @@ connector::accept() const
   //    m_impl and bump the ref count. However, if we have a different address
   //    (see above), that won't work.
   connector result;
-  if (net::AT_UNSPEC == peer.type()) {
+  if (liberate::net::AT_UNSPEC == peer.type()) {
     if (iconn == m_impl->m_iconn) {
       // Connectors and address are identical
       result.m_impl = m_impl;
@@ -359,7 +364,7 @@ connector::accept() const
     DLOG("Peer address is: " << peer_addr << " - " << iconn);
 
     result.m_impl = std::make_shared<connector_impl>(m_impl->m_api,
-        util::url::parse(peer_addr), iconn);
+        liberate::net::url::parse(peer_addr), iconn);
   }
 
   return result;
@@ -392,7 +397,7 @@ connector::get_write_handle() const
 
 error_t
 connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
-    net::socket_address & sender)
+    liberate::net::socket_address & sender)
 {
   if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
@@ -404,7 +409,7 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
 error_t
 connector::send(void const * buf, size_t bufsize, size_t & bytes_written,
-    net::socket_address const & recipient)
+    liberate::net::socket_address const & recipient)
 {
   if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;

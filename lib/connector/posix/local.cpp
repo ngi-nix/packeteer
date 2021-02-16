@@ -22,7 +22,6 @@
 
 #include "local.h"
 
-#include <packeteer/net/socket_address.h>
 #include <packeteer/error.h>
 
 #include "../../globals.h"
@@ -54,13 +53,13 @@ sock_type(connector_options const & options)
 
 inline error_t
 create_socketpair(
-    net::socket_address const & addr,
+    liberate::net::socket_address const & addr,
     connector_options const & options,
     int & server,
     int & client,
     bool & done)
 {
-  if (addr.type() != net::AT_UNSPEC) {
+  if (addr.type() != liberate::net::AT_UNSPEC) {
     done = false;
     return ERR_UNEXPECTED; // Doesn't matter
   }
@@ -105,7 +104,7 @@ create_socketpair(
 
 
 
-connector_local::connector_local(net::socket_address const & addr,
+connector_local::connector_local(liberate::net::socket_address const & addr,
     connector_options const & options)
   : connector_socket(addr, options)
 {
@@ -123,7 +122,7 @@ connector_local::~connector_local()
 bool
 connector_local::listening() const
 {
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     return m_fd != -1 && m_other_fd != -1;
   }
   return connector_socket::listening();
@@ -134,7 +133,7 @@ connector_local::listening() const
 bool
 connector_local::connected() const
 {
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     return m_fd != -1 && m_other_fd != -1;
 
   }
@@ -156,7 +155,7 @@ connector_local::get_read_handle() const
 handle
 connector_local::get_write_handle() const
 {
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     return m_other_fd;
   }
   return m_fd;
@@ -257,7 +256,7 @@ connector_local::close()
 
 
 connector_interface *
-connector_local::accept(net::socket_address & addr)
+connector_local::accept(liberate::net::socket_address & addr)
 {
   if (!listening()) {
     return nullptr;

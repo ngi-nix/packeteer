@@ -56,11 +56,11 @@ scheduler::~scheduler()
 
 error_t
 scheduler::register_connector(events_t const & events, connector const & conn,
-    callback const & callback)
+    callback const & callback, io_flags_t const & flags /* = IO_FLAG_NONE */)
 {
-  auto entry = new detail::io_callback_entry(callback, conn, events);
-  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-  m_impl->enqueue_commit();
+  auto entry = new detail::io_callback_entry(callback, conn, events, flags);
+  m_impl->commands().enqueue(CMD_ADD, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -71,8 +71,8 @@ scheduler::unregister_connector(events_t const & events, connector const & conn,
     callback const & callback)
 {
   auto entry = new detail::io_callback_entry(callback, conn, events);
-  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_REMOVE, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -82,8 +82,8 @@ error_t
 scheduler::unregister_connector(events_t const & events, connector const & conn)
 {
   auto entry = new detail::io_callback_entry(nullptr, conn, events);
-  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_REMOVE, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -95,9 +95,9 @@ scheduler::unregister_connectors(events_t const & events, connector const * conn
 {
   for (size_t i = 0 ; i < amount ; ++i) {
     auto entry = new detail::io_callback_entry(nullptr, conns[i], events);
-    m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+    m_impl->commands().enqueue(CMD_REMOVE, entry);
   }
-  m_impl->enqueue_commit();
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -108,8 +108,8 @@ error_t
 scheduler::unregister_connector(connector const & conn)
 {
   auto entry = new detail::io_callback_entry(nullptr, conn, PEV_ALL_BUILTIN);
-  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_REMOVE, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -121,9 +121,9 @@ scheduler::unregister_connectors(connector const * conns, size_t amount)
 {
   for (size_t i = 0 ; i < amount ; ++i) {
     auto entry = new detail::io_callback_entry(nullptr, conns[i], PEV_ALL_BUILTIN);
-    m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
+    m_impl->commands().enqueue(CMD_REMOVE, entry);
   }
-  m_impl->enqueue_commit();
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -135,8 +135,8 @@ scheduler::schedule_once(duration const & delay, callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback,
       clock::now() + delay);
-  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_ADD, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -146,8 +146,8 @@ error_t
 scheduler::schedule_at(time_point const & time, callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback, time);
-  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_ADD, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -159,8 +159,8 @@ scheduler::schedule(time_point const & first, duration const & interval,
 {
   auto entry = new detail::scheduled_callback_entry(callback, first, -1,
       interval);
-  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_ADD, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -172,8 +172,8 @@ scheduler::schedule(time_point const & first, duration const & interval,
 {
   auto entry = new detail::scheduled_callback_entry(callback, first, count,
       interval);
-  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_ADD, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -184,8 +184,8 @@ error_t
 scheduler::unschedule(callback const & callback)
 {
   auto entry = new detail::scheduled_callback_entry(callback, time_point());
-  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_REMOVE, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -199,8 +199,8 @@ scheduler::register_event(events_t const & events, callback const & callback)
   }
 
   auto entry = new detail::user_callback_entry(callback, events);
-  m_impl->enqueue(scheduler_impl::ACTION_ADD, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_ADD, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -210,8 +210,8 @@ error_t
 scheduler::unregister_event(events_t const & events, callback const & callback)
 {
   auto entry = new detail::user_callback_entry(callback, events);
-  m_impl->enqueue(scheduler_impl::ACTION_REMOVE, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_REMOVE, entry);
+  m_impl->commands().commit();
   return ERR_SUCCESS;
 }
 
@@ -225,8 +225,29 @@ scheduler::fire_events(events_t const & events)
   }
 
   auto entry = new detail::user_callback_entry(events);
-  m_impl->enqueue(scheduler_impl::ACTION_TRIGGER, entry);
-  m_impl->enqueue_commit();
+  m_impl->commands().enqueue(CMD_TRIGGER, entry);
+  m_impl->commands().commit();
+  return ERR_SUCCESS;
+}
+
+
+
+error_t
+scheduler::commit_callbacks()
+{
+  // Since we can't process the in queue without collecting triggered events,
+  // but we don't want to schedule anything here, we'll just re-push the
+  // triggered events back onto the queue. It may cause some delay if the queue
+  // is full, but let's take it for now.
+  entry_list_t triggered;
+  m_impl->process_in_queue(triggered);
+
+  for (auto entry : triggered) {
+    m_impl->commands().enqueue(CMD_TRIGGER, entry);
+  }
+  m_impl->commands().commit();
+
+  // Not much else to do?
   return ERR_SUCCESS;
 }
 
@@ -237,18 +258,22 @@ scheduler::process_events(duration const & timeout,
     bool soft_timeout /* = false */,
     bool exit_on_failure /* = false */)
 {
+  if (m_impl->num_workers() > 0) {
+    return ERR_UNSUPPORTED_ACTION;
+  }
+
   // First, get events to schedule to workers.
   entry_list_t to_schedule;
   m_impl->wait_for_events(timeout, soft_timeout, to_schedule);
-  DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
   if (to_schedule.empty()) {
     // No events
     return ERR_TIMEOUT;
   }
+  DLOG("Got " << to_schedule.size() << " callbacks to invoke.");
 
   // Then handle these events on the worker's main function.
-  return drain_work_queue(to_schedule, exit_on_failure);
+  return drain_work_queue(to_schedule, exit_on_failure, m_impl->commands());
 }
 
 
@@ -257,6 +282,14 @@ size_t
 scheduler::num_workers() const
 {
   return m_impl->num_workers();
+}
+
+
+
+void
+scheduler::set_num_workers(ssize_t num_workers)
+{
+  m_impl->set_num_workers(num_workers);
 }
 
 

@@ -24,8 +24,6 @@
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
 
-#include <packeteer/net/socket_address.h>
-
 #include "fd.h"
 
 #include "../../globals.h"
@@ -170,7 +168,7 @@ connector_fifo::connector_fifo(std::string const & path,
 
 
 
-connector_fifo::connector_fifo(net::socket_address const & addr,
+connector_fifo::connector_fifo(liberate::net::socket_address const & addr,
     connector_options const & options)
   : connector_common(options)
   , m_addr{addr}
@@ -288,7 +286,7 @@ connector_fifo::connected() const
 
 
 connector_interface *
-connector_fifo::accept(net::socket_address & addr)
+connector_fifo::accept(liberate::net::socket_address & addr)
 {
   if (!listening()) {
     return nullptr;

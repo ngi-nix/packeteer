@@ -23,7 +23,7 @@
 #include <event.h>
 #include <evutil.h>
 
-#include <packeteer/net/socket_address.h>
+#include <liberate/net/socket_address.h>
 
 #include "backends.h"
 
@@ -79,7 +79,7 @@ struct libevent_ops : public backend_ops
       evutil_make_socket_nonblocking(h);
       evutil_make_socket_closeonexec(h);
 
-      packeteer::net::socket_address addr{"127.0.0.1", port};
+      liberate::net::socket_address addr{"127.0.0.1", port};
       auto ret = bind(h, (sockaddr const *) addr.buffer(), addr.bufsize());
       if (ret < 0) {
         throw std::runtime_error("Unable to bind.");
@@ -157,7 +157,7 @@ struct libevent_ops : public backend_ops
   options                                     m_opts;
   std::vector<event>                          m_events;
   std::vector<evutil_socket_t>                m_conns;
-  std::vector<packeteer::net::socket_address> m_addrs;
+  std::vector<liberate::net::socket_address>  m_addrs;
   std::vector<callback_context>               m_contexts;
 };
 

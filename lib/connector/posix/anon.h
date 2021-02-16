@@ -46,7 +46,7 @@ public:
   error_t connect() override;
   bool connected() const override;
 
-  connector_interface * accept(net::socket_address & addr) override;
+  connector_interface * accept(liberate::net::socket_address & addr) override;
 
   handle get_read_handle() const override;
   handle get_write_handle() const override;

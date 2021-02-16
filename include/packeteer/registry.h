@@ -29,10 +29,10 @@
 #include <functional>
 #include <map>
 
+#include <liberate/net/url.h>
+
 #include <packeteer/connector/types.h>
 #include <packeteer/connector/interface.h>
-
-#include <packeteer/util/url.h>
 
 namespace packeteer {
 
@@ -96,7 +96,7 @@ public:
    * key/values provided.
    */
   connector_options options_from_query(
-      std::map<std::string, std::string> const & query);
+      std::map<std::string, std::string> const & query) const;
 
   /***************************************************************************
    * Scheme interface.
@@ -121,7 +121,7 @@ public:
 
   using scheme_creator = std::function<
     ::packeteer::connector_interface * (
-        util::url const &,
+        liberate::net::url const &,
         connector_type const & type,
         connector_options const &,
         connector_info const * info
@@ -137,6 +137,7 @@ public:
     connector_options default_options;
     connector_options possible_options;
     scheme_creator    creator;
+    std::string       scheme = {};
   };
 
   /**
@@ -161,11 +162,12 @@ public:
   /**
    * Return stored scheme information.
    */
-  connector_info info_for_scheme(std::string const & scheme);
+  connector_info info_for_scheme(std::string const & scheme) const;
+  connector_info info_for_type(connector_type type) const;
 
 private:
-  registry();
   friend class api;
+  registry(std::weak_ptr<api> api);
 
   struct registry_impl;
   std::unique_ptr<registry_impl> m_impl;

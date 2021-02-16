@@ -28,8 +28,6 @@
 
 #include <packeteer/connector/interface.h>
 
-#include <packeteer/net/socket_address.h>
-
 #include "socket.h"
 
 namespace packeteer::detail {
@@ -40,7 +38,7 @@ namespace packeteer::detail {
 struct connector_udp : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_udp(::packeteer::net::socket_address const & addr,
+  connector_udp(::liberate::net::socket_address const & addr,
       connector_options const & options);
   ~connector_udp();
 
@@ -48,7 +46,7 @@ public:
 
   error_t connect() override;
 
-  connector_interface * accept(net::socket_address & addr) override;
+  connector_interface * accept(liberate::net::socket_address & addr) override;
 
   error_t close() override;
 

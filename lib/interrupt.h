@@ -3,7 +3,7 @@
  *
  * Author(s): Jens Finkhaeuser <jens@finkhaeuser.de>
  *
- * Copyright (c) 2019-2020 Jens Finkhaeuser.
+ * Copyright (c) 2020 Jens Finkhaeuser.
  *
  * This software is licensed under the terms of the GNU GPLv3 for personal,
  * educational and non-profit use. For all other uses, alternative license
@@ -17,28 +17,31 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
+#ifndef PACKETEER_INTERRUPT_H
+#define PACKETEER_INTERRUPT_H
 
-#ifndef PACKETEER_NET_ADDRESS_TYPE_H
-#define PACKETEER_NET_ADDRESS_TYPE_H
+#ifndef __cplusplus
+#error You are trying to include a C++ only header file
+#endif
 
-// *** Config
-#include <packeteer.h>
+#include <build-config.h>
 
-namespace packeteer::net {
+#include <packeteer/connector.h>
+
+namespace packeteer::detail {
 
 /**
- * Socket or network address type.
- */
-enum PACKETEER_API address_type : int8_t
-{
-  AT_UNSPEC = -1,
-  AT_INET4 = 0,
-  AT_INET6,
-  AT_LOCAL, // Only works for pipes, and not for networks. 
-  AT_UNIX = AT_LOCAL, // For people who prefer that name.
-};
+ * Treat a connector as a signal, setting and clearing an interrupt by writing
+ * to and reading from the connector.
+ *
+ * clear_interrupt() returns true if an interrupt was issued, false otherwise.
+ **/
+PACKETEER_PRIVATE
+void set_interrupt(connector & signal);
 
+PACKETEER_PRIVATE
+bool clear_interrupt(connector & signal);
 
-} // namespace packeteer::net
+} // namespace packeteer::detail
 
 #endif // guard

@@ -26,6 +26,8 @@
 #error You are trying to include a C++ only header file
 #endif
 
+#include <memory>
+
 /**
  * Which platform are we on?
  **/
@@ -38,11 +40,12 @@
 #  define PACKETEER_PLATFORM_DEFINED
 #endif
 
+// We want standard int types across the board.
+#include <liberate.h>
+#include <liberate/types.h>
+
 // Visibility macros are used by all, so they must come first.
 #include <packeteer/visibility.h>
-
-// We want standard int types across the board.
-#include <packeteer/types.h>
 
 // Not all, but the very basic headers are always included.
 #include <packeteer/error.h>
@@ -78,6 +81,7 @@ namespace packeteer {
  * Forward
  */
 class PACKETEER_API registry;
+class PACKETEER_API resolver;
 
 
 /**
@@ -89,10 +93,7 @@ public:
   /**
    * Create a new API instance.
    */
-  static std::shared_ptr<api> create()
-  {
-    return std::shared_ptr<api>(new api());
-  }
+  static std::shared_ptr<api> create();
   ~api();
 
   /**
@@ -103,12 +104,19 @@ public:
   api & operator=(api const &) = delete;
 
   /**
-   * Access the registry interface.
+   * Access internal interfaces
    */
-  registry & reg();
+  ::packeteer::registry & reg();
+  ::packeteer::registry & registry();
+
+  ::packeteer::resolver & res();
+  ::packeteer::resolver & resolver();
+
+  ::liberate::api & liberate();
 
 private:
   api();
+  void init(std::weak_ptr<api> self);
 
   struct api_impl;
   std::unique_ptr<api_impl> m_impl;

@@ -26,8 +26,7 @@
 #include <stdlib.h>
 
 #include <packeteer/registry.h>
-
-#include "net/netincludes.h"
+#include <packeteer/resolver.h>
 
 #include "macros.h"
 
@@ -35,25 +34,39 @@ namespace packeteer {
 
 struct api::api_impl
 {
-  registry reg;
+  api_impl(std::weak_ptr<api> api)
+    : reg{api}
+    , res{api}
+  {
+  }
+
+  ::liberate::api       liberate = {};
+  ::packeteer::registry reg;
+  ::packeteer::resolver res;
 };
 
 
 
-api::api()
-  : m_impl{std::make_unique<api_impl>()}
+std::shared_ptr<api>
+api::create()
 {
-#if defined(PACKETEER_WIN32)
-  WSADATA data;
-  // Request Winsock 2.2
-  int res = WSAStartup(MAKEWORD(2, 2), &data);
-  DLOG("WSA Description: " << data.szDescription);
-  if (res != 0) {
-    DLOG("WSA System Status: " << data.szSystemStatus);
-    throw exception(ERR_INITIALIZATION, WSAGetLastError(),
-        "WSAStartup failed!");
-  }
-#endif // win32
+  auto ret = std::shared_ptr<api>(new api());
+  ret->init(ret);
+  return ret;
+}
+
+
+
+api::api()
+{
+}
+
+
+
+void
+api::init(std::weak_ptr<api> self)
+{
+  m_impl = std::make_unique<api_impl>(self);
 
   // Initialize random seed used in connector construction.
   auto now = std::chrono::steady_clock::now().time_since_epoch();
@@ -64,18 +77,48 @@ api::api()
 
 api::~api()
 {
-#if defined(PACKETEER_WIN32)
-  WSACleanup();
-  DLOG("WSA cleanup finished.");
-#endif // win32
 }
 
 
 
-registry &
+::packeteer::registry &
 api::reg()
 {
   return m_impl->reg;
 }
+
+
+
+::packeteer::registry &
+api::registry()
+{
+  return m_impl->reg;
+}
+
+
+
+::packeteer::resolver &
+api::res()
+{
+  return m_impl->res;
+}
+
+
+
+::packeteer::resolver &
+api::resolver()
+{
+  return m_impl->res;
+}
+
+
+
+::liberate::api &
+api::liberate()
+{
+  return m_impl->liberate;
+}
+
+
 
 } // namespace packeteer

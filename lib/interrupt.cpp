@@ -17,28 +17,29 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_UTIL_PATH_H
-#define PACKETEER_UTIL_PATH_H
-
 #include <packeteer.h>
 
-namespace packeteer::util {
+#include "interrupt.h"
 
-/**
- * Convert path names from POSIX-like to WIN32 and back.
- *
- * This mostly converts any unquoted backslash unto forward slash and vice
- * versa. But it also converts `<drivename>:\` to `/<drivename>/` and back.
- *
- * In the end, it's this functionality that allows you to use POSIX-style
- * path segments in URLs, and have them map to Windows paths on WIN32.
- */
-PACKETEER_API
-std::string to_posix_path(std::string const & other);
+namespace packeteer::detail {
 
-PACKETEER_API
-std::string to_win32_path(std::string const & other);
 
-} // namespace packeteer::util
+void set_interrupt(connector & signal)
+{
+  char buf[1] = { '\0' };
+  size_t amount = 0;
+  signal.write(buf, sizeof(buf), amount);
+}
 
-#endif // guard
+
+
+bool clear_interrupt(connector & signal)
+{
+  char buf[1] = { '\0' };
+  size_t amount = 0;
+  signal.read(buf, sizeof(buf), amount);
+  return (amount > 0);
+}
+
+
+} // namespace packeteer::detail

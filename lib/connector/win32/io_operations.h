@@ -26,8 +26,9 @@
 
 #include <packeteer.h>
 
+#include <liberate/net/socket_address.h>
+
 #include <packeteer/handle.h>
-#include <packeteer/net/socket_address.h>
 
 
 namespace packeteer::detail {
@@ -55,13 +56,13 @@ PACKETEER_PRIVATE
 error_t receive(
     ::packeteer::handle handle,
     void * buf, size_t amount, ssize_t & read,
-    ::packeteer::net::socket_address & sender);
+    ::liberate::net::socket_address & sender);
 
 PACKETEER_PRIVATE
 error_t send(
     ::packeteer::handle handle,
     void const * buf, size_t amount, ssize_t & written,
-    ::packeteer::net::socket_address const & recipient);
+    ::liberate::net::socket_address const & recipient);
 
 
 

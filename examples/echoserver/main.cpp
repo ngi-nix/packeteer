@@ -20,8 +20,10 @@
 #include <iostream>
 #include <string>
 
+#include <liberate/net/url.h>
+#include <liberate/net/socket_address.h>
+
 #include <packeteer.h>
-#include <packeteer/util/url.h>
 #include <packeteer/scheduler.h>
 #include <packeteer/connector.h>
 
@@ -70,7 +72,7 @@ echo_callback_dgram(p7r::time_point const &, p7r::events_t mask, p7r::connector 
   // Read
   char buf[BUFSIZE];
   size_t read = 0;
-  p7r::net::socket_address sender;
+  liberate::net::socket_address sender;
   auto err = conn->receive(buf, sizeof(buf), read, sender);
   if (err != p7r::ERR_SUCCESS) {
     return err;
@@ -101,7 +103,7 @@ int main(int argc, char **argv)
   try {
     // We can just parse the string as a connect URL; if this fails, nothing else
     // in this server makes much sense.
-    auto surl = p7r::util::url::parse(argv[1]);
+    auto surl = liberate::net::url::parse(argv[1]);
     std::cout << "Listen URL is: " << surl << std::endl;
 
     // We need to create an API instance for initializing packeteer. It's passed

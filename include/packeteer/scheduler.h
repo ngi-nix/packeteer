@@ -102,20 +102,30 @@ public:
    * You can pass non-I/O events here, but PEV_TIMEOUT will be ignored as there
    * is no timeout value specified.
    *
+   * Note that PEV_IO_READ will only be registered for the read handle of a
+   * connector, whereas PEV_IO_WRITE only applies to write handles. Other
+   * event types may be applied to both.
+   *
    * It is not recommended that you register a callback for PEV_IO_WRITE for a
    * long time. All non-blocking connectors will generally always be ready for
-   * writing, which means these callbacks will be fired all the time.
+   * writing, which means these callbacks will be fired all the time. A similar
+   * situation applies to PEV_IO_ACCEPT, which may be triggered until the
+   * accept() call completes.
    *
    * It is much better to register callbacks only when you have data to write,
    * and writing is not currently possible - then unregister the callback again
-   * when it's called, and all data could be written.
+   * when it's called, and all data could be written. See IO_FLAG_REPEAT below.
    *
-   * Note that PEV_IO_READ will only be registered for the read handle of a
-   * connector, whereas PEV_IO_WRITE only applies to write handles. Other
-   * event types are applied to both.
+   * You can pass any number of IO flags. The options are:
+   * - IO_FLAGS_NONE: no special treatment
+   * - IO_FLAGS_ONESHOT: automatically unregister the callback after it was
+   *      triggered once.
+   * - IO_FLAGS_REPEAT: automatically unregister the callback after it was
+   *      triggered. Then automatically re-register it if the callback returned
+   *      ERR_REPEAT_ACTION.
    **/
   error_t register_connector(events_t const & events, connector const & conn,
-      callback const & callback);
+      callback const & callback, io_flags_t const & flags = IO_FLAGS_NONE);
 
 
   /**
@@ -248,13 +258,22 @@ public:
 
 
   /**
+   * Commits schedule/unschedule requests. This is useful for the worker-thread
+   * mode of operation, when you want to ensure that in your current thread, a
+   * callback has been set or unset at any given time.
+   */
+  error_t commit_callbacks();
+
+
+  /**
    * Process events; waits for events until the timeout elapses, then calls any
    * registered callbacks for events that were triggered. Use this in your own
    * main loop without any worker threads.
    *
    * Returns ERR_TIMEOUT if no events occurred within the timeout value.
    * Otherwise returns ERR_SUCCESS if all callbacks finished running
-   * successfully.
+   * successfully. Returns ERR_UNSUPPORTED_ACTION if the scheduler has worker
+   * threads running.
    *
    * If callbacks fail, you have two options. If exit_on_failure is true, the
    * result of the first failing callback is returned. All subsequent callbacks
@@ -283,6 +302,14 @@ public:
    * Return the current number of worker threads.
    **/
   size_t num_workers() const;
+
+
+  /**
+   * Adjust the current number of worker threads. This is equivalent to the
+   * parameter given in the constructor, and can be used to switch to/from
+   * worker thread mode.
+   */
+  void set_num_workers(ssize_t num_workers);
 
 private:
   // pimpl

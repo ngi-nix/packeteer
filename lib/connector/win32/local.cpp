@@ -21,7 +21,8 @@
 
 #include "local.h"
 
-#include <packeteer/net/socket_address.h>
+#include <liberate/string/utf8.h>
+
 #include <packeteer/error.h>
 
 #include "../../globals.h"
@@ -47,13 +48,13 @@ sock_type(connector_options const & options)
 
 inline error_t
 create_socketpair(
-    net::socket_address const & addr,
+    liberate::net::socket_address const & addr,
     connector_options const & options,
     handle::sys_handle_t & server,
     handle::sys_handle_t & client,
     bool & done)
 {
-  if (addr.type() != net::AT_UNSPEC) {
+  if (addr.type() != liberate::net::AT_UNSPEC) {
     done = false;
     return ERR_UNEXPECTED; // Doesn't matter
   }
@@ -79,7 +80,7 @@ create_socketpair(
 
 
 
-connector_local::connector_local(net::socket_address const & addr,
+connector_local::connector_local(liberate::net::socket_address const & addr,
     connector_options const & options)
   : connector_socket(addr, options)
 {
@@ -118,7 +119,7 @@ connector_local::connect()
 bool
 connector_local::listening() const
 {
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     return m_handle != handle::INVALID_SYS_HANDLE &&
       m_other_handle != handle::INVALID_SYS_HANDLE;
   }
@@ -130,7 +131,7 @@ connector_local::listening() const
 bool
 connector_local::connected() const
 {
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     return m_handle != handle::INVALID_SYS_HANDLE &&
       m_other_handle != handle::INVALID_SYS_HANDLE;
 
@@ -153,7 +154,7 @@ connector_local::get_read_handle() const
 handle
 connector_local::get_write_handle() const
 {
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     return m_other_handle;
   }
   return m_handle;
@@ -208,7 +209,7 @@ connector_local::close()
   error_t err = connector_socket::socket_close();
   if (m_owner) {
     DLOG("Server closing; remove file system entry: " << m_addr.full_str());
-    DeleteFile(util::from_utf8(m_addr.full_str().c_str()).c_str());
+    DeleteFile(liberate::string::from_utf8(m_addr.full_str().c_str()).c_str());
   }
 
   if (m_other_handle != handle::INVALID_SYS_HANDLE) {
@@ -222,7 +223,7 @@ connector_local::close()
 
 
 connector_interface *
-connector_local::accept(net::socket_address & addr)
+connector_local::accept(liberate::net::socket_address & addr)
 {
   if (!listening()) {
     return nullptr;

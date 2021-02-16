@@ -34,7 +34,6 @@
 #include <chrono>
 
 #include <packeteer/error.h>
-#include <packeteer/types.h>
 #include <packeteer/connector.h>
 
 namespace sc = std::chrono;
@@ -89,103 +88,97 @@ translate_os_to_events(int os)
 
 
 
+
+
 inline void
-modify_fd_set(int epoll_fd, int action, int const * fds, size_t size,
-    events_t const & events)
-  OCLINT_SUPPRESS("high cyclomatic complexity")
+update_fd_registration_single(int epoll_fd, int action, int fd, events_t events)
 {
-  int translated = translate_events_to_os(events);
+  ::epoll_event event;
+  event.events = translate_events_to_os(events);
+  event.data.fd = fd;
 
-  for (size_t i = 0 ; i < size ; ++i) {
-    ::epoll_event event;
-    event.events = translated;
-    event.data.fd = fds[i];
-    int ret = ::epoll_ctl(epoll_fd, action, fds[i], &event);
+  int ret = ::epoll_ctl(epoll_fd, action, fd, &event);
+  if (ret >= 0) {
+    return;
+  }
 
-    if (ret >= 0) {
-      continue;
-    }
-
-    // Error handling
-    switch (errno) {
-      case EEXIST:
-        if (EPOLL_CTL_ADD == action) {
-          int again_fds[] = { fds[i] };
-          modify_fd_set(epoll_fd, EPOLL_CTL_MOD, again_fds,
-              sizeof(again_fds) / sizeof(int), events);
-        }
-        else {
-          throw exception(ERR_UNEXPECTED, errno);
-        }
-        break;
-
-      case ENOENT:
-        if (EPOLL_CTL_DEL == action) { //!OCLINT
-          // silently ignore
-        }
-        else if (EPOLL_CTL_MOD == action) {
-          // Can only be reached via the modify_fd_set call above, so we are
-          // safe to just bail out.
-          throw exception(ERR_INVALID_VALUE, errno, "Cannot modify event mask "
-              "for unknown file descriptor.");
-        }
-        else {
-          throw exception(ERR_UNEXPECTED, errno);
-        }
-        break;
-
-      case ENOMEM:
-        throw exception(ERR_OUT_OF_MEMORY, errno, "No more memory for epoll.");
-        break;
-
-      case ENOSPC:
-        throw exception(ERR_NUM_FILES, errno, "Could not register new file "
-            "descriptor.");
-        break;
-
-      case EBADF:
-      case EINVAL:
-      case EPERM:
-        throw exception(ERR_INVALID_VALUE, errno, "Invalid file descriptor "
-            "provided.");
-        break;
-
-      default:
+  // Error handling
+  switch (errno) {
+    case EEXIST:
+      if (EPOLL_CTL_ADD == action) {
+        update_fd_registration_single(epoll_fd, EPOLL_CTL_MOD, fd, events);
+      }
+      else {
         throw exception(ERR_UNEXPECTED, errno);
-        break;
-    }
+      }
+      break;
+
+    case ENOENT:
+      if (EPOLL_CTL_DEL == action) { //!OCLINT
+        // silently ignore
+      }
+      else if (EPOLL_CTL_MOD == action) {
+        // Can only be reached via the call above, so we are safe to just bail
+        // out.
+        throw exception(ERR_INVALID_VALUE, errno, "Cannot modify event mask "
+            "for unknown file descriptor.");
+      }
+      else {
+        throw exception(ERR_UNEXPECTED, errno);
+      }
+      break;
+
+    case ENOMEM:
+      throw exception(ERR_OUT_OF_MEMORY, errno, "No more memory for epoll.");
+      break;
+
+    case ENOSPC:
+      throw exception(ERR_NUM_FILES, errno, "Could not register new file "
+          "descriptor.");
+      break;
+
+    case EBADF:
+    case EINVAL:
+    case EPERM:
+      throw exception(ERR_INVALID_VALUE, errno, "Invalid file descriptor "
+          "provided.");
+      break;
+
+    default:
+      throw exception(ERR_UNEXPECTED, errno);
+      break;
   }
 }
 
 
 inline void
-modify_conn_set(int epoll_fd, int action, connector const * conns, size_t size,
-    events_t const & events)
+update_syshandle_registration(int epoll_fd, int fd, io::sys_events_map const & events)
 {
-  // We treat error, etc. events as applying to both the read and write end of
-  // each connector, but apply PEV_IO_READ only to the read end, and
-  // PEV_IO_WRITE only to the write end. If both handles are the same, we let
-  // the system figure that out.
-  std::vector<int> readers;
-  readers.reserve(size);
-  std::vector<int> writers;
-  writers.reserve(size);
-
-  for (size_t i = 0 ; i < size ; ++i) {
-    connector const & conn = conns[i];
-    if (events & PEV_IO_READ) {
-      readers.push_back(conn.get_read_handle().sys_handle());
-    }
-    if (events & PEV_IO_WRITE) {
-      writers.push_back(conn.get_write_handle().sys_handle());
-    }
+  auto iter = events.find(fd);
+  if (iter == events.end()) {
+    // No events? Need to remove FD entirely.
+    update_fd_registration_single(epoll_fd, EPOLL_CTL_DEL, fd, 0);
   }
-
-  modify_fd_set(epoll_fd, action, &readers[0], readers.size(),
-      events | ~PEV_IO_WRITE);
-  modify_fd_set(epoll_fd, action, &writers[0], writers.size(),
-      events | ~PEV_IO_READ);
+  else {
+    // We have events? Then translate the ones currently registered.
+    update_fd_registration_single(epoll_fd, EPOLL_CTL_ADD, fd, iter->second);
+  }
 }
+
+
+
+inline void
+update_conn_registration(int epoll_fd, connector const * conns, size_t size,
+    io::sys_events_map const & sys_events)
+{
+  for (size_t i = 0 ; i < size ; ++i) {
+    update_syshandle_registration(epoll_fd, conns[i].get_read_handle().sys_handle(),
+        sys_events);
+    update_syshandle_registration(epoll_fd, conns[i].get_write_handle().sys_handle(),
+        sys_events);
+  }
+}
+
 
 
 } // anonymous namespace
@@ -243,7 +236,7 @@ io_epoll::register_connector(connector const & conn, events_t const & events)
 
   io::register_connectors(conns, size, events);
 
-  modify_conn_set(m_epoll_fd, EPOLL_CTL_ADD, conns, size, events);
+  update_conn_registration(m_epoll_fd, conns, size, m_sys_handles);
 }
 
 
@@ -254,7 +247,7 @@ io_epoll::register_connectors(connector const * conns, size_t size,
 {
   io::register_connectors(conns, size, events);
 
-  modify_conn_set(m_epoll_fd, EPOLL_CTL_ADD, conns, size, events);
+  update_conn_registration(m_epoll_fd, conns, size, m_sys_handles);
 }
 
 
@@ -268,7 +261,7 @@ io_epoll::unregister_connector(connector const & conn, events_t const & events)
 
   io::unregister_connectors(conns, size, events);
 
-  modify_conn_set(m_epoll_fd, EPOLL_CTL_DEL, conns, size, events);
+  update_conn_registration(m_epoll_fd, conns, size, m_sys_handles);
 }
 
 
@@ -279,7 +272,7 @@ io_epoll::unregister_connectors(connector const * conns, size_t size,
 {
   io::unregister_connectors(conns, size, events);
 
-  modify_conn_set(m_epoll_fd, EPOLL_CTL_DEL, conns, size, events);
+  update_conn_registration(m_epoll_fd, conns, size, m_sys_handles);
 }
 
 

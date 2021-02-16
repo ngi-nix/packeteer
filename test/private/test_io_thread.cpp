@@ -24,9 +24,6 @@
 #include "../test_name.h"
 #include "../env.h"
 
-#include <packeteer/util/tmp.h>
-#include <packeteer/util/path.h>
-
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
 #include "../../lib/scheduler/io/posix/epoll.h"
 #endif
@@ -51,7 +48,6 @@
 
 
 namespace p7r = packeteer;
-namespace pu = packeteer::util;
 namespace pd = packeteer::detail;
 namespace sc = std::chrono;
 

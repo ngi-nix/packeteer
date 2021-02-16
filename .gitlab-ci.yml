@@ -11,18 +11,10 @@ cache:
 .dep-linux-deps: &dep-linux-deps
   tags:
     - linux
-  before_script:
-    - apt-get -o dir::cache::archives="apt-cache" update
-    - >
-      apt-get -o dir::cache::archives="apt-cache" install -y
-      ninja-build python3 python3-pip clang gcc gcc-multilib g++-multilib
-      gcovr lcov
-      git
-    - pip3 install meson
 
 .dep-linux: &dep-linux
   <<: *dep-linux-deps
-  image: debian
+  image: jfinkhaeuser/gitlab-ci-cpp-meson
 
 .dep-android: &dep-android
   <<: *dep-linux-deps
@@ -53,7 +45,7 @@ build:gcc:
   <<: *build-linux
   variables:
     compiler: g++
-    coverage: "true"
+    # FIXME coverage: "true"
 
 build:gcc-i386:
   <<: *build-linux
@@ -65,12 +57,9 @@ build:gcc-i386:
   <<: *dep-android
   stage: build
   script:
-    - pip3 install pipenv
-    - pipenv install
-    - pipenv run ./android.py ${androidabi}
     - mkdir build
     - cd build
-    - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} --cross-file ../android-${androidabi}.txt ..
+    - CXX=${compiler} CXXFLAGS="${ci_cxx_flags}" meson -Db_coverage=${coverage:=false} --cross-file /meson/cross-files/android-${androidabi}.txt ..
     - ninja
   artifacts:
     name: build
@@ -108,8 +97,8 @@ build:android-x86_64:
   <<: *dep-linux
   script:
     - cd build
-    - ./private_tests --gtest_output=xml:private_tests-log.xml 2>private_tests-debug.log
-    - ./public_tests --gtest_output=xml:public_tests-log.xml 2>public_tests-debug.log
+    - ./test/private_tests --gtest_output=xml:test/private_tests-log.xml 2>test/private_tests-debug.log
+    - ./test/public_tests --gtest_output=xml:test/public_tests-log.xml 2>test/public_tests-debug.log
     - if test "${coverage:=false}" == true ; then ninja coverage && cat meson-logs/coverage.txt ; fi
   artifacts:
     name: lib_test_and_logs
@@ -117,38 +106,36 @@ build:android-x86_64:
     when: always
     paths:
       - build/libpacketeer.*
-      - build/private_tests
-      - build/private_tests-debug.log
-      - build/private_tests-log.xml
-      - build/public_tests
-      - build/public_tests-debug.log
-      - build/public_tests-log.xml
+      - build/test/private_tests
+      - build/test/private_tests-debug.log
+      - build/test/private_tests-log.xml
+      - build/test/public_tests
+      - build/test/public_tests-debug.log
+      - build/test/public_tests-log.xml
       - build/meson-logs/coverage*
     reports:
       junit:
-        - build/private_tests-log.xml
-        - build/public_tests-log.xml
+        - build/test/private_tests-log.xml
+        - build/test/public_tests-log.xml
 
 test:clang:
   <<: *test-linux
-  image: debian
   stage: test
   needs:
     - build:clang
 
 test:gcc:
   <<: *test-linux
-  image: debian
   stage: test
   needs:
     - build:gcc
-  variables:
-    coverage: "true"
-  coverage: /^TOTAL.*\s+(\d+\%)$/
+  # FIXME
+  # variables:
+  #   coverage: "true"
+  # coverage: /^TOTAL.*\s+(\d+\%)$/
 
 test:gcc-i386:
   <<: *test-linux
-  image: debian
   stage: test
   needs:
     - build:gcc-i386
@@ -157,7 +144,6 @@ test:gcc-i386:
 ### distribution
 release:
   <<: *dep-linux
-  image: debian
   stage: release
   script:
     - cd build

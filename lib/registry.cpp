@@ -19,10 +19,13 @@
  **/
 #include <packeteer/registry.h>
 
+#include <unordered_map>
+
+#include <liberate/string/util.h>
+
 #include <packeteer/connector/peer_address.h>
 
 #include "macros.h"
-#include "util/string.h"
 #include "connector/connectors.h"
 #include "connector/util.h"
 
@@ -40,7 +43,7 @@ namespace packeteer {
 namespace {
 
 connector_interface *
-inet_creator(util::url const & url, connector_type const & ctype,
+inet_creator(liberate::net::url const & url, connector_type const & ctype,
     connector_options const & options, registry::connector_info const * info)
   OCLINT_SUPPRESS("high cyclomatic complexity")
   OCLINT_SUPPRESS("long method")
@@ -50,10 +53,10 @@ inet_creator(util::url const & url, connector_type const & ctype,
   }
 
   // Parse socket address.
-  auto addr = net::socket_address{url.authority};
+  auto addr = liberate::net::socket_address{url.authority};
 
   // Make sure the parsed address type matches the protocol.
-  if (net::AT_INET4 == addr.type()) {
+  if (liberate::net::AT_INET4 == addr.type()) {
     if (CT_TCP4 != ctype
         && CT_TCP != ctype
         && CT_UDP4 != ctype
@@ -62,7 +65,7 @@ inet_creator(util::url const & url, connector_type const & ctype,
       throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
     }
   }
-  else if (net::AT_INET6 == addr.type()) {
+  else if (liberate::net::AT_INET6 == addr.type()) {
     if (CT_TCP6 != ctype
         && CT_TCP != ctype
         && CT_UDP6 != ctype
@@ -105,11 +108,15 @@ inet_creator(util::url const & url, connector_type const & ctype,
 
 struct registry::registry_impl
 {
-  registry_impl()
+  registry_impl(std::weak_ptr<api> api)
+    : m_api(api)
   {
     init_params();
     init_schemes();
   }
+
+  std::weak_ptr<api> m_api;
+
 
   /***************************************************************************
    * Query parameter registry
@@ -165,7 +172,7 @@ struct registry::registry_impl
       return ERR_EMPTY_CALLBACK;
     }
 
-    auto normalized = util::to_lower(parameter);
+    auto normalized = liberate::string::to_lower(parameter);
 
     auto option = option_mappers.find(normalized);
     if (option != option_mappers.end()) {
@@ -182,7 +189,7 @@ struct registry::registry_impl
 
 
   connector_options
-  options_from_query(std::map<std::string, std::string> const & query)
+  options_from_query(std::map<std::string, std::string> const & query) const
   {
     connector_options result = CO_DEFAULT;
     for (auto param : option_mappers) {
@@ -224,6 +231,8 @@ struct registry::registry_impl
       return;
     }
 
+    std::weak_ptr<api> wapi{m_api};
+
   // Register TCP and UDP schemes.
   FAIL_FAST(add_scheme("tcp4", connector_info{CT_TCP4,
       CO_STREAM|CO_NON_BLOCKING,
@@ -255,7 +264,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("anon", connector_info{CT_ANON,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -276,7 +285,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("pipe", connector_info{CT_PIPE,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -297,7 +306,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("fifo", connector_info{CT_FIFO,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -318,7 +327,7 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (util::url const & url, connector_type const &,
+      [wapi] (liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -326,8 +335,13 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        auto addr = peer_address{url};
-        return new detail::connector_local{addr.socket_address(), opts};
+        try {
+          peer_address addr{std::shared_ptr<api>{wapi}, url};
+          return new detail::connector_local{addr.socket_address(), opts};
+        } catch(std::bad_weak_ptr const & ex) {
+          ELOG("API is already being destroyed.");
+          return nullptr;
+        }
       }}));
 #endif
   }
@@ -358,7 +372,7 @@ struct registry::registry_impl
       return ERR_EMPTY_CALLBACK;
     }
 
-    auto normalized = util::to_lower(scheme);
+    auto normalized = liberate::string::to_lower(scheme);
 
     auto scheme_info = scheme_map.find(normalized);
     if (scheme_info != scheme_map.end()) {
@@ -367,16 +381,18 @@ struct registry::registry_impl
     }
 
     // All good, keep this.
-    scheme_map[normalized] = info;
+    auto clone = info;
+    clone.scheme = normalized;
+    scheme_map[normalized] = clone;
     return ERR_SUCCESS;
   }
 
 
 
   connector_info
-  info_for_scheme(std::string const & scheme)
+  info_for_scheme(std::string const & scheme) const
   {
-    auto normalized = util::to_lower(scheme);
+    auto normalized = liberate::string::to_lower(scheme);
 
     auto scheme_info = scheme_map.find(normalized);
     if (scheme_info == scheme_map.end()) {
@@ -384,12 +400,25 @@ struct registry::registry_impl
     }
     return scheme_info->second;
   }
+
+
+
+  connector_info
+  info_for_type(connector_type type) const
+  {
+    for (auto const & entry : scheme_map) {
+      if (entry.second.type == type) {
+        return entry.second;
+      }
+    }
+    throw exception(ERR_INVALID_VALUE, "Unknown connector type: " + type);
+  }
 };
 
 
 
-registry::registry()
-  : m_impl{std::make_unique<registry_impl>()}
+registry::registry(std::weak_ptr<api> api)
+  : m_impl{std::make_unique<registry_impl>(api)}
 {
 }
 
@@ -412,7 +441,7 @@ registry::add_parameter(std::string const & parameter,
 
 connector_options
 registry::options_from_query(
-      std::map<std::string, std::string> const & query)
+      std::map<std::string, std::string> const & query) const
 {
   return m_impl->options_from_query(query);
 }
@@ -428,10 +457,17 @@ registry::add_scheme(std::string const & scheme, connector_info const & info)
 
 
 registry::connector_info
-registry::info_for_scheme(std::string const & scheme)
+registry::info_for_scheme(std::string const & scheme) const
 {
   return m_impl->info_for_scheme(scheme);
 }
 
+
+
+registry::connector_info
+registry::info_for_type(connector_type type) const
+{
+  return m_impl->info_for_type(type);
+}
 
 } // namespace packeteer

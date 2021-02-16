@@ -26,13 +26,13 @@ namespace packeteer::detail {
 namespace {
 
 inline int
-select_domain(::packeteer::net::socket_address const & addr)
+select_domain(liberate::net::socket_address const & addr)
 {
   switch (addr.type()) {
-    case ::packeteer::net::AT_INET4:
+    case liberate::net::AT_INET4:
       return AF_INET;
 
-    case ::packeteer::net::AT_INET6:
+    case liberate::net::AT_INET6:
       return AF_INET6;
 
     default:
@@ -42,7 +42,7 @@ select_domain(::packeteer::net::socket_address const & addr)
 
 } // anonymous namespace
 
-connector_tcp::connector_tcp(net::socket_address const & addr,
+connector_tcp::connector_tcp(liberate::net::socket_address const & addr,
     connector_options const & options)
   : connector_socket(addr, options)
 {
@@ -100,7 +100,7 @@ connector_tcp::close()
 
 
 connector_interface *
-connector_tcp::accept(net::socket_address & addr)
+connector_tcp::accept(liberate::net::socket_address & addr)
 {
   handle::sys_handle_t handle = handle::INVALID_SYS_HANDLE;
   error_t err = connector_socket::socket_accept(handle, addr);

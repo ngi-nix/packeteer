@@ -32,7 +32,7 @@
 
 #include <packeteer/connector/types.h>
 
-#include <packeteer/net/socket_address.h>
+#include <liberate/net/socket_address.h>
 
 namespace packeteer {
 
@@ -64,7 +64,7 @@ public:
    * instance will be deleted only when all connector instances referring to
    * it are gone.
    */
-  virtual connector_interface * accept(net::socket_address & addr) = 0;
+  virtual connector_interface * accept(liberate::net::socket_address & addr) = 0;
 
   virtual handle get_read_handle() const = 0;
   virtual handle get_write_handle() const = 0;
@@ -85,9 +85,9 @@ public:
    * Default (POSIX-oriented) implementations; may be subclassed if necessary.
    **/
   virtual error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender) = 0;
+      ::liberate::net::socket_address & sender) = 0;
   virtual error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient) = 0;
+      ::liberate::net::socket_address const & recipient) = 0;
   virtual size_t peek() const = 0;
 
   virtual error_t read(void * buf, size_t bufsize, size_t & bytes_read) = 0;

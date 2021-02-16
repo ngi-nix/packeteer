@@ -22,8 +22,11 @@
 
 #include <packeteer/handle.h>
 
+#include "../net/netincludes.h"
+
+#include <liberate/net/socket_address.h>
+
 #include <packeteer/scheduler/events.h>
-#include <packeteer/net/socket_address.h>
 
 #include "../macros.h"
 
@@ -76,7 +79,7 @@ struct PACKETEER_PRIVATE io_context : public OVERLAPPED
   size_t     schedlen = 0;          // *used* aka scheduled length of the
                                     // buffer - we may allocate more than we use.
 
-  net::socket_address address = {}; // For datagram operations.
+  liberate::net::socket_address address = {}; // For datagram operations.
 
 
   // cppcheck-suppress noExplicitConstructor

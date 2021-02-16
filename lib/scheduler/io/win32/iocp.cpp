@@ -23,13 +23,14 @@
 
 #include <unordered_set>
 
+#include <liberate/types.h>
+
 #include <packeteer/error.h>
-#include <packeteer/types.h>
 #include <packeteer/scheduler/events.h>
 
 #include "../../../globals.h"
 #include "../../scheduler_impl.h"
-#include "../../../thread/chrono.h"
+#include "../../../chrono.h"
 
 #include "../../../win32/sys_handle.h"
 #include "../../../connector/win32/io_operations.h"

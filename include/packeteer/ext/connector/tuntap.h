@@ -17,8 +17,8 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
  * PARTICULAR PURPOSE.
  **/
-#ifndef PACKETEER_UTIL_TMP_H
-#define PACKETEER_UTIL_TMP_H
+#ifndef PACKETEER_EXT_CONNECTOR_TUNTAP_H
+#define PACKETEER_EXT_CONNECTOR_TUNTAP_H
 
 #ifndef __cplusplus
 #error You are trying to include a C++ only header file
@@ -26,22 +26,18 @@
 
 #include <packeteer.h>
 
-#include <string>
+#include <packeteer/connector/types.h>
 
-namespace packeteer::util {
+namespace packeteer::ext {
 
 /**
- * Return a file name in a temporary path location.
- *
- * This is useful for e.g. local, pipe or fifo connectors.
- *
- * Note that the function cannot absolutely guarantee uniqeness of the file
- * name returned; consider it a best-effort attempt.
+ * FIXME
  */
 PACKETEER_API
-std::string temp_name(std::string const & prefix = "");
+error_t
+register_connector_tuntap(std::shared_ptr<packeteer::api> api,
+    connector_type register_as = packeteer::CT_USER);
 
-} // namespace std
-
+} // namespace packeteer::ext
 
 #endif // guard

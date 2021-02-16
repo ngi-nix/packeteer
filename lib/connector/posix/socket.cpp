@@ -21,7 +21,6 @@
 
 #include "socket.h"
 
-#include <packeteer/net/socket_address.h>
 #include <packeteer/handle.h>
 #include <packeteer/error.h>
 
@@ -117,7 +116,7 @@ create_socket(int domain, int type, int & fd, bool blocking)
 
 
 
-connector_socket::connector_socket(net::socket_address const & addr,
+connector_socket::connector_socket(liberate::net::socket_address const & addr,
     connector_options const & options)
   : connector_common(options)
   , m_addr(addr)
@@ -145,7 +144,7 @@ connector_socket::socket_connect(int domain, int type)
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -258,7 +257,7 @@ connector_socket::socket_bind(int domain, int type, int & fd)
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == net::AT_UNSPEC) {
+  if (m_addr.type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -418,7 +417,7 @@ connector_socket::socket_close()
 
 
 error_t
-connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
+connector_socket::socket_accept(int & new_fd, liberate::net::socket_address & addr)
   OCLINT_SUPPRESS("high cyclomatic complexity")
   OCLINT_SUPPRESS("long method")
 {
@@ -430,11 +429,11 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
 
   // Accept connection
   new_fd = -1;
-  net::detail::address_data buf;
+  liberate::net::detail::address_data buf;
   ::socklen_t len = sizeof(buf);
 
   while (true) {
-    new_fd = ::accept(m_fd, &buf.sa, &len);
+    new_fd = ::accept(m_fd, reinterpret_cast<sockaddr *>(&buf), &len);
     if (new_fd >= 0) {
       break;
     }
@@ -497,7 +496,7 @@ connector_socket::socket_accept(int & new_fd, net::socket_address & addr)
   }
 
   // Keep address and return success.
-  addr = net::socket_address(&buf, len);
+  addr = liberate::net::socket_address(&buf, len);
   return ERR_SUCCESS;
 }
 

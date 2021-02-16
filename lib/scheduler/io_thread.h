@@ -26,11 +26,13 @@
 
 #include <packeteer.h>
 
+#include <build-config.h>
+
 #include <thread>
 
-#include "io.h"
+#include <liberate/concurrency/concurrent_queue.h>
 
-#include "../concurrent_queue.h"
+#include "io.h"
 
 namespace packeteer::detail {
 
@@ -52,7 +54,7 @@ namespace packeteer::detail {
  *       a compromise, the queue is a queue of vectors of event_data.
  **/
 
-using out_queue_t = concurrent_queue<io_events>;
+using out_queue_t = liberate::concurrency::concurrent_queue<io_events>;
 
 class PACKETEER_PRIVATE io_thread
 {
@@ -73,6 +75,9 @@ public:
     events_t        events;
   };
 
+  using registration_queue_t = liberate::concurrency::concurrent_queue<
+    register_item
+  >;
 
   /**
    * Starts the thread with the given parameters.
@@ -132,7 +137,7 @@ private:
   connector           m_queue_interrupt;
   bool                m_report_self;
 
-  concurrent_queue<register_item> m_registration_queue;
+  registration_queue_t        m_registration_queue;
 
   volatile bool               m_running = true;
   std::thread                 m_thread;

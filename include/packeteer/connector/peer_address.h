@@ -28,61 +28,44 @@
 
 #include <packeteer/connector/types.h>
 
-#include <packeteer/net/socket_address.h>
+#include <liberate/cpp/operators/comparison.h>
 
-#include <packeteer/util/url.h>
-#include <packeteer/util/operators.h>
+#include <liberate/net/socket_address.h>
+#include <liberate/net/url.h>
 
 namespace packeteer {
 
 /**
- * The peer_address extends net::socket_address with a connector type. In
- * this way, we can distinguish e.g. UDP and TCP peers with the same IP and
+ * The peer_address extends liberate::net::socket_address with a connector type.
+ * In this way, we can distinguish e.g. UDP and TCP peers with the same IP and
  * port.
  **/
 
 class PACKETEER_API peer_address
-  : public ::packeteer::util::operators<peer_address>
+  : public ::liberate::cpp::comparison_operators<peer_address>
 {
 public:
   /**
    * Default constructor. The resulting socket address does not point anywhere.
    **/
-  peer_address(connector_type const & type = CT_UNSPEC);
+  peer_address();
 
   /**
    * Destructor
    **/
   virtual ~peer_address() = default;
 
-  /**
-   * Constructor. The 'buf' parameter is expected to be a struct sockaddr of
-   * the given length.
-   **/
-  peer_address(connector_type const & type, void const * buf, size_t len);
-
-
-  /**
-   * Alternative constructor. The string is expected to be a network address
-   * in CIDR notation (without the netmask).
-   *
-   * Throws exception if parsing fails.
-   **/
-  peer_address(connector_type const & type, std::string const & address,
-      uint16_t port = 0);
-  peer_address(connector_type const & type, char const * address,
-      uint16_t port = 0);
-  peer_address(connector_type const & type,
-      ::packeteer::net::socket_address const & address);
-
 
   /**
    * Constructor from connection string or url; no separate type or port is
    * necessary as both are included. See the connector class for a description
    * of the string format.
+   *
+   * Because this constructor requires knowledge of registered URL schemes, it
+   * must be passed an API instance.
    **/
-  explicit peer_address(std::string const & address);
-  explicit peer_address(::packeteer::util::url const & url);
+  peer_address(std::shared_ptr<api> api, std::string const & address);
+  peer_address(std::shared_ptr<api> api, ::liberate::net::url const & url);
 
 
   /**
@@ -108,8 +91,8 @@ public:
   /**
    * Expose the socket address, too.
    **/
-  net::socket_address & socket_address();
-  net::socket_address const & socket_address() const;
+  liberate::net::socket_address & socket_address();
+  liberate::net::socket_address const & socket_address() const;
 
   /**
    * Behave like a value type.
@@ -122,15 +105,16 @@ public:
   size_t hash() const;
 
   /**
-   * Used by util::operators
+   * Used by liberate::cpp::comparison_operators
    **/
 
   bool is_equal_to(peer_address const & other) const;
   bool is_less_than(peer_address const & other) const;
 
 private:
-  net::socket_address m_sockaddr;
-  connector_type      m_connector_type;
+  liberate::net::socket_address m_sockaddr;
+  connector_type                m_connector_type;
+  std::string                   m_scheme;
 
   friend PACKETEER_API_FRIEND std::ostream & operator<<(std::ostream & os, peer_address const & addr);
 };

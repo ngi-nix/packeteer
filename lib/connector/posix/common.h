@@ -41,9 +41,9 @@ public:
 
   // Common connector implementations
   error_t receive(void * buf, size_t bufsize, size_t & bytes_read,
-      ::packeteer::net::socket_address & sender) override;
+      ::liberate::net::socket_address & sender) override;
   error_t send(void const * buf, size_t bufsize, size_t & bytes_written,
-      ::packeteer::net::socket_address const & recipient) override;
+      ::liberate::net::socket_address const & recipient) override;
   size_t peek() const override;
 
   error_t read(void * buf, size_t bufsize, size_t & bytes_read) override;

@@ -24,10 +24,9 @@
 #include "select.h"
 
 #include <packeteer/error.h>
-#include <packeteer/types.h>
 
 #include "../../scheduler_impl.h"
-#include "../../../thread/chrono.h"
+#include "../../../chrono.h"
 
 // Posix
 #include <sys/select.h>
@@ -168,7 +167,9 @@ io_select::wait_for_events(io_events & events,
     events.push_back({conn, ev});
   }
 
-  DLOG("select got " << events.size() << " event entries to report.");
+  if (!events.empty()) {
+    DLOG("select got " << events.size() << " event entries to report.");
+  }
 }
 
 

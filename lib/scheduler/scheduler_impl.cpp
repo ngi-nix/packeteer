@@ -29,6 +29,8 @@
 
 #include "worker.h"
 
+#include "../interrupt.h"
+
 #if defined(PACKETEER_HAVE_EPOLL_CREATE1)
 #include "io/posix/epoll.h"
 #endif
@@ -54,33 +56,6 @@ namespace sc = std::chrono;
 
 namespace packeteer {
 
-/*****************************************************************************
- * Free detail functions
- **/
-namespace detail {
-
-void interrupt(connector & pipe)
-{
-  char buf[1] = { '\0' };
-  size_t amount = 0;
-  pipe.write(buf, sizeof(buf), amount);
-}
-
-
-
-void clear_interrupt(connector & pipe)
-{
-  char buf[1] = { '\0' };
-  size_t amount = 0;
-  pipe.read(buf, sizeof(buf), amount);
-}
-
-} // namespace detail
-
-
-
-
-
 
 /*****************************************************************************
  * class scheduler::scheduler_impl
@@ -92,11 +67,10 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
   , m_num_workers{num_workers}
   , m_workers{}
   , m_worker_condition{}
-  , m_worker_mutex{}
   , m_main_loop_continue{true}
   , m_main_loop_thread{}
   , m_main_loop_pipe{m_api, "anon://"}
-  , m_in_queue{}
+  , m_in_queue{m_main_loop_pipe}
   , m_out_queue{}
   , m_scheduled_callbacks{}
   , m_io{nullptr}
@@ -182,10 +156,7 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
       throw exception(ERR_INVALID_OPTION, "unsupported scheduler type.");
   }
 
-  if (m_num_workers != 0) {
-    start_main_loop();
-    adjust_workers(m_num_workers);
-  }
+  set_num_workers(num_workers);
 }
 
 
@@ -193,18 +164,18 @@ scheduler::scheduler_impl::scheduler_impl(std::shared_ptr<api> api,
 scheduler::scheduler_impl::~scheduler_impl()
 {
   DLOG("Scheduler implementation destructor.");
-  adjust_workers(0);
-  stop_main_loop();
+  set_num_workers(0);
 
   delete m_io;
 
   // There might be a bunch of items still in the in- and out queues.
-  in_queue_entry_t item;
-  while (m_in_queue.pop(item)) {
-    delete item.second;
+  command_type command;
+  detail::callback_entry * entry = nullptr;
+  while (m_in_queue.dequeue(command, entry)) {
+    delete entry;
   }
 
-  pdt::callback_entry * entry = nullptr;
+  entry = nullptr;
   while (m_out_queue.pop(entry)) {
     delete entry;
   }
@@ -212,19 +183,10 @@ scheduler::scheduler_impl::~scheduler_impl()
 
 
 
-void
-scheduler::scheduler_impl::enqueue(action_type action,
-    pdt::callback_entry * entry)
+scheduler_command_queue_t &
+scheduler::scheduler_impl::commands()
 {
-  m_in_queue.push(std::make_pair(action, entry));
-}
-
-
-
-void
-scheduler::scheduler_impl::enqueue_commit()
-{
-  detail::interrupt(m_main_loop_pipe);
+  return m_in_queue;
 }
 
 
@@ -255,7 +217,7 @@ scheduler::scheduler_impl::stop_main_loop()
 
   m_main_loop_continue = false;
 
-  detail::interrupt(m_main_loop_pipe);
+  detail::set_interrupt(m_main_loop_pipe);
   if (m_main_loop_thread.joinable()) {
     m_main_loop_thread.join();
   }
@@ -304,8 +266,8 @@ scheduler::scheduler_impl::adjust_workers(ssize_t num_workers)
     DLOG("Increasing worker count from " << have << " to "
         << num_workers << ".");
     for (ssize_t i = have ; i < num_workers ; ++i) {
-      auto worker = new pdt::worker(m_worker_condition, m_worker_mutex,
-          m_out_queue);
+      auto worker = new pdt::worker(&m_worker_condition,
+          m_out_queue, m_in_queue);
       worker->start();
       m_workers.push_back(worker);
     }
@@ -323,34 +285,52 @@ scheduler::scheduler_impl::num_workers() const
 
 
 void
+scheduler::scheduler_impl::set_num_workers(ssize_t num_workers)
+{
+  m_num_workers = num_workers;
+  if (num_workers == 0) {
+    stop_main_loop();
+  }
+  else {
+    start_main_loop();
+  }
+
+  adjust_workers(m_num_workers);
+}
+
+
+
+void
 scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 {
-  in_queue_entry_t item;
-  while (m_in_queue.pop(item)) {
+  command_type command;
+  detail::callback_entry * entry = nullptr;
+
+  while (m_in_queue.dequeue(command, entry)) {
     // No callback means nothing to do.
-    if (nullptr == item.second) {
+    if (nullptr == entry) {
       continue;
     }
 
-    switch (item.second->m_type) {
+    switch (entry->m_type) {
       case pdt::CB_ENTRY_IO:
-        process_in_queue_io(item.first,
-            reinterpret_cast<pdt::io_callback_entry *>(item.second));
+        process_in_queue_io(command,
+            reinterpret_cast<pdt::io_callback_entry *>(entry));
         break;
 
       case pdt::CB_ENTRY_SCHEDULED:
-        process_in_queue_scheduled(item.first,
-            reinterpret_cast<pdt::scheduled_callback_entry *>(item.second));
+        process_in_queue_scheduled(command,
+            reinterpret_cast<pdt::scheduled_callback_entry *>(entry));
         break;
 
       case pdt::CB_ENTRY_USER:
-        process_in_queue_user(item.first,
-            reinterpret_cast<pdt::user_callback_entry *>(item.second),
+        process_in_queue_user(command,
+            reinterpret_cast<pdt::user_callback_entry *>(entry),
             triggered);
         break;
 
       default:
-        delete item.second;
+        delete entry;
         PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad callback entry type");
         break;
     }
@@ -360,11 +340,11 @@ scheduler::scheduler_impl::process_in_queue(entry_list_t & triggered)
 
 
 void
-scheduler::scheduler_impl::process_in_queue_io(action_type action,
+scheduler::scheduler_impl::process_in_queue_io(command_type command,
     pdt::io_callback_entry * io)
 {
-  switch (action) {
-    case ACTION_ADD:
+  switch (command) {
+    case CMD_ADD:
       {
         // Add the callback for the event mask
         auto updated = m_io_callbacks.add(io);
@@ -373,9 +353,9 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       break;
 
 
-    case ACTION_REMOVE:
+    case CMD_REMOVE:
       {
-        // Add the callback from the event mask
+        // Remove the callback from the event mask
         auto updated = m_io_callbacks.remove(io);
         m_io->unregister_connector(updated->m_connector, updated->m_events);
         delete io;
@@ -383,10 +363,10 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
       break;
 
 
-    case ACTION_TRIGGER:
+    case CMD_TRIGGER:
     default:
       delete io;
-      DLOG("Ignoring invalid TRIGGER action for I/O callback.");
+      DLOG("Ignoring invalid TRIGGER command for I/O callback.");
       break;
   }
 }
@@ -394,11 +374,11 @@ scheduler::scheduler_impl::process_in_queue_io(action_type action,
 
 
 void
-scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
+scheduler::scheduler_impl::process_in_queue_scheduled(command_type command,
     pdt::scheduled_callback_entry * scheduled)
 {
-  switch (action) {
-    case ACTION_ADD:
+  switch (command) {
+    case CMD_ADD:
       {
         // When adding, we simply add scheduled entries. It's entirely
         // possible that the same (callback, timeout) combination is added
@@ -408,7 +388,7 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
       break;
 
 
-    case ACTION_REMOVE:
+    case CMD_REMOVE:
       {
         // When deleting, we need to delete *all* (callback, timeout)
         // combinations that match. That might not be what the caller
@@ -419,10 +399,10 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
       break;
 
 
-    case ACTION_TRIGGER:
+    case CMD_TRIGGER:
     default:
       delete scheduled;
-      DLOG("Ignoring invalid TRIGGER action for scheduled callback.");
+      DLOG("Ignoring invalid TRIGGER command for scheduled callback.");
       break;
   }
 }
@@ -430,24 +410,24 @@ scheduler::scheduler_impl::process_in_queue_scheduled(action_type action,
 
 
 void
-scheduler::scheduler_impl::process_in_queue_user(action_type action,
+scheduler::scheduler_impl::process_in_queue_user(command_type command,
     pdt::user_callback_entry * entry, entry_list_t & triggered)
 {
-  switch (action) {
-    case ACTION_ADD:
+  switch (command) {
+    case CMD_ADD:
       // Add the callback/entry mask; container takes ownership
       m_user_callbacks.add(entry);
       break;
 
 
-    case ACTION_REMOVE:
+    case CMD_REMOVE:
       // Remove the callback/entry mask
       m_user_callbacks.remove(entry);
       delete entry;
       break;
 
 
-    case ACTION_TRIGGER:
+    case CMD_TRIGGER:
       // Remember it for a later processing stage; triggered takes ownership
       triggered.push_back(entry);
       break;
@@ -455,7 +435,7 @@ scheduler::scheduler_impl::process_in_queue_user(action_type action,
 
     default:
       delete entry;
-      PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad action for user callback");
+      PACKETEER_FLOW_CONTROL_GUARD_WITH("Bad command for user callback");
   }
 }
 
@@ -478,6 +458,18 @@ scheduler::scheduler_impl::dispatch_io_callbacks(
     auto callbacks = m_io_callbacks.copy_matching(event.connector,
         event.events);
     to_schedule.insert(to_schedule.end(), callbacks.begin(), callbacks.end());
+
+    // If any of the callbacks have IO_FLAGS_ONESHOT or IO_FLAGS_REPEAT set,
+    // remove them from the I/O subsystem now. We just insert the approriate
+    // entry into the command queue here, and the next iteration waiting for
+    // events will pick the change up.
+    for (auto & entry : callbacks) {
+      if ((entry->m_flags & IO_FLAGS_ONESHOT)
+          || (entry->m_flags & IO_FLAGS_REPEAT))
+      {
+        m_in_queue.enqueue(CMD_REMOVE, new detail::io_callback_entry{*entry});
+      }
+    }
   }
 }
 
@@ -584,11 +576,14 @@ scheduler::scheduler_impl::main_scheduler_loop()
         // up multiple workers. But we don't want to interrupt the pipe more
         // than there are workers or jobs, either, to avoid needless lock
         // contention.
-        std::lock_guard<std::recursive_mutex> lock(m_worker_mutex);
-        size_t interrupts = std::min(to_schedule.size(), m_workers.size());
+        size_t interrupts = 0;
+        {
+          std::unique_lock<std::mutex> lock(m_worker_condition.mutex);
+          interrupts = std::min(to_schedule.size(), m_workers.size());
+        }
         while (interrupts--) {
           DLOG("Interrupting worker pipe");
-          m_worker_condition.notify_one();
+          m_worker_condition.condition.notify_one();
         }
       }
     }
@@ -669,9 +664,10 @@ scheduler::scheduler_impl::wait_for_events(duration const & timeout,
  * Free functions
  **/
 
+namespace {
 
-error_t
-execute_callback(detail::callback_entry * entry)
+inline error_t
+run_callback_type(detail::callback_entry * entry)
 {
   error_t err = ERR_SUCCESS;
 
@@ -705,16 +701,15 @@ execute_callback(detail::callback_entry * entry)
   return err;
 }
 
-namespace {
 
 inline error_t
-handle_entry(detail::callback_entry * entry)
+execute_callback(detail::callback_entry * entry)
 {
   DLOG("Thread " << std::this_thread::get_id() << " picked up entry of type: "
       << static_cast<int>(entry->m_type));
   error_t err = ERR_SUCCESS;
   try {
-    err = execute_callback(entry);
+    err = run_callback_type(entry);
     if (ERR_SUCCESS != err) {
       ET_LOG("Error in callback", err);
     }
@@ -735,30 +730,58 @@ handle_entry(detail::callback_entry * entry)
   return err;
 }
 
+
+inline void
+drain_work_queue_loop(
+    // Function parameters
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue,
+    // Loop variables
+    error_t & err,
+    detail::callback_entry * entry,
+    bool & process)
+{
+  if (process) {
+    // Process the entry (it gets freed)
+    err = execute_callback(entry);
+  }
+
+  // We may want to re-add this entry to the scheduler, but only under
+  // specific circumstances.
+  if ((ERR_REPEAT_ACTION == err)
+      && (detail::CB_ENTRY_IO == entry->m_type)
+      && (reinterpret_cast<detail::io_callback_entry *>(entry)->m_flags & IO_FLAGS_REPEAT))
+  {
+    // Re-add this entry. No need to create a copy, this goes straight into
+    // the command queue.
+    command_queue.enqueue(CMD_ADD, entry);
+  }
+  else {
+    // We're done with this entry, delete it.
+    delete entry;
+  }
+
+  // Maybe exit
+  if (ERR_SUCCESS != err && exit_on_failure) {
+    process = false;
+  }
+}
+
 } // anonymous namespace
 
 
 error_t
-drain_work_queue(concurrent_queue<detail::callback_entry *> & work_queue,
-    bool exit_on_failure)
+drain_work_queue(work_queue_t & work_queue,
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue)
 {
   DLOG("Starting drain.");
   detail::callback_entry * entry = nullptr;
   error_t err = ERR_SUCCESS;
   bool process = true;
   while (work_queue.pop(entry)) {
-    if (process) {
-      // Process the entry (it gets freed)
-      err = handle_entry(entry);
-    }
-
-    // Always delete entry
-    delete entry;
-
-    // Maybe exit
-    if (ERR_SUCCESS != err && exit_on_failure) {
-      process = false;
-    }
+    drain_work_queue_loop(exit_on_failure, command_queue,
+        err, entry, process);
   }
 
   DLOG("Finished drain.");
@@ -768,23 +791,15 @@ drain_work_queue(concurrent_queue<detail::callback_entry *> & work_queue,
 
 
 error_t
-drain_work_queue(entry_list_t & work_queue, bool exit_on_failure)
+drain_work_queue(entry_list_t & work_queue, bool exit_on_failure,
+    scheduler_command_queue_t & command_queue)
 {
   DLOG("Starting drain.");
   error_t err = ERR_SUCCESS;
   bool process = true;
   for (auto & entry : work_queue) {
-    if (process) {
-      err = handle_entry(entry);
-    }
-
-    // Always delete entry
-    delete entry;
-
-    // Maybe exit
-    if (ERR_SUCCESS != err && exit_on_failure) {
-      process = false;
-    }
+    drain_work_queue_loop(exit_on_failure, command_queue,
+        err, entry, process);
   }
 
   work_queue.clear();

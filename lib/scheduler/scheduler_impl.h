@@ -35,12 +35,15 @@
 #include <mutex>
 #include <thread>
 
-#include <packeteer/types.h>
+#include <liberate/concurrency/concurrent_queue.h>
+#include <liberate/concurrency/tasklet.h>
+
 #include <packeteer/scheduler/types.h>
 #include <packeteer/connector.h>
 #include <packeteer/handle.h>
 
-#include "../concurrent_queue.h"
+#include "../command_queue.h"
+
 #include "io.h"
 
 namespace packeteer {
@@ -50,17 +53,6 @@ namespace packeteer {
  **/
 namespace detail {
 class worker;
-} // namespace detail
-
-
-/*****************************************************************************
- * Free (detail) functions
- **/
-namespace detail {
-
-void interrupt(connector & pipe);
-void clear_interrupt(connector & pipe);
-
 } // namespace detail
 
 
@@ -125,8 +117,27 @@ namespace packeteer {
 /*****************************************************************************
  * Types
  **/
+// TODO detail
 // Type for temporary entry containers.
 using entry_list_t = std::vector<detail::callback_entry *>;
+using work_queue_t = liberate::concurrency::concurrent_queue<
+  detail::callback_entry *
+>;
+
+// Type of command for the scheduler implementation
+enum command_type : int8_t
+{
+  CMD_ADD      = 0,
+  CMD_REMOVE   = 1,
+  CMD_TRIGGER  = 2,
+};
+
+// The in queue is a command queue with associated signal
+using scheduler_command_queue_t = detail::command_queue_with_signal<
+  command_type,
+  detail::callback_entry *
+>;
+
 
 
 /*****************************************************************************
@@ -137,14 +148,6 @@ using entry_list_t = std::vector<detail::callback_entry *>;
  **/
 struct scheduler::scheduler_impl
 {
-  // Type of action to take on an item in the in-queue
-  enum action_type : int8_t
-  {
-    ACTION_ADD      = 0,
-    ACTION_REMOVE   = 1,
-    ACTION_TRIGGER  = 2,
-  };
-
 
   /***************************************************************************
    * Interface
@@ -153,13 +156,10 @@ struct scheduler::scheduler_impl
       scheduler_type type);
   ~scheduler_impl();
 
-
   /**
-   * Enqueue a callback_entry. The specific type must be determined by the
-   * caller, and the parameters must be set by the caller.
+   * Expose command queue for the scheduler implementation.
    **/
-  void enqueue(action_type action, detail::callback_entry * entry);
-  void enqueue_commit();
+  scheduler_command_queue_t & commands();
 
 
   /**
@@ -174,13 +174,17 @@ struct scheduler::scheduler_impl
    **/
   size_t num_workers() const;
 
-private:
-  /***************************************************************************
-   * Types
-   **/
-  // Entries for the in-queue
-  using in_queue_entry_t = std::pair<action_type, detail::callback_entry *>;
+  /**
+   * See scheduler::set_num_workers()
+   */
+  void set_num_workers(ssize_t num_workers);
 
+  /**
+   * Process the current in queue.
+   */
+  void process_in_queue(entry_list_t & triggered);
+
+private:
   /***************************************************************************
    * Generic private functions
    **/
@@ -194,12 +198,11 @@ private:
   // Main loop
   void main_scheduler_loop();
 
-  inline void process_in_queue(entry_list_t & triggered);
-  inline void process_in_queue_io(action_type action,
+  inline void process_in_queue_io(command_type command,
       detail::io_callback_entry * entry);
-  inline void process_in_queue_scheduled(action_type action,
+  inline void process_in_queue_scheduled(command_type command,
       detail::scheduled_callback_entry * entry);
-  inline void process_in_queue_user(action_type action,
+  inline void process_in_queue_user(command_type command,
       detail::user_callback_entry * entry, entry_list_t & triggered);
 
   inline void dispatch_io_callbacks(detail::io_events const & events,
@@ -226,8 +229,8 @@ private:
   // Workers
   std::atomic<ssize_t>            m_num_workers;
   std::vector<detail::worker *>   m_workers;
-  std::condition_variable_any     m_worker_condition;
-  std::recursive_mutex            m_worker_mutex;
+
+  liberate::concurrency::tasklet::sleep_condition m_worker_condition;
 
   // Main loop state.
   std::atomic<bool>               m_main_loop_continue;
@@ -251,15 +254,15 @@ private:
   // Any process putting an entry into either queue relinquishes ownership over
   // the entry. Any process taking an entry out of either queue takes ownership
   // over the entry.
-  concurrent_queue<in_queue_entry_t>          m_in_queue;
-  concurrent_queue<detail::callback_entry *>  m_out_queue;
+  scheduler_command_queue_t       m_in_queue;
+  work_queue_t                    m_out_queue;
 
-  detail::io_callbacks_t                      m_io_callbacks;
-  detail::scheduled_callbacks_t               m_scheduled_callbacks;
-  detail::user_callbacks_t                    m_user_callbacks;
+  detail::io_callbacks_t          m_io_callbacks;
+  detail::scheduled_callbacks_t   m_scheduled_callbacks;
+  detail::user_callbacks_t        m_user_callbacks;
 
   // IO subsystem
-  detail::io *                                m_io;
+  detail::io *                    m_io;
 };
 
 
@@ -268,20 +271,17 @@ private:
  **/
 
 /**
- * Execute a single callback entry.
- **/
-error_t execute_callback(detail::callback_entry * entry);
-
-
-/**
- * Drain a work queue, invoking execute_callback for each entry.
+ * Drain a work queue, executing each entry callback.
  **/
 error_t drain_work_queue(
-    concurrent_queue<detail::callback_entry *> & work_queue,
-    bool exit_on_failure);
+    work_queue_t & work_queue,
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue);
 
-error_t drain_work_queue(entry_list_t & work_queue, bool exit_on_failure);
-
+error_t drain_work_queue(
+    entry_list_t & work_queue,
+    bool exit_on_failure,
+    scheduler_command_queue_t & command_queue);
 
 
 } // namespace packeteer

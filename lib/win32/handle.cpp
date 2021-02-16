@@ -43,7 +43,7 @@ handle::sys_handle_hash(sys_handle_t const & handle)
   char const * p = reinterpret_cast<char const *>(&handle->handle);
   size_t state = std::hash<char>()(p[0]);
   for (size_t i = 1 ; i < sizeof(HANDLE) ; ++i) {
-    packeteer::util::hash_combine(state, p[i]);
+    liberate::cpp::hash_combine(state, p[i]);
   }
   return state;
 }

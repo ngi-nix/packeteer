@@ -71,7 +71,7 @@ cpp_args = []
 posix_common_args = [
   '-Wall', '-Wextra', '-Wpedantic', '-Wshadow', '-Wstrict-aliasing',
   '-Wstrict-overflow=5', '-Wcast-align',
-  '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast', '-Wabi',
+  '-Wpointer-arith', '-Wcast-qual', '-Wold-style-cast',
 ]
 if compiler_id == 'clang'
   cpp_args += posix_common_args + [
@@ -157,50 +157,54 @@ conf_data.set_quoted('PACKETEER_PACKAGE_URL', 'https://gitlab.com/interpeer/pack
 conf_data.set('PACKETEER_BIGENDIAN', host_machine.endian() == 'big')
 
 ### Headers
-if compiler.has_header('unistd.h')
-  conf_data.set('PACKETEER_HAVE_UNISTD_H', true)
-endif
-if compiler.has_header('sys' / 'select.h')
-  conf_data.set('PACKETEER_HAVE_SYS_SELECT_H', true)
-endif
-if compiler.has_header('sys' / 'time.h')
-  conf_data.set('PACKETEER_HAVE_SYS_TIME_H', true)
-endif
-if compiler.has_header('sys' / 'epoll.h')
-  conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H', true)
-endif
-if compiler.has_header('time.h')
-  conf_data.set('PACKETEER_HAVE_TIME_H', true)
-endif
-if compiler.has_header('poll.h')
-  conf_data.set('PACKETEER_HAVE_POLL_H', true)
-endif
-if compiler.has_header('arpa' / 'inet.h')
-  conf_data.set('PACKETEER_HAVE_ARPA_INET_H', true)
-endif
-if compiler.has_header('netinet' / 'in.h')
-  conf_data.set('PACKETEER_HAVE_NETINET_IN_H', true)
-endif
-if compiler.has_header('linux' / 'un.h')
-  conf_data.set('PACKETEER_HAVE_LINUX_UN_H', true)
-endif
-if compiler.has_header('sys' / 'un.h')
-  conf_data.set('PACKETEER_HAVE_SYS_UN_H', true)
-endif
-if compiler.has_header('sys' / 'socket.h')
-  conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H', true)
-endif
-if compiler.has_header('winsock2.h')
-  conf_data.set('PACKETEER_HAVE_WINSOCK2_H', true)
-endif
-if compiler.has_header('ws2tcpip.h')
-  conf_data.set('PACKETEER_HAVE_WS2TCPIP_H', true)
-endif
-have_afunix = false
-if compiler.has_header('afunix.h')
-  conf_data.set('PACKETEER_HAVE_AFUNIX_H', true)
-  have_afunix = true
-endif
+conf_data.set('PACKETEER_HAVE_UNISTD_H',
+  compiler.has_header('unistd.h'))
+conf_data.set('PACKETEER_HAVE_TIME_H',
+  compiler.has_header('time.h'))
+conf_data.set('PACKETEER_HAVE_POLL_H',
+  compiler.has_header('poll.h'))
+conf_data.set('PACKETEER_HAVE_FCNTL_H',
+  compiler.has_header('fcntl.h'))
+
+conf_data.set('PACKETEER_HAVE_SYS_TYPES_H',
+  compiler.has_header('sys' / 'types.h'))
+conf_data.set('PACKETEER_HAVE_SYS_SELECT_H',
+  compiler.has_header('sys' / 'select.h'))
+conf_data.set('PACKETEER_HAVE_SYS_STAT_H',
+  compiler.has_header('sys' / 'stat.h'))
+conf_data.set('PACKETEER_HAVE_SYS_TIME_H',
+  compiler.has_header('sys' / 'time.h'))
+conf_data.set('PACKETEER_HAVE_SYS_EPOLL_H',
+  compiler.has_header('sys' / 'epoll.h'))
+conf_data.set('PACKETEER_HAVE_SYS_UN_H',
+  compiler.has_header('sys' / 'un.h'))
+conf_data.set('PACKETEER_HAVE_SYS_SOCKET_H',
+  compiler.has_header('sys' / 'socket.h'))
+conf_data.set('PACKETEER_HAVE_SYS_IOCTL_H',
+  compiler.has_header('sys' / 'ioctl.h'))
+
+conf_data.set('PACKETEER_HAVE_ARPA_INET_H',
+  compiler.has_header('arpa' / 'inet.h'))
+
+conf_data.set('PACKETEER_HAVE_NET_IF_H',
+  compiler.has_header('net' / 'if.h'))
+
+conf_data.set('PACKETEER_HAVE_NETINET_IN_H',
+  compiler.has_header('netinet' / 'in.h'))
+
+conf_data.set('PACKETEER_HAVE_WINSOCK2_H',
+  compiler.has_header('winsock2.h'))
+conf_data.set('PACKETEER_HAVE_WS2TCPIP_H',
+  compiler.has_header('ws2tcpip.h'))
+have_afunix = compiler.has_header('afunix.h')
+conf_data.set('PACKETEER_HAVE_AFUNIX_H', have_afunix)
+
+conf_data.set('PACKETEER_HAVE_LINUX_UN_H',
+  compiler.has_header('linux' / 'un.h'))
+conf_data.set('PACKETEER_HAVE_LINUX_IF_TUN_H',
+  compiler.has_header('linux' / 'if_tun.h'))
+conf_data.set('PACKETEER_HAVE_LINUX_SOCKIOS_H',
+  compiler.has_header('linux' / 'sockios.h'))
 
 
 ### Types
@@ -221,9 +225,7 @@ int main(int, char**)
   int foo = epoll_create1(EPOLL_CLOEXEC);
 }
 ''', name: 'epoll_create1()')
-if have_epoll_create
-  conf_data.set('PACKETEER_HAVE_EPOLL_CREATE1', true)
-endif
+conf_data.set('PACKETEER_HAVE_EPOLL_CREATE1', have_epoll_create)
 summary('epoll', have_epoll_create, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -236,9 +238,7 @@ int main(int, char**)
   int ret = select(0, NULL, NULL, NULL, NULL);
 }
 ''', name: 'select()')
-if have_select
-  conf_data.set('PACKETEER_HAVE_SELECT', true)
-endif
+conf_data.set('PACKETEER_HAVE_SELECT', have_select)
 summary('select', have_select, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -251,9 +251,7 @@ int main(int, char**)
   int ret = pselect(0, NULL, NULL, NULL, NULL, NULL);
 }
 ''', name: 'pselect()')
-if have_pselect
-  conf_data.set('PACKETEER_HAVE_PSELECT', true)
-endif
+conf_data.set('PACKETEER_HAVE_PSELECT', have_pselect)
 summary('pselect', have_pselect, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -266,9 +264,7 @@ int main(int, char**)
   int foo = poll(NULL, 0, 0);
 }
 ''', name: 'poll()')
-if have_poll
-  conf_data.set('PACKETEER_HAVE_POLL', true)
-endif
+conf_data.set('PACKETEER_HAVE_POLL', have_poll)
 summary('poll', have_poll, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -281,9 +277,7 @@ int main(int, char**)
   int foo = ppoll(NULL, 0, 0, NULL);
 }
 ''', name: 'ppoll()')
-if have_ppoll
-  conf_data.set('PACKETEER_HAVE_PPOLL', true)
-endif
+conf_data.set('PACKETEER_HAVE_PPOLL', have_ppoll)
 summary('ppoll', have_ppoll, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -296,9 +290,7 @@ int main(int, char**)
   int foo = POLLRDHUP;
 }
 ''', name: 'pollrdhup()')
-if have_pollrdhup
-  conf_data.set('PACKETEER_HAVE_POLLRDHUP', true)
-endif
+conf_data.set('PACKETEER_HAVE_POLLRDHUP', have_pollrdhup)
 
 
 have_pollhup = compiler.compiles('''
@@ -310,9 +302,7 @@ int main(int, char**)
   int foo = POLLHUP;
 }
 ''', name: 'pollhup()')
-if have_pollhup
-  conf_data.set('PACKETEER_HAVE_POLLHUP', true)
-endif
+conf_data.set('PACKETEER_HAVE_POLLHUP', have_pollhup)
 
 
 have_kqueue = compiler.compiles('''
@@ -325,9 +315,7 @@ int main(int, char **)
   int foo = kqueue();
 }
 ''', name: 'kqueue()')
-if have_kqueue
-  conf_data.set('PACKETEER_HAVE_KQUEUE', true)
-endif
+conf_data.set('PACKETEER_HAVE_KQUEUE', have_kqueue)
 summary('kqueue', have_kqueue, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -344,9 +332,7 @@ int main(int, char **)
   HANDLE iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 3);
 }
 ''', name: 'I/O completion ports')
-if have_iocp
-  conf_data.set('PACKETEER_HAVE_IOCP', true)
-endif
+conf_data.set('PACKETEER_HAVE_IOCP', have_iocp)
 summary('iocp', have_iocp, bool_yn: true, section: 'I/O subsystems')
 
 
@@ -361,9 +347,7 @@ int main(int, char**)
   mknod("foo", S_IFIFO, S_IRUSR);
 }
 ''', name: 'mknod()')
-if have_mknod
-  conf_data.set('PACKETEER_HAVE_MKNOD', true)
-endif
+conf_data.set('PACKETEER_HAVE_MKNOD', have_mknod)
 
 
 have_mkfifo = compiler.compiles('''
@@ -377,40 +361,8 @@ int main(int, char**)
   mkfifo("foo", S_IRUSR);
 }
 ''', name: 'mkfifo()')
-if have_mkfifo
-  conf_data.set('PACKETEER_HAVE_MKFIFO', true)
-endif
+conf_data.set('PACKETEER_HAVE_MKFIFO', have_mkfifo)
 
-
-have_strerror_s = compiler.compiles('''
-#include <string.h>
-
-int main(int, char**)
-{
-  char buf[1];
-  auto e = strerror_s(buf, sizeof(buf), 0);
-}
-''', name: 'strerror_s()')
-if have_strerror_s
-  conf_data.set('PACKETEER_HAVE_STRERROR_S', true)
-endif
-
-have_strerror_r = compiler.compiles('''
-#include <string.h>
-
-#if (_POSIX_C_SOURCE >= 200112L) && !_GNU_SOURCE
-#  error "No XSI compliant version!"
-#endif
-
-int main(int, char**)
-{
-  char buf[1];
-  int e = strerror_r(0, buf, sizeof(buf));
-}
-''', name: 'strerror_r()')
-if have_strerror_s
-  conf_data.set('PACKETEER_HAVE_STRERROR_R', true)
-endif
 
 have_socketpair = compiler.compiles('''
 #include <sys/types.h>
@@ -422,9 +374,7 @@ int main(int, char **)
   int e = socketpair(AF_INET, SOCK_STREAM, 0, fd);
 }
 ''', name: 'socketpair()')
-if have_socketpair
-  conf_data.set('PACKETEER_HAVE_SOCKETPAIR', true)
-endif
+conf_data.set('PACKETEER_HAVE_SOCKETPAIR', have_socketpair)
 
 
 
@@ -465,14 +415,23 @@ conf_data.set('PACKETEER_IO_OVERLAPPED_GROW_BY', io_overlapped_grow_by)
 configure_file(
   input: 'build-config.h.in',
   output: 'build-config.h',
-  configuration: conf_data)
+  configuration: conf_data
+)
 
+main_build_dir = declare_dependency(
+  include_directories: include_directories('.')
+)
 
 
 ##############################################################################
 # Dependencies
 
 thread = dependency('threads', required: true)
+
+##############################################################################
+# Meson Wrap Dependencies
+liberate = subproject('liberate')
+
 
 ##############################################################################
 # Library
@@ -493,35 +452,37 @@ install_headers(
 install_headers(
   'include' / 'packeteer' / 'version.h',
   'include' / 'packeteer' / 'error.h',
-  'include' / 'packeteer' / 'types.h',
   'include' / 'packeteer' / 'scheduler.h',
-  'include' / 'packeteer' / 'scheduler' / 'types.h',
-  'include' / 'packeteer' / 'scheduler' / 'callback.h',
-  'include' / 'packeteer' / 'scheduler' / 'events.h',
-  'include' / 'packeteer' / 'handle.h',
+  'include' / 'packeteer' / 'registry.h',
+  'include' / 'packeteer' / 'resolver.h',
   'include' / 'packeteer' / 'connector.h',
-  'include' / 'packeteer' / 'connector' / 'types.h',
-  'include' / 'packeteer' / 'connector' / 'interface.h',
-  'include' / 'packeteer' / 'connector' / 'peer_address.h',
+  'include' / 'packeteer' / 'handle.h',
+  'include' / 'packeteer' / 'visibility.h',
 
   subdir: 'packeteer',
 )
 
 install_headers(
-  'include' / 'packeteer' / 'net' / 'socket_address.h',
-  'include' / 'packeteer' / 'net' / 'network.h',
+  'include' / 'packeteer' / 'connector' / 'types.h',
+  'include' / 'packeteer' / 'connector' / 'interface.h',
+  'include' / 'packeteer' / 'connector' / 'peer_address.h',
 
-  subdir: 'packeteer' / 'net',
+  subdir: 'packeteer' / 'connector',
 )
 
 install_headers(
-  'include' / 'packeteer' / 'util' / 'operators.h',
-  'include' / 'packeteer' / 'util' / 'hash.h',
-  'include' / 'packeteer' / 'util' / 'url.h',
-  'include' / 'packeteer' / 'util' / 'tmp.h',
-  'include' / 'packeteer' / 'util' / 'path.h',
+  'include' / 'packeteer' / 'scheduler' / 'events.h',
+  'include' / 'packeteer' / 'scheduler' / 'types.h',
+  'include' / 'packeteer' / 'scheduler' / 'callback.h',
 
-  subdir: 'packeteer' / 'util',
+  subdir: 'packeteer' / 'scheduler',
+)
+
+install_headers(
+  'include' / 'packeteer' / 'ext' / 'connector' / 'filedesc.h',
+  'include' / 'packeteer' / 'ext' / 'connector' / 'tuntap.h',
+
+  subdir: 'packeteer' / 'ext' / 'connector',
 )
 
 
@@ -530,20 +491,14 @@ libsrc = [
   'lib' / 'error.cpp',
   'lib' / 'packeteer.cpp',
   'lib' / 'registry.cpp',
+  'lib' / 'resolver.cpp',
   'lib' / 'scheduler.cpp',
   'lib' / 'connector.cpp',
+  'lib' / 'interrupt.cpp',
   'lib' / 'connector' / 'peer_address.cpp',
   'lib' / 'scheduler' / 'worker.cpp',
   'lib' / 'scheduler' / 'scheduler_impl.cpp',
   'lib' / 'scheduler' / 'io_thread.cpp',
-  'lib' / 'net' / 'socket_address.cpp',
-  'lib' / 'net' / 'network.cpp',
-  'lib' / 'net' / 'cidr.cpp',
-  'lib' / 'thread' / 'tasklet.cpp',
-  'lib' / 'util' / 'url.cpp',
-  'lib' / 'util' / 'string.cpp',
-  'lib' / 'util' / 'tmp.cpp',
-  'lib' / 'util' / 'path.cpp',
 ]
 
 
@@ -611,7 +566,10 @@ endif
 
 lib = library('packeteer', libsrc,
     include_directories: [includes, libincludes],
-    dependencies: [thread],
+    dependencies: [
+      thread,
+      liberate.get_variable('liberate_dep'),
+    ],
     link_args: link_args,
     cpp_args: cpp_lib_is_building,
     version: LIB_VERSION,
@@ -620,98 +578,52 @@ lib = library('packeteer', libsrc,
 
 packeteer_dep = declare_dependency(
     include_directories: [includes],
+    dependencies: [
+      liberate.get_variable('liberate_dep'),
+    ],
     link_with: [lib],
     link_args: link_args,
     version: LIB_VERSION,
 )
 
-##############################################################################
-# Meson Wrap Dependencies
-gtest = subproject('gtest')
-clipp = subproject('muellan-clipp')
 
-##############################################################################
-# Tests
+extsrc = []
+extincludes = []
 
-# Tests in a subproject are complicicated. You need all the compile and
-# link flags from the enclosing project, etc.
-if not meson.is_subproject()
-
-  # See https://github.com/google/googletest/issues/813
-  test_args = []
-  if host_machine.system() == 'cygwin'
-    test_args += ['-D_POSIX_C_SOURCE=200809L']
-  endif
-
-  # Google test issues this warning; disable it in *test* code only.
-  if compiler_id == 'msvc'
-    test_args = [
-      '/wd4389',
-    ]
-  endif
-
-  # We're building two tests:
-  # - public_tests include *only* public headers
-  # - private_tests include private headers
-
-  public_test_src = [
-    'test' / 'public' / 'test_registry.cpp',
-    'test' / 'public' / 'test_error.cpp',
-    'test' / 'public' / 'test_handle.cpp',
-    'test' / 'public' / 'test_util_url.cpp',
-    'test' / 'public' / 'test_util_tmp.cpp',
-    'test' / 'public' / 'test_util_path.cpp',
-    'test' / 'public' / 'test_net_network.cpp',
-    'test' / 'public' / 'test_net_socket_address.cpp',
-    'test' / 'public' / 'test_scheduler_callback.cpp',
-    'test' / 'public' / 'test_scheduler.cpp',
-    'test' / 'public' / 'test_connector_peer_address.cpp',
-    'test' / 'public' / 'test_connector.cpp',
-    'test' / 'runner.cpp',
+if host_type == 'posix' or host_type == 'android'
+  extsrc += [
+    # Duplicated, because we're re-using it.
+    'lib' / 'connector' / 'posix' / 'common.cpp',
+    'lib' / 'connector' / 'posix' / 'fd.cpp',
+    # Extension functionality
+    'ext' / 'connector' / 'posix' / 'filedesc.cpp',
+    'ext' / 'connector' / 'posix' / 'tuntap.cpp',
   ]
+endif
 
-  private_test_src = [
-    'test' / 'private' / 'test_concurrent_queue.cpp',
-    'test' / 'private' / 'test_connector_util.cpp',
-    'test' / 'private' / 'test_scheduler_containers.cpp',
-    'test' / 'private' / 'test_net_cidr.cpp',
-    'test' / 'private' / 'test_util_string.cpp',
-    'test' / 'private' / 'test_thread_binder.cpp',
-    'test' / 'private' / 'test_thread_tasklet.cpp',
-    'test' / 'private' / 'test_io_thread.cpp',
-    'test' / 'runner.cpp',
-  ]
+if extsrc.length() > 0
 
-  if host_type == 'win32'
-    private_test_src += [
-      'test' / 'private' / 'test_pipe_operations.cpp',
-      'test' / 'private' / 'test_io_operations.cpp',
-      'test' / 'private' / 'test_socketpair.cpp',
-    ]
-  endif
-
-  public_tests = executable('public_tests', public_test_src,
+  lib_ext = library('packeteer_ext', extsrc,
+      include_directories: [includes, extincludes],
       dependencies: [
         packeteer_dep,
-        gtest.get_variable('gtest_dep'),
       ],
-      cpp_args: test_args,
+      link_args: link_args,
+      link_with: [lib],
+      cpp_args: cpp_lib_is_building,
+      version: LIB_VERSION,
+      soversion: ABI_VERSION,
+      install: true)
+
+  packeteer_ext_dep = declare_dependency(
+      include_directories: [includes],
+      dependencies: [
+        packeteer_dep,
+      ],
+      link_with: [lib_ext],
+      link_args: link_args,
+      version: LIB_VERSION,
   )
-  test('public_tests', public_tests)
-
-  # Due to symbol visibility, private tests won't link for non-debug builds
-  if bt in ['debug', 'debugoptimized']
-    private_tests = executable('private_tests', private_test_src,
-        include_directories: [libincludes],  # Also private headers
-        dependencies: [
-          packeteer_dep,
-          gtest.get_variable('gtest_dep'),
-        ],
-        cpp_args: test_args,
-    )
-    test('private_tests', private_tests)
-  endif
-
 endif
 
 
@@ -766,5 +678,6 @@ endif
 
 ##############################################################################
 # Subdirectories
+subdir('test')
 subdir('examples')
 subdir('benchmarks')

@@ -24,10 +24,9 @@
 #include "poll.h"
 
 #include <packeteer/error.h>
-#include <packeteer/types.h>
 
 #include "../../scheduler_impl.h"
-#include "../../../thread/chrono.h"
+#include "../../../chrono.h"
 
 // Posix
 #include <poll.h>

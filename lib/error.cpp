@@ -25,7 +25,7 @@
 
 #include <cstring>
 
-#include "util/string.h"
+#include <liberate/sys/error.h>
 
 namespace packeteer {
 
@@ -108,41 +108,8 @@ combine_error(std::string & result, error_t code, int errnum,
     result = "[" + std::string{error_name(code)} + "] ";
     result += std::string{error_message(code)};
     if (errnum) {
-#if defined(PACKETEER_WIN32)
-      static TCHAR buf[1024] = { 0 };
-      FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errnum, 0, buf,
-          sizeof(buf) / sizeof(TCHAR), nullptr);
-
       result += " // ";
-      result += util::to_utf8(buf);
-
-      // Remove newline from FormatMessage
-      result.resize(result.length() - 3);
-#elif defined(PACKETEER_HAVE_STRERROR_S)
-      static char buf[1024] = { 0 };
-      auto e = ::strerror_s(buf, sizeof(buf), errnum);
-      if (e) {
-        result += " // Error copying error message.";
-      }
-      else {
-        result += " // ";
-        result += buf;
-      }
-#elif defined(PACKETEER_HAVE_STRERROR_R)
-      static char buf[1024] = { 0 };
-      int e = ::strerror_r(errnum, buf, sizeof(buf));
-      if (e) {
-        result += " // Error copying error message.";
-      }
-      else {
-        result += " // ";
-        result += buf;
-      }
-#else
-      // Fall back to plain strerror
-      result += " // ";
-      result += ::strerror(errnum);
-#endif
+      result += liberate::sys::error_message(errnum);
     }
     if (!details.empty()) {
       result += " // ";

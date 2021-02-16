@@ -20,9 +20,10 @@
 
 #include "socketpair.h"
 
-#include <packeteer/net/socket_address.h>
-#include <packeteer/util/tmp.h>
-#include <packeteer/util/path.h>
+#include <liberate/net/socket_address.h>
+
+#include <liberate/fs/tmp.h>
+#include <liberate/fs/path.h>
 
 #include "socket.h"
 
@@ -34,18 +35,18 @@ error_t socketpair(int domain, int type, int protocol, SOCKET sockets[2])
 {
   // Determine a bind address. For AF_INET and AF_INET6, it can be localhost.
   // For AF_UNIX, we need a temporary but unique-ish path.
-  net::socket_address bind_address;
+  liberate::net::socket_address bind_address;
   switch (domain) {
     case AF_INET:
-      bind_address = net::socket_address{"127.0.0.1"};
+      bind_address = liberate::net::socket_address{"127.0.0.1"};
       break;
 
     case AF_INET6:
-      bind_address = net::socket_address{"::1"};
+      bind_address = liberate::net::socket_address{"::1"};
       break;
 
     case AF_UNIX:
-      bind_address = net::socket_address{util::to_posix_path(util::temp_name("packeteer-socketpair-server"))};
+      bind_address = liberate::net::socket_address{liberate::fs::to_posix_path(liberate::fs::temp_name("packeteer-socketpair-server"))};
       break;
 
     default:
@@ -72,7 +73,7 @@ error_t socketpair(int domain, int type, int protocol, SOCKET sockets[2])
   }
 
   // Determine bound address. This is for random port assignment for IP sockets.
-  net::socket_address bound_address;
+  liberate::net::socket_address bound_address;
   int size = bound_address.bufsize_available();
   ret = ::getsockname(server_sock,
       reinterpret_cast<struct sockaddr *>(bound_address.buffer()),
@@ -117,11 +118,11 @@ error_t socketpair(int domain, int type, int protocol, SOCKET sockets[2])
   }
 
   // Accept
-  net::detail::address_data buf;
+  liberate::net::detail::address_data buf;
   ::socklen_t len = sizeof(buf);
   SOCKET sock = INVALID_SOCKET;
   while (true) {
-    sock = ::accept(server_sock, &buf.sa, &len);
+    sock = ::accept(server_sock, reinterpret_cast<sockaddr *>(&buf), &len);
     if (sock != INVALID_SOCKET) {
       break;
     }

@@ -21,18 +21,16 @@
 #include "../env.h"
 
 #include <packeteer/connector.h>
-#include <packeteer/scheduler.h>
-#include <packeteer/util/tmp.h>
-#include <packeteer/util/path.h>
-
-#include "../lib/macros.h"
 
 #include <cstring>
-
 #include <stdexcept>
-
 #include <chrono>
 #include <thread>
+
+#include <liberate/fs/tmp.h>
+#include <liberate/fs/path.h>
+
+#include <packeteer/scheduler.h>
 
 #include "../value_tests.h"
 #include "../test_name.h"
@@ -285,7 +283,7 @@ TEST(Connector, default_constructed)
  */
 namespace {
 
-namespace pu = packeteer::util;
+namespace fs = liberate::fs;
 
 inline std::string
 name_with(std::string const & base, bool blocking)
@@ -298,7 +296,7 @@ name_with(std::string const & base, bool blocking)
     name += "-noblock";
   }
 
-  name = pu::to_posix_path(pu::temp_name(name));
+  name = fs::to_posix_path(fs::temp_name(name));
 
   if (blocking) {
     name += "?blocking=1";
@@ -439,7 +437,7 @@ void send_message_streaming(p7r::connector & sender, p7r::connector & receiver,
   result.resize(amount);
 
   std::string received{result.begin(), result.end()};
-  DLOG("Sent '" << msg << "' and received '" << received << "'");
+  // std::cout << "Sent '" << msg << "' and received '" << received << "'" << std::endl;
   ASSERT_EQ(msg, received);
 }
 
@@ -490,7 +488,7 @@ void send_message_streaming_async(p7r::connector & sender, p7r::connector & rece
   ASSERT_EQ(msg.size(), result.size());
 
   std::string received{result.begin(), result.end()};
-  DLOG("Sent '" << msg << "' and received '" << received << "'");
+  // std::cout << "Sent '" << msg << "' and received '" << received << "'" << std::endl;
   ASSERT_EQ(msg, received);
 }
 
@@ -568,7 +566,7 @@ struct server_connect_callback
       p7r::connector * conn [[maybe_unused]])
   {
     if (!m_conn) {
-      DLOG(" ***** INCOMING " << mask << ":" << *conn);
+      // std::cout << " ***** INCOMING " << mask << ":" << *conn << std::endl;
       // The accept() function clears the event.
       EXPECT_NO_THROW(m_conn = m_server.accept());
       EXPECT_TRUE(m_conn);
@@ -589,7 +587,7 @@ struct client_post_connect_callback
   {
     if (!m_connected) {
       m_connected = true;
-      DLOG(" ***** CONNECTED! " << mask << ":" << *conn);
+      // std::cout << " ***** CONNECTED! " << mask << ":" << *conn << std::endl;
     }
 
     return p7r::ERR_SUCCESS;
@@ -601,7 +599,7 @@ std::vector<
   std::pair<p7r::connector, p7r::connector>
 >
 setup_stream_connection_async(p7r::scheduler & sched, p7r::connector_type type,
-    p7r::util::url const & url, int num_clients = 1)
+    liberate::net::url const & url, int num_clients = 1)
 {
   // Server
   p7r::connector server{test_env->api, url};
@@ -699,7 +697,7 @@ setup_stream_connection_async(p7r::scheduler & sched, p7r::connector_type type,
 std::vector<
   std::pair<p7r::connector, p7r::connector>
 >
-setup_stream_connection(p7r::connector_type type, p7r::util::url const & url,
+setup_stream_connection(p7r::connector_type type, liberate::net::url const & url,
     int num_clients = 1)
 {
   // Server
@@ -785,7 +783,7 @@ TEST_P(ConnectorStream, blocking_messaging)
   // reliable delivery - in blocking mode, making the setup/teardown very simple.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.generator(true));
+  auto url = liberate::net::url::parse(td.generator(true));
   url.query["behaviour"] = "stream";
 
   auto res = setup_stream_connection(td.type, url);
@@ -808,7 +806,7 @@ TEST_P(ConnectorStream, non_blocking_messaging)
   // events with the scheduler.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.generator(false));
+  auto url = liberate::net::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
@@ -831,7 +829,7 @@ TEST_P(ConnectorStream, asynchronous_messaging)
   // messaging asynchronously.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.generator(false));
+  auto url = liberate::net::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
@@ -854,7 +852,7 @@ TEST_P(ConnectorStream, multiple_clients_blocking)
   // messages.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.generator(true));
+  auto url = liberate::net::url::parse(td.generator(true));
   url.query["behaviour"] = "stream";
 
   auto res = setup_stream_connection(td.type, url, 2);
@@ -883,7 +881,7 @@ TEST_P(ConnectorStream, multiple_clients_async)
   // messages.
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.generator(false));
+  auto url = liberate::net::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
@@ -962,7 +960,7 @@ TEST_P(ConnectorStream, peek_from_write)
   // Peek using
   auto td = GetParam();
 
-  auto url = p7r::util::url::parse(td.generator(false));
+  auto url = liberate::net::url::parse(td.generator(false));
   url.query["behaviour"] = "stream";
 
   p7r::scheduler sched(test_env->api, 0);
@@ -1047,7 +1045,7 @@ void send_message_dgram(p7r::connector & sender, p7r::connector & receiver,
   result.resize(amount);
 
   std::string received{result.begin(), result.end()};
-  DLOG("Sent '" << msg << "' and received '" << received << "'");
+  // std::cout << "Sent '" << msg << "' and received '" << received << "'" << std::endl;
   ASSERT_EQ(msg, received);
 }
 
@@ -1134,8 +1132,8 @@ std::pair<
   p7r::connector,
   std::vector<p7r::connector>
 >
-setup_dgram_connection(p7r::connector_type type, p7r::util::url const & server_url,
-    std::vector<p7r::util::url> const & client_urls, bool async = false)
+setup_dgram_connection(p7r::connector_type type, liberate::net::url const & server_url,
+    std::vector<liberate::net::url> const & client_urls, bool async = false)
 {
   // Server
   p7r::connector server{test_env->api, server_url};
@@ -1212,9 +1210,9 @@ TEST_P(ConnectorDGram, messaging)
   // un-reliable delivery.
   auto td = GetParam();
 
-  auto surl = p7r::util::url::parse(td.dgram_first);
+  auto surl = liberate::net::url::parse(td.dgram_first);
   surl.query["behaviour"] = "datagram";
-  auto curl = p7r::util::url::parse(td.dgram_second);
+  auto curl = liberate::net::url::parse(td.dgram_second);
   curl.query["behaviour"] = "datagram";
 
   auto res = setup_dgram_connection(td.type, surl, {curl});
@@ -1236,9 +1234,9 @@ TEST_P(ConnectorDGram, peek_from_send)
   // un-reliable delivery.
   auto td = GetParam();
 
-  auto surl = p7r::util::url::parse(td.dgram_first);
+  auto surl = liberate::net::url::parse(td.dgram_first);
   surl.query["behaviour"] = "datagram";
-  auto curl = p7r::util::url::parse(td.dgram_second);
+  auto curl = liberate::net::url::parse(td.dgram_second);
   curl.query["behaviour"] = "datagram";
 
   auto res = setup_dgram_connection(td.type, surl, {curl});
@@ -1260,11 +1258,11 @@ TEST_P(ConnectorDGram, multiple_clients_blocking)
   // messages.
   auto td = GetParam();
 
-  auto surl = p7r::util::url::parse(td.dgram_first);
+  auto surl = liberate::net::url::parse(td.dgram_first);
   surl.query["behaviour"] = "datagram";
-  auto curl1 = p7r::util::url::parse(td.dgram_second);
+  auto curl1 = liberate::net::url::parse(td.dgram_second);
   curl1.query["behaviour"] = "datagram";
-  auto curl2 = p7r::util::url::parse(td.dgram_third);
+  auto curl2 = liberate::net::url::parse(td.dgram_third);
   curl2.query["behaviour"] = "datagram";
 
   auto res = setup_dgram_connection(td.type, surl, {curl1, curl2});
@@ -1291,13 +1289,13 @@ TEST_P(ConnectorDGram, multiple_clients_async)
   // messages.
   auto td = GetParam();
 
-  auto surl = p7r::util::url::parse(td.dgram_first);
+  auto surl = liberate::net::url::parse(td.dgram_first);
   surl.query["behaviour"] = "datagram";
   surl.query["blocking"] = "0";
-  auto curl1 = p7r::util::url::parse(td.dgram_second);
+  auto curl1 = liberate::net::url::parse(td.dgram_second);
   curl1.query["behaviour"] = "datagram";
   curl1.query["blocking"] = "0";
-  auto curl2 = p7r::util::url::parse(td.dgram_third);
+  auto curl2 = liberate::net::url::parse(td.dgram_third);
   curl2.query["behaviour"] = "datagram";
   curl2.query["blocking"] = "0";
 
