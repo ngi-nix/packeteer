@@ -488,6 +488,9 @@ libincludes = include_directories(
 
 install_headers(
   'include' / 'packeteer.h',
+)
+
+install_headers(
   'include' / 'packeteer' / 'version.h',
   'include' / 'packeteer' / 'error.h',
   'include' / 'packeteer' / 'types.h',
