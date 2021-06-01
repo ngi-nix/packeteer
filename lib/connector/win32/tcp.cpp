@@ -42,9 +42,9 @@ select_domain(liberate::net::socket_address const & addr)
 
 } // anonymous namespace
 
-connector_tcp::connector_tcp(liberate::net::socket_address const & addr,
+connector_tcp::connector_tcp(peer_address const & addr,
     connector_options const & options)
-  : connector_socket(addr, options)
+  : connector_socket{addr, options}
 {
 }
 
@@ -60,8 +60,9 @@ connector_tcp::~connector_tcp()
 error_t
 connector_tcp::connect()
 {
-  return connector_socket::socket_connect(select_domain(m_addr), SOCK_STREAM,
-      IPPROTO_TCP);
+  return connector_socket::socket_connect(
+      select_domain(m_address.socket_address()),
+      SOCK_STREAM, IPPROTO_TCP);
 }
 
 
@@ -71,7 +72,8 @@ connector_tcp::listen()
 {
   // Attempt to bind
   handle::sys_handle_t handle = handle::INVALID_SYS_HANDLE;
-  error_t err = connector_socket::socket_bind(select_domain(m_addr),
+  error_t err = connector_socket::socket_bind(
+      select_domain(m_address.socket_address()),
       SOCK_STREAM, IPPROTO_TCP, handle);
   if (ERR_SUCCESS != err) {
     return err;
@@ -109,7 +111,9 @@ connector_tcp::accept(liberate::net::socket_address & addr)
   }
 
   // Create & return connector with accepted FD
-  connector_tcp * result = new connector_tcp(addr, m_options);
+  auto res_addr = m_address;
+  res_addr.socket_address() = addr;
+  connector_tcp * result = new connector_tcp{res_addr, m_options};
   result->m_server = true;
   result->m_connected = true;
   result->m_handle = handle;
