@@ -101,3 +101,21 @@ TEST(ExtConnectorTunTap, tap_listen)
   ASSERT_TRUE(conn.listening());
   ASSERT_TRUE(conn.connected());
 }
+
+
+TEST(ExtConnectorTunTap, auto_select_name)
+{
+  SKIP_IF_NOT_IMPLEMENTED;
+
+  p7r::connector conn;
+  ASSERT_NO_THROW(conn = p7r::connector(api, "tun:///"));
+  ASSERT_EQ("tun", conn.peer_addr().scheme());
+  ASSERT_EQ(liberate::net::socket_address{"/"}, conn.peer_addr().socket_address());
+
+  // Listen fills in the socket address with the actual device name being
+  // used.
+  auto err = conn.listen();
+  ASSERT_EQ(p7r::ERR_SUCCESS, err);
+  ASSERT_EQ("tun", conn.peer_addr().scheme());
+  ASSERT_NE(liberate::net::socket_address{"/"}, conn.peer_addr().socket_address());
+}
