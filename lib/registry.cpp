@@ -409,7 +409,7 @@ struct registry::registry_impl
         return entry.second;
       }
     }
-    throw exception(ERR_INVALID_VALUE, "Unknown connector type: " + type);
+    throw exception(ERR_INVALID_VALUE, "Unknown connector type: " + std::to_string(type));
   }
 };
 
