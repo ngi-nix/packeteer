@@ -294,8 +294,9 @@ create_tuntap_device(tuntap & dev)
 struct connector_tuntap : public ::packeteer::detail::connector_common
 {
 public:
-  connector_tuntap(tuntap_options const & tuntap, connector_options const & options)
-    : connector_common{peer_address{}, options}
+  connector_tuntap(peer_address const & addr,
+      tuntap_options const & tuntap, connector_options const & options)
+    : connector_common{addr, options}
     , m_tuntap{tuntap}
     , m_fd{-1}
   {
@@ -321,6 +322,9 @@ public:
     m_tuntap.mtu = dev.mtu;
     m_tuntap.txqueuelen = dev.txqueuelen;
     m_fd = dev.fd;
+
+    // Also update m_address
+    m_address.socket_address() = ::liberate::net::socket_address{std::string{"/"} + dev.name};
 
     DLOG("TUN/TAP device: " << (m_tuntap.type == DEVICE_TUN ? "TUN" : "TAP")
         << " " << m_tuntap.name << " mtu " << m_tuntap.mtu
@@ -450,7 +454,7 @@ tun_creator(std::shared_ptr<api> api [[maybe_unused]],
     return nullptr;
   }
 
-  return new connector_tuntap(opts, options);
+  return new connector_tuntap(peer_address{api, url}, opts, options);
 }
 
 
@@ -468,7 +472,7 @@ tap_creator(std::shared_ptr<api> api [[maybe_unused]],
     return nullptr;
   }
 
-  return new connector_tuntap(opts, options);
+  return new connector_tuntap(peer_address{api, url}, opts, options);
 }
 
 
@@ -494,7 +498,7 @@ register_connector_tuntap(std::shared_ptr<packeteer::api> api,
   api->reg().add_scheme("tun", tun_info);
 
   packeteer::registry::connector_info tap_info{
-    register_as,
+    register_as + 1,
     CO_DATAGRAM|CO_NON_BLOCKING,
     CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
     tap_creator,
