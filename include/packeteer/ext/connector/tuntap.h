@@ -37,6 +37,10 @@ namespace packeteer::ext {
  * The device type is selected via either the "tun" or "tap" schemes.
  * The path part is intended to provide the chosen device name.
  *
+ * Note: the register function will register two connector types, one for
+ * TUN and one for TAP connectors. That means the given register_as parameter
+ * and the parameter plus one are being allocated here.
+ *
  * Query parameters you can set are:
  * - mtu (integer)
  * - txqueuelen (integer)
