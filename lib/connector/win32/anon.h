@@ -37,8 +37,9 @@ namespace packeteer::detail {
 struct connector_anon : public connector_common
 {
 public:
-  explicit connector_anon(connector_options const & options);
-  ~connector_anon();
+  explicit connector_anon(peer_address const & addr,
+      connector_options const & options);
+  virtual ~connector_anon();
 
   error_t listen() override;
   bool listening() const override;

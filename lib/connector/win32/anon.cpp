@@ -32,8 +32,9 @@
 
 namespace packeteer::detail {
 
-connector_anon::connector_anon(connector_options const & options)
-  : connector_common(CO_STREAM | (options & CO_BLOCKING))
+connector_anon::connector_anon(peer_address const & addr,
+    connector_options const & options)
+  : connector_common{addr, CO_STREAM | (options & CO_BLOCKING)}
   , m_handles{{}, {}}
 {
 }

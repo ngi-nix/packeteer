@@ -235,7 +235,7 @@ connector_socket::connector_socket(peer_address const & addr,
 
 
 
-rror_t
+error_t
 connector_socket::socket_connect(int domain, int type, int proto)
 {
   if (connected() || listening()) {

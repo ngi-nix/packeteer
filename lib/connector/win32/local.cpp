@@ -241,7 +241,7 @@ connector_local::accept(liberate::net::socket_address & addr)
 
   // Create & return connector with accepted FD. Only the instance
   // that bound the socket is the file system entry owner, though.
-  connector_local * result = new connector_local(m_address.socket_address(), m_options);
+  connector_local * result = new connector_local(m_address, m_options);
   result->m_server = true;
   result->m_connected = true;
   result->m_owner = false;
