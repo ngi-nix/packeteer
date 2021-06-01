@@ -38,7 +38,7 @@ namespace packeteer::detail {
 struct connector_local : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_local(::liberate::net::socket_address const & addr,
+  connector_local(peer_address const & addr,
       connector_options const & options);
   virtual ~connector_local();
 
