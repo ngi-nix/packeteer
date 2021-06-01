@@ -49,7 +49,6 @@ namespace packeteer::ext {
  *   1. auto x = open(path, flags);
  *      auto conn = connector{api, "fd:///" + to_string(x)};
  *   2. auto conn = connector{api, "filedesc:///stderr"};
- *
  */
 PACKETEER_API
 error_t
