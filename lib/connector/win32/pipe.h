@@ -38,9 +38,7 @@ namespace packeteer::detail {
 struct connector_pipe : public connector_common
 {
 public:
-  connector_pipe(std::string const & path, connector_options const & options);
-  connector_pipe(::liberate::net::socket_address const & addr,
-      connector_options const & options);
+  connector_pipe(peer_address const & addr, connector_options const & options);
   ~connector_pipe();
 
   error_t listen() override;
@@ -68,7 +66,6 @@ public:
 private:
   connector_pipe();
 
-  ::liberate::net::socket_address   m_addr = {};
   bool                              m_server = false;
   bool                              m_owner = false;
   bool                              m_connected = false;

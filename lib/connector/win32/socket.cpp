@@ -227,23 +227,15 @@ close_socket(SOCKET sock)
 
 
 
-connector_socket::connector_socket(liberate::net::socket_address const & addr,
+connector_socket::connector_socket(peer_address const & addr,
     connector_options const & options)
-  : connector_common(options)
-  , m_addr(addr)
+  : connector_common{addr, options}
 {
 }
 
 
 
-connector_socket::connector_socket(connector_options const & options)
-  : connector_common(options)
-{
-}
-
-
-
-error_t
+rror_t
 connector_socket::socket_connect(int domain, int type, int proto)
 {
   if (connected() || listening()) {
@@ -251,7 +243,7 @@ connector_socket::socket_connect(int domain, int type, int proto)
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == liberate::net::AT_UNSPEC) {
+  if (m_address.socket_address().type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -267,8 +259,8 @@ connector_socket::socket_connect(int domain, int type, int proto)
   // Now try to connect the socket with the address
   while (true) {
     int ret = ::connect(h->socket,
-        reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
-        m_addr.bufsize());
+        reinterpret_cast<struct sockaddr const *>(m_address.socket_address().buffer()),
+        m_address.socket_address().bufsize());
     auto wsaerr = WSAGetLastError();
 
     if (ret != SOCKET_ERROR) {
@@ -336,7 +328,7 @@ connector_socket::socket_bind(int domain, int type, int proto, handle::sys_handl
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == liberate::net::AT_UNSPEC) {
+  if (m_address.socket_address().type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -351,8 +343,8 @@ connector_socket::socket_bind(int domain, int type, int proto, handle::sys_handl
 
   // Now try to bind the socket to the address
   int ret = ::bind(h->socket,
-      reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
-      m_addr.bufsize());
+      reinterpret_cast<struct sockaddr const *>(m_address.socket_address().buffer()),
+      m_address.socket_address().bufsize());
   if (ret == SOCKET_ERROR) {
     auto wsaerr = WSAGetLastError();
 
@@ -360,7 +352,7 @@ connector_socket::socket_bind(int domain, int type, int proto, handle::sys_handl
     h = handle::INVALID_SYS_HANDLE;
 
     ERR_LOG("connector_socket bind failed; address is: "
-        << m_addr.full_str(), wsaerr);
+        << m_address.socket_address().full_str(), wsaerr);
     return translate_system_error(wsaerr);
   }
   return ERR_SUCCESS;

@@ -57,7 +57,7 @@ set_blocking(SOCKET socket, bool blocking);
 struct connector_socket : public connector_common
 {
 public:
-  connector_socket(::liberate::net::socket_address const & addr,
+  connector_socket(peer_address const & addr,
       connector_options const & options);
 
   // Connector interface, partially implemented
@@ -88,7 +88,6 @@ public:
 protected:
   explicit connector_socket(connector_options const & options);
 
-  ::liberate::net::socket_address   m_addr = {};
   bool                              m_server = false;
   bool                              m_connected = false;
   ::packeteer::handle::sys_handle_t m_handle = ::packeteer::handle::INVALID_SYS_HANDLE;

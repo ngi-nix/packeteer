@@ -82,19 +82,9 @@ create_new_pipe_instance(handle & handle, std::string const & path, bool blockin
 
 } // anonymous namespace
 
-connector_pipe::connector_pipe(std::string const & path,
+connector_pipe::connector_pipe(peer_address const & addr,
     connector_options const & options)
-  : connector_common((options | CO_STREAM) & ~CO_DATAGRAM)
-  , m_addr{path}
-{
-}
-
-
-
-connector_pipe::connector_pipe(liberate::net::socket_address const & addr,
-    connector_options const & options)
-  : connector_common((options | CO_STREAM) & ~CO_DATAGRAM)
-  , m_addr{addr}
+  : connector_common{addr, (options | CO_STREAM) & ~CO_DATAGRAM}
 {
 }
 
@@ -115,7 +105,7 @@ connector_pipe::connect()
   }
 
   auto err = detail::connect_to_pipe(m_handle,
-      m_addr.full_str(),
+      m_address.socket_address().full_str(),
       is_blocking(),
       true, // Readable
       true  // Writable
@@ -144,7 +134,7 @@ connector_pipe::listen()
     return ERR_INITIALIZATION;
   }
 
-  error_t err = create_new_pipe_instance(m_handle, m_addr.full_str(),
+  error_t err = create_new_pipe_instance(m_handle, m_address.socket_address().full_str(),
       is_blocking());
 
   if (ERR_SUCCESS == err) {
@@ -207,7 +197,7 @@ connector_pipe::accept(liberate::net::socket_address & /* unused */)
   // If we reached here, we've got a connection on our handle. This is great;
   // we need to pass the handle out as the return value. But we *also* have to
   // create a new pipe instance, because the old one will be busy.
-  auto ret = new connector_pipe(m_addr, m_options);
+  auto ret = new connector_pipe(m_address, m_options);
   ret->m_handle = m_handle;
   ret->m_server = true;
   ret->m_connected = true;
@@ -216,7 +206,7 @@ connector_pipe::accept(liberate::net::socket_address & /* unused */)
   m_handle = handle{};
   m_server = false;
 
-  error_t err = create_new_pipe_instance(m_handle, m_addr.full_str(),
+  error_t err = create_new_pipe_instance(m_handle, m_address.socket_address().full_str(),
       is_blocking());
   if (ERR_SUCCESS == err) {
     m_server = true;
@@ -287,7 +277,7 @@ connector_pipe::receive(void * buf, size_t bufsize, size_t & bytes_read,
   auto err = detail::read(get_read_handle(), buf, bufsize, have_read);
   if (ERR_SUCCESS == err) {
     bytes_read = have_read;
-    sender = liberate::net::socket_address{m_addr};
+    sender = liberate::net::socket_address{m_address.socket_address()};
   }
   return err;
 }

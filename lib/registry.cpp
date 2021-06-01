@@ -298,8 +298,7 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        // FIXME
-        return new detail::connector_pipe(url.path, opts);
+        return new detail::connector_pipe(peer_address{api, url}, opts);
       }}));
 #endif
 
