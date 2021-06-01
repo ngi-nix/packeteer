@@ -34,8 +34,9 @@
 
 namespace packeteer::detail {
 
-connector_anon::connector_anon(connector_options const & options)
-  : connector_common{peer_address{}, options}
+connector_anon::connector_anon(peer_address const & addr,
+    connector_options const & options)
+  : connector_common{addr, options}
 {
 }
 

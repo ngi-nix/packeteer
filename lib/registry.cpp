@@ -277,7 +277,7 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        return new detail::connector_anon{opts};
+        return new detail::connector_anon{peer_address{api, url}, opts};
       }}));
 
 #if defined(PACKETEER_WIN32)
