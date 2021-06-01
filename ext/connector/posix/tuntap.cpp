@@ -498,7 +498,7 @@ register_connector_tuntap(std::shared_ptr<packeteer::api> api,
   api->reg().add_scheme("tun", tun_info);
 
   packeteer::registry::connector_info tap_info{
-    register_as + 1,
+    ++register_as,
     CO_DATAGRAM|CO_NON_BLOCKING,
     CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
     tap_creator,
