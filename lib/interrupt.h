@@ -36,7 +36,10 @@ namespace packeteer::detail {
  *
  * clear_interrupt() returns true if an interrupt was issued, false otherwise.
  **/
+PACKETEER_PRIVATE
 void set_interrupt(connector & signal);
+
+PACKETEER_PRIVATE
 bool clear_interrupt(connector & signal);
 
 } // namespace packeteer::detail
