@@ -104,9 +104,9 @@ create_socketpair(
 
 
 
-connector_local::connector_local(liberate::net::socket_address const & addr,
+connector_local::connector_local(peer_address const & addr,
     connector_options const & options)
-  : connector_socket(addr, options)
+  : connector_socket{addr, options}
 {
 }
 
@@ -122,7 +122,7 @@ connector_local::~connector_local()
 bool
 connector_local::listening() const
 {
-  if (m_addr.type() == liberate::net::AT_UNSPEC) {
+  if (m_address.socket_address().type() == liberate::net::AT_UNSPEC) {
     return m_fd != -1 && m_other_fd != -1;
   }
   return connector_socket::listening();
@@ -133,7 +133,7 @@ connector_local::listening() const
 bool
 connector_local::connected() const
 {
-  if (m_addr.type() == liberate::net::AT_UNSPEC) {
+  if (m_address.socket_address().type() == liberate::net::AT_UNSPEC) {
     return m_fd != -1 && m_other_fd != -1;
 
   }
@@ -155,7 +155,7 @@ connector_local::get_read_handle() const
 handle
 connector_local::get_write_handle() const
 {
-  if (m_addr.type() == liberate::net::AT_UNSPEC) {
+  if (m_address.socket_address().type() == liberate::net::AT_UNSPEC) {
     return m_other_fd;
   }
   return m_fd;
@@ -172,7 +172,7 @@ connector_local::connect()
 
   // Deal with unnamed sockets
   bool done = false;
-  auto err = create_socketpair(m_addr, m_options, m_fd, m_other_fd,
+  auto err = create_socketpair(m_address.socket_address(), m_options, m_fd, m_other_fd,
       done);
   if (done) {
     m_server = true;
@@ -193,7 +193,7 @@ connector_local::listen()
 
   // Deal with unnamed sockets
   bool done = false;
-  auto err = create_socketpair(m_addr, m_options, m_fd, m_other_fd,
+  auto err = create_socketpair(m_address.socket_address(), m_options, m_fd, m_other_fd,
       done);
   if (done) {
     ERR_LOG("Created socketpair", err);
@@ -235,10 +235,10 @@ connector_local::close()
   error_t err = connector_socket::socket_close();
 
   if (m_owner) {
-    auto str = m_addr.full_str();
+    auto str = m_address.socket_address().full_str();
     if (str[0] != '\0') {
-      DLOG("Server closing; remove file system entry: " << m_addr);
-      auto ret = ::unlink(m_addr.full_str().c_str());
+      DLOG("Server closing; remove file system entry: " << m_address.socket_address());
+      auto ret = ::unlink(m_address.socket_address().full_str().c_str());
       if (ret < 0) {
         ERRNO_LOG("Unlink failed");
       }
@@ -272,11 +272,13 @@ connector_local::accept(liberate::net::socket_address & addr)
   if (ERR_SUCCESS != err) {
     return nullptr;
   }
-  addr = m_addr;
+  addr = m_address.socket_address();
 
   // Create & return connector with accepted FD. Only the instance
   // that bound the socket is the file system entry owner, though.
-  connector_local * result = new connector_local(m_addr, m_options);
+  auto res_addr = m_address;
+  res_addr.socket_address() = addr;
+  connector_local * result = new connector_local{res_addr, m_options};
   result->m_server = true;
   result->m_connected = true;
   result->m_owner = false;

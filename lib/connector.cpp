@@ -131,7 +131,7 @@ struct connector::connector_impl
     DLOG("Got connector options: " << options << " for type " << ctype);
 
     // Try to create the implementation
-    auto iconn = m_creator(m_url, ctype, options, &info);
+    auto iconn = m_creator(m_api, m_url, ctype, options, &info);
     if (!iconn) {
       throw exception(ERR_INITIALIZATION, "Could not instantiate connector "
           "scheme.");

@@ -38,8 +38,7 @@ namespace packeteer::detail {
 struct connector_fifo : public connector_common
 {
 public:
-  connector_fifo(std::string const & path, connector_options const & options);
-  connector_fifo(::liberate::net::socket_address const & addr,
+  connector_fifo(peer_address const & addr,
       connector_options const & options);
   ~connector_fifo();
 
@@ -61,7 +60,6 @@ public:
 private:
   connector_fifo();
 
-  ::liberate::net::socket_address   m_addr = {};
   bool                              m_server = false;
   bool                              m_owner = false;
   bool                              m_connected = false;

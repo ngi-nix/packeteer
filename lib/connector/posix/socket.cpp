@@ -116,17 +116,9 @@ create_socket(int domain, int type, int & fd, bool blocking)
 
 
 
-connector_socket::connector_socket(liberate::net::socket_address const & addr,
+connector_socket::connector_socket(peer_address const & addr,
     connector_options const & options)
-  : connector_common(options)
-  , m_addr(addr)
-{
-}
-
-
-
-connector_socket::connector_socket(connector_options const & options)
-  : connector_common(options)
+  : connector_common{addr, options}
 {
 }
 
@@ -144,7 +136,7 @@ connector_socket::socket_connect(int domain, int type)
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == liberate::net::AT_UNSPEC) {
+  if (m_address.socket_address().type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -159,8 +151,9 @@ connector_socket::socket_connect(int domain, int type)
   // Now try to connect the socket with the path
   while (true) {
     int ret = ::connect(fd,
-        reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
-        m_addr.bufsize());
+        reinterpret_cast<struct sockaddr const *>(
+          m_address.socket_address().buffer()),
+          m_address.socket_address().bufsize());
     if (ret >= 0) {
       // Finally, set the fd
       m_fd = fd;
@@ -257,7 +250,7 @@ connector_socket::socket_bind(int domain, int type, int & fd)
   }
 
   // https://gitlab.com/interpeer/packeteer/-/issues/18
-  if (m_addr.type() == liberate::net::AT_UNSPEC) {
+  if (m_address.socket_address().type() == liberate::net::AT_UNSPEC) {
     ELOG("Unnamed CT_LOCAL connectors are not supported yet.");
     return ERR_INVALID_VALUE;
   }
@@ -271,15 +264,17 @@ connector_socket::socket_bind(int domain, int type, int & fd)
 
   // Now try to bind the socket to the address
   int ret = ::bind(fd,
-      reinterpret_cast<struct sockaddr const *>(m_addr.buffer()),
-      m_addr.bufsize());
+      reinterpret_cast<struct sockaddr const *>(
+        m_address.socket_address().buffer()),
+        m_address.socket_address().bufsize());
   if (ret >= 0) {
     return ERR_SUCCESS;
   }
 
   ::close(fd);
 
-  ERRNO_LOG("connector_socket bind failed; address is: " << m_addr.full_str());
+  ERRNO_LOG("connector_socket bind failed; address is: "
+      << m_address.socket_address().full_str());
   switch (errno) {
     case EACCES:
       return ERR_ACCESS_VIOLATION;
@@ -311,7 +306,7 @@ connector_socket::socket_bind(int domain, int type, int & fd)
     case ENOTDIR:
     case EROFS:
       // If this is due to an abstract address, return a different error.
-      if (m_addr.full_str()[0] == '\0') {
+      if (m_address.socket_address().full_str()[0] == '\0') {
         return ERR_INVALID_OPTION;
       }
       return ERR_FS_ERROR;

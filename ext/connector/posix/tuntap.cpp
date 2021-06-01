@@ -295,9 +295,9 @@ struct connector_tuntap : public ::packeteer::detail::connector_common
 {
 public:
   connector_tuntap(tuntap_options const & tuntap, connector_options const & options)
-    : connector_common(options)
-    , m_tuntap(tuntap)
-    , m_fd(-1)
+    : connector_common{peer_address{}, options}
+    , m_tuntap{tuntap}
+    , m_fd{-1}
   {
   }
 
@@ -438,7 +438,8 @@ parse_tuntap_options(tuntap_options & opts, device_type type, liberate::net::url
 
 
 packeteer::connector_interface *
-tun_creator(liberate::net::url const & url,
+tun_creator(std::shared_ptr<api> api [[maybe_unused]],
+    liberate::net::url const & url,
     packeteer::connector_type const &,
     packeteer::connector_options const & options,
     packeteer::registry::connector_info const *)
@@ -455,7 +456,8 @@ tun_creator(liberate::net::url const & url,
 
 
 packeteer::connector_interface *
-tap_creator(liberate::net::url const & url,
+tap_creator(std::shared_ptr<api> api [[maybe_unused]],
+    liberate::net::url const & url,
     packeteer::connector_type const &,
     packeteer::connector_options const & options,
     packeteer::registry::connector_info const *)

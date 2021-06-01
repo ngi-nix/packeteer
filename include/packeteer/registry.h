@@ -121,6 +121,7 @@ public:
 
   using scheme_creator = std::function<
     ::packeteer::connector_interface * (
+        std::shared_ptr<api>,
         liberate::net::url const &,
         connector_type const & type,
         connector_options const &,

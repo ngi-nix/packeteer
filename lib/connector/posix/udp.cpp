@@ -54,9 +54,9 @@ select_domain(liberate::net::socket_address const & addr)
 
 } // anonymous namespace
 
-connector_udp::connector_udp(liberate::net::socket_address const & addr,
+connector_udp::connector_udp(peer_address const & addr,
     connector_options const & options)
-  : connector_socket(addr, options)
+  : connector_socket{addr, options}
 {
 }
 
@@ -72,7 +72,9 @@ connector_udp::~connector_udp()
 error_t
 connector_udp::connect()
 {
-  return connector_socket::socket_connect(select_domain(m_addr), SOCK_DGRAM);
+  return connector_socket::socket_connect(
+      select_domain(m_address.socket_address()),
+      SOCK_DGRAM);
 }
 
 
@@ -82,7 +84,8 @@ connector_udp::listen()
 {
   // Attempt to bind
   int fd = -1;
-  error_t err = connector_socket::socket_bind(select_domain(m_addr),
+  error_t err = connector_socket::socket_bind(
+      select_domain(m_address.socket_address()),
       SOCK_DGRAM, fd);
   if (ERR_SUCCESS != err) {
     return err;

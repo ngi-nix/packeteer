@@ -38,9 +38,9 @@ namespace packeteer::detail {
 struct connector_tcp : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_tcp(::liberate::net::socket_address const & addr,
+  connector_tcp(peer_address const & addr,
       connector_options const & options);
-  ~connector_tcp();
+  virtual ~connector_tcp();
 
   error_t listen() override;
 

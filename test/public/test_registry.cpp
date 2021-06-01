@@ -136,6 +136,7 @@ struct test_connector : packeteer::connector_interface
 
   virtual bool is_blocking() const { return true; }
   virtual packeteer::connector_options get_options() const { return packeteer::CO_DEFAULT; }
+  virtual packeteer::peer_address peer_addr() const { return {}; }
 
   virtual packeteer::error_t receive(void *, size_t, size_t &,
       ::liberate::net::socket_address &) { return packeteer::ERR_SUCCESS; }
@@ -168,7 +169,7 @@ TEST(Registry, scheme_empty_name)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (std::shared_ptr<packeteer::api>, liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -186,7 +187,7 @@ TEST(Registry, scheme_bad_type)
 
   auto info = registry::connector_info{CT_UNSPEC, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (std::shared_ptr<packeteer::api>, liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -219,7 +220,7 @@ TEST(Registry, scheme_register_success)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (std::shared_ptr<packeteer::api>, liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -237,7 +238,7 @@ TEST(Registry, scheme_fail_instantiation)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (std::shared_ptr<packeteer::api>, liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return nullptr;
     }
@@ -260,7 +261,7 @@ TEST(Registry, scheme_instantiation)
 
   auto info = registry::connector_info{CT_USER + 42, CO_STREAM|CO_NON_BLOCKING,
     CO_STREAM|CO_NON_BLOCKING|CO_BLOCKING|(CT_USER + 42),
-    [] (liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
+    [] (std::shared_ptr<packeteer::api>, liberate::net::url const &, connector_type const &, connector_options const &, registry::connector_info const *) -> connector_interface *
     {
       return new test_connector{};
     }

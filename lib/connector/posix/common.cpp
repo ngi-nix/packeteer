@@ -81,8 +81,10 @@ translate_errno()
 
 
 
-connector_common::connector_common(connector_options const & options)
+connector_common::connector_common(peer_address const & addr,
+    connector_options const & options)
   : m_options(options)
+  , m_address{addr}
 {
   DLOG("connector_common::connector_common(" << options << ")");
 }
@@ -277,6 +279,13 @@ connector_options
 connector_common::get_options() const
 {
   return m_options;
+}
+
+
+peer_address
+connector_common::peer_addr() const
+{
+  return m_address;
 }
 
 

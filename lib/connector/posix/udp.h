@@ -38,9 +38,9 @@ namespace packeteer::detail {
 struct connector_udp : public ::packeteer::detail::connector_socket
 {
 public:
-  connector_udp(::liberate::net::socket_address const & addr,
+  connector_udp(peer_address const & addr,
       connector_options const & options);
-  ~connector_udp();
+  virtual ~connector_udp();
 
   error_t listen() override;
 

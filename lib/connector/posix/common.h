@@ -36,7 +36,8 @@ namespace packeteer::detail {
 struct connector_common : public ::packeteer::connector_interface
 {
 public:
-  explicit connector_common(connector_options const & options);
+  explicit connector_common(peer_address const & addr,
+      connector_options const & options);
   virtual ~connector_common();
 
   // Common connector implementations
@@ -50,9 +51,11 @@ public:
   error_t write(void const * buf, size_t bufsize, size_t & bytes_written) override;
 
   connector_options get_options() const override;
+  peer_address peer_addr() const override;
 protected:
   // Derived classes should be able to ues these directly.
   connector_options m_options;
+  peer_address      m_address;
 
 private:
   connector_common();

@@ -159,19 +159,10 @@ translate_open_error()
 
 } // anonymous namespace
 
-connector_fifo::connector_fifo(std::string const & path,
+
+connector_fifo::connector_fifo(peer_address const & addr,
     connector_options const & options)
-  : connector_common(options)
-  , m_addr{path}
-{
-}
-
-
-
-connector_fifo::connector_fifo(liberate::net::socket_address const & addr,
-    connector_options const & options)
-  : connector_common(options)
-  , m_addr{addr}
+  : connector_common{addr, options}
 {
 }
 
@@ -198,7 +189,7 @@ connector_fifo::connect()
   }
   int fd = -1;
   while (true) {
-    fd = ::open(m_addr.full_str().c_str(), mode);
+    fd = ::open(m_address.socket_address().full_str().c_str(), mode);
     if (fd >= 0) {
       // All good!
       break;
@@ -233,7 +224,7 @@ connector_fifo::listen()
   }
 
   // First, create fifo
-  error_t err = create_fifo(m_addr.full_str());
+  error_t err = create_fifo(m_address.socket_address().full_str());
   if (ERR_SUCCESS != err) {
     return err;
   }
@@ -245,7 +236,7 @@ connector_fifo::listen()
   }
   int fd = -1;
   while (true) {
-    fd = ::open(m_addr.full_str().c_str(), mode);
+    fd = ::open(m_address.socket_address().full_str().c_str(), mode);
     if (fd >= 0) {
       // All good!
       break;
@@ -308,9 +299,10 @@ connector_fifo::accept(liberate::net::socket_address & addr)
     return nullptr;
   }
 
+  addr = m_address.socket_address();
+
   // Alright, create a new connector
-  auto * ret = new connector_fifo(m_addr, get_options());
-  ret->m_addr = addr = m_addr;
+  connector_fifo * ret = new connector_fifo{m_address, get_options()};
   ret->m_server = m_server;
   ret->m_owner = false;
   ret->m_connected = true;
@@ -349,8 +341,9 @@ connector_fifo::close()
   ::close(m_handle.sys_handle());
 
   if (m_owner) {
-    DLOG("Server closing; remove file system entry: " << m_addr.full_str());
-    ::unlink(m_addr.full_str().c_str());
+    DLOG("Server closing; remove file system entry: "
+        << m_address.socket_address().full_str());
+    ::unlink(m_address.socket_address().full_str().c_str());
   }
 
   m_handle = handle{};

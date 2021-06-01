@@ -43,7 +43,8 @@ namespace packeteer {
 namespace {
 
 connector_interface *
-inet_creator(liberate::net::url const & url, connector_type const & ctype,
+inet_creator(std::shared_ptr<api> api,
+    liberate::net::url const & url, connector_type const & ctype,
     connector_options const & options, registry::connector_info const * info)
   OCLINT_SUPPRESS("high cyclomatic complexity")
   OCLINT_SUPPRESS("long method")
@@ -53,10 +54,10 @@ inet_creator(liberate::net::url const & url, connector_type const & ctype,
   }
 
   // Parse socket address.
-  auto addr = liberate::net::socket_address{url.authority};
+  auto addr = peer_address{api, url};
 
   // Make sure the parsed address type matches the protocol.
-  if (liberate::net::AT_INET4 == addr.type()) {
+  if (liberate::net::AT_INET4 == addr.socket_address().type()) {
     if (CT_TCP4 != ctype
         && CT_TCP != ctype
         && CT_UDP4 != ctype
@@ -65,7 +66,7 @@ inet_creator(liberate::net::url const & url, connector_type const & ctype,
       throw exception(ERR_FORMAT, "IPv4 address provided with IPv6 scheme.");
     }
   }
-  else if (liberate::net::AT_INET6 == addr.type()) {
+  else if (liberate::net::AT_INET6 == addr.socket_address().type()) {
     if (CT_TCP6 != ctype
         && CT_TCP != ctype
         && CT_UDP6 != ctype
@@ -231,8 +232,6 @@ struct registry::registry_impl
       return;
     }
 
-    std::weak_ptr<api> wapi{m_api};
-
   // Register TCP and UDP schemes.
   FAIL_FAST(add_scheme("tcp4", connector_info{CT_TCP4,
       CO_STREAM|CO_NON_BLOCKING,
@@ -264,7 +263,8 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("anon", connector_info{CT_ANON,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (liberate::net::url const & url, connector_type const &,
+      [] (std::shared_ptr<api> api [[maybe_unused]],
+          liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -277,7 +277,7 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        return new detail::connector_anon(opts);
+        return new detail::connector_anon{opts};
       }}));
 
 #if defined(PACKETEER_WIN32)
@@ -285,7 +285,8 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("pipe", connector_info{CT_PIPE,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (liberate::net::url const & url, connector_type const &,
+      [] (std::shared_ptr<api> api [[maybe_unused]],
+          liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -297,6 +298,7 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
+        // FIXME
         return new detail::connector_pipe(url.path, opts);
       }}));
 #endif
@@ -306,7 +308,8 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("fifo", connector_info{CT_FIFO,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [] (liberate::net::url const & url, connector_type const &,
+      [] (std::shared_ptr<api> api [[maybe_unused]],
+          liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -318,7 +321,7 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        return new detail::connector_fifo(url.path, opts);
+        return new detail::connector_fifo{peer_address{api, url}, opts};
       }}));
 #endif
 
@@ -327,7 +330,8 @@ struct registry::registry_impl
   FAIL_FAST(add_scheme("local", connector_info{CT_LOCAL,
       CO_STREAM|CO_NON_BLOCKING,
       CO_STREAM|CO_DATAGRAM|CO_BLOCKING|CO_NON_BLOCKING,
-      [wapi] (liberate::net::url const & url, connector_type const &,
+      [] (std::shared_ptr<api> api [[maybe_unused]],
+          liberate::net::url const & url, connector_type const &,
           connector_options const & options, connector_info const * info)
         -> connector_interface *
       {
@@ -335,13 +339,7 @@ struct registry::registry_impl
         auto opts = detail::sanitize_options(options, info->default_options,
             info->possible_options);
 
-        try {
-          peer_address addr{std::shared_ptr<api>{wapi}, url};
-          return new detail::connector_local{addr.socket_address(), opts};
-        } catch(std::bad_weak_ptr const & ex) {
-          ELOG("API is already being destroyed.");
-          return nullptr;
-        }
+        return new detail::connector_local{peer_address{api, url}, opts};
       }}));
 #endif
   }

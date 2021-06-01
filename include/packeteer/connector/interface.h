@@ -31,6 +31,7 @@
 #include <packeteer/error.h>
 
 #include <packeteer/connector/types.h>
+#include <packeteer/connector/peer_address.h>
 
 #include <liberate/net/socket_address.h>
 
@@ -80,6 +81,11 @@ public:
    */
   virtual connector_options get_options() const = 0;
   virtual bool is_blocking() const = 0;
+
+  /**
+   * Retrieve the peer_address this connector is representing.
+   */
+  virtual peer_address peer_addr() const = 0;
 
   /***************************************************************************
    * Default (POSIX-oriented) implementations; may be subclassed if necessary.

@@ -42,8 +42,8 @@ struct connector_filedesc : public ::packeteer::detail::connector_common
 {
 public:
   connector_filedesc(int fd, connector_options const & options)
-    : connector_common(options)
-    , m_fd(fd)
+    : connector_common{peer_address{}, options}
+    , m_fd{fd}
   {
   }
 
@@ -111,7 +111,8 @@ private:
 namespace {
 
 packeteer::connector_interface *
-filedesc_creator(liberate::net::url const & url,
+filedesc_creator(std::shared_ptr<api> api [[maybe_unused]],
+    liberate::net::url const & url,
     packeteer::connector_type const &,
     packeteer::connector_options const & options,
     packeteer::registry::connector_info const * info)

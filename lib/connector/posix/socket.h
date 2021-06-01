@@ -36,7 +36,7 @@ namespace packeteer::detail {
 struct connector_socket : public ::packeteer::detail::connector_common
 {
 public:
-  connector_socket(::liberate::net::socket_address const & addr,
+  connector_socket(peer_address const & addr,
       connector_options const & options);
 
   // Connector interface, partially implemented
@@ -57,9 +57,6 @@ public:
   error_t socket_close();
 
 protected:
-  explicit connector_socket(connector_options const & options);
-
-  ::liberate::net::socket_address   m_addr = {};
   bool                              m_server = false;
   bool                              m_connected = false;
   int                               m_fd = -1;
