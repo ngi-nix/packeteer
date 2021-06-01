@@ -57,7 +57,7 @@ select_domain(liberate::net::socket_address const & addr)
 
 connector_tcp::connector_tcp(peer_address const & addr,
     connector_options const & options)
-  : connector_socket(addr, options)
+  : connector_socket{addr, options}
 {
 }
 
