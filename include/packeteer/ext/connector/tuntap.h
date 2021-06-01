@@ -31,7 +31,19 @@
 namespace packeteer::ext {
 
 /**
- * FIXME
+ * Registers a connector type for TUN or TAP devices, where the
+ * platform supports them.
+ *
+ * The device type is selected via either the "tun" or "tap" schemes.
+ * The path part is intended to provide the chosen device name.
+ *
+ * Query parameters you can set are:
+ * - mtu (integer)
+ * - txqueuelen (integer)
+ *
+ * Examples:
+ *   1. auto conn = connector{api, "tun:///foo"};
+ *   2. auto conn = connector{api, "tap:///bar"};
  */
 PACKETEER_API
 error_t
