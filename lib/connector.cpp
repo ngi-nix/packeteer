@@ -59,7 +59,6 @@ struct connector::connector_impl
   registry::scheme_creator  m_creator;
 
   liberate::net::url        m_url;
-  peer_address              m_address;
   connector_interface *     m_iconn;
 
   size_t                    m_hash_seed = rand();
@@ -72,7 +71,6 @@ struct connector::connector_impl
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
-    , m_address(api, m_url)
     , m_iconn(iconn)
   {
     // We don't really need to validate the address here any further, because
@@ -95,7 +93,6 @@ struct connector::connector_impl
     , m_default_options(CO_DEFAULT)
     , m_possible_options(CO_DEFAULT)
     , m_url(connect_url)
-    , m_address(api, m_url)
     , m_iconn(nullptr)
   {
     // Find the scheme spec
@@ -234,10 +231,10 @@ connector::connect_url() const
 liberate::net::socket_address
 connector::socket_address() const
 {
-  if (!m_impl) {
+  if (!m_impl && !*m_impl) {
     throw exception(ERR_INITIALIZATION, "Connector not initialized.");
   }
-  return m_impl->m_address.socket_address();
+  return (*m_impl)->peer_addr().socket_address();
 }
 
 
@@ -245,10 +242,10 @@ connector::socket_address() const
 peer_address
 connector::peer_addr() const
 {
-  if (!m_impl) {
+  if (!m_impl && !*m_impl) {
     throw exception(ERR_INITIALIZATION, "Connector not initialized.");
   }
-  return m_impl->m_address;
+  return (*m_impl)->peer_addr();
 }
 
 
@@ -429,7 +426,7 @@ connector::receive(void * buf, size_t bufsize, size_t & bytes_read,
 
   error_t err = (*m_impl)->receive(buf, bufsize, bytes_read,
       sender.socket_address());
-  sender.conn_type() = m_impl->m_address.conn_type();
+  sender.conn_type() = (*m_impl)->peer_addr().conn_type();
   return err;
 }
 
