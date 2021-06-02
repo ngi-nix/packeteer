@@ -108,7 +108,7 @@ TEST(ExtConnectorTunTap, auto_select_name)
   SKIP_IF_NOT_IMPLEMENTED;
 
   p7r::connector conn;
-  ASSERT_NO_THROW(conn = p7r::connector(api, "tun:///"));
+  ASSERT_NO_THROW(conn = p7r::connector(api, "tun:///?mtu=200"));
   ASSERT_EQ("tun", conn.peer_addr().scheme());
   ASSERT_EQ(liberate::net::socket_address{"/"}, conn.peer_addr().socket_address());
 
@@ -118,4 +118,7 @@ TEST(ExtConnectorTunTap, auto_select_name)
   ASSERT_EQ(p7r::ERR_SUCCESS, err);
   ASSERT_EQ("tun", conn.peer_addr().scheme());
   ASSERT_NE(liberate::net::socket_address{"/"}, conn.peer_addr().socket_address());
+  auto url = conn.connect_url();
+  ASSERT_GT(url.path.size(), 1);
+  ASSERT_NE(url.query.end(), url.query.find("mtu"));
 }

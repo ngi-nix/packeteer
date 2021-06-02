@@ -173,6 +173,18 @@ struct connector::connector_impl
   }
 
 
+  inline void update_url_from_peer()
+  {
+    auto new_url = liberate::net::url::parse(m_iconn->peer_addr().str());
+    new_url.query = m_url.query;
+    new_url.fragment = m_url.fragment;
+    if (m_url != new_url) {
+      m_url = new_url;
+      LIBLOG_DEBUG("Connect URL changed to: " << m_url);
+    }
+  }
+
+
   void update_hash()
   {
     size_t value = liberate::cpp::multi_hash(
@@ -256,7 +268,11 @@ connector::listen()
   if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return (*m_impl)->listen();
+  auto err = (*m_impl)->listen();
+  if (ERR_SUCCESS == err) {
+    m_impl->update_url_from_peer();
+  }
+  return err;
 }
 
 
@@ -267,7 +283,11 @@ connector::connect()
   if (!m_impl || !*m_impl) {
     return ERR_INITIALIZATION;
   }
-  return (*m_impl)->connect();
+  auto err = (*m_impl)->connect();
+  if (ERR_SUCCESS == err) {
+    m_impl->update_url_from_peer();
+  }
+  return err;
 }
 
 
