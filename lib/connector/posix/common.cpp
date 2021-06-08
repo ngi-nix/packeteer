@@ -200,11 +200,12 @@ connector_common::read(void * buf, size_t bufsize, size_t & bytes_read)
 
     bytes_read = 0;
 
+    if (errno == EAGAIN) {
+      return ERR_ASYNC;
+    }
+
     ERRNO_LOG("Error reading from file descriptor");
     switch (errno) {
-      case EAGAIN:
-        return ERR_ASYNC;
-
       case EINTR: // handle signal interrupts
         continue;
 
