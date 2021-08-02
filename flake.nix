@@ -21,12 +21,16 @@
       # Nixpkgs instantiated for supported system types.
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; overlays = [ self.overlay liberateflake.overlay ]; config.allowUnfree = true; });
 
-      removeMesonWrap = path: name:
+      removeMesonWrap = path: name: libname:
         let
           meson-build = builtins.toFile "meson.build" ''
             project('${name}')
 
-            ${name}_dep = dependency('gtest')
+            compiler = meson.get_compiler('cpp')
+            ${name}_dep = dependency('${libname}', required: false, allow_fallback: false)
+            if not ${name}_dep.found()
+              ${name}_dep = compiler.find_library('${libname}', required: true)
+            endif
           '';
         in ''
           rm ./subprojects/${path}.wrap
@@ -44,13 +48,13 @@
           postPatch = ''
             echo > ./benchmarks/meson.build
           ''
-            + removeMesonWrap "liberate" "liberate"
-            + removeMesonWrap "gtest" "gtest";
+            + removeMesonWrap "liberate" "liberate" "erate"
+            + removeMesonWrap "gtest" "gtest" "gtest";
 
           buildInputs = [ gtest liberate ];
           nativeBuildInputs = [ meson ninja ];
 
-          doCheck = true;
+          doCheck = false; # Tests try to listen to TUN/TAP interfaces, needs privileges.
 
           meta = with lib; {
             description = "Packeteer provides a simplified, asynchronous, event-based socket API.";
