@@ -1,0 +1,62 @@
+{
+  "nodes": {
+    "liberate": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1627933854,
+        "narHash": "sha256-lb36PmTGQc5oLIp3+9sxyjFHTs/R/PMOyGdysDfPYJk=",
+        "owner": "ngi-nix",
+        "repo": "liberate",
+        "rev": "1e07815a680b693f7440da29dc2cf0a4877e42bf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ngi-nix",
+        "repo": "liberate",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1627805549,
+        "narHash": "sha256-+LHhcpzw6vAxF6q0VSLkZSEGpDC02JN21KM8eUWz+is=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "16bf3980bfa0d8929639be93fa8491ebad9d61ec",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-21.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1627805549,
+        "narHash": "sha256-+LHhcpzw6vAxF6q0VSLkZSEGpDC02JN21KM8eUWz+is=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "16bf3980bfa0d8929639be93fa8491ebad9d61ec",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-21.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "liberate": "liberate",
+        "nixpkgs": "nixpkgs_2"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
