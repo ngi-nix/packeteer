@@ -91,5 +91,7 @@
         });
 
       defaultPackage = forAllSystems (system: self.packages.${system}.packeteer);
+
+      hydraJobs.packeteer = self.defaultPackage;
     };
 }
