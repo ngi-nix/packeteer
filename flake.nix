@@ -4,6 +4,7 @@
   # Nixpkgs / NixOS version to use.
   inputs.nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-21.05";
   inputs.liberate.url = "github:ngi-nix/liberate";
+  inputs.liberate.inputs.nixpkgs.follows = "nixpkgs";
 
   outputs = { self, nixpkgs, liberate }:
     let
